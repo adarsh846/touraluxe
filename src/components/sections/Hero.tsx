@@ -61,7 +61,7 @@ export function Hero() {
         className="absolute inset-0 w-full h-full will-change-transform z-0 opacity-0"
       >
         <Image
-          src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?q=80&w=2940&auto=format&fit=crop"
+          src="/assets/hero-bg.jpg"
           alt="Luxury Scenic View"
           fill
           className="object-cover opacity-60"

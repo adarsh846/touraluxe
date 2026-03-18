@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Magnetic } from "../Magnetic";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const TESTIMONIALS = [
   {
-    quote: <>We don’t sell trips.<br />We craft experiences.</>,
+    quote: <>We don't sell trips.<br />We craft experiences.</>,
     author: "Elena R.",
     role: "Global CEO",
   },
   {
-    quote: <>The world isn’t far.<br />It’s waiting.</>,
+    quote: <>The world isn't far.<br />It's waiting.</>,
     author: "Marcus T.",
     role: "Philanthropist",
   },
@@ -22,15 +25,55 @@ const TESTIMONIALS = [
   },
 ];
 
+const CHIPS = [
+  { word: "TIMELESS",  top: "12%",  left: "4%",              rotate: "-8deg",  gradient: "linear-gradient(135deg, #667eea, #764ba2)" },
+  { word: "ELITE",     top: "18%",  left: undefined, right: "5%",   rotate: "6deg",   gradient: "linear-gradient(135deg, #f093fb, #f5576c)" },
+  { word: "TAILORED",  top: "52%",  left: "2%",              rotate: "-5deg",  gradient: "linear-gradient(135deg, #4facfe, #00f2fe)" },
+  { word: "BESPOKE",   top: "60%",  left: undefined, right: "3%",   rotate: "9deg",   gradient: "linear-gradient(135deg, #43e97b, #38f9d7)" },
+  { word: "PRESTIGE",  top: "80%",  left: "8%",              rotate: "4deg",   gradient: "linear-gradient(135deg, #fa709a, #fee140)" },
+  { word: "CURATED",   top: "78%",  left: undefined, right: "7%",   rotate: "-7deg",  gradient: "linear-gradient(135deg, #a18cd1, #fbc2eb)" },
+];
+
 export function Testimonials() {
   const containerRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
   const authorRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Chips animations — run ONCE on mount only
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Entrance Animation (Horizontal)
+      // Chips entrance pop-in
+      gsap.fromTo(
+        ".testimonial-chip",
+        { opacity: 0, scale: 0.6, y: 30 },
+        {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.9,
+          ease: "expo.out",
+          stagger: 0.12,
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 72%",
+          },
+        }
+      );
+
+      // Chips parallax float
+      gsap.to(".testimonial-chip", {
+        y: -70,
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 1.8,
+        },
+      });
+
+      // Quote entrance on scroll
       gsap.fromTo(
         [textRef.current, authorRef.current],
         { x: 50, opacity: 0 },
@@ -46,19 +89,22 @@ export function Testimonials() {
           },
         }
       );
+    }, containerRef);
 
-      // Create a smooth crossfade effect for auto-play
+    return () => ctx.revert();
+  }, []); // ← runs once only
+
+  // Quote crossfade — runs on each index change only
+  useEffect(() => {
+    const ctx = gsap.context(() => {
       const tl = gsap.timeline();
-      
       tl.to([textRef.current, authorRef.current], {
         opacity: 0,
         y: -10,
         duration: 0.5,
         ease: "power2.inOut",
       })
-      .call(() => {
-        // Wait for fade out to change text (React state will update)
-      })
+      .call(() => {})
       .to([textRef.current, authorRef.current], {
         opacity: 1,
         y: 0,
@@ -66,20 +112,17 @@ export function Testimonials() {
         ease: "expo.out",
         stagger: 0.1,
       }, "+=0.1");
-
     }, containerRef);
 
-    // Set up interval for auto-playing testimonials
-    const interval = setInterval(() => {
-      ctx.revert(); // Revert any ongoing animations before starting new one
-      setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 6000); // 6s per slide
+    return () => ctx.revert();
+  }, [currentIndex]); // ← runs on slide change only
 
-    return () => {
-      clearInterval(interval);
-      ctx.revert();
-    };
-  }, [currentIndex]); // Re-run effect when index changes to trigger animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <section 
@@ -87,33 +130,44 @@ export function Testimonials() {
       id="testimonials"
       className="scroll-mt-20 py-32 px-6 w-full bg-black text-white min-h-screen flex items-center justify-center relative overflow-hidden"
     >
+      {/* Floating Personality Chips */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {CHIPS.map((chip, i) => (
+          <div
+            key={i}
+            className="testimonial-chip absolute opacity-0 pointer-events-auto"
+            style={{
+              top: chip.top,
+              left: chip.left,
+              right: chip.right,
+              rotate: chip.rotate,
+            }}
+          >
+            <Magnetic>
+              <div
+                className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg"
+                style={{ background: chip.gradient }}
+              >
+                {chip.word}
+              </div>
+            </Magnetic>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Quote Content */}
       <div className="max-w-[800px] mx-auto text-center relative z-10">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-14 text-8xl text-white/20 font-serif select-none pointer-events-none">
            &quot;
         </div>
         
         <p 
-          key={`quote-${currentIndex}`} // Force re-render for clean animation state
+          key={`quote-${currentIndex}`}
           ref={textRef}
           className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] mb-12 will-change-transform text-[#f5f5f7]"
         >
           {TESTIMONIALS[currentIndex].quote}
         </p>
-
-        {/* Author metadata - currently hidden per brand styling update
-        <div 
-          key={`author-${currentIndex}`}
-          ref={authorRef}
-          className="flex flex-col items-center gap-2 will-change-transform"
-        >
-          <span className="text-sm font-semibold tracking-widest uppercase">
-            {TESTIMONIALS[currentIndex].author}
-          </span>
-          <span className="text-xs text-white/50 tracking-wider">
-            {TESTIMONIALS[currentIndex].role}
-          </span>
-        </div>
-        */}
 
         {/* Minimal Progress Indicators */}
         <div className="flex justify-center gap-3 mt-16">

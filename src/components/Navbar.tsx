@@ -87,7 +87,7 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Magnetic>
-              <Link
+              <a
                 href="/"
                 className={cn(
                   "flex items-center justify-center bg-foreground rounded-full transition-all duration-500 hover:scale-[1.03] overflow-hidden",
@@ -105,7 +105,7 @@ export function Navbar() {
                     className="object-contain scale-[2.1] translate-y-[4px]"
                   />
                 </div>
-              </Link>
+              </a>
             </Magnetic>
           </div>
 
