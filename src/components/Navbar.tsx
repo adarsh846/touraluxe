@@ -102,7 +102,7 @@ export function Navbar() {
                     src="/assets/logo-transparent.png"
                     alt="TouraLuxe Logo"
                     fill
-                    className="object-contain scale-150 translate-y-px"
+                    className="object-contain scale-[2.1] translate-y-[4px]"
                   />
                 </div>
               </Link>
