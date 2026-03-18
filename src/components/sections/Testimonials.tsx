@@ -25,14 +25,6 @@ const TESTIMONIALS = [
   },
 ];
 
-const CHIPS = [
-  { word: "TIMELESS",  top: "12%",  left: "4%",              rotate: "-8deg",  gradient: "linear-gradient(135deg, #667eea, #764ba2)" },
-  { word: "ELITE",     top: "18%",  left: undefined, right: "5%",   rotate: "6deg",   gradient: "linear-gradient(135deg, #f093fb, #f5576c)" },
-  { word: "TAILORED",  top: "52%",  left: "2%",              rotate: "-5deg",  gradient: "linear-gradient(135deg, #4facfe, #00f2fe)" },
-  { word: "BESPOKE",   top: "60%",  left: undefined, right: "3%",   rotate: "9deg",   gradient: "linear-gradient(135deg, #43e97b, #38f9d7)" },
-  { word: "PRESTIGE",  top: "80%",  left: "8%",              rotate: "4deg",   gradient: "linear-gradient(135deg, #fa709a, #fee140)" },
-  { word: "CURATED",   top: "78%",  left: undefined, right: "7%",   rotate: "-7deg",  gradient: "linear-gradient(135deg, #a18cd1, #fbc2eb)" },
-];
 
 export function Testimonials() {
   const containerRef = useRef<HTMLElement>(null);
@@ -130,29 +122,45 @@ export function Testimonials() {
       id="testimonials"
       className="scroll-mt-20 py-32 px-6 w-full bg-black text-white min-h-screen flex items-center justify-center relative overflow-hidden"
     >
-      {/* Floating Personality Chips */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        {CHIPS.map((chip, i) => (
-          <div
-            key={i}
-            className="testimonial-chip absolute opacity-0 pointer-events-auto"
-            style={{
-              top: chip.top,
-              left: chip.left,
-              right: chip.right,
-              rotate: chip.rotate,
-            }}
-          >
-            <Magnetic>
-              <div
-                className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg"
-                style={{ background: chip.gradient }}
-              >
-                {chip.word}
-              </div>
-            </Magnetic>
-          </div>
-        ))}
+      {/* ── Mobile Chips (3 chips) — safe positions, no overflow ── */}
+      <div className="absolute inset-0 pointer-events-none z-0 md:hidden">
+        <div className="testimonial-chip absolute opacity-0 top-[18%] left-[4%] pointer-events-auto rotate-[-8deg]">
+          <Magnetic>
+            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div>
+          </Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[50%] right-[4%] pointer-events-auto rotate-[7deg]">
+          <Magnetic>
+            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div>
+          </Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[78%] left-[4%] pointer-events-auto rotate-[-6deg]">
+          <Magnetic>
+            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div>
+          </Magnetic>
+        </div>
+      </div>
+
+      {/* ── Desktop Chips (6 chips) — full layout ── */}
+      <div className="absolute inset-0 pointer-events-none z-0 hidden md:block">
+        <div className="testimonial-chip absolute opacity-0 top-[12%] left-[4%] pointer-events-auto rotate-[-8deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div></Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[18%] right-[5%] pointer-events-auto rotate-[6deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #f093fb, #f5576c)" }}>ELITE</div></Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[52%] left-[3%] pointer-events-auto rotate-[-5deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #4facfe, #00f2fe)" }}>TAILORED</div></Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[58%] right-[4%] pointer-events-auto rotate-[9deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div></Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[80%] left-[5%] pointer-events-auto rotate-[4deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div></Magnetic>
+        </div>
+        <div className="testimonial-chip absolute opacity-0 top-[78%] right-[5%] pointer-events-auto rotate-[-7deg]">
+          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}>CURATED</div></Magnetic>
+        </div>
       </div>
 
       {/* Main Quote Content */}
