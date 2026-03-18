@@ -68,7 +68,7 @@ export function Services() {
     <section 
       ref={containerRef}
       id="services"
-      className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-white dark:bg-black text-foreground min-h-screen flex flex-col items-center"
+      className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-white dark:bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden"
     >
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-20 max-w-2xl">

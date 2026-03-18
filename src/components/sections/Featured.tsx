@@ -97,7 +97,7 @@ export function Featured() {
     <section 
       ref={containerRef}
       id="experiences"
-      className="relative z-10 py-32 px-6 w-full bg-[#fafafa] dark:bg-[#0a0a0a] min-h-screen flex flex-col justify-center"
+      className="relative z-10 py-32 px-6 w-full bg-[#fafafa] dark:bg-[#0a0a0a] min-h-screen flex flex-col justify-center overflow-hidden"
     >
       <div className="max-w-[1200px] w-full mx-auto">
         <h2 

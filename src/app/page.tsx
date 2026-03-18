@@ -16,7 +16,7 @@ export default function Home() {
       <Preloader />
       <CustomCursor />
       <Navbar />
-      <main className="flex min-h-screen flex-col items-center justify-between">
+      <main className="flex min-h-screen flex-col items-center justify-between overflow-hidden w-full max-w-full">
         <Hero />
         <Marquee />
         <Services />
