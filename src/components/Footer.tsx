@@ -6,7 +6,7 @@ import { Magnetic } from "./Magnetic";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-[#f5f5f7] dark:bg-[#1d1d1f] py-16 px-6">
+    <footer className="w-full bg-[#1d1d1f] py-16 px-6">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         <div className="flex flex-col gap-4">
           <Magnetic>
@@ -45,7 +45,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1200px] mt-16 pt-8 border-t border-black/10 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="mx-auto max-w-[1200px] mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="text-xs text-muted">
           &copy; {new Date().getFullYear()} TouraLuxe. All rights reserved.
         </p>

@@ -97,7 +97,7 @@ export function Featured() {
     <section 
       ref={containerRef}
       id="experiences"
-      className="relative z-10 py-32 px-6 w-full bg-[#fafafa] dark:bg-[#0a0a0a] min-h-screen flex flex-col justify-center overflow-hidden"
+      className="relative z-10 py-32 px-6 w-full bg-[#0a0a0a] min-h-screen flex flex-col justify-center overflow-hidden"
     >
       <div className="max-w-[1200px] w-full mx-auto">
         <h2 
@@ -115,7 +115,7 @@ export function Featured() {
               className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 will-change-transform"
             >
               {/* Image Container with strict hover constraints */}
-              <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-black/5 dark:bg-white/5">
+              <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
                 <Image
                   src={exp.image}
                   alt={exp.title}

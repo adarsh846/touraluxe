@@ -68,7 +68,7 @@ export function Services() {
     <section 
       ref={containerRef}
       id="services"
-      className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-white dark:bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden"
+      className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden"
     >
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-20 max-w-2xl">
@@ -91,7 +91,7 @@ export function Services() {
           >
             <Magnetic>
               <div
-                className="group h-full p-8 pt-12 border border-black/5 dark:border-white/10 rounded-2xl bg-zinc-50 dark:bg-zinc-900 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 will-change-transform cursor-pointer"
+                className="group h-full p-8 pt-12 border border-white/10 rounded-2xl bg-zinc-900 transition-colors hover:bg-zinc-800 will-change-transform cursor-pointer"
               >
                 <h3 className="text-xl font-medium tracking-tight mb-4">
                   {service.title}
