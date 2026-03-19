@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Magnetic } from "../Magnetic";
 
+
 const SERVICES = [
   { title: "Luxury Travel", desc: "Access the inaccessible. Private villas, chartered yachts, and elite retreats." },
   { title: "Sports Tours", desc: "VIP access, best seats, and exclusive backstage experiences at major events." },
@@ -87,7 +88,7 @@ export function Services() {
             ref={(el) => {
               cardsRef.current[index] = el;
             }}
-            className="opacity-0 h-full"
+            className="opacity-0"
           >
             <Magnetic>
               <div
