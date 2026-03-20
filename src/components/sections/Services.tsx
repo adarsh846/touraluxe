@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Magnetic } from "../Magnetic";
 
-
 const SERVICES = [
   { title: "Luxury Travel", desc: "Access the inaccessible. Private villas, chartered yachts, and elite retreats." },
   { title: "Sports Tours", desc: "VIP access, best seats, and exclusive backstage experiences at major events." },
@@ -40,7 +39,7 @@ export function Services() {
         if (!card) return;
         gsap.fromTo(
           card,
-          { 
+          {
             y: 40,
             x: index % 2 === 0 ? -30 : 30, // Subtle horizontal nudge
             opacity: 0,
@@ -66,7 +65,7 @@ export function Services() {
   }, []);
 
   return (
-    <section 
+    <section
       ref={containerRef}
       id="services"
       className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden"
@@ -81,31 +80,31 @@ export function Services() {
           </p>
         </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-        {SERVICES.map((service, index) => (
-          <div
-            key={service.title}
-            ref={(el) => {
-              cardsRef.current[index] = el;
-            }}
-            className="opacity-0"
-          >
-            <Magnetic>
-              <div
-                className="group h-full p-8 pt-12 border border-white/10 rounded-2xl bg-zinc-900 transition-colors hover:bg-zinc-800 will-change-transform cursor-pointer"
-              >
-                <h3 className="text-xl font-medium tracking-tight mb-4">
-                  {service.title}
-                </h3>
-                <p className="text-sm text-muted leading-relaxed">
-                  {service.desc}
-                </p>
-              </div>
-            </Magnetic>
-          </div>
-        ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {SERVICES.map((service, index) => (
+            <div
+              key={service.title}
+              ref={(el) => {
+                cardsRef.current[index] = el;
+              }}
+              className="opacity-0 h-full"
+            >
+              <Magnetic className="block w-full h-full">
+                <div
+                  className="group h-full p-8 pt-12 border border-white/10 rounded-2xl bg-zinc-900 transition-colors hover:bg-zinc-800 will-change-transform cursor-pointer"
+                >
+                  <h3 className="text-xl font-medium tracking-tight mb-4">
+                    {service.title}
+                  </h3>
+                  <p className="text-sm text-muted leading-relaxed">
+                    {service.desc}
+                  </p>
+                </div>
+              </Magnetic>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
   );
 }

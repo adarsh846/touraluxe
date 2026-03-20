@@ -2,8 +2,9 @@
 
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
+import { cn } from "@/lib/utils";
 
-export function Magnetic({ children }: { children: React.ReactElement }) {
+export function Magnetic({ children, className }: { children: React.ReactElement; className?: string }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
@@ -126,8 +127,11 @@ export function Magnetic({ children }: { children: React.ReactElement }) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="relative h-full">
-      <div ref={innerRef} className="will-change-transform h-full">
+    <div ref={wrapperRef} className={cn("relative inline-block w-fit", className)}>
+      {/* Invisible expanded hit-zone (absolute means it doesn't break layout heights/widths!) */}
+      <div className="absolute inset-[-20px] z-[-1] pointer-events-auto" />
+      {/* Inner visual element that translates independently */}
+      <div ref={innerRef} className={cn("relative z-10 will-change-transform inline-block w-fit", className)}>
         {children}
       </div>
     </div>

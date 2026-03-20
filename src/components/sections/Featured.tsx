@@ -48,11 +48,11 @@ export function Featured() {
       // Items slide-in with alternating horizontal movement
       itemsRef.current.forEach((item, index) => {
         if (!item) return;
-        
+
         // Initial reveal
         gsap.fromTo(
           item,
-          { 
+          {
             y: 100,
             x: index % 2 === 0 ? -60 : 60,
             opacity: 0,
@@ -94,13 +94,13 @@ export function Featured() {
   }, []);
 
   return (
-    <section 
+    <section
       ref={containerRef}
       id="experiences"
       className="relative z-10 py-32 px-6 w-full bg-[#0a0a0a] min-h-screen flex flex-col justify-center overflow-hidden"
     >
       <div className="max-w-[1200px] w-full mx-auto">
-        <h2 
+        <h2
           ref={titleRef}
           className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground mb-16 opacity-0"
         >
@@ -109,7 +109,7 @@ export function Featured() {
 
         <div className="flex flex-col gap-12 md:gap-24">
           {EXPERIENCES.map((exp, index) => (
-            <div 
+            <div
               key={exp.id}
               ref={(el) => { itemsRef.current[index] = el; }}
               className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 will-change-transform"

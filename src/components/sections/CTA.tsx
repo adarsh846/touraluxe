@@ -28,21 +28,32 @@ export function CTA() {
         }
       );
 
-      // Content reveal (Horizontal)
-      gsap.fromTo(
-        contentRef.current,
-        { y: 50, x: -30, opacity: 0 },
+      // Masked text reveal sequence for the CTA
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 75%",
+        }
+      });
+
+      // 1. Unmask the words smoothly
+      tl.to(".cta-word", {
+        y: "0%",
+        duration: 1.2,
+        stagger: 0.08,
+        ease: "power4.out",
+      })
+      // 2. Fade up the rest of the content (paragraph and button)
+      .fromTo(
+        ".cta-content",
+        { y: 30, opacity: 0 },
         {
           y: 0,
-          x: 0,
           opacity: 1,
-          duration: 1.5,
+          duration: 1.2,
           ease: "expo.out",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 80%",
-          },
-        }
+        },
+        "-=0.8" // Start fading in while words are still landing
       );
     }, containerRef);
 
@@ -66,24 +77,32 @@ export function CTA() {
 
       <div 
         ref={contentRef}
-        className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8 opacity-0 will-change-transform"
+        className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8"
       >
-        <h2 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1]">
-          Ready to transcend the ordinary?
+        <h2 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] flex flex-wrap justify-center gap-x-[0.3em]">
+          {"Ready to transcend the ordinary?".split(" ").map((word, i) => (
+            <span key={i} className="overflow-hidden inline-flex pt-2 pb-1 -my-2">
+              <span className="cta-word inline-block translate-y-[110%] will-change-transform">
+                {word}
+              </span>
+            </span>
+          ))}
         </h2>
         
-        <p className="text-lg md:text-xl text-white/60 max-w-xl font-normal tracking-wide">
+        <p className="cta-content opacity-0 text-lg md:text-xl text-white/60 max-w-xl font-normal tracking-wide will-change-transform">
           Connect with our travel curators to design your next unparalleled experience.
         </p>
 
-        <Magnetic>
-          <Link
-            href="mailto:hello@touraluxe.com"
-            className="mt-4 rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition-transform hover:scale-105 active:scale-95"
-          >
-            Begin Your Journey
-          </Link>
-        </Magnetic>
+        <div className="cta-content opacity-0 will-change-transform">
+          <Magnetic>
+            <Link
+              href="mailto:hello@touraluxe.com"
+              className="mt-4 inline-block rounded-full bg-white px-8 py-4 text-sm font-semibold text-black transition-transform hover:scale-105 active:scale-95"
+            >
+              Begin Your Journey
+            </Link>
+          </Magnetic>
+        </div>
       </div>
     </section>
   );

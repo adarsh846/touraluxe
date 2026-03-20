@@ -150,48 +150,48 @@ export function Marquee() {
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden md:hidden">
 
         {/* Row 1 */}
-        <div className="absolute top-[18%] left-[4%] pointer-events-auto">
+        <div className="absolute top-[18%] left-[4%] pointer-events-auto rotate-[11deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 rounded-full rotate-[11deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-blue-500 to-indigo-600 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               PREMIUM
             </div>
           </Magnetic>
         </div>
-        <div className="absolute top-[20%] right-[4%] pointer-events-auto">
+        <div className="absolute top-[20%] right-[4%] pointer-events-auto rotate-[-14deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-emerald-400 to-teal-600 px-4 py-2 rounded-full rotate-[-14deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-emerald-400 to-teal-600 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               LUXURY
             </div>
           </Magnetic>
         </div>
 
         {/* Row 2 */}
-        <div className="absolute top-[46%] left-[4%] pointer-events-auto">
+        <div className="absolute top-[46%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-purple-400 to-pink-500 px-4 py-2 rounded-full rotate-[-8deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-purple-400 to-pink-500 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               FUN
             </div>
           </Magnetic>
         </div>
-        <div className="absolute top-[48%] right-[4%] pointer-events-auto">
+        <div className="absolute top-[48%] right-[4%] pointer-events-auto rotate-[18deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-blue-600 px-4 py-2 rounded-full rotate-[18deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-blue-600 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               DISCOVER
             </div>
           </Magnetic>
         </div>
 
         {/* Row 3 */}
-        <div className="absolute top-[74%] left-[4%] pointer-events-auto">
+        <div className="absolute top-[74%] left-[4%] pointer-events-auto rotate-[-21deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-amber-500 to-orange-600 px-4 py-2 rounded-full rotate-[-21deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-amber-500 to-orange-600 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               ELITE
             </div>
           </Magnetic>
         </div>
-        <div className="absolute top-[76%] right-[4%] pointer-events-auto">
+        <div className="absolute top-[76%] right-[4%] pointer-events-auto rotate-[7deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-rose-500 to-pink-600 px-4 py-2 rounded-full rotate-[7deg] text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-rose-500 to-pink-600 px-4 py-2 rounded-full  text-xs font-bold border border-white/20 shadow-lg text-white cursor-pointer">
               WONDER
             </div>
           </Magnetic>
@@ -203,100 +203,100 @@ export function Marquee() {
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden hidden md:block">
 
         {/* ── ROW 1 (top: 8–14%) ── */}
-        <div className="absolute top-[8%] left-[5%] pointer-events-auto">
+        <div className="absolute top-[8%] left-[5%] pointer-events-auto rotate-[-15deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-blue-500 to-indigo-600 px-5 py-2.5 rounded-full rotate-[-15deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-blue-500 to-indigo-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               PREMIUM
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[10%] left-[44%] pointer-events-auto">
+        <div className="absolute top-[10%] left-[44%] pointer-events-auto rotate-[24deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-emerald-400 to-teal-600 px-5 py-2.5 rounded-full rotate-[24deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-emerald-400 to-teal-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               ADVENTURE
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[8%] right-[6%] pointer-events-auto">
+        <div className="absolute top-[8%] right-[6%] pointer-events-auto rotate-[-28deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-emerald-500 to-cyan-600 px-5 py-2.5 rounded-full rotate-[-28deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-emerald-500 to-cyan-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               EXCLUSIVE
             </div>
           </Magnetic>
         </div>
 
         {/* ── ROW 2 (top: 30–38%) ── */}
-        <div className="absolute top-[30%] left-[18%] pointer-events-auto">
+        <div className="absolute top-[30%] left-[18%] pointer-events-auto rotate-[13deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-yellow-400 to-amber-600 px-5 py-2.5 rounded-full rotate-[13deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-yellow-400 to-amber-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               LUXURY
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[34%] left-[56%] pointer-events-auto">
+        <div className="absolute top-[34%] left-[56%] pointer-events-auto rotate-[-7deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-blue-600 px-5 py-2.5 rounded-full rotate-[-7deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-blue-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               DISCOVER
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[32%] right-[5%] pointer-events-auto">
+        <div className="absolute top-[32%] right-[5%] pointer-events-auto rotate-[32deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-sky-600 px-5 py-2.5 rounded-full rotate-[32deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-cyan-400 to-sky-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               LEISURE
             </div>
           </Magnetic>
         </div>
 
         {/* ── ROW 3 (top: 56–64%) ── */}
-        <div className="absolute top-[56%] left-[5%] pointer-events-auto">
+        <div className="absolute top-[56%] left-[5%] pointer-events-auto rotate-[-20deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-purple-400 to-pink-500 px-5 py-2.5 rounded-full rotate-[-20deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-purple-400 to-pink-500 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               FUN
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[58%] left-[44%] pointer-events-auto">
+        <div className="absolute top-[58%] left-[44%] pointer-events-auto rotate-[8deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-orange-400 to-rose-600 px-5 py-2.5 rounded-full rotate-[8deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-orange-400 to-rose-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               MOMENTS
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[60%] right-[6%] pointer-events-auto">
+        <div className="absolute top-[60%] right-[6%] pointer-events-auto rotate-[-12deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-orange-500 to-red-600 px-5 py-2.5 rounded-full rotate-[-12deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-orange-500 to-red-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               BESPOKE
             </div>
           </Magnetic>
         </div>
 
         {/* ── ROW 4 (top: 82–88%) ── */}
-        <div className="absolute top-[82%] left-[14%] pointer-events-auto">
+        <div className="absolute top-[82%] left-[14%] pointer-events-auto rotate-[19deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-amber-500 to-orange-600 px-5 py-2.5 rounded-full rotate-[19deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-amber-500 to-orange-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               ELITE
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[84%] left-[46%] pointer-events-auto">
+        <div className="absolute top-[84%] left-[46%] pointer-events-auto rotate-[25deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-indigo-500 to-purple-700 px-5 py-2.5 rounded-full rotate-[25deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-indigo-500 to-purple-700 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               WONDER
             </div>
           </Magnetic>
         </div>
 
-        <div className="absolute top-[82%] right-[6%] pointer-events-auto">
+        <div className="absolute top-[82%] right-[6%] pointer-events-auto rotate-[-26deg]">
           <Magnetic>
-            <div className="marquee-chip bg-gradient-to-br from-rose-500 to-pink-600 px-5 py-2.5 rounded-full rotate-[-26deg] text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
+            <div className="marquee-chip bg-gradient-to-br from-rose-500 to-pink-600 px-5 py-2.5 rounded-full  text-sm font-bold border border-white/20 shadow-xl text-white cursor-pointer">
               BEYOND
             </div>
           </Magnetic>
