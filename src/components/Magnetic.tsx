@@ -65,9 +65,13 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       // Kill any running elastic reset and refresh quickTo instances
       gsap.killTweensOf(inner);
       refreshQuickTo();
+      gsap.to(inner, { filter: "brightness(1.4)", duration: 0.3, ease: "power2.out", overwrite: "auto" });
     };
 
-    const onMouseLeave = () => reset();
+    const onMouseLeave = () => {
+      reset();
+      gsap.to(inner, { filter: "brightness(1)", duration: 0.6, ease: "power2.out", overwrite: "auto" });
+    };
 
     // ═══ TOUCH: iOS 26-style stretch ═══
     let startX = 0;
@@ -77,7 +81,7 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      gsap.to(inner, { scale: 0.92, duration: 0.2, ease: "power2.out", overwrite: "auto" });
+      gsap.to(inner, { scale: 0.92, filter: "brightness(1.7)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -99,7 +103,7 @@ export function Magnetic({ children, className }: { children: React.ReactElement
 
     const onTouchEnd = () => {
       gsap.to(inner, {
-        x: 0, y: 0, scale: 1, skewX: 0, skewY: 0, rotation: 0,
+        x: 0, y: 0, scale: 1, skewX: 0, skewY: 0, rotation: 0, filter: "brightness(1)",
         duration: 1, ease: "elastic.out(1.2, 0.25)", overwrite: "auto",
       });
     };
