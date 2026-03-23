@@ -156,6 +156,7 @@ export function Flight3D() {
       grounds.forEach((groundNode) => {
         gsap.to(groundNode, {
           y: "15%",
+          force3D: true,
           scrollTrigger: {
             trigger: "#flight-wrapper",
             start: "top bottom",
@@ -168,6 +169,7 @@ export function Flight3D() {
       deepClouds.forEach((cloudNode) => {
         gsap.from(cloudNode, {
           y: "8%", // Moves slower than the plane (further background)
+          force3D: true,
           scrollTrigger: {
             trigger: "#flight-wrapper",
             start: "top bottom",
@@ -180,6 +182,7 @@ export function Flight3D() {
       foregroundClouds.forEach((cloudNode) => {
         gsap.from(cloudNode, {
           y: "25%", // Moves faster (closer to camera)
+          force3D: true,
           scrollTrigger: {
             trigger: "#flight-wrapper",
             start: "top bottom",

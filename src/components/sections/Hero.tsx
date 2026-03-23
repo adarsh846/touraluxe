@@ -37,6 +37,7 @@ export function Hero() {
       // Subtle Scroll Parallax on the image
       gsap.to(imageRef.current, {
         yPercent: 15,
+        force3D: true,
         ease: "none",
         scrollTrigger: {
           trigger: containerRef.current,

@@ -35,7 +35,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[#0a0a0a] z-0" />
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
             <div 
-              className="absolute left-0 right-0 bg-no-repeat bg-center bg-cover origin-center gsap-ground-parallax opacity-80"
+              className="absolute left-0 right-0 bg-no-repeat bg-center bg-cover origin-center gsap-ground-parallax opacity-80 will-change-transform"
               style={{ 
                 backgroundImage: "url('/assets/background-reduced.jpg')",
                 top: "-30%",
@@ -47,7 +47,7 @@ export default function Home() {
           {/* ─── DEEP CLOUDS (Under plane, slower parallax) ─── */}
           <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
              <div 
-              className="absolute top-0 left-0 right-0 bottom-[-150px] bg-no-repeat bg-top bg-cover opacity-40 gsap-clouds-deep"
+              className="absolute top-0 left-0 right-0 bottom-[-150px] bg-no-repeat bg-top bg-cover opacity-40 gsap-clouds-deep will-change-transform"
               style={{ 
                 backgroundImage: "url('/assets/clouds.png')",
                 WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
@@ -85,7 +85,7 @@ export default function Home() {
           {/* Note: Plane is z-[2], so z-[5] will render on top of it! */}
           <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden mix-blend-screen">
              <div 
-              className="absolute top-0 left-0 right-0 bottom-[-50px] bg-no-repeat bg-bottom bg-cover opacity-100 gsap-clouds-foreground"
+              className="absolute top-0 left-0 right-0 bottom-[-50px] bg-no-repeat bg-bottom bg-cover opacity-100 gsap-clouds-foreground will-change-transform"
               style={{ 
                 backgroundImage: "url('/assets/clouds.png')",
                 transform: "scaleX(-1)", // Flip horizontally to look different from deep clouds

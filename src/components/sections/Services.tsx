@@ -72,10 +72,10 @@ export function Services() {
     >
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-20 max-w-2xl">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0">
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0 will-change-transform">
             Beyond First Class.
           </h2>
-          <p className="text-lg md:text-xl text-muted tracking-wide opacity-0">
+          <p className="text-lg md:text-xl text-muted tracking-wide opacity-0 will-change-transform">
             Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence.
           </p>
         </div>
@@ -87,7 +87,7 @@ export function Services() {
               ref={(el) => {
                 cardsRef.current[index] = el;
               }}
-              className="opacity-0 h-full"
+              className="opacity-0 h-full will-change-transform"
             >
               <Magnetic className="block w-full h-full">
                 <div
