@@ -6,11 +6,11 @@ import { Magnetic } from "./Magnetic";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-[#1d1d1f] py-16 px-6">
+    <footer className="w-full bg-black py-16 px-6">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         <div className="flex flex-col items-start gap-4">
           <Magnetic>
-            <Link href="/" className="flex items-center justify-center bg-foreground rounded-full w-28 h-10 overflow-hidden hover:scale-[1.03] transition-transform duration-300">
+            <a href="/" className="flex items-center justify-center bg-foreground rounded-full w-28 h-10 overflow-hidden hover:scale-[1.03] transition-transform duration-300">
               <div className="relative w-28 h-10">
                 <Image
                   src="/assets/logo-transparent.webp"
@@ -21,7 +21,7 @@ export function Footer() {
                   className="object-contain scale-[2.1] translate-y-[4px]"
                 />
               </div>
-            </Link>
+            </a>
           </Magnetic>
           <p className="max-w-xs text-sm text-muted">
             We don&apos;t sell trips. We craft transcendent experiences for the world&apos;s most discerning travelers.
