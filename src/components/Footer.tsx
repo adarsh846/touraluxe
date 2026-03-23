@@ -10,19 +10,21 @@ export function Footer() {
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         <div className="flex flex-col items-start gap-4">
           <Magnetic>
-            <a href="/" className="flex items-center justify-center bg-foreground rounded-full w-28 h-10 overflow-hidden hover:scale-[1.03] transition-transform duration-300">
+            <Link href="/" className="flex items-center justify-center bg-foreground rounded-full w-28 h-10 overflow-hidden hover:scale-[1.03] transition-transform duration-300">
               <div className="relative w-28 h-10">
                 <Image
-                  src="/assets/logo-transparent.png"
+                  src="/assets/logo-transparent.webp"
                   alt="TouraLuxe Logo"
                   fill
+                  quality={75}
+                  sizes="112px"
                   className="object-contain scale-[2.1] translate-y-[4px]"
                 />
               </div>
-            </a>
+            </Link>
           </Magnetic>
           <p className="max-w-xs text-sm text-muted">
-            We don't sell trips. We craft transcendent experiences for the world's most discerning travelers.
+            We don&apos;t sell trips. We craft transcendent experiences for the world&apos;s most discerning travelers.
           </p>
         </div>
 

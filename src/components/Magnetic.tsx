@@ -20,14 +20,6 @@ export function Magnetic({ children, className }: { children: React.ReactElement
     const xTo = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out" });
     const yTo = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
 
-    const move = (clientX: number, clientY: number) => {
-      const rect = wrapper.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      xTo((clientX - cx) * 0.6);
-      yTo((clientY - cy) * 0.6);
-    };
-
     // ═══ RESET: elastic snap-back (only fires on leave) ═══
     // Uses gsap.to (not quickTo) so we get elastic ease
     // Gets auto-overwritten when quickTo fires on next mousemove

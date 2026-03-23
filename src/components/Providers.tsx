@@ -9,24 +9,24 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // By forcing syncTouch, Lenis synchronizes the asynchronous touch drag threads natively onto the 
-    // exact same requestAnimationFrame window rendering as GSAP. This eradicates the 1-frame disparity
-    // causing parallax objects (chips, airplanes) to jitter on mobile glass while smoothly gliding on desktop trackpads!
     const lenis = new Lenis({
       syncTouch: true,
-      touchMultiplier: 1.0, 
+      touchMultiplier: 1.0,
       lerp: 0.08,
     });
 
-    lenis.on('scroll', ScrollTrigger.update);
-
-    gsap.ticker.add((time) => {
+    const onTick = (time: number) => {
       lenis.raf(time * 1000);
-    });
+    };
+
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add(onTick);
 
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      lenis.off("scroll", ScrollTrigger.update);
+      gsap.ticker.remove(onTick);
       lenis.destroy();
     };
   }, []);

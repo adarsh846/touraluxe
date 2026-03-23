@@ -14,7 +14,6 @@ export function Marquee() {
   const row6Ref = useRef<HTMLDivElement>(null);
   const row7Ref = useRef<HTMLDivElement>(null);
   const row8Ref = useRef<HTMLDivElement>(null);
-  const chipsRef = useRef<HTMLDivElement>(null); 
 
   useEffect(() => {
     const ctx = gsap.context(() => {

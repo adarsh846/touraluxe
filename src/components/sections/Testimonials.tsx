@@ -9,12 +9,12 @@ gsap.registerPlugin(ScrollTrigger);
 
 const TESTIMONIALS = [
   {
-    quote: <>We don't sell trips.<br />We craft experiences.</>,
+    quote: <>We don&apos;t sell trips.<br />We craft experiences.</>,
     author: "Elena R.",
     role: "Global CEO",
   },
   {
-    quote: <>The world isn't far.<br />It's waiting.</>,
+    quote: <>The world isn&apos;t far.<br />It&apos;s waiting.</>,
     author: "Marcus T.",
     role: "Philanthropist",
   },

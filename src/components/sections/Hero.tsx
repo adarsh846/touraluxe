@@ -6,7 +6,6 @@ import Image from "next/image";
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -62,11 +61,13 @@ export function Hero() {
         className="absolute inset-0 w-full h-full will-change-transform z-0 opacity-0"
       >
         <Image
-          src="/assets/hero-bg.jpg"
+          src="/assets/hero-bg.webp"
           alt="Luxury Scenic View"
           fill
           className="object-cover opacity-60"
           priority
+          quality={75}
+          sizes="100vw"
         />
         {/* Subtle gradient overlay to ensure text legibility */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />

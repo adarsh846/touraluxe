@@ -10,19 +10,19 @@ const EXPERIENCES = [
     id: 1,
     title: "Alpine Chalet Retreat",
     location: "Swiss Alps",
-    image: "/assets/chalet.jpg",
+    image: "/assets/chalet.webp",
   },
   {
     id: 2,
     title: "Coastal Villa Mastery",
     location: "Amalfi Coast, Italy",
-    image: "/assets/villa.jpg",
+    image: "/assets/villa.webp",
   },
   {
     id: 3,
     title: "Private Island Sanctuary",
     location: "Baa Atoll, Maldives",
-    image: "/assets/island.jpg",
+    image: "/assets/island.webp",
   },
 ];
 
@@ -121,7 +121,8 @@ export function Featured() {
                   alt={exp.title}
                   fill
                   className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform"
-                  sizes="(max-width: 768px) 100vw, 66vw"
+                  quality={75}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
                 />
               </div>
 

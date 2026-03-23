@@ -87,25 +87,28 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Magnetic>
-              <a
+              <Link
                 href="/"
                 className={cn(
                   "flex items-center justify-center bg-foreground rounded-full transition-all duration-500 hover:scale-[1.03] overflow-hidden",
-                  isScrolled ? "w-22 h-8" : "w-28 h-10"
+                  isScrolled ? "w-[5.5rem] h-8" : "w-28 h-10"
                 )}
               >
                 <div className={cn(
                   "relative transition-all duration-500 flex items-center justify-center",
-                  isScrolled ? "w-22 h-8" : "w-28 h-10"
+                  isScrolled ? "w-[5.5rem] h-8" : "w-28 h-10"
                 )}>
                   <Image
-                    src="/assets/logo-transparent.png"
+                    src="/assets/logo-transparent.webp"
                     alt="TouraLuxe Logo"
                     fill
+                    priority
+                    quality={75}
+                    sizes="112px"
                     className="object-contain scale-[2.1] translate-y-[4px]"
                   />
                 </div>
-              </a>
+              </Link>
             </Magnetic>
           </div>
 
