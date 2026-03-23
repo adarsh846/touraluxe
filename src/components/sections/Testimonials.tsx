@@ -29,7 +29,6 @@ const TESTIMONIALS = [
 export function Testimonials() {
   const containerRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
-  const authorRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Chips animations — run ONCE on mount only
@@ -65,20 +64,22 @@ export function Testimonials() {
         },
       });
 
-      // Quote entrance on scroll
-      gsap.fromTo(
-        [textRef.current, authorRef.current],
+      // Quote entrance timeline
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 80%",
+          toggleActions: "play none none none"
+        }
+      });
+      tl.fromTo(
+        textRef.current,
         { x: 50, opacity: 0 },
         {
           x: 0,
           opacity: 1,
           duration: 1.5,
           ease: "expo.out",
-          stagger: 0.1,
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 80%",
-          },
         }
       );
     }, containerRef);
@@ -90,14 +91,14 @@ export function Testimonials() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
-      tl.to([textRef.current, authorRef.current], {
+      tl.to(textRef.current, {
         opacity: 0,
         y: -10,
         duration: 0.5,
         ease: "power2.inOut",
       })
       .call(() => {})
-      .to([textRef.current, authorRef.current], {
+      .to(textRef.current, {
         opacity: 1,
         y: 0,
         duration: 0.8,
@@ -120,10 +121,10 @@ export function Testimonials() {
     <section 
       ref={containerRef}
       id="testimonials"
-      className="scroll-mt-20 py-32 px-6 w-full bg-black text-white min-h-screen flex items-center justify-center relative overflow-hidden"
+      className="scroll-mt-0 w-full min-h-screen flex items-center justify-center relative bg-transparent"
     >
       {/* ── Mobile Chips (3 chips) — safe positions, no overflow ── */}
-      <div className="absolute inset-0 pointer-events-none z-0 md:hidden">
+      <div className="absolute inset-0 pointer-events-none z-[5] md:hidden">
         <div className="testimonial-chip absolute opacity-0 top-[18%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic>
             <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div>
@@ -141,7 +142,7 @@ export function Testimonials() {
         </div>
       </div>
 
-      {/* ── Desktop Chips (6 chips) — full layout ── */}
+      {/* ── Desktop Chips ── */}
       <div className="absolute inset-0 pointer-events-none z-0 hidden md:block">
         <div className="testimonial-chip absolute opacity-0 top-[12%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div></Magnetic>
@@ -164,18 +165,23 @@ export function Testimonials() {
       </div>
 
       {/* Main Quote Content */}
-      <div className="max-w-[800px] mx-auto text-center relative z-10">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-14 text-8xl text-white/20 font-serif select-none pointer-events-none">
+      <div className="max-w-[800px] mx-auto text-center relative z-10 px-4">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-14 text-8xl text-[#1d1d1f]/20 font-serif select-none pointer-events-none">
            &quot;
         </div>
         
         <p 
           key={`quote-${currentIndex}`}
           ref={textRef}
-          className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] mb-12 will-change-transform text-[#f5f5f7]"
+          className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] mb-12 will-change-transform text-[#1d1d1f]"
         >
           {TESTIMONIALS[currentIndex].quote}
         </p>
+
+        {/* <div className="font-medium text-lg md:text-xl text-[#1d1d1f]/60">
+          <p>{TESTIMONIALS[currentIndex].author}</p>
+          <p className="text-sm">{TESTIMONIALS[currentIndex].role}</p>
+        </div> */}
 
         {/* Minimal Progress Indicators */}
         <div className="flex justify-center gap-3 mt-16">
@@ -189,8 +195,8 @@ export function Testimonials() {
                 <div 
                   className={`h-px transition-all duration-500 ease-out ${
                     idx === currentIndex 
-                      ? "w-8 bg-white" 
-                      : "w-4 bg-white/20 group-hover:bg-white/50 group-hover:w-6"
+                      ? "w-8 bg-[#1d1d1f]" 
+                      : "w-4 bg-[#1d1d1f]/20 group-hover:bg-[#1d1d1f]/50 group-hover:w-6"
                   }`}
                 />
               </button>

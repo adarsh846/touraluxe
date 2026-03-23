@@ -8,9 +8,11 @@ import { Testimonials } from "@/components/sections/Testimonials";
 import { Marquee } from "@/components/sections/Marquee";
 import { CTA } from "@/components/sections/CTA";
 import { Footer } from "@/components/Footer";
+import { Flight3D } from "@/components/Flight3D";
 import Providers from "@/components/Providers";
 
 export default function Home() {
+
   return (
     <Providers>
       <Preloader />
@@ -19,11 +21,88 @@ export default function Home() {
       <main className="flex min-h-screen flex-col items-center justify-between overflow-hidden w-full max-w-full">
         <Hero />
         <Marquee />
-        <Services />
-        <Featured />
-        <Testimonials />
-        <CTA />
+        
+        {/* Original Dark Mode Sections */}
+        <div className="w-full">
+          <Services />
+          <Featured />
+        </div>
+
+        {/* Unified Flight Experience Wrapper */}
+        <div id="flight-wrapper" className="relative w-full bg-[#0a0a0a]">
+          
+          {/* ─── BASE BACKGROUND & GROUND PARALLAX (Under plane) ─── */}
+          <div className="absolute inset-0 bg-[#0a0a0a] z-0" />
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+            <div 
+              className="absolute left-0 right-0 bg-no-repeat bg-center bg-cover origin-center gsap-ground-parallax opacity-80"
+              style={{ 
+                backgroundImage: "url('/assets/background-reduced.jpg')",
+                top: "-30%",
+                bottom: "-30%",
+              }}
+            />
+          </div>
+
+          {/* ─── DEEP CLOUDS (Under plane, slower parallax) ─── */}
+          <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+             <div 
+              className="absolute top-0 left-0 right-0 bottom-[-150px] bg-no-repeat bg-top bg-cover opacity-40 gsap-clouds-deep"
+              style={{ 
+                backgroundImage: "url('/assets/clouds.png')",
+                WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+                maskImage: "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)"
+              }}
+            />
+          </div>
+
+          {/* ─── HIGHLIGHT EFFECTS ─── */}
+          <div className="absolute top-0 left-0 right-0 h-[25vh] z-[1] pointer-events-none"
+               style={{ background: "linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)" }} />
+
+          {/* ─── TOP CLOUDS (For airplane dive-in descent effect) ─── */}
+          <div className="absolute top-0 left-0 right-0 h-[50vh] z-[2] pointer-events-none overflow-hidden">
+            <div 
+              className="absolute inset-0 bg-no-repeat bg-bottom bg-cover"
+              style={{ 
+                backgroundImage: "url('/assets/clouds.png')",
+                transform: "scaleY(-1)",
+                WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 20%, black 80%, transparent 100%)",
+                maskImage: "linear-gradient(to top, transparent 0%, black 20%, black 80%, transparent 100%)"
+              }}
+            />
+          </div>
+
+          {/* ─── CONTENT SECTIONS (z-[10]) ─── */}
+          <div className="relative z-[10] w-full flex flex-col">
+            {/* Spacer to give the airplane room to dive in before hitting text */}
+            <div className="w-full h-[50vh] pointer-events-none" />
+            <Testimonials />
+            <CTA />
+          </div>
+
+          {/* ─── FOREGROUND CLOUDS (Over plane, faster parallax) ─── */}
+          {/* Note: Plane is z-[2], so z-[5] will render on top of it! */}
+          <div className="absolute inset-0 z-[5] pointer-events-none overflow-hidden mix-blend-screen">
+             <div 
+              className="absolute top-0 left-0 right-0 bottom-[-50px] bg-no-repeat bg-bottom bg-cover opacity-100 gsap-clouds-foreground"
+              style={{ 
+                backgroundImage: "url('/assets/clouds.png')",
+                transform: "scaleX(-1)", // Flip horizontally to look different from deep clouds
+                WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)",
+                maskImage: "linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%)"
+              }}
+            />
+          </div>
+          
+          {/* Absolute bottom sealer to guarantee solid black transition into Footer */}
+          <div className="absolute bottom-0 left-0 right-0 h-[40vh] bg-gradient-to-t from-black to-transparent pointer-events-none z-[11]" />
+        </div>
       </main>
+      
+      {/* Flight3D acts as a fixed background layer just for the flight-container section */}
+      <Flight3D />
+      
       <Footer />
     </Providers>
   );

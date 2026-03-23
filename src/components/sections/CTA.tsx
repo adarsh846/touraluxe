@@ -8,26 +8,9 @@ import { Magnetic } from "../Magnetic";
 export function CTA() {
   const containerRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const bgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Background subtle scale effect on scroll
-      gsap.fromTo(
-        bgRef.current,
-        { scale: 1 },
-        {
-          scale: 1.05,
-          ease: "none",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        }
-      );
-
       // Masked text reveal sequence for the CTA
       const tl = gsap.timeline({
         scrollTrigger: {
@@ -43,53 +26,44 @@ export function CTA() {
         stagger: 0.08,
         ease: "power4.out",
       })
-      // 2. Fade up the rest of the content (paragraph and button)
-      .fromTo(
-        ".cta-content",
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1.2,
-          ease: "expo.out",
-        },
-        "-=0.8" // Start fading in while words are still landing
-      );
+        // 2. Fade up the rest of the content (paragraph and button)
+        .fromTo(
+          ".cta-content",
+          { y: 30, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1.2,
+            ease: "expo.out",
+          },
+          "-=0.8" // Start fading in while words are still landing
+        );
     }, containerRef);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <section 
+    <section
       ref={containerRef}
       id="contact"
-      className="relative py-40 px-6 w-full bg-zinc-950 text-white overflow-hidden flex items-center justify-center min-h-screen"
+      className="relative py-40 px-6 w-full text-[#1d1d1f] overflow-visible flex items-center justify-center min-h-screen bg-transparent"
     >
-      {/* Abstract dark gradients for premium Apple-like dark mode feel */}
-      <div 
-        ref={bgRef}
-        className="absolute inset-0 opacity-40 will-change-transform"
-        style={{
-          background: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 60%)"
-        }}
-      />
-
-      <div 
+      <div
         ref={contentRef}
         className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8"
       >
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] flex flex-wrap justify-center gap-x-[0.3em]">
           {"Ready to transcend the ordinary?".split(" ").map((word, i) => (
             <span key={i} className="overflow-hidden inline-flex pt-2 pb-1 -my-2">
-              <span className="cta-word inline-block translate-y-[110%] will-change-transform">
+              <span className="cta-word inline-block translate-y-[110%] will-change-transform text-[#1d1d1f]">
                 {word}
               </span>
             </span>
           ))}
         </h2>
-        
-        <p className="cta-content opacity-0 text-lg md:text-xl text-white/60 max-w-xl font-normal tracking-wide will-change-transform">
+
+        <p className="cta-content opacity-0 text-lg md:text-xl text-[#1d1d1f]/60 max-w-xl font-normal tracking-wide will-change-transform">
           Connect with our travel curators to design your next unparalleled experience.
         </p>
 

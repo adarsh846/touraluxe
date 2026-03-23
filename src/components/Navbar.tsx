@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 
 const NAV_LINKS = [
-  { name: "Experiences", href: "#experiences" },
+  { name: "Experiences", href: "#featured" },
   { name: "Services", href: "#services" },
   { name: "Our Thoughts", href: "#testimonials" },
 ];
@@ -158,8 +158,8 @@ export function Navbar() {
       <div
         className={cn(
           "fixed inset-0 z-[55] bg-black/95 backdrop-blur-2xl md:hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          isMobileMenuOpen 
-            ? "opacity-100 scale-100 pointer-events-auto" 
+          isMobileMenuOpen
+            ? "opacity-100 scale-100 pointer-events-auto"
             : "opacity-0 scale-[1.04] pointer-events-none"
         )}
       >
@@ -171,8 +171,8 @@ export function Navbar() {
                   href={link.href}
                   className={cn(
                     "text-5xl font-semibold tracking-tight text-white transition-all duration-500",
-                    isMobileMenuOpen 
-                      ? "opacity-100 translate-y-0" 
+                    isMobileMenuOpen
+                      ? "opacity-100 translate-y-0"
                       : "opacity-0 translate-y-6"
                   )}
                   style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
