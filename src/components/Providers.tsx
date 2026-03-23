@@ -14,7 +14,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     // causing parallax objects (chips, airplanes) to jitter on mobile glass while smoothly gliding on desktop trackpads!
     const lenis = new Lenis({
       syncTouch: true,
-      touchMultiplier: 2, 
+      touchMultiplier: 1.0, 
+      lerp: 0.08,
     });
 
     lenis.on('scroll', ScrollTrigger.update);
