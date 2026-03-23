@@ -34,14 +34,13 @@ export function Testimonials() {
   // Chips animations — run ONCE on mount only
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Chips entrance pop-in
+      // Chips entrance pop-in (stripped Y-axis to prevent collision with parallax scroll loops later)
       gsap.fromTo(
         ".testimonial-chip",
-        { opacity: 0, scale: 0.6, y: 30 },
+        { opacity: 0, scale: 0.6 },
         {
           opacity: 1,
           scale: 1,
-          y: 0,
           duration: 0.9,
           ease: "expo.out",
           stagger: 0.12,
@@ -56,11 +55,12 @@ export function Testimonials() {
       gsap.to(".testimonial-chip", {
         y: -70,
         ease: "none",
+        force3D: true,
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top bottom",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.5,
         },
       });
 

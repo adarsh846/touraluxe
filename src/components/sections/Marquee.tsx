@@ -30,19 +30,18 @@ export function Marquee() {
             trigger: sectionRef.current,
             start: "top bottom",
             end: "bottom top",
-            scrub: true,
+            scrub: 0.5,
           },
         });
       });
 
-      // Chips: set invisible initially
-      gsap.set(".marquee-chip", { opacity: 0, scale: 0.6, y: 30 });
+      // Chips: set invisible initially without y mutation
+      gsap.set(".marquee-chip", { opacity: 0, scale: 0.6 });
 
-      // Chips: pop-in entrance (same as quote chips)
+      // Chips: pop-in entrance (no-y transition to avoid parallax conflict)
       gsap.to(".marquee-chip", {
         opacity: 1,
         scale: 1,
-        y: 0,
         duration: 0.85,
         ease: "expo.out",
         stagger: 0.1,
@@ -52,7 +51,7 @@ export function Marquee() {
         },
       });
 
-      // Chips: parallax float after pop-in
+      // Chips: parallax float after pop-in (owns Y axis exclusively)
       gsap.to(".marquee-chip", {
         y: -150,
         ease: "none",
@@ -61,7 +60,7 @@ export function Marquee() {
           trigger: sectionRef.current,
           start: "top bottom",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.5,
         },
       });
     }, sectionRef);
