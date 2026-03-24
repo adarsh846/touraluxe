@@ -43,7 +43,9 @@ export function Flight3D() {
     let renderer: THREE.WebGLRenderer | null = null;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, w / h, 1, 2000);
+    scene.fog = new THREE.Fog(0x0a0a0a, 10, 1200); // Blend model into background at distance
+
+    const camera = new THREE.PerspectiveCamera(45, w / h, 1, 3000);
     const camZ = (screen.width - w) / 3;
     camera.position.set(0, 0, camZ < 180 ? 180 : camZ);
     camera.lookAt(new THREE.Vector3(0, 5, 0));
@@ -67,17 +69,16 @@ export function Flight3D() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // ─── LIGHTING (boosted for dark TouraLuxe background) ───
-    const light = new THREE.PointLight(0xffffff, 2.0);
+    // ─── LIGHTING ───
+    const light = new THREE.PointLight(0xffffff, 2.5);
     light.position.set(70, -20, 150);
     scene.add(light);
 
-    const softLight = new THREE.AmbientLight(0xffffff, 2.0);
+    const softLight = new THREE.AmbientLight(0xffffff, 2.5);
     scene.add(softLight);
 
-    // Front fill light to prevent silhouette effect
-    const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    fillLight.position.set(0, 30, 100);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    fillLight.position.set(0, 30, 200);
     scene.add(fillLight);
 
     // ─── PLANE GROUP ───
@@ -116,13 +117,11 @@ export function Flight3D() {
       const box = new THREE.Box3().setFromObject(myPlane);
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 85 / maxDim; // More balanced size
+      const scale = 85 / maxDim; 
       myPlane.scale.set(scale, scale, scale);
 
       const center = box.getCenter(new THREE.Vector3());
-      myPlane.position.x -= center.x * scale;
-      myPlane.position.y -= center.y * scale;
-      myPlane.position.z -= center.z * scale;
+      myPlane.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -131,11 +130,15 @@ export function Flight3D() {
           if (mesh.material) {
             (mesh.material as any).metalness = 0.8;
             (mesh.material as any).roughness = 0.2;
+            (mesh.material as any).emissive = new THREE.Color(0x050505);
+            (mesh.material as any).emissiveIntensity = 1.0;
+            (mesh.material as any).transparent = true;
+            (mesh.material as any).opacity = 0; 
           }
         }
       });
 
-      // Align model orientation (nose should point forward/away from camera by default)
+      // Align model orientation
       myPlane.rotation.y = -Math.PI / 2; 
 
       planeGroup.add(myPlane);
@@ -159,12 +162,22 @@ export function Flight3D() {
 
       let delay = 0;
 
-      // Start position (Dive-in from top right)
-      gsap.set(planeGroup.position, { x: 250, y: 150, z: -100 });
+      // Start position (Distant dive-in from top right)
+      gsap.set(planeGroup.position, { x: 350, y: 200, z: -600 });
       gsap.set(planeGroup.rotation, { x: tau * 0.1, y: tau * -0.25, z: tau * 0.1 });
 
-      flightTimeline.to(planeGroup.position, { x: 0, y: 10, ease: "power1.in" }, delay);
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.2, y: tau * -0.1, z: 0, ease: "power1.in" }, delay);
+      // Smooth Fade-In and Descent
+      myPlane.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          flightTimeline?.to((child as THREE.Mesh).material, { 
+            opacity: 1, 
+            duration: sectionDuration * 0.5 
+          }, delay);
+        }
+      });
+
+      flightTimeline.to(planeGroup.position, { x: 0, y: 10, z: -100, ease: "power2.out" }, delay);
+      flightTimeline.to(planeGroup.rotation, { x: tau * 0.2, y: tau * -0.1, z: 0, ease: "power2.out" }, delay);
       delay += sectionDuration;
 
       flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: -tau * 0.05, ease: "power1.inOut" }, delay);
