@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -112,17 +112,31 @@ export function Flight3D() {
     const manager = new THREE.LoadingManager(() => {
       if (!myPlane) return;
 
-      // Silver-grey material visible against both dark and light backgrounds
+      // Auto-scale and center the model
+      const box = new THREE.Box3().setFromObject(myPlane);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 85 / maxDim; // More balanced size
+      myPlane.scale.set(scale, scale, scale);
+
+      const center = box.getCenter(new THREE.Vector3());
+      myPlane.position.x -= center.x * scale;
+      myPlane.position.y -= center.y * scale;
+      myPlane.position.z -= center.z * scale;
+
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
-          (child as THREE.Mesh).material = new THREE.MeshPhongMaterial({
-            color: 0x888888,
-            specular: 0xffe4c4,
-            shininess: 15,
-            flatShading: true,
-          });
+          const mesh = (child as THREE.Mesh);
+          mesh.frustumCulled = false;
+          if (mesh.material) {
+            (mesh.material as any).metalness = 0.8;
+            (mesh.material as any).roughness = 0.2;
+          }
         }
       });
+
+      // Align model orientation (nose should point forward/away from camera by default)
+      myPlane.rotation.y = -Math.PI / 2; 
 
       planeGroup.add(myPlane);
       setLoadState("ready");
@@ -145,31 +159,32 @@ export function Flight3D() {
 
       let delay = 0;
 
-      gsap.set(planeGroup.position, { x: 300, y: 150, z: -100 });
+      // Start position (Dive-in from top right)
+      gsap.set(planeGroup.position, { x: 250, y: 150, z: -100 });
       gsap.set(planeGroup.rotation, { x: tau * 0.1, y: tau * -0.25, z: tau * 0.1 });
-      
-      flightTimeline.to(planeGroup.position, { x: -10, y: 10, ease: "power1.in" }, delay);
+
+      flightTimeline.to(planeGroup.position, { x: 0, y: 10, ease: "power1.in" }, delay);
       flightTimeline.to(planeGroup.rotation, { x: tau * 0.2, y: tau * -0.1, z: 0, ease: "power1.in" }, delay);
       delay += sectionDuration;
 
       flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: -tau * 0.05, ease: "power1.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: -40, y: 0, z: -60, ease: "power1.inOut" }, delay);
+      flightTimeline.to(planeGroup.position, { x: -30, y: 0, z: -60, ease: "power1.inOut" }, delay);
       delay += sectionDuration;
 
       flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: tau * 0.05, ease: "power3.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: 40, y: 0, z: -60, ease: "power2.inOut" }, delay);
+      flightTimeline.to(planeGroup.position, { x: 30, y: 0, z: -60, ease: "power2.inOut" }, delay);
       delay += sectionDuration;
 
       flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: 0, ease: "power2.inOut" }, delay);
       flightTimeline.to(planeGroup.position, { x: 0, y: 0, z: -60, ease: "power2.inOut" }, delay);
       delay += sectionDuration;
 
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.15, y: 0, z: 0, ease: "power2.inOut" }, delay);
+      flightTimeline.to(planeGroup.rotation, { x: tau * 0.15, y: 0, z: tau * 0.03, ease: "power2.inOut" }, delay);
       flightTimeline.to(planeGroup.position, { z: -100, x: 0, y: -10, ease: "power2.inOut" }, delay);
       delay += sectionDuration;
 
-      flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: 0, ease: "power1.in" }, delay);
-      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: 0, y: 40, z: 350, ease: "power2.in" }, delay);
+      flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: tau * 0.03, ease: "power1.in" }, delay);
+      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: -10, y: 40, z: 350, ease: "power2.in" }, delay);
       flightTimeline.to(light.position, { duration: sectionDuration, x: 0, y: 0, z: 0 }, delay);
 
       const grounds = document.querySelectorAll(".gsap-ground-parallax");
@@ -220,11 +235,11 @@ export function Flight3D() {
       setLoadState("unsupported");
     };
 
-    const loader = new OBJLoader(manager);
+    const loader = new GLTFLoader(manager);
     loader.load(
-      "/assets/1405+Plane_1.obj",
-      (obj) => {
-        myPlane = obj;
+      "/assets/airplane.glb",
+      (gltf) => {
+        myPlane = gltf.scene;
       },
       undefined,
       () => {
