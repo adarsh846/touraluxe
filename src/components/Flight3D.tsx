@@ -70,14 +70,14 @@ export function Flight3D() {
     container.appendChild(renderer.domElement);
 
     // ─── LIGHTING ───
-    const light = new THREE.PointLight(0xffffff, 2.5);
+    const light = new THREE.PointLight(0xffffff, 0.75);
     light.position.set(70, -20, 150);
     scene.add(light);
 
-    const softLight = new THREE.AmbientLight(0xffffff, 2.5);
+    const softLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(softLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
     fillLight.position.set(0, 30, 200);
     scene.add(fillLight);
 
@@ -188,16 +188,16 @@ export function Flight3D() {
       flightTimeline.to(planeGroup.position, { x: 30, y: 0, z: -60, ease: "power2.inOut" }, delay);
       delay += sectionDuration;
 
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: 0, ease: "power2.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: 0, y: 0, z: -60, ease: "power2.inOut" }, delay);
+      flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: 0, ease: "power4.inOut" }, delay);
+      flightTimeline.to(planeGroup.position, { x: 0, y: 0, z: -60, ease: "power4.inOut" }, delay);
       delay += sectionDuration;
 
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.15, y: 0, z: tau * 0.03, ease: "power2.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { z: -100, x: 0, y: -10, ease: "power2.inOut" }, delay);
+      flightTimeline.to(planeGroup.rotation, { x: tau * 0.15, y: 0, z: tau * 0.03, ease: "power3.inOut" }, delay);
+      flightTimeline.to(planeGroup.position, { z: -100, x: 0, y: -10, ease: "power3.inOut" }, delay);
       delay += sectionDuration;
 
-      flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: tau * 0.03, ease: "power1.in" }, delay);
-      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: -10, y: 40, z: 350, ease: "power2.in" }, delay);
+      flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: -tau * 0.1, ease: "none" }, delay);
+      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: 0, y: 40, z: 350, ease: "power1.in" }, delay);
       flightTimeline.to(light.position, { duration: sectionDuration, x: 0, y: 0, z: 0 }, delay);
 
       const grounds = document.querySelectorAll(".gsap-ground-parallax");
@@ -206,7 +206,7 @@ export function Flight3D() {
 
       grounds.forEach((groundNode) => {
         gsap.to(groundNode, {
-          y: "15%",
+          y: "30%",
           force3D: true,
           scrollTrigger: {
             trigger: "#flight-wrapper",
@@ -219,7 +219,7 @@ export function Flight3D() {
 
       deepClouds.forEach((cloudNode) => {
         gsap.from(cloudNode, {
-          y: "8%",
+          y: "20%",
           force3D: true,
           scrollTrigger: {
             trigger: "#flight-wrapper",
