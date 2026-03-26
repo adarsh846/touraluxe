@@ -117,7 +117,7 @@ export function Flight3D() {
       const box = new THREE.Box3().setFromObject(myPlane);
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 85 / maxDim; 
+      const scale = 85 / maxDim;
       myPlane.scale.set(scale, scale, scale);
 
       const center = box.getCenter(new THREE.Vector3());
@@ -133,13 +133,13 @@ export function Flight3D() {
             (mesh.material as any).emissive = new THREE.Color(0x050505);
             (mesh.material as any).emissiveIntensity = 1.0;
             (mesh.material as any).transparent = true;
-            (mesh.material as any).opacity = 0; 
+            (mesh.material as any).opacity = 0;
           }
         }
       });
 
       // Align model orientation
-      myPlane.rotation.y = -Math.PI / 2; 
+      myPlane.rotation.y = -Math.PI / 2;
 
       planeGroup.add(myPlane);
       setLoadState("ready");
@@ -169,9 +169,9 @@ export function Flight3D() {
       // Smooth Fade-In and Descent
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
-          flightTimeline?.to((child as THREE.Mesh).material, { 
-            opacity: 1, 
-            duration: sectionDuration * 0.5 
+          flightTimeline?.to((child as THREE.Mesh).material, {
+            opacity: 1,
+            duration: sectionDuration * 0.5
           }, delay);
         }
       });
@@ -197,7 +197,7 @@ export function Flight3D() {
       delay += sectionDuration;
 
       flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: -tau * 0.1, ease: "none" }, delay);
-      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: 0, y: 40, z: 350, ease: "power1.in" }, delay);
+      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: 0, y: 30, z: 350, ease: "power1.in" }, delay);
       flightTimeline.to(light.position, { duration: sectionDuration, x: 0, y: 0, z: 0 }, delay);
 
       const grounds = document.querySelectorAll(".gsap-ground-parallax");
