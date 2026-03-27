@@ -45,10 +45,13 @@ export function Flight3D() {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x0a0a0a, 10, 1200); // Blend model into background at distance
 
-    const camera = new THREE.PerspectiveCamera(45, w / h, 1, 3000);
+    const aspect = w / h;
+    const baseFov = 45;
+    const fov = aspect < 1.0 ? 75 : baseFov;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, 1, 3000);
     const camZ = (screen.width - w) / 3;
     camera.position.set(0, 0, camZ < 180 ? 180 : camZ);
-    camera.lookAt(new THREE.Vector3(10, 5, 0));
+    camera.lookAt(new THREE.Vector3(15, 5, 0));
 
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -98,9 +101,12 @@ export function Flight3D() {
       if (!renderer) return;
       w = window.innerWidth;
       h = window.innerHeight;
-      camera.aspect = w / h;
+      const aspect = w / h;
+      camera.aspect = aspect;
+      camera.fov = aspect < 1.0 ? 75 : 45;
       const cZ = (screen.width - w) / 3;
       camera.position.z = cZ < 180 ? 180 : cZ;
+      camera.lookAt(new THREE.Vector3(15, 5, 0));
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       render();
