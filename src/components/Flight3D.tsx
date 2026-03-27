@@ -48,7 +48,7 @@ export function Flight3D() {
     const camera = new THREE.PerspectiveCamera(45, w / h, 1, 3000);
     const camZ = (screen.width - w) / 3;
     camera.position.set(0, 0, camZ < 180 ? 180 : camZ);
-    camera.lookAt(new THREE.Vector3(0, 5, 0));
+    camera.lookAt(new THREE.Vector3(10, 5, 0));
 
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
