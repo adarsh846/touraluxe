@@ -15,6 +15,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       lerp: 0.08,
     });
 
+    // Expose globally for programmatic scrolling from other components
+    (window as any).__lenis = lenis;
+
     const onTick = (time: number) => {
       lenis.raf(time * 1000);
     };

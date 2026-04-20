@@ -100,9 +100,11 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       });
     };
 
-    wrapper.addEventListener("mouseenter", onMouseEnter);
-    wrapper.addEventListener("mousemove", onMouseMove);
-    wrapper.addEventListener("mouseleave", onMouseLeave);
+    if (!isTouch) {
+      wrapper.addEventListener("mouseenter", onMouseEnter);
+      wrapper.addEventListener("mousemove", onMouseMove);
+      wrapper.addEventListener("mouseleave", onMouseLeave);
+    }
 
     if (isTouch) {
       wrapper.addEventListener("touchstart", onTouchStart, { passive: true });

@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 
 const NAV_LINKS = [
-  { name: "Experiences", href: "#featured" },
-  { name: "Services", href: "#services" },
-  { name: "Our Thoughts", href: "#testimonials" },
+  { name: "Experiences", href: "featured", offset: 0 },
+  { name: "Services", href: "services", offset: -80 },
+  { name: "Our Thoughts", href: "testimonials", offset: 0 },
 ];
 
 export function Navbar() {
@@ -21,13 +20,21 @@ export function Navbar() {
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      // Smooth 0→1 ramp over first 80px of scroll — exactly like Apple
       setBlurOpacity(Math.min(y / 80, 1));
       setIsScrolled(y > 60);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const scrollToSection = (id: string, offset: number = 0) => {
+    const lenis = (window as any).__lenis;
+    if (lenis) {
+      lenis.scrollTo(`#${id}`, { duration: 1.2, offset });
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <>
@@ -116,13 +123,13 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link) => (
               <Magnetic key={link.name}>
-                <Link
-                  href={link.href}
-                  className="text-xs font-medium tracking-wide transition-colors hover:text-white"
+                <button
+                  onClick={() => scrollToSection(link.href, link.offset)}
+                  className="text-xs font-medium tracking-wide transition-colors hover:text-white bg-transparent border-none outline-none cursor-none"
                   style={{ color: `rgba(255,255,255,${0.5 + blurOpacity * 0.3})` }}
                 >
                   {link.name}
-                </Link>
+                </button>
               </Magnetic>
             ))}
           </nav>
@@ -130,12 +137,12 @@ export function Navbar() {
           {/* Desktop Action Button */}
           <div className="hidden md:flex items-center">
             <Magnetic>
-              <Link
-                href="#contact"
+              <button
+                onClick={() => scrollToSection("contact")}
                 className="rounded-full bg-foreground px-4 py-1.5 text-xs font-medium text-background transition-transform hover:scale-105"
               >
                 Curate Your Trip
-              </Link>
+              </button>
             </Magnetic>
           </div>
 
@@ -170,19 +177,18 @@ export function Navbar() {
           <nav className="flex flex-col gap-6">
             {NAV_LINKS.map((link, i) => (
               <Magnetic key={link.name}>
-                <Link
-                  href={link.href}
+                <button
                   className={cn(
-                    "text-5xl font-semibold tracking-tight text-white transition-all duration-500",
+                    "text-5xl font-semibold tracking-tight text-white transition-all duration-500 bg-transparent border-none outline-none text-left",
                     isMobileMenuOpen
                       ? "opacity-100 translate-y-0"
                       : "opacity-0 translate-y-6"
                   )}
                   style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => { scrollToSection(link.href, link.offset); setIsMobileMenuOpen(false); }}
                 >
                   {link.name}
-                </Link>
+                </button>
               </Magnetic>
             ))}
 
@@ -194,13 +200,12 @@ export function Navbar() {
               style={{ transitionDelay: isMobileMenuOpen ? "320ms" : "0ms" }}
             >
               <Magnetic>
-                <Link
-                  href="#contact"
+                <button
+                  onClick={() => { scrollToSection("contact"); setIsMobileMenuOpen(false); }}
                   className="inline-flex rounded-full bg-foreground px-7 py-3.5 text-sm font-medium text-background transition-transform hover:scale-105"
-                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Curate Your Trip
-                </Link>
+                </button>
               </Magnetic>
             </div>
           </nav>

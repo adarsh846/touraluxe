@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { GsapConfig } from "@/components/GsapConfig";
 import { ClientFixes } from "@/components/ClientFixes";
+import { PwaRegister } from "@/components/PwaRegister";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,6 +13,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "TouraLuxe | We craft experiences",
   description: "A premium luxury travel brand.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TouraLuxe",
+  },
 };
 
 export default function RootLayout({
@@ -21,8 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} antialiased cursor-none`}>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <meta name="theme-color" content="#000000" />
+      </head>
+      <body className={`${inter.variable} antialiased`}>
         <GsapConfig />
+        <PwaRegister />
         <ClientFixes />
         {children}
       </body>
