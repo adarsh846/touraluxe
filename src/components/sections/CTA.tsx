@@ -53,21 +53,24 @@ export function CTA() {
     setIsSubmitted(false);
     dialog.showModal();
 
-    // Entrance animation
-    gsap.fromTo(
+    // GPU-accelerated entrance — single timeline, no stagger delay on mobile
+    const tl = gsap.timeline({ defaults: { force3D: true } });
+    tl.fromTo(
       dialog,
       { opacity: 0 },
-      { opacity: 1, duration: 0.3, ease: "power2.out" }
-    );
-    gsap.fromTo(
+      { opacity: 1, duration: 0.25, ease: "power2.out" }
+    )
+    .fromTo(
       ".modal-content",
-      { y: 40, opacity: 0, scale: 0.96 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "expo.out", delay: 0.1 }
-    );
-    gsap.fromTo(
+      { y: 30, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: "expo.out" },
+      "-=0.15"
+    )
+    .fromTo(
       ".modal-field",
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.6, ease: "expo.out", stagger: 0.08, delay: 0.2 }
+      { y: 12, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.3, ease: "power3.out", stagger: 0.04 },
+      "-=0.2"
     );
   };
 
@@ -77,10 +80,10 @@ export function CTA() {
 
     gsap.to(".modal-content", {
       y: 20, opacity: 0, scale: 0.97,
-      duration: 0.25, ease: "power2.in",
+      duration: 0.2, ease: "power2.in", force3D: true,
     });
     gsap.to(dialog, {
-      opacity: 0, duration: 0.3, ease: "power2.in", delay: 0.1,
+      opacity: 0, duration: 0.25, ease: "power2.in", delay: 0.05,
       onComplete: () => dialog.close(),
     });
   };
@@ -142,12 +145,12 @@ export function CTA() {
       {/* Contact Modal */}
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 z-[9000] w-full h-full max-w-none max-h-none m-0 p-0 bg-black/80 backdrop-blur-xl border-none outline-none"
+        className="fixed inset-0 z-[9000] w-full h-full max-w-none max-h-none m-0 p-0 bg-black/80 backdrop-blur-md border-none outline-none will-change-[opacity]"
         onClick={(e) => {
           if (e.target === dialogRef.current) closeModal();
         }}
       >
-        <div className="modal-content flex items-center justify-center min-h-full px-4 py-8">
+        <div className="modal-content flex items-center justify-center min-h-full px-4 py-8 will-change-transform">
           <div className="relative w-full max-w-lg bg-[#141414] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl">
             {/* Close Button */}
             <div className="absolute top-5 right-5 z-10">

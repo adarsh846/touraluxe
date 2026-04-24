@@ -119,7 +119,7 @@ export function Hero() {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
+      <div className="scroll-indicator absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
         <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
         <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 6l4 4 4-4" />
