@@ -96,3 +96,68 @@ html.lenis {
   -webkit-text-stroke: 1px rgba(0, 0, 0, 0.2);
   color: transparent;
 }
+
+/* ─── SCROLL INDICATOR BOUNCE ─── */
+.scroll-chevron {
+  animation: chevron-bounce 2s ease-in-out infinite;
+}
+
+@keyframes chevron-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+/* ─── DIALOG / MODAL RESET ─── */
+dialog::backdrop {
+  background: transparent;
+}
+
+dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* Restore native cursors inside modal dialogs — must override the global suppression */
+@media (hover: hover) and (pointer: fine) {
+  dialog[open],
+  dialog[open] *,
+  dialog[open] *:hover,
+  dialog[open] *:active,
+  dialog[open] *:focus,
+  dialog[open] *:focus-within {
+    cursor: auto !important;
+  }
+  dialog[open] input,
+  dialog[open] input:hover,
+  dialog[open] input:focus,
+  dialog[open] textarea,
+  dialog[open] textarea:hover,
+  dialog[open] textarea:focus,
+  dialog[open] select {
+    cursor: text !important;
+  }
+  dialog[open] button,
+  dialog[open] button:hover,
+  dialog[open] a,
+  dialog[open] a:hover,
+  dialog[open] [role="button"] {
+    cursor: pointer !important;
+  }
+}
+
+/* Form input autofill styling for dark theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.05) inset;
+  -webkit-text-fill-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+}

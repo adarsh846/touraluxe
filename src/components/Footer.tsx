@@ -1,8 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { Magnetic } from "./Magnetic";
+
+function scrollToSection(id: string, offset: number = 0) {
+  const lenis = (window as any).__lenis;
+  if (lenis) {
+    lenis.scrollTo(`#${id}`, { duration: 1.2, offset });
+  } else {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  }
+}
 
 export function Footer() {
   return (
@@ -31,18 +39,18 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row gap-10 sm:gap-24">
           <div className="flex flex-col items-start gap-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Experiences</h4>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Luxury Travel</Link></Magnetic>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Sports Tours</Link></Magnetic>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">MICE Events</Link></Magnetic>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Global Retreats</Link></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Luxury Travel</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Sports Tours</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">MICE Events</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Global Retreats</button></Magnetic>
           </div>
           
           <div className="flex flex-col items-start gap-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Company</h4>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">About</Link></Magnetic>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Journal</Link></Magnetic>
-            <Magnetic><Link href="mailto:hello@touraluxe.com" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Contact</Link></Magnetic>
-            <Magnetic><Link href="#" className="text-sm font-medium text-foreground hover:underline underline-offset-4">Privacy</Link></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("testimonials")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">About</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("contact")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
+            <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Privacy</button></Magnetic>
           </div>
         </div>
       </div>
