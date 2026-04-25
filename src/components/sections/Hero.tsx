@@ -40,14 +40,14 @@ export function Hero() {
       if (!img || !img.complete) {
         for (let i = idx; i >= 0; i--) {
           if (framesRef.current[i]?.complete) {
-            ctx.drawImage(framesRef.current[i], 0, 0);
+            ctx.drawImage(framesRef.current[i], 0, 0, canvas.width, canvas.height);
             currentFrameRef.current = i;
             return;
           }
         }
         return;
       }
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       currentFrameRef.current = idx;
     });
   }, []);
@@ -56,9 +56,17 @@ export function Hero() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Set internal resolution to match the 4K source exactly
-    canvas.width = 3840;
-    canvas.height = 2160;
+    // Dynamically match internal canvas resolution to the loaded image resolution
+    // This prevents the "black screen" on mobile where a smaller image occupies only a quadrant
+    const firstImg = framesRef.current[0];
+    if (firstImg && firstImg.width > 0) {
+      canvas.width = firstImg.width;
+      canvas.height = firstImg.height;
+    } else {
+      const isMobile = window.innerWidth < 768;
+      canvas.width = isMobile ? 1920 : 3840;
+      canvas.height = isMobile ? 1080 : 2160;
+    }
     
     // 5. Wide Color Gamut (Display-P3) Rendering
     const ctx = canvas.getContext("2d", { 
@@ -97,35 +105,84 @@ export function Hero() {
       (_, i) => `${basePath}${String(i + 1).padStart(3, "0")}.jpg`
     );
     
+    // 2. Sparse Loading Algorithm (Apple-tier streaming)
+    // Instead of loading sequentially (1,2,3), we load sparsely (0, 355, 40, 80...).
+    // This allows the entire scroll sequence to be scrubbable almost instantly (at lower FPS),
+    // and naturally resolves to perfect 60fps as the remaining frames stream in.
+    const getLoadOrder = (total: number) => {
+      const order: number[] = [];
+      const added = new Set<number>();
+      const add = (i: number) => {
+        if (!added.has(i) && i < total) {
+          order.push(i);
+          added.add(i);
+        }
+      };
+
+      add(0);
+      add(total - 1);
+      
+      const steps = [40, 20, 10, 5, 2, 1];
+      for (const step of steps) {
+        for (let i = 0; i < total; i += step) {
+          add(i);
+        }
+      }
+      return order;
+    };
+
+    const loadOrder = getLoadOrder(TOTAL_FRAMES);
+
     const loadNext = () => {
       if (!isActive || currentIndex >= TOTAL_FRAMES || isPaused) return;
       
-      const idx = currentIndex++;
-      const img = new Image();
-      // 2. De-prioritized Network Fetching
-      img.fetchPriority = "low";
-      img.src = dynamicUrls[idx];
+      const targetIdx = loadOrder[currentIndex++];
       
-      img.onload = () => {
-        if (!isActive) return;
-        images[idx] = img;
-        loadedCount++;
-        setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
-        
-        if (idx === 0) {
-          initCanvas();
-          drawFrame(0);
-          setIsLoaded(true);
-        }
-        
-        loadNext();
-      };
-      
-      img.onerror = () => {
-        if (!isActive) return;
-        loadedCount++;
-        loadNext();
-      };
+      // 3. Blob Pre-caching (Apple-tier Network Bypass)
+      // We fetch raw bytes via HTTP/2 and convert to local memory blobs. 
+      // This completely bypasses the DOM's strict 6-connection image limit.
+      fetch(dynamicUrls[targetIdx], { priority: "low" } as any)
+        .then(res => res.blob())
+        .then(blob => {
+          if (!isActive) return;
+          
+          const objectUrl = URL.createObjectURL(blob);
+          const img = new Image();
+          img.src = objectUrl;
+          
+          img.onload = () => {
+            if (!isActive) {
+              URL.revokeObjectURL(objectUrl);
+              return;
+            }
+            images[targetIdx] = img;
+            loadedCount++;
+            setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+            
+            if (targetIdx === 0) {
+              initCanvas();
+              drawFrame(0);
+              setIsLoaded(true);
+            } else {
+              if (targetIdx === pendingFrameRef.current || Math.abs(targetIdx - pendingFrameRef.current) < 5) {
+                 drawFrame(pendingFrameRef.current);
+              }
+            }
+            loadNext();
+          };
+          
+          img.onerror = () => {
+            if (!isActive) return;
+            URL.revokeObjectURL(objectUrl);
+            loadedCount++;
+            loadNext();
+          };
+        })
+        .catch(() => {
+          if (!isActive) return;
+          loadedCount++;
+          loadNext();
+        });
     };
 
     // Use a small pool of concurrent loaders to avoid network saturation
@@ -174,9 +231,12 @@ export function Hero() {
       window.removeEventListener("resize", handleResize);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       
-      // 3. Aggressive Memory Garbage Collection
+      // 4. Aggressive Memory Garbage Collection
       framesRef.current.forEach(img => {
-        if (img) img.src = "";
+        if (img) {
+          try { URL.revokeObjectURL(img.src); } catch(e){}
+          img.src = "";
+        }
       });
       framesRef.current = [];
     };
