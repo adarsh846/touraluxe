@@ -352,7 +352,7 @@ export function Hero() {
         {/* Hardware-Accelerated Canvas with Cinematic Color Grading */}
         <canvas 
           ref={canvasRef} 
-          className="absolute inset-0 w-full h-full object-cover" 
+          className="absolute inset-0 w-full h-full object-cover object-[65%_50%] md:object-center scale-[1.02]" 
           id="hero-canvas" 
           style={{
             // Cinematic punch: slightly brighter, higher contrast, deeper colors
