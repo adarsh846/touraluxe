@@ -353,8 +353,6 @@ export function Hero() {
           className="absolute inset-0 w-full h-full object-cover" 
           id="hero-canvas" 
           style={{
-            // Forces GPU composite layer
-            transform: "translateZ(0)",
             // Cinematic punch: slightly brighter, higher contrast, deeper colors
             filter: "brightness(1.05) contrast(1.1) saturate(1.1)"
           }}
