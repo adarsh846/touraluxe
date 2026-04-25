@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const TOTAL_FRAMES = 356;
-const FRAME_PATH = "/sequence/frame-";
 
-const frameUrls = Array.from(
-  { length: TOTAL_FRAMES },
-  (_, i) => `${FRAME_PATH}${String(i + 1).padStart(3, "0")}.jpg`
-);
+// Isomorphic layout effect to prevent Next.js SSR warnings
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -25,6 +22,8 @@ export function Hero() {
   const currentFrameRef = useRef(-1);
   const rafRef = useRef<number>(0);
   const pendingFrameRef = useRef(0);
+
+
 
   const drawFrame = useCallback((index: number) => {
     if (index === currentFrameRef.current) return;
@@ -41,87 +40,150 @@ export function Hero() {
       if (!img || !img.complete) {
         for (let i = idx; i >= 0; i--) {
           if (framesRef.current[i]?.complete) {
-            coverFit(ctx, canvas, framesRef.current[i]);
+            ctx.drawImage(framesRef.current[i], 0, 0);
             currentFrameRef.current = i;
             return;
           }
         }
         return;
       }
-      coverFit(ctx, canvas, img);
+      ctx.drawImage(img, 0, 0);
       currentFrameRef.current = idx;
     });
   }, []);
 
-  const resizeCanvas = useCallback(() => {
+  const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Use device pixel ratio for crystal clear Retina display rendering
-    // Cap at 2 to prevent massive memory usage on 3x/4x screens
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Set internal resolution to match the 4K source exactly
+    canvas.width = 3840;
+    canvas.height = 2160;
     
-    // Set actual internal canvas resolution
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    
-    // Ensure CSS forces it to fill the screen
-    canvas.style.width = `${window.innerWidth}px`;
-    canvas.style.height = `${window.innerHeight}px`;
-
-    // Request maximum GPU acceleration
-    ctxRef.current = canvas.getContext("2d", { 
+    // 5. Wide Color Gamut (Display-P3) Rendering
+    const ctx = canvas.getContext("2d", { 
       alpha: false,
       desynchronized: true,
-      willReadFrequently: false
-    });
+      willReadFrequently: false,
+      colorSpace: "display-p3"
+    } as any) as CanvasRenderingContext2D;
     
-    // Force immediate redraw of current frame at new resolution
+    // Enable highest quality GPU downscaling/upscaling
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    
+    ctxRef.current = ctx;
+    
+    // Force immediate redraw
     currentFrameRef.current = -1;
     drawFrame(pendingFrameRef.current);
   }, [drawFrame]);
 
-  // Load frames
+  // Load frames incrementally with IntersectionObserver & Dynamic Resolution
   useEffect(() => {
-    let loaded = 0;
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
-
-    const firstImg = new Image();
-    firstImg.src = frameUrls[0];
-    firstImg.onload = () => {
-      images[0] = firstImg;
-      framesRef.current = images;
-      resizeCanvas();
-      drawFrame(0);
-    };
-
-    frameUrls.forEach((url, i) => {
-      if (i === 0) { images[0] = firstImg; return; }
+    framesRef.current = images;
+    
+    let loadedCount = 0;
+    let currentIndex = 0;
+    let isPaused = false;
+    let isActive = true;
+    
+    // 1. Dynamic Resolution Switching
+    const isMobile = window.innerWidth < 768;
+    const basePath = isMobile ? "/sequence-mobile/frame-" : "/sequence/frame-";
+    const dynamicUrls = Array.from(
+      { length: TOTAL_FRAMES },
+      (_, i) => `${basePath}${String(i + 1).padStart(3, "0")}.jpg`
+    );
+    
+    const loadNext = () => {
+      if (!isActive || currentIndex >= TOTAL_FRAMES || isPaused) return;
+      
+      const idx = currentIndex++;
       const img = new Image();
-      img.src = url;
+      // 2. De-prioritized Network Fetching
+      img.fetchPriority = "low";
+      img.src = dynamicUrls[idx];
+      
       img.onload = () => {
-        loaded++;
-        images[i] = img;
-        framesRef.current = images;
-        setLoadProgress(Math.round(((loaded + 1) / TOTAL_FRAMES) * 100));
-        if (loaded + 1 >= TOTAL_FRAMES) setIsLoaded(true);
+        if (!isActive) return;
+        images[idx] = img;
+        loadedCount++;
+        setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+        
+        if (idx === 0) {
+          initCanvas();
+          drawFrame(0);
+          setIsLoaded(true);
+        }
+        
+        loadNext();
       };
+      
       img.onerror = () => {
-        loaded++;
-        if (loaded + 1 >= TOTAL_FRAMES) setIsLoaded(true);
+        if (!isActive) return;
+        loadedCount++;
+        loadNext();
       };
-    });
-
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-    return () => {
-      window.removeEventListener("resize", resizeCanvas);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [drawFrame, resizeCanvas]);
+
+    // Use a small pool of concurrent loaders to avoid network saturation
+    const CONCURRENT_LOADERS = 4;
+    
+    const spawnWorkers = () => {
+      isPaused = false;
+      for (let i = 0; i < CONCURRENT_LOADERS; i++) {
+        loadNext();
+      }
+    };
+
+    // 2. Intersection-Aware Network Pausing
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting) {
+          if (isPaused || currentIndex === 0) {
+            spawnWorkers();
+          }
+        } else {
+          isPaused = true;
+        }
+      },
+      { rootMargin: "200px" } // Keep loading slightly off-screen
+    );
+    
+    if (sectionRef.current) observer.observe(sectionRef.current);
+
+    let lastWidth = window.innerWidth;
+    const handleResize = () => {
+      // Only trigger a full canvas rebuild if the width changes (orientation change).
+      // This prevents massive stuttering on mobile when the URL bar hides/shows during scroll.
+      if (Math.abs(window.innerWidth - lastWidth) > 10) {
+        lastWidth = window.innerWidth;
+        initCanvas();
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    initCanvas();
+    
+    return () => {
+      isActive = false;
+      observer.disconnect();
+      window.removeEventListener("resize", handleResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      
+      // 3. Aggressive Memory Garbage Collection
+      framesRef.current.forEach(img => {
+        if (img) img.src = "";
+      });
+      framesRef.current = [];
+    };
+  }, [drawFrame, initCanvas]);
 
   // GSAP ScrollTrigger — Manual Pinning & Scrubbing
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!isLoaded) return;
 
     const ctx = gsap.context(() => {
@@ -186,7 +248,19 @@ export function Hero() {
         }
       );
 
-      // 5. Scroll indicator (Fades immediately)
+      // 6. Reactive Vignette Lighting
+      gsap.to(".hero-vignette", {
+        opacity: 0,
+        ease: "power2.inOut",
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top top",
+          end: "56.3% top", // Frame 200
+          scrub: true,
+        },
+      });
+
+      // Scroll indicator (Fades immediately)
       gsap.to(".scroll-indicator", {
         opacity: 0, y: -10, ease: "none",
         scrollTrigger: {
@@ -212,14 +286,26 @@ export function Hero() {
         We pin this div instead of the section, so GSAP's pin-spacer 
         is safely isolated from the flexbox layout of page.tsx.
       */}
-      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" id="hero-canvas" />
-
-        {/* Vignette */}
-        <div
-          className="absolute inset-0 pointer-events-none"
+      <div ref={pinRef} className="absolute top-0 left-0 w-full h-[100dvh] overflow-hidden bg-black">
+        {/* Hardware-Accelerated Canvas with Cinematic Color Grading */}
+        <canvas 
+          ref={canvasRef} 
+          className="absolute inset-0 w-full h-full object-cover" 
+          id="hero-canvas" 
           style={{
-            background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%)",
+            // Forces GPU composite layer
+            transform: "translateZ(0)",
+            // Cinematic punch: slightly brighter, higher contrast, deeper colors
+            filter: "brightness(1.05) contrast(1.1) saturate(1.1)"
+          }}
+        />
+
+        {/* 6. Reactive Vignette Lighting (Deepened for focus) */}
+        <div
+          className="hero-vignette absolute inset-0 pointer-events-none will-change-opacity"
+          style={{
+            background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%)",
+            transform: "translateZ(0)"
           }}
         />
 
@@ -243,7 +329,7 @@ export function Hero() {
         {/* Content overlay */}
         <div className="hero-content absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
           <div className="hero-content-wrapper max-w-4xl mx-auto will-change-transform">
-            <h1 className="hero-title text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tighter leading-[1] mb-6 text-white flex flex-col items-center justify-center gap-y-2">
+            <h1 className="hero-title text-[9.5vw] sm:text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tighter leading-[1.1] sm:leading-[1] mb-4 sm:mb-6 text-white flex flex-col items-center justify-center gap-y-1 sm:gap-y-2">
               <div className="flex flex-wrap justify-center gap-x-[0.2em]">
                 <span className="word inline-block opacity-0">We</span>
                 <span className="word inline-block opacity-0">don&apos;t</span>
@@ -256,7 +342,7 @@ export function Hero() {
                 <span className="word inline-block text-white/90 opacity-0">experiences.</span>
               </div>
             </h1>
-            <p className="hero-subhead text-xl md:text-2xl lg:text-3xl max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0">
+            <p className="hero-subhead text-[4vw] sm:text-xl md:text-2xl lg:text-3xl max-w-[90%] sm:max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0">
               A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
             </p>
           </div>
