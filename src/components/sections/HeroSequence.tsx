@@ -348,7 +348,7 @@ export function HeroSequence() {
         We pin this div instead of the section, so GSAP's pin-spacer 
         is safely isolated from the flexbox layout of page.tsx.
       */}
-      <div ref={pinRef} className="absolute top-0 left-0 w-full h-[100dvh] overflow-hidden bg-black">
+      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden bg-black">
         {/* Hardware-Accelerated Canvas with Cinematic Color Grading */}
         <canvas 
           ref={canvasRef} 

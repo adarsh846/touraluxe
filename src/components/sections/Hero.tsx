@@ -21,7 +21,7 @@ export function Hero() {
   // During SSR and initial hydration, render a black placeholder 
   // to avoid React hydration mismatches between Server and Client
   if (isMobile === null) {
-    return <section className="h-[100dvh] w-full bg-black" />;
+    return <section className="h-screen w-full bg-black" />;
   }
 
   // Render the lightweight static image parallax for mobile devices
