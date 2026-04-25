@@ -95,20 +95,23 @@ export function HeroStatic() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 sm:px-4 max-w-4xl mx-auto mt-[-10vh] sm:mt-0">
-        <h1 className="hero-text text-[15vw] sm:text-7xl md:text-8xl lg:text-[120px] font-bold tracking-tighter text-white opacity-100 leading-[1] sm:leading-none flex flex-col sm:block mb-4 sm:mb-6">
-          <div className="flex justify-center">
-            <span className="word inline-block opacity-0">We</span>
-            <span className="word inline-block opacity-0 ml-4">craft</span>
-          </div>
-          <div className="flex justify-center mt-2">
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60">experiences.</span>
-          </div>
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto">
+        <h1
+          className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
+        >
+          <span className="word inline-block opacity-0">We</span>
+          <span className="word inline-block opacity-0">don&apos;t</span>
+          <span className="word inline-block opacity-0">sell</span>
+          <span className="word inline-block opacity-0">trips.</span>
+          <div className="basis-full h-0" />
+          <span className="word inline-block opacity-0 text-white/80">We</span>
+          <span className="word inline-block opacity-0 text-white/80">craft</span>
+          <span className="word inline-block opacity-0 text-white/80">experiences.</span>
         </h1>
 
         <p
           ref={subheadRef}
-          className="text-[4.5vw] sm:text-xl md:text-2xl lg:text-3xl text-white/80 max-w-[100%] sm:max-w-3xl mx-auto font-medium tracking-tight opacity-0 will-change-transform leading-snug sm:leading-normal"
+          className="text-lg md:text-xl text-white/70 max-w-2xl font-normal tracking-wide opacity-0 will-change-transform"
         >
           A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
         </p>

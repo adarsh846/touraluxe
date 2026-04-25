@@ -387,18 +387,22 @@ export function HeroSequence() {
         )}
 
         {/* Content overlay */}
-        <div className="hero-content absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6 sm:px-4 pointer-events-none mt-[-10vh] sm:mt-0">
-          <div className="text-center w-full max-w-screen-2xl mx-auto flex flex-col items-center justify-center">
-            {/* The main title wrapper */}
-            <div className="overflow-hidden mb-4 sm:mb-6 lg:mb-8 pb-4">
-              <h1 className="hero-text text-[15vw] sm:text-7xl md:text-8xl lg:text-[120px] font-bold tracking-tighter text-white opacity-0 leading-[1] sm:leading-none flex flex-col sm:block">
-                <span>We craft</span>
-                <span className="sm:ml-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60">experiences.</span>
-              </h1>
-            </div>
-            
-            {/* The subhead wrapper */}
-            <p className="hero-subhead text-[4.5vw] sm:text-xl md:text-2xl lg:text-3xl max-w-[100%] sm:max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0 leading-snug sm:leading-normal">
+        <div className="hero-content absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
+          <div className="hero-content-wrapper max-w-4xl mx-auto will-change-transform">
+            <h1 className="hero-title text-[9.5vw] sm:text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tighter leading-[1.1] sm:leading-[1] mb-4 sm:mb-6 text-white flex flex-col items-center justify-center gap-y-1 sm:gap-y-2">
+              <div className="flex flex-wrap justify-center gap-x-[0.2em]">
+                <span className="word inline-block opacity-0">We</span>
+                <span className="word inline-block opacity-0">don&apos;t</span>
+                <span className="word inline-block opacity-0">sell</span>
+                <span className="word inline-block opacity-0">trips.</span>
+              </div>
+              <div className="flex flex-nowrap whitespace-nowrap justify-center gap-x-[0.2em]">
+                <span className="word inline-block text-white/90 opacity-0">We</span>
+                <span className="word inline-block text-white/90 opacity-0">craft</span>
+                <span className="word inline-block text-white/90 opacity-0">experiences.</span>
+              </div>
+            </h1>
+            <p className="hero-subhead text-[4vw] sm:text-xl md:text-2xl lg:text-3xl max-w-[90%] sm:max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0">
               A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
             </p>
           </div>
