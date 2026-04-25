@@ -148,35 +148,37 @@ export function Hero() {
           
           const objectUrl = URL.createObjectURL(blob);
           const img = new Image();
+          img.decoding = "async"; // Force background thread decoding
           img.src = objectUrl;
           
-          img.onload = () => {
-            if (!isActive) {
-              URL.revokeObjectURL(objectUrl);
-              return;
-            }
-            images[targetIdx] = img;
-            loadedCount++;
-            setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
-            
-            if (targetIdx === 0) {
-              initCanvas();
-              drawFrame(0);
-              setIsLoaded(true);
-            } else {
-              if (targetIdx === pendingFrameRef.current || Math.abs(targetIdx - pendingFrameRef.current) < 5) {
-                 drawFrame(pendingFrameRef.current);
+          // Wait for the GPU to finish decoding the image before notifying the main thread
+          img.decode()
+            .then(() => {
+              if (!isActive) {
+                URL.revokeObjectURL(objectUrl);
+                return;
               }
-            }
-            loadNext();
-          };
-          
-          img.onerror = () => {
-            if (!isActive) return;
-            URL.revokeObjectURL(objectUrl);
-            loadedCount++;
-            loadNext();
-          };
+              images[targetIdx] = img;
+              loadedCount++;
+              setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+              
+              if (targetIdx === 0) {
+                initCanvas();
+                drawFrame(0);
+                setIsLoaded(true);
+              } else {
+                if (targetIdx === pendingFrameRef.current || Math.abs(targetIdx - pendingFrameRef.current) < 5) {
+                   drawFrame(pendingFrameRef.current);
+                }
+              }
+              loadNext();
+            })
+            .catch(() => {
+              if (!isActive) return;
+              URL.revokeObjectURL(objectUrl);
+              loadedCount++;
+              loadNext();
+            });
         })
         .catch(() => {
           if (!isActive) return;
