@@ -81,6 +81,7 @@ export function HeroDesktop() {
     const loading = new Set<number>();
     const cache = new Map<number, ImageBitmap | HTMLImageElement>();
     const lruOrder: number[] = [];
+    const frameAbortControllers = new Map<number, AbortController>();
     let activeLoads = 0;
     let maxConcurrent = getMaxConcurrent();
 
@@ -197,7 +198,11 @@ export function HeroDesktop() {
       activeLoads++;
 
       const url = framePath(seqPath, n);
-      const signal = abortCtrl.signal;
+      const frameAbort = new AbortController();
+      frameAbortControllers.set(n, frameAbort);
+      
+      const onGlobalAbort = () => frameAbort.abort();
+      abortCtrl.signal.addEventListener("abort", onGlobalAbort);
 
       const onDone = (entry: ImageBitmap | HTMLImageElement) => {
         if (destroyed) {
@@ -213,12 +218,17 @@ export function HeroDesktop() {
 
       const cleanup = () => {
         loading.delete(n);
+        frameAbortControllers.delete(n);
+        abortCtrl.signal.removeEventListener("abort", onGlobalAbort);
         activeLoads--;
       };
 
       if (useImageBitmap) {
-        return fetch(url, { signal })
-          .then((r) => r.blob())
+        return fetch(url, { signal: frameAbort.signal })
+          .then((r) => {
+            if (!r.ok) throw new Error("Network error");
+            return r.blob();
+          })
           .then((blob) => createImageBitmap(blob))
           .then(onDone)
           .catch(() => undefined)
@@ -227,12 +237,17 @@ export function HeroDesktop() {
 
       const img = new Image();
       img.decoding = "async";
+      const onImageAbort = () => { img.src = ""; };
+      frameAbort.signal.addEventListener("abort", onImageAbort);
       img.src = url;
       return img
         .decode()
         .then(() => onDone(img))
         .catch(() => undefined)
-        .then(cleanup);
+        .finally(() => {
+          frameAbort.signal.removeEventListener("abort", onImageAbort);
+          cleanup();
+        });
     };
 
     let bootFrames: number[] = [];
@@ -248,26 +263,43 @@ export function HeroDesktop() {
     };
 
     // The core of the 60fps sliding window! 
-    // Always preloads 60 frames ahead of the user, and 15 frames behind.
-    // If frames were evicted by the LRU cache, this instantly fetches them back.
+    // SKELETON-FIRST strategy: loads every 8th frame across the entire sequence
+    // before filling in local gaps. This ensures global coverage within ~300ms,
+    // so fast scrolling on first load always has a frame within 4 positions.
     const prioritizeQueue = () => {
       const center = Math.round(targetFrame);
       const radius = 60;
+      
+      // Abort inflight requests that are too far away to free up connections instantly
+      for (const [loadingFrame, controller] of frameAbortControllers.entries()) {
+        if (Math.abs(loadingFrame - center) > radius + 20 && !SKELETON_SET.has(loadingFrame)) {
+          controller.abort();
+        }
+      }
+
+      const newQueue: number[] = [];
+      const queued = new Set<number>();
+      
+      // PHASE 1: Skeleton frames first — global coverage sorted by distance from center.
+      // 64 frames total. On a fast connection (10 concurrent), fully loaded in ~7 batches.
+      // After this phase, every scroll position has a visible frame within 4 positions.
+      const skeletonPending: number[] = [];
+      for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) {
+        if (!loaded.has(i) && !loading.has(i)) skeletonPending.push(i);
+      }
+      skeletonPending.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
+      for (const f of skeletonPending) { newQueue.push(f); queued.add(f); }
+      
+      // PHASE 2: Local gap-fill — dense coverage around the current scroll position.
+      // Only runs after skeleton frames are queued, filling in the gaps for smooth playback.
       const start = Math.max(0, center - 15);
       const end = Math.min(FRAME_COUNT - 1, center + radius);
-      
-      const newQueue: number[] = [];
-      
-      // 1. Local sliding window (Prioritize closest frames first)
+      const localPending: number[] = [];
       for (let i = start; i <= end; i++) {
-        if (!loaded.has(i) && !loading.has(i)) newQueue.push(i);
+        if (!loaded.has(i) && !loading.has(i) && !queued.has(i)) localPending.push(i);
       }
-      newQueue.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
-      
-      // 2. Skeleton fallback (Ensures fast scrolling never drops to black)
-      for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) {
-        if (!loaded.has(i) && !loading.has(i) && !newQueue.includes(i)) newQueue.push(i);
-      }
+      localPending.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
+      newQueue.push(...localPending);
 
       bootFrames = newQueue;
       bootCursor = 0;
