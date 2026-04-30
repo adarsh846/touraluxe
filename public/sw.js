@@ -1,4 +1,4 @@
-const CACHE_NAME = "touraluxe-v1";
+const CACHE_NAME = "touraluxe-v2";
 const OFFLINE_URLS = ["/"];
 
 // Install — cache the shell
@@ -23,12 +23,27 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
+  const url = new URL(event.request.url);
+  const isVideoRequest =
+    event.request.destination === "video" ||
+    event.request.headers.has("range") ||
+    url.pathname.endsWith(".mp4");
+  const isScrubSequenceFrame = url.pathname.includes("/assets/cave-sequence");
+
+  if (isVideoRequest || isScrubSequenceFrame) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         // Cache successful responses for offline use
         const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, clone))
+          .catch(() => undefined);
         return response;
       })
       .catch(() => caches.match(event.request))

@@ -1,30 +1,496 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { HeroSequence } from "./HeroSequence";
-import { HeroStatic } from "./HeroStatic";
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { HeroMobile } from "./HeroMobile";
 
-export function Hero() {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+gsap.registerPlugin(ScrollTrigger);
+
+/* ═══════════════════════════════════════════════════════════════════
+ * CONFIGURATION
+ * ═══════════════════════════════════════════════════════════════════ */
+const FRAME_COUNT = 511;
+// We revert to the original, pristine JPEGs for maximum quality!
+const DESKTOP_SEQ = "/assets/cave-sequence-60";
+
+// Progressive loading pass intervals
+const SKELETON_STEP = 8;
+
+// LRU memory caps — prevents OOM on constrained devices
+const DESKTOP_CACHE_CAP = 180;
+
+const SKELETON_SET = new Set<number>();
+for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) SKELETON_SET.add(i);
+SKELETON_SET.add(0);
+SKELETON_SET.add(FRAME_COUNT - 1);
+
+function framePath(base: string, n: number) {
+  return `${base}/frame_${String(n).padStart(4, "0")}.jpg`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * COMPONENT
+ * ═══════════════════════════════════════════════════════════════════ */
+export function HeroDesktop() {
+  const containerRef = useRef<HTMLElement>(null);
+  const subheadRef = useRef<HTMLParagraphElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const textContentRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    // Determine device type on mount
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const container = containerRef.current;
+    const media = mediaRef.current;
+    const canvas = canvasRef.current;
+    const ctx2d = canvas?.getContext("2d", { alpha: false, desynchronized: true });
+    if (!container || !media || !canvas || !ctx2d) return;
+
+    /* ── Device & capability detection ── */
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const seqPath = DESKTOP_SEQ;
     
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    // Original dimensions to preserve exact aspect ratio and framing
+    const srcW = 1920;
+    const srcH = 1080;
+    const CACHE_CAP = DESKTOP_CACHE_CAP;
+    const useImageBitmap = typeof createImageBitmap === "function";
+
+    /* ── Network-aware concurrency ── */
+    const getMaxConcurrent = (): number => {
+      const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+      if (conn?.saveData) return 2;
+      const ect = conn?.effectiveType;
+      if (ect === "slow-2g" || ect === "2g") return 2;
+      if (ect === "3g") return 4;
+      return 10;
+    };
+
+    /* ── Mutable state ── */
+    let destroyed = false;
+    let targetFrame = 0;
+    let smoothFrame = 0;
+    let rafId = 0;
+    let rafRunning = false;
+    let drawnFrame = -1;
+    let isPaused = false;
+    let refreshTimer: number | null = null;
+    const abortCtrl = new AbortController();
+
+    const loaded = new Set<number>();
+    const loading = new Set<number>();
+    const cache = new Map<number, ImageBitmap | HTMLImageElement>();
+    const lruOrder: number[] = [];
+    let activeLoads = 0;
+    let maxConcurrent = getMaxConcurrent();
+
+    /* ── Network change listener ── */
+    const connApi = (navigator as unknown as { connection?: EventTarget }).connection;
+    const onConnectionChange = () => { maxConcurrent = getMaxConcurrent(); };
+    connApi?.addEventListener?.("change", onConnectionChange);
+
+    const onVisibility = () => {
+      isPaused = document.hidden;
+      if (!isPaused) pumpBoot();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    /* ── Apple-Level Preload Injection ── */
+    // Inject link tags into head to force browser network priority for the first few critical frames
+    const preloadFrames = [0, SKELETON_STEP, SKELETON_STEP * 2];
+    preloadFrames.forEach((n) => {
+      const url = framePath(seqPath, n);
+      if (!document.querySelector(`link[href="${url}"]`)) {
+        const link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.href = url;
+        document.head.appendChild(link);
+      }
+    });
+
+    /* ── LRU CACHE ── */
+    const touchLRU = (n: number) => {
+      const idx = lruOrder.indexOf(n);
+      if (idx !== -1) lruOrder.splice(idx, 1);
+      lruOrder.push(n);
+    };
+
+    const evictIfNeeded = () => {
+      let attempts = 0;
+      while (lruOrder.length > CACHE_CAP && attempts < lruOrder.length) {
+        const candidate = lruOrder[0];
+        attempts++;
+
+        if (SKELETON_SET.has(candidate)) {
+          lruOrder.push(lruOrder.shift()!);
+          continue;
+        }
+
+        if (Math.abs(candidate - Math.round(smoothFrame)) < 30) {
+          lruOrder.push(lruOrder.shift()!);
+          continue;
+        }
+
+        lruOrder.shift();
+        const entry = cache.get(candidate);
+        if (entry && "close" in entry) (entry as ImageBitmap).close();
+        cache.delete(candidate);
+        loaded.delete(candidate);
+      }
+    };
+
+    /* ── CANVAS RENDER ENGINE (60FPS OPTIMIZED) ── */
+    const sizeCanvas = () => {
+      // Lock canvas internal resolution to the exact source image resolution.
+      // This prevents `drawImage` from doing expensive scaling/cropping on the CPU.
+      if (canvas.width !== srcW || canvas.height !== srcH) {
+        canvas.width = srcW;
+        canvas.height = srcH;
+        drawnFrame = -1;
+      }
+      // Disable smoothing since we are drawing 1:1
+      ctx2d.imageSmoothingEnabled = false; 
+    };
+
+    const drawCover = (img: ImageBitmap | HTMLImageElement) => {
+      // Blazing fast 1:1 copy. The GPU compositor handles the scaling 
+      // via the CSS `object-cover` utility class on the canvas.
+      ctx2d.drawImage(img as CanvasImageSource, 0, 0);
+    };
+
+    const nearestLoaded = (f: number): number => {
+      if (loaded.has(f)) return f;
+      for (let d = 1; d < FRAME_COUNT; d++) {
+        if (f - d >= 0 && loaded.has(f - d)) return f - d;
+        if (f + d < FRAME_COUNT && loaded.has(f + d)) return f + d;
+      }
+      return -1;
+    };
+
+    const localDensity = (center: number, radius: number): number => {
+      let count = 0;
+      const lo = Math.max(0, center - radius);
+      const hi = Math.min(FRAME_COUNT - 1, center + radius);
+      for (let i = lo; i <= hi; i++) {
+        if (loaded.has(i)) count++;
+      }
+      return count / (hi - lo + 1);
+    };
+
+    const drawFrame = (f: number) => {
+      const actual = nearestLoaded(f);
+      if (actual === -1 || actual === drawnFrame) return;
+      const img = cache.get(actual);
+      if (!img) return;
+      drawCover(img);
+      drawnFrame = actual;
+      touchLRU(actual);
+    };
+
+    /* ── FRAME LOADING ── */
+    const loadFrame = (n: number): Promise<void> => {
+      if (loaded.has(n) || loading.has(n) || n < 0 || n >= FRAME_COUNT) {
+        return Promise.resolve();
+      }
+      loading.add(n);
+      activeLoads++;
+
+      const url = framePath(seqPath, n);
+      const signal = abortCtrl.signal;
+
+      const onDone = (entry: ImageBitmap | HTMLImageElement) => {
+        if (destroyed) {
+          if ("close" in entry) (entry as ImageBitmap).close();
+          return;
+        }
+        cache.set(n, entry);
+        loaded.add(n);
+        touchLRU(n);
+        evictIfNeeded();
+        drawFrame(Math.round(smoothFrame));
+      };
+
+      const cleanup = () => {
+        loading.delete(n);
+        activeLoads--;
+      };
+
+      if (useImageBitmap) {
+        return fetch(url, { signal })
+          .then((r) => r.blob())
+          .then((blob) => createImageBitmap(blob))
+          .then(onDone)
+          .catch(() => undefined)
+          .then(cleanup);
+      }
+
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+      return img
+        .decode()
+        .then(() => onDone(img))
+        .catch(() => undefined)
+        .then(cleanup);
+    };
+
+    let bootFrames: number[] = [];
+    let bootCursor = 0;
+
+    const pumpBoot = () => {
+      if (destroyed || isPaused) return;
+      while (activeLoads < maxConcurrent && bootCursor < bootFrames.length) {
+        const n = bootFrames[bootCursor++];
+        if (loaded.has(n) || loading.has(n)) continue;
+        loadFrame(n).then(pumpBoot);
+      }
+    };
+
+    // The core of the 60fps sliding window! 
+    // Always preloads 60 frames ahead of the user, and 15 frames behind.
+    // If frames were evicted by the LRU cache, this instantly fetches them back.
+    const prioritizeQueue = () => {
+      const center = Math.round(targetFrame);
+      const radius = 60;
+      const start = Math.max(0, center - 15);
+      const end = Math.min(FRAME_COUNT - 1, center + radius);
+      
+      const newQueue: number[] = [];
+      
+      // 1. Local sliding window (Prioritize closest frames first)
+      for (let i = start; i <= end; i++) {
+        if (!loaded.has(i) && !loading.has(i)) newQueue.push(i);
+      }
+      newQueue.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
+      
+      // 2. Skeleton fallback (Ensures fast scrolling never drops to black)
+      for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) {
+        if (!loaded.has(i) && !loading.has(i) && !newQueue.includes(i)) newQueue.push(i);
+      }
+
+      bootFrames = newQueue;
+      bootCursor = 0;
+      pumpBoot();
+    };
+
+    /* ── RENDER LOOP ── */
+    // Decouples canvas drawing from scroll events to lock to monitor refresh rate (60fps)
+    const startRAF = () => {
+      if (rafRunning || destroyed) return;
+      rafRunning = true;
+      rafId = requestAnimationFrame(renderLoop);
+    };
+
+    const renderLoop = () => {
+      if (destroyed) { rafRunning = false; return; }
+
+      const dist = targetFrame - smoothFrame;
+      // Calculate how many frames around our current position are actually loaded.
+      // If density is low (frames missing), lerp drops heavily so the animation "waits" instead of skipping frames.
+      const density = localDensity(Math.round(smoothFrame), 15);
+      const lerp = 0.18 + density * 0.17;
+      
+      smoothFrame += Math.abs(dist) < 0.3 ? dist : dist * lerp;
+
+      drawFrame(Math.round(smoothFrame));
+      
+      // Continuously update the preloader window to follow the scroll
+      prioritizeQueue();
+
+      if (Math.abs(dist) < 0.01) {
+        rafRunning = false;
+        return;
+      }
+      rafId = requestAnimationFrame(renderLoop);
+    };
+
+    const refreshScroll = () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 80);
+    };
+
+    /* ── SYNCHRONOUS BOOT ── */
+    sizeCanvas();
+    startRAF();
+    // Initial fetch trigger
+    prioritizeQueue();
+
+    window.addEventListener("resize", sizeCanvas);
+    refreshScroll();
+
+    /* ── GSAP Animations ── */
+    const gsapCtx = gsap.context(() => {
+      // 1. Initial media fade in
+      gsap.fromTo(media, { scale: 1.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 3, ease: "expo.out" });
+
+      // 2. Scroll indicator logic
+      gsap.fromTo(".scroll-indicator", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 1 });
+      gsap.to(".scroll-indicator", {
+        opacity: 0, y: -10, ease: "none",
+        scrollTrigger: { trigger: containerRef.current, start: "top top", end: "120px top", scrub: true }
+      });
+
+      // 3. Cinematic Text Reveal Master Timeline
+      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, filter: "blur(15px)", transformPerspective: 1000 });
+      
+      const textTl = gsap.timeline();
+      
+      // Empty tween to pad timeline to the final section (Start reveal at frame 291 - last 220 frames)
+      textTl.to({}, { duration: 291 }, 0);
+      
+      // 1. Reveal wrapper
+      textTl.to(textContentRef.current, {
+        opacity: 1, scale: 1, filter: "blur(0px)", ease: "power2.out", duration: 220
+      }, 291);
+
+      // 2. 3D Staggered word reveal
+      textTl.fromTo(".word", 
+        { y: 80, opacity: 0, rotateX: -50, scale: 0.9 },
+        { y: 0, opacity: 1, rotateX: 0, scale: 1, stagger: 5, ease: "power3.out", duration: 150 },
+        305
+      );
+      
+      // 3. Subhead fade in with subtle blur removal
+      textTl.fromTo(subheadRef.current,
+        { y: 30, opacity: 0, filter: "blur(5px)" },
+        { y: 0, opacity: 1, filter: "blur(0px)", ease: "power2.out", duration: 100 },
+        380
+      );
+
+      // 4. MAIN SCROLL SCRUB TRIGGER (Binds Canvas Frame Update + Text Reveal)
+      const scrollDist = Math.round(Math.max(window.innerHeight * 2.4, FRAME_COUNT * 4.2));
+      
+      if (!reduceMotion) {
+        ScrollTrigger.create({
+          trigger: containerRef.current,
+          start: "top top",
+          end: `+=${scrollDist}`,
+          pin: true,
+          pinSpacing: true,
+          refreshPriority: 1, // Ensures this top-level pin is calculated before downstream sections
+          animation: textTl, // Unifies the text animation with the main pin! No jitter.
+          scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            targetFrame = Math.round(self.progress * (FRAME_COUNT - 1));
+            startRAF();
+          },
+        });
+      } else {
+        ScrollTrigger.create({
+          trigger: containerRef.current,
+          start: "top top",
+          end: `+=${window.innerHeight * 2}`,
+          pin: true,
+          pinSpacing: true,
+        });
+      }
+    }, containerRef);
+
+    /* ── CLEANUP ── */
+    return () => {
+      gsapCtx.revert(); // Revert FIRST to restore original DOM before React tries to remove it
+      destroyed = true;
+      abortCtrl.abort();
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      window.removeEventListener("resize", sizeCanvas);
+      document.removeEventListener("visibilitychange", onVisibility);
+      connApi?.removeEventListener?.("change", onConnectionChange);
+      cancelAnimationFrame(rafId);
+      for (const entry of cache.values()) {
+        if ("close" in entry) (entry as ImageBitmap).close();
+      }
+      cache.clear();
+      loaded.clear();
+      lruOrder.length = 0;
+    };
   }, []);
 
-  // During SSR and initial hydration, render a black placeholder 
-  // to avoid React hydration mismatches between Server and Client
-  if (isMobile === null) {
-    return <section className="h-screen w-full bg-black" />;
+  return (
+    <div className="w-full h-full">
+      <section ref={containerRef} className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white">
+        <div ref={mediaRef} className="absolute inset-0 w-full h-full will-change-transform transform-gpu z-0 opacity-0 bg-black">
+          {/* Instant poster — shows immediately while frame 0 decodes, canvas paints over it */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/cave-poster.webp"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <canvas 
+            ref={canvasRef} 
+            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu saturate-[1.05] contrast-[1.05] brightness-[0.90]" 
+            aria-hidden="true" 
+          />
+          {/* Ultra-subtle cinematic edge shading (top and bottom only) to frame the visuals like a movie */}
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        </div>
+
+        {/* Localized soft glow behind the text ensures perfect legibility without ruining the video's lighting */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="w-[150%] h-[80%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.65)_0%,_transparent_50%)]" />
+        </div>
+
+        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform mt-[-4vh]">
+          <h1 className="text-4xl md:text-6xl lg:text-[5.5rem] font-medium tracking-tighter leading-[1.05] mb-6 opacity-100 flex flex-wrap justify-center gap-x-[0.25em]">
+            <span className="word inline-block opacity-0 text-white/75">We</span>
+            <span className="word inline-block opacity-0 text-white/75">don&apos;t</span>
+            <span className="word inline-block opacity-0 text-white/75">sell</span>
+            <span className="word inline-block opacity-0 text-white/75">trips.</span>
+            <div className="basis-full h-0 md:h-2" />
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>We</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>craft</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>experiences.</span>
+          </h1>
+          <p ref={subheadRef} className="text-lg md:text-xl text-white/90 max-w-2xl font-light tracking-wide opacity-0 will-change-transform mt-4" style={{ filter: "drop-shadow(0px 4px 10px rgba(0,0,0,0.8))" }}>
+            A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
+          </p>
+        </div>
+
+        <div className="scroll-indicator absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
+          <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
+          <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 6l4 4 4-4" />
+          </svg>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * WRAPPER
+ * ═══════════════════════════════════════════════════════════════════ */
+export function Hero() {
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    const mql = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mql.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+
+    // Initial refresh to ensure all downstream triggers align
+    ScrollTrigger.refresh();
+
+    return () => mql.removeEventListener("change", handler);
+  }, []); // Only run once on mount
+
+  if (!mounted) {
+    // Return a stable black placeholder during SSR/Hydration to prevent layout shifts
+    return <div className="w-full h-screen bg-black" />;
   }
 
-  // Render the lightweight static image parallax for mobile devices
-  // Render the heavy 4K cinematic image sequence for desktop devices
-  return isMobile ? <HeroStatic /> : <HeroSequence />;
+  return (
+    <div className="w-full">
+      {isMobile ? <HeroMobile /> : <HeroDesktop />}
+    </div>
+  );
 }

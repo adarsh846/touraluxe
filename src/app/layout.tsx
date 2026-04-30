@@ -57,9 +57,6 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <meta name="theme-color" content="#000000" />
-        {/* Preload first frames for 0ms initial render */}
-        <link rel="preload" href="/sequence/frame-001.jpg" as="image" media="(min-width: 768px)" />
-        <link rel="preload" href="/sequence-mobile/frame-001.jpg" as="image" media="(max-width: 767px)" />
       </head>
       <body className={`${inter.variable} antialiased`}>
         <GsapConfig />
