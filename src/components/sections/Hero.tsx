@@ -394,7 +394,8 @@ export function HeroDesktop() {
       );
 
       // 4. MAIN SCROLL SCRUB TRIGGER (Binds Canvas Frame Update + Text Reveal)
-      const scrollDist = Math.round(Math.max(window.innerHeight * 2.4, FRAME_COUNT * 4.2));
+      // Premium Apple-style weight: ~7.5px per frame makes the scrub feel deliberate and cinematic.
+      const scrollDist = Math.round(Math.max(window.innerHeight * 4, FRAME_COUNT * 7.5));
       
       if (!reduceMotion) {
         ScrollTrigger.create({
