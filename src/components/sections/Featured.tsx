@@ -82,9 +82,15 @@ function PackageModal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     if (!experience) return;
+
+    // Reset scroll state for new content
+    setIsScrolled(false);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
 
     // Lock scroll via Lenis (no position:fixed hack = no scroll jump)
     const lenis = (window as any).__lenis;
@@ -142,130 +148,148 @@ function PackageModal({
 
       {/* Modal Panel */}
       <div className="absolute inset-0 flex items-center justify-center p-4 md:p-8 pointer-events-none">
-        <div
+        <div 
           ref={panelRef}
-          className="relative w-full max-w-[920px] max-h-[90vh] overflow-y-auto rounded-3xl bg-[#1c1c1e] border border-white/[0.06] pointer-events-auto"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          data-lenis-prevent
+          className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl"
         >
-          {/* Close Button */}
-          <div className="sticky top-4 float-right mr-4 mt-4 z-50">
+          {/* Static Close Button - No jitter on scroll */}
+          <div className="absolute top-6 right-6 z-[100]">
             <Magnetic>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center transition-all hover:bg-white/20 hover:scale-110"
+                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 hover:border-white/20"
                 aria-label="Close"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  className="text-white/60"
-                >
-                  <path d="M1 1l12 12M13 1L1 13" />
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/80">
+                  <path d="M1.5 1.5l13 13M14.5 1.5l-13 13" />
                 </svg>
               </button>
             </Magnetic>
           </div>
 
-          {/* Hero Image */}
-          <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden rounded-t-3xl">
-            <Image
-              src={experience.image}
-              alt={experience.title}
-              fill
-              className="object-cover"
-              quality={90}
-              sizes="920px"
-            />
-            {/* Bottom gradient fade into content */}
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#1c1c1e] to-transparent" />
+          {/* Scrollable Container */}
+          <div
+            ref={scrollRef}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const scrollPos = el.scrollTop;
+              const maxScroll = el.scrollHeight - el.clientHeight;
+              setIsScrolled(scrollPos > 30 || scrollPos > maxScroll - 140);
+            }}
+            className="w-full h-full overflow-y-auto scrollbar-hide"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255,255,255,0.1) transparent",
+            }}
+          >
+            {/* Hero Image */}
+            <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">
+              <Image
+                src={experience.image}
+                alt={experience.title}
+                fill
+                className="object-cover scale-[1.01]"
+                quality={90}
+                sizes="920px"
+              />
+              {/* Bottom gradient fade into content */}
+              <div className="absolute inset-x-0 -bottom-px h-40 bg-gradient-to-t from-[#1c1c1e] to-transparent" />
 
-            {/* Price badge */}
-            <div className="absolute bottom-6 left-8 flex items-baseline gap-2">
-              <span className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
-                {experience.price}
-              </span>
-              <span className="text-sm text-white/50 font-normal">
-                / {experience.duration.toLowerCase()}
-              </span>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div ref={contentRef} className="px-8 md:px-10 pb-10 -mt-2">
-            {/* Header */}
-            <div className="mb-8">
-              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">
-                {experience.location}
-              </span>
-              <h3 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mt-2 leading-[1.1]">
-                {experience.title}
-              </h3>
-              <p className="text-lg md:text-xl text-[#86868b] font-medium tracking-tight mt-2 italic">
-                {experience.tagline}
-              </p>
-            </div>
-
-            {/* Meta pills */}
-            <div className="flex flex-wrap gap-3 mb-8">
-              {[
-                { label: "Duration", value: experience.duration },
-                { label: "Guests", value: experience.guests },
-                { label: "Season", value: experience.season },
-              ].map((meta) => (
-                <div
-                  key={meta.label}
-                  className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06]"
-                >
-                  <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-[#86868b]">
-                    {meta.label}
-                  </span>
-                  <span className="text-sm font-semibold text-white/90">{meta.value}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Description */}
-            <div className="mb-10">
-              <p className="text-[17px] leading-[1.65] text-[#a1a1a6] font-normal">
-                {experience.description}
-              </p>
-            </div>
-
-            {/* Highlights */}
-            <div className="mb-10">
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b] mb-5">
-                What&apos;s Included
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                {experience.highlights.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="mt-[6px] w-[6px] h-[6px] rounded-full bg-gradient-to-br from-white/60 to-white/20 flex-shrink-0" />
-                    <span className="text-[15px] text-white/70 leading-[1.5]">{item}</span>
-                  </div>
-                ))}
+              {/* Price badge */}
+              <div className="absolute bottom-6 left-8 flex items-baseline gap-2">
+                <span className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
+                  {experience.price}
+                </span>
+                <span className="text-sm text-white/50 font-normal">
+                  / {experience.duration.toLowerCase()}
+                </span>
               </div>
             </div>
 
-            {/* CTA */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-white/[0.06]">
-              <button className="flex-1 py-4 px-8 rounded-full bg-white text-black font-semibold text-[15px] tracking-tight transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98]">
-                Reserve This Experience
-              </button>
-              <button
-                onClick={handleClose}
-                className="flex-1 py-4 px-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/70 font-medium text-[15px] tracking-tight transition-all hover:bg-white/[0.1] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Back to Journeys
-              </button>
+            {/* Content */}
+            <div 
+              ref={contentRef} 
+              className="relative z-10 px-8 md:px-10 pb-10 -mt-8 bg-[#1c1c1e] rounded-t-3xl"
+            >
+              {/* Header */}
+              <div className="mb-8 mt-8">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">
+                  {experience.location}
+                </span>
+                <h3 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mt-2 leading-[1.1]">
+                  {experience.title}
+                </h3>
+                <p className="text-lg md:text-xl text-[#86868b] font-medium tracking-tight mt-2 italic">
+                  {experience.tagline}
+                </p>
+              </div>
+
+              {/* Meta pills */}
+              <div className="flex flex-wrap gap-3 mb-8">
+                {[
+                  { label: "Duration", value: experience.duration },
+                  { label: "Guests", value: experience.guests.toLowerCase().includes("person") ? experience.guests : `${experience.guests} Person` },
+                ].map((meta) => (
+                  <div
+                    key={meta.label}
+                    className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/[0.04] border border-white/[0.06]"
+                  >
+                    <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-[#86868b]">
+                      {meta.label}
+                    </span>
+                    <span className="text-sm font-semibold text-white/90">{meta.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Description */}
+              <div className="mb-10">
+                <p className="text-[17px] leading-[1.65] text-[#a1a1a6] font-normal">
+                  {experience.description}
+                </p>
+              </div>
+
+              {/* Highlights */}
+              <div className="mb-10">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b] mb-5">
+                  What&apos;s Included
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                  {experience.highlights.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="mt-[6px] w-[6px] h-[6px] rounded-full bg-gradient-to-br from-white/60 to-white/20 flex-shrink-0" />
+                      <span className="text-[15px] text-white/70 leading-[1.5]">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-white/[0.06]">
+                <Magnetic>
+                  <button className="flex-1 py-4 px-8 rounded-full bg-white text-black font-semibold text-[15px] tracking-tight transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98]">
+                    Reserve This Experience
+                  </button>
+                </Magnetic>
+                <Magnetic>
+                  <button
+                    onClick={handleClose}
+                    className="flex-1 py-4 px-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/70 font-medium text-[15px] tracking-tight transition-all hover:bg-white/[0.1] hover:text-white hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Back to Journeys
+                  </button>
+                </Magnetic>
+              </div>
             </div>
+          </div>
+
+          {/* Fixed Scroll Indicator at bottom right - clearly visible */}
+          <div className={`absolute bottom-10 right-10 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700 ${isScrolled ? 'opacity-0 translate-y-4' : 'opacity-100'}`}>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white drop-shadow-md">Scroll</span>
+            <svg className="w-5 h-5 text-white drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6l4 4 4-4" />
+            </svg>
           </div>
         </div>
       </div>

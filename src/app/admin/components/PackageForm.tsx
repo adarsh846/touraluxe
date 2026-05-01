@@ -13,14 +13,22 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const parseDuration = (d: string) => {
+    const nights = d.match(/(\d+)\s*Night/i)?.[1] || "";
+    const days = d.match(/(\d+)\s*Day/i)?.[1] || "";
+    return { nights, days };
+  };
+
+  const initialDur = parseDuration(initialData?.duration || "");
+
   const [form, setForm] = useState({
     title: initialData?.title || "",
     location: initialData?.location || "",
     image: initialData?.image || "",
     price: initialData?.price || "",
-    duration: initialData?.duration || "",
+    nights: initialDur.nights,
+    days: initialDur.days,
     guests: initialData?.guests || "",
-    season: initialData?.season || "",
     tagline: initialData?.tagline || "",
     description: initialData?.description || "",
     highlights: initialData?.highlights || [""],
@@ -93,8 +101,14 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     setSaving(true);
 
     const token = getToken();
+    
+    // Construct duration string
+    const duration = `${form.nights} Nights ${form.days} Days`;
+    
     const payload = {
       ...form,
+      duration,
+      season: "", // Removed from UI
       highlights: form.highlights.filter((h) => h.trim() !== ""),
     };
 
@@ -208,7 +222,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             />
           </div>
 
-          {/* Price, Duration, Guests, Season */}
+          {/* Price, Duration (Nights/Days), Guests */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field
               label="Price"
@@ -218,23 +232,24 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               required
             />
             <Field
-              label="Duration"
-              value={form.duration}
-              onChange={(v) => setForm((p) => ({ ...p, duration: v }))}
-              placeholder="7 Nights"
+              label="Nights"
+              value={form.nights}
+              onChange={(v) => setForm((p) => ({ ...p, nights: v }))}
+              placeholder="3"
+              required
+            />
+            <Field
+              label="Days"
+              value={form.days}
+              onChange={(v) => setForm((p) => ({ ...p, days: v }))}
+              placeholder="4"
               required
             />
             <Field
               label="Guests"
               value={form.guests}
               onChange={(v) => setForm((p) => ({ ...p, guests: v }))}
-              placeholder="Up to 8"
-            />
-            <Field
-              label="Season"
-              value={form.season}
-              onChange={(v) => setForm((p) => ({ ...p, season: v }))}
-              placeholder="Dec — Mar"
+              placeholder="1"
             />
           </div>
 

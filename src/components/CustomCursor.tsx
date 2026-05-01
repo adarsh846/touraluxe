@@ -73,12 +73,12 @@ export function CustomCursor() {
     <>
       <div 
         ref={cursorRef} 
-        className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[10001] mix-blend-difference hidden md:block will-change-transform"
+        className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[1000001] mix-blend-difference hidden md:block will-change-transform"
         style={{ transform: "translate(-50%, -50%)" }}
       />
       <div 
         ref={followerRef} 
-        className="fixed top-0 left-0 w-20 h-20 border border-white/30 rounded-full pointer-events-none z-[10000] hidden md:block will-change-transform"
+        className="fixed top-0 left-0 w-20 h-20 border border-white/30 rounded-full pointer-events-none z-[1000000] hidden md:block will-change-transform"
         style={{ transform: "translate(-50%, -50%) scale(0.4)" }}
       />
     </>

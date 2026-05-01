@@ -1,20 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
+import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { X } from "lucide-react";
 
 export function CTA() {
   const containerRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const ctx = gsap.context(() => {
-      // Masked text reveal sequence for the CTA
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
@@ -22,75 +29,58 @@ export function CTA() {
         }
       });
 
-      // 1. Unmask the words smoothly
       tl.to(".cta-word", {
         y: "0%",
         duration: 1.2,
         stagger: 0.08,
         ease: "power4.out",
       })
-        // 2. Fade up the rest of the content (paragraph and button)
-        .fromTo(
-          ".cta-content",
-          { y: 30, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1.2,
-            ease: "expo.out",
-          },
-          "-=0.8" // Start fading in while words are still landing
-        );
+      .fromTo(
+        ".cta-content",
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1.2, ease: "expo.out" },
+        "-=0.8"
+      );
     }, containerRef);
 
     return () => ctx.revert();
   }, []);
 
   const openModal = () => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
+    setIsModalOpen(true);
     setIsSubmitted(false);
-    dialog.showModal();
+    setIsScrolled(false);
+    
+    // Stop Lenis
+    const lenis = (window as any).__lenis;
+    lenis?.stop();
 
-    // GPU-accelerated entrance — single timeline, no stagger delay on mobile
-    const tl = gsap.timeline({ defaults: { force3D: true } });
-    tl.fromTo(
-      dialog,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: "power2.out" }
-    )
-    .fromTo(
-      ".modal-content",
-      { y: 30, opacity: 0, scale: 0.97 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.35, ease: "expo.out" },
-      "-=0.15"
-    )
-    .fromTo(
-      ".modal-field",
-      { y: 12, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.3, ease: "power3.out", stagger: 0.04 },
-      "-=0.2"
-    );
+    // GSAP entrance
+    setTimeout(() => {
+      const tl = gsap.timeline();
+      tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4 });
+      tl.fromTo(panelRef.current, 
+        { y: 60, opacity: 0, scale: 0.96 }, 
+        { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 
+        0.1
+      );
+    }, 0);
   };
 
-  const closeModal = () => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    gsap.to(".modal-content", {
-      y: 20, opacity: 0, scale: 0.97,
-      duration: 0.2, ease: "power2.in", force3D: true,
+  const closeModal = useCallback(() => {
+    const tl = gsap.timeline({ 
+      onComplete: () => {
+        setIsModalOpen(false);
+        const lenis = (window as any).__lenis;
+        lenis?.start();
+      } 
     });
-    gsap.to(dialog, {
-      opacity: 0, duration: 0.25, ease: "power2.in", delay: 0.05,
-      onComplete: () => dialog.close(),
-    });
-  };
+    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.97, duration: 0.3, ease: "power2.in" });
+    tl.to(overlayRef.current, { opacity: 0, duration: 0.25 }, 0.1);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Animate submit
     gsap.to(".modal-form", {
       opacity: 0, y: -10, duration: 0.3, ease: "power2.in",
       onComplete: () => {
@@ -109,7 +99,7 @@ export function CTA() {
       <section 
         ref={containerRef}
         id="contact"
-        className="relative py-40 px-6 w-full text-[#1d1d1f] overflow-visible flex items-center justify-center min-h-screen bg-transparent"
+        className="relative py-40 px-6 w-full text-[#1d1d1f] overflow-visible flex items-center justify-center min-h-[80vh] bg-transparent"
       >
         <div 
           ref={contentRef}
@@ -142,116 +132,119 @@ export function CTA() {
         </div>
       </section>
 
-      {/* Contact Modal */}
-      <dialog
-        ref={dialogRef}
-        className="fixed inset-0 z-[9000] w-full h-full max-w-none max-h-none m-0 p-0 bg-black/80 backdrop-blur-md border-none outline-none will-change-[opacity]"
-        onClick={(e) => {
-          if (e.target === dialogRef.current) closeModal();
-        }}
-      >
-        <div className="modal-content flex items-center justify-center min-h-full px-4 py-8 will-change-transform">
-          <div className="relative w-full max-w-lg bg-[#141414] rounded-3xl p-8 md:p-10 border border-white/10 shadow-2xl">
-            {/* Close Button */}
-            <div className="absolute top-5 right-5 z-10">
-              <Magnetic>
-                <button
-                  onClick={closeModal}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors text-white/50 hover:text-white"
-                >
-                  <X size={16} />
-                </button>
-              </Magnetic>
-            </div>
-
-            {!isSubmitted ? (
-              <form ref={formRef} onSubmit={handleSubmit} className="modal-form flex flex-col gap-6">
-                <div className="modal-field">
-                  <h3 className="text-2xl md:text-3xl font-semibold text-white tracking-tight mb-1">
-                    Let&apos;s craft your experience.
-                  </h3>
-                  <p className="text-sm text-white/40">
-                    Fill in your details and our curators will reach out within 24 hours.
-                  </p>
-                </div>
-
-                <div className="modal-field flex flex-col gap-1.5">
-                  <label htmlFor="contact-name" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Name</label>
-                  <input
-                    id="contact-name"
-                    type="text"
-                    required
-                    placeholder="Your full name"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors"
-                  />
-                </div>
-
-                <div className="modal-field flex flex-col gap-1.5">
-                  <label htmlFor="contact-email" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Email</label>
-                  <input
-                    id="contact-email"
-                    type="email"
-                    required
-                    placeholder="your@email.com"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors"
-                  />
-                </div>
-
-                <div className="modal-field flex flex-col gap-1.5">
-                  <label htmlFor="contact-destination" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Dream Destination</label>
-                  <input
-                    id="contact-destination"
-                    type="text"
-                    placeholder="e.g. Maldives, Swiss Alps, Amalfi Coast"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors"
-                  />
-                </div>
-
-                <div className="modal-field flex flex-col gap-1.5">
-                  <label htmlFor="contact-message" className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">Tell us more</label>
-                  <textarea
-                    id="contact-message"
-                    rows={3}
-                    placeholder="Share your vision for the perfect trip..."
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors resize-none"
-                  />
-                </div>
-
-                <div className="modal-field">
-                  <Magnetic className="block w-full">
-                    <button
-                      type="submit"
-                      className="w-full rounded-full bg-white text-black py-3.5 text-sm font-semibold transition-all hover:bg-white/90 active:scale-[0.98] shadow-lg"
-                    >
-                      Send Inquiry
-                    </button>
-                  </Magnetic>
-                </div>
-              </form>
-            ) : (
-              <div className="success-message flex flex-col items-center justify-center gap-4 py-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-2 shadow-lg">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-semibold text-white tracking-tight">
-                  Inquiry Received
-                </h3>
-                <p className="text-sm text-white/40 max-w-xs">
-                  Our travel curators will reach out within 24 hours to begin designing your experience.
-                </p>
-                <button
-                  onClick={closeModal}
-                  className="mt-4 rounded-full bg-white/10 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/20"
-                >
-                  Close
-                </button>
+      {/* Improved Contact Modal - Portaled to Body Root to escape stacking contexts */}
+      {isModalOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[999999]">
+          <div 
+            ref={overlayRef} 
+            className="absolute inset-0 bg-black/98 md:bg-black/85 backdrop-blur-2xl" 
+            onClick={closeModal} 
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4 md:p-8 pointer-events-none">
+            <div 
+              ref={panelRef} 
+              data-lenis-prevent 
+              className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl"
+            >
+              {/* Close Button */}
+              <div className="absolute top-6 right-6 z-[100]">
+                <Magnetic>
+                  <button 
+                    onClick={closeModal} 
+                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </Magnetic>
               </div>
-            )}
+
+              <div 
+                ref={scrollRef} 
+                onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 30)}
+                className="w-full h-full overflow-y-auto scrollbar-hide"
+              >
+                {/* Hero Image */}
+                <div className="relative w-full aspect-[4/3] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">
+                  <Image 
+                    src="/private_jet_interior_sunset_1777656427557.png" 
+                    alt="Private Jet Interior" 
+                    fill 
+                    className="object-cover scale-[1.01]" 
+                    priority 
+                  />
+                  <div className="absolute inset-x-0 -bottom-px h-32 md:h-40 bg-gradient-to-t from-[#1c1c1e] to-transparent" />
+                  
+                  {/* Scroll Indicator */}
+                  <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700 ${isScrolled ? 'opacity-0 translate-y-4' : 'opacity-100'}`}>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white drop-shadow-md">Scroll</span>
+                    <svg className="w-5 h-5 text-white drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 6l4 4 4-4" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="relative z-10 px-6 md:px-12 pb-20 md:pb-16 -mt-8 bg-[#1c1c1e] rounded-t-3xl">
+                  {!isSubmitted ? (
+                    <div className="max-w-xl mx-auto">
+                      <div className="mb-8 md:mb-10 mt-10 text-center">
+                        <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Curated Inquiry</span>
+                        <h3 className="text-2xl md:text-4xl font-semibold tracking-tight text-white mt-2 leading-tight">Let&apos;s craft your experience.</h3>
+                        <p className="text-sm md:text-base text-[#86868b] mt-3">Provide your details and our lead curators will reach out within 24 hours.</p>
+                      </div>
+
+                      <form onSubmit={handleSubmit} className="modal-form grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Full Name</label>
+                          <input required type="text" placeholder="Your full name" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Email Address</label>
+                          <input required type="email" placeholder="your@email.com" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                        </div>
+                        <div className="md:col-span-2 flex flex-col gap-2">
+                          <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Dream Destination</label>
+                          <input type="text" placeholder="e.g. Maldives, Swiss Alps, Amalfi Coast" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                        </div>
+                        <div className="md:col-span-2 flex flex-col gap-2">
+                          <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Your Vision</label>
+                          <textarea rows={4} placeholder="Share your vision for the perfect trip..." className="w-full bg-white/[0.03] border border-white/10 rounded-3xl px-5 py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all resize-none" />
+                        </div>
+                        
+                        <div className="md:col-span-2 pt-4 mb-12">
+                          <Magnetic className="w-full">
+                            <button type="submit" className="w-full py-4.5 md:py-5 rounded-full bg-white text-black font-bold text-sm md:text-[15px] transition-all hover:scale-[1.01] active:scale-[0.99] shadow-xl">
+                              Send Inquiry
+                            </button>
+                          </Magnetic>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="success-message flex flex-col items-center justify-center gap-6 py-20 text-center max-w-sm mx-auto">
+                      <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-2xl">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-3xl font-semibold text-white tracking-tight">Inquiry Received</h3>
+                        <p className="text-[#86868b] mt-3 leading-relaxed">Thank you. Your request is being prioritized. A curator will contact you shortly to begin the design process.</p>
+                      </div>
+                      <Magnetic>
+                        <button onClick={closeModal} className="mt-4 px-10 py-3 rounded-full bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all mb-12">
+                          Return to Site
+                        </button>
+                      </Magnetic>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </dialog>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

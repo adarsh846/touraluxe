@@ -10,6 +10,13 @@ export function Preloader() {
   const progressTextRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    let currentProgress = 0;
+    let targetProgress = 0;
+
+    // Force top on load
+    window.scrollTo(0, 0);
+    
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
@@ -20,32 +27,64 @@ export function Preloader() {
         { y: 0, opacity: 1, duration: 0.5, ease: "expo.out", stagger: 0.04 }
       );
 
-      // 2. Smooth Progress Animation (Simulated but ultra-smooth)
-      tl.to({}, {
-        duration: 0.8, // Total load time is now under 1s
-        onUpdate: function() {
-          const val = Math.round(this.progress() * 100);
-          if (progressRef.current) progressRef.current.style.width = `${val}%`;
-          if (progressTextRef.current) progressTextRef.current.innerText = `Authentic Excellence — ${val}%`;
-        },
-        ease: "power2.inOut"
-      });
+      // 2. Progress Logic
+      const updateUI = () => {
+        if (progressRef.current) progressRef.current.style.width = `${currentProgress}%`;
+        if (progressTextRef.current) progressTextRef.current.innerText = `Authentic Excellence — ${Math.round(currentProgress)}%`;
+      };
 
-      // 3. Ultra-Fast Exit
-      tl.to(".preloader-text span", {
-        y: -60,
-        opacity: 0,
-        duration: 0.3,
-        ease: "expo.in",
-        stagger: 0.02,
-      }, "+=0.1")
-      .to(preloaderRef.current, {
-        yPercent: -100,
-        duration: 0.6,
-        ease: "expo.inOut",
-      }, "-=0.1")
-      .set(preloaderRef.current, { display: "none" });
+      const finishLoader = () => {
+        const exitTl = gsap.timeline();
+        exitTl.to(".preloader-text span", {
+          y: -60,
+          opacity: 0,
+          duration: 0.3,
+          ease: "expo.in",
+          stagger: 0.02,
+        }, "+=0.2")
+        .to(preloaderRef.current, {
+          yPercent: -100,
+          duration: 0.6,
+          ease: "expo.inOut",
+        }, "-=0.1")
+        .set(preloaderRef.current, { display: "none" });
+      };
 
+      // Simulated smooth crawl (ticker)
+      const ticker = () => {
+        // If on mobile, target is always 100 eventually
+        if (!isDesktop) targetProgress = 100;
+        
+        // Approach target smoothly
+        currentProgress += (targetProgress - currentProgress) * 0.05;
+        updateUI();
+
+        if (currentProgress > 99.5) {
+          currentProgress = 100;
+          updateUI();
+          gsap.ticker.remove(ticker);
+          finishLoader();
+        }
+      };
+
+      gsap.ticker.add(ticker);
+
+      const onProgress = (e: any) => {
+        targetProgress = e.detail;
+      };
+
+      window.addEventListener("hero-progress", onProgress);
+
+      // Fallback: if nothing happens for 5s, just finish
+      const timeout = setTimeout(() => {
+        targetProgress = 100;
+      }, 5000);
+
+      return () => {
+        gsap.ticker.remove(ticker);
+        window.removeEventListener("hero-progress", onProgress);
+        clearTimeout(timeout);
+      };
     }, preloaderRef);
 
     return () => ctx.revert();

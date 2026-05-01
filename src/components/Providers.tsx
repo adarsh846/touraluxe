@@ -15,6 +15,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       lerp: 0.08,
     });
 
+    // ─── SCROLL TOP FIX ON REFRESH ───
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+    lenis.scrollTo(0, { immediate: true });
+
     // Expose globally for programmatic scrolling from other components
     (window as any).__lenis = lenis;
 

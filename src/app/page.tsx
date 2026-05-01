@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/sections/Hero";
 import { Services } from "@/components/sections/Services";
 import { Featured } from "@/components/sections/Featured";
-import { Testimonials } from "@/components/sections/Testimonials";
+import { Quotes } from "@/components/sections/Quotes";
 import { Marquee } from "@/components/sections/Marquee";
 import { CTA } from "@/components/sections/CTA";
 import { Footer } from "@/components/Footer";
@@ -95,7 +95,7 @@ export default function Home() {
           <div className="relative z-[10] w-full flex flex-col">
             {/* Spacer to give the airplane room to dive in before hitting text */}
             <div className="w-full h-[50vh] pointer-events-none" />
-            <Testimonials />
+            <Quotes />
             <CTA />
           </div>
 

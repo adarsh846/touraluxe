@@ -213,6 +213,14 @@ export function HeroDesktop() {
         touchLRU(n);
         evictIfNeeded();
         drawFrame(Math.round(smoothFrame));
+
+        // Report progress for skeleton frames to the preloader
+        if (SKELETON_SET.has(n)) {
+          const loadedSkeletonCount = Array.from(SKELETON_SET).filter(f => loaded.has(f)).length;
+          const progress = Math.round((loadedSkeletonCount / SKELETON_SET.size) * 100);
+          (window as any).__heroProgress = progress;
+          window.dispatchEvent(new CustomEvent("hero-progress", { detail: progress }));
+        }
       };
 
       const cleanup = () => {
@@ -477,13 +485,13 @@ export function HeroDesktop() {
           <div className="w-[120%] h-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.35)_0%,_transparent_60%)]" />
         </div>
 
-        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform mt-[-4vh]" style={{ perspective: '1200px' }}>
-          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-semibold tracking-[-0.04em] leading-[1] mb-4 opacity-100 flex flex-wrap justify-center gap-x-[0.22em]" style={{ transform: 'translateZ(60px)', transformStyle: 'preserve-3d' }}>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>Beyond</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>travel.</span>
-            <div className="basis-full h-0 md:h-3" />
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>Pure</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>experience.</span>
+        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform" style={{ perspective: '1200px' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-semibold tracking-[-0.04em] leading-[1] mb-6 opacity-100 flex flex-wrap justify-center gap-x-4 md:gap-x-6" style={{ transform: 'translateZ(60px)', transformStyle: 'preserve-3d' }}>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>Beyond</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>travel.</span>
+            <div className="basis-full h-0 md:h-4" />
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>Pure</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>experience.</span>
           </h1>
           <p ref={subheadRef} className="text-[17px] md:text-[21px] font-normal tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ transform: 'translateZ(30px)' }}>
             Meticulously curated journeys for those who demand the exceptional.

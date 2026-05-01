@@ -7,7 +7,7 @@ import { Magnetic } from "../Magnetic";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const TESTIMONIALS = [
+const QUOTES = [
   {
     quote: <>We don&apos;t sell trips.<br />We craft experiences.</>,
     author: "Elena R.",
@@ -26,7 +26,7 @@ const TESTIMONIALS = [
 ];
 
 
-export function Testimonials() {
+export function Quotes() {
   const containerRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -36,7 +36,7 @@ export function Testimonials() {
     const ctx = gsap.context(() => {
       // Chips entrance pop-in (stripped Y-axis to prevent collision with parallax scroll loops later)
       gsap.fromTo(
-        ".testimonial-chip",
+        ".quote-chip",
         { opacity: 0, scale: 0.6 },
         {
           opacity: 1,
@@ -52,7 +52,7 @@ export function Testimonials() {
       );
 
       // Chips parallax float
-      gsap.to(".testimonial-chip", {
+      gsap.to(".quote-chip", {
         y: -70,
         ease: "none",
         force3D: true,
@@ -112,7 +112,7 @@ export function Testimonials() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+      setCurrentIndex((prev) => (prev + 1) % QUOTES.length);
     }, 6000);
     return () => clearInterval(interval);
   }, []);
@@ -120,22 +120,22 @@ export function Testimonials() {
   return (
     <section 
       ref={containerRef}
-      id="testimonials"
+      id="quotes"
       className="scroll-mt-0 w-full min-h-[100vh] flex items-center justify-center relative bg-transparent"
     >
       {/* ── Mobile Chips (3 chips) — safe positions, no overflow ── */}
       <div className="absolute inset-0 pointer-events-none z-[5] md:hidden">
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[18%] left-[4%] pointer-events-auto rotate-[-8deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[18%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic>
             <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div>
           </Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[50%] right-[4%] pointer-events-auto rotate-[7deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[50%] right-[4%] pointer-events-auto rotate-[7deg]">
           <Magnetic>
             <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div>
           </Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[78%] left-[4%] pointer-events-auto rotate-[-6deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[78%] left-[4%] pointer-events-auto rotate-[-6deg]">
           <Magnetic>
             <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div>
           </Magnetic>
@@ -144,22 +144,22 @@ export function Testimonials() {
 
       {/* ── Desktop Chips ── */}
       <div className="absolute inset-0 pointer-events-none z-0 hidden md:block">
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[12%] left-[4%] pointer-events-auto rotate-[-8deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[12%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div></Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[18%] right-[5%] pointer-events-auto rotate-[6deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[18%] right-[5%] pointer-events-auto rotate-[6deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #f093fb, #f5576c)" }}>ELITE</div></Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[52%] left-[3%] pointer-events-auto rotate-[-5deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[52%] left-[3%] pointer-events-auto rotate-[-5deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #4facfe, #00f2fe)" }}>TAILORED</div></Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[58%] right-[4%] pointer-events-auto rotate-[9deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[58%] right-[4%] pointer-events-auto rotate-[9deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div></Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[80%] left-[5%] pointer-events-auto rotate-[4deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[80%] left-[5%] pointer-events-auto rotate-[4deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div></Magnetic>
         </div>
-        <div className="testimonial-chip will-change-transform absolute opacity-0 top-[78%] right-[5%] pointer-events-auto rotate-[-7deg]">
+        <div className="quote-chip will-change-transform absolute opacity-0 top-[78%] right-[5%] pointer-events-auto rotate-[-7deg]">
           <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}>CURATED</div></Magnetic>
         </div>
       </div>
@@ -175,22 +175,17 @@ export function Testimonials() {
           ref={textRef}
           className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] will-change-transform text-[#1d1d1f]"
         >
-          {TESTIMONIALS[currentIndex].quote}
+          {QUOTES[currentIndex].quote}
         </p>
-
-        {/* <div className="font-medium text-lg md:text-xl text-[#1d1d1f]/60">
-          <p>{TESTIMONIALS[currentIndex].author}</p>
-          <p className="text-sm">{TESTIMONIALS[currentIndex].role}</p>
-        </div> */}
 
         {/* Minimal Progress Indicators */}
         <div className="absolute left-0 right-0 -bottom-16 flex justify-center gap-3">
-          {TESTIMONIALS.map((_, idx) => (
+          {QUOTES.map((_, idx) => (
             <Magnetic key={idx}>
               <button
                 onClick={() => setCurrentIndex(idx)}
                 className="group py-2 px-1 focus:outline-none"
-                aria-label={`Go to testimonial ${idx + 1}`}
+                aria-label={`Go to quote ${idx + 1}`}
               >
                 <div 
                   className={`h-px transition-all duration-500 ease-out ${

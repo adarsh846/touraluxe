@@ -38,16 +38,56 @@ export function Footer() {
 
         <div className="flex flex-col sm:flex-row gap-10 sm:gap-24">
           <div className="flex flex-col items-start gap-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Experiences</h4>
-            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Luxury Travel</button></Magnetic>
-            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Sports Tours</button></Magnetic>
-            <Magnetic><button onClick={() => scrollToSection("services", -80)} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">MICE Events</button></Magnetic>
-            <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Global Retreats</button></Magnetic>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Services</h4>
+            <Magnetic>
+              <button 
+                onClick={() => {
+                  scrollToSection("services", -80);
+                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 1 } }));
+                }} 
+                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+              >
+                Luxury Travel
+              </button>
+            </Magnetic>
+            <Magnetic>
+              <button 
+                onClick={() => {
+                  scrollToSection("services", -80);
+                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 2 } }));
+                }} 
+                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+              >
+                Sports Tours
+              </button>
+            </Magnetic>
+            <Magnetic>
+              <button 
+                onClick={() => {
+                  scrollToSection("services", -80);
+                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 3 } }));
+                }} 
+                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+              >
+                MICE Events
+              </button>
+            </Magnetic>
+            <Magnetic>
+              <button 
+                onClick={() => {
+                  scrollToSection("services", -80);
+                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 4 } }));
+                }} 
+                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+              >
+                Global Retreats
+              </button>
+            </Magnetic>
           </div>
           
           <div className="flex flex-col items-start gap-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Company</h4>
-            <Magnetic><button onClick={() => scrollToSection("testimonials")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">About</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("quotes")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Philosophy</button></Magnetic>
             <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
             <Magnetic><button onClick={() => scrollToSection("contact")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
             <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Privacy</button></Magnetic>
