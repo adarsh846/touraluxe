@@ -353,27 +353,30 @@ export function HeroDesktop() {
 
     /* ── GSAP Animations ── */
     const gsapCtx = gsap.context(() => {
-      // 1. Initial media fade in
-      gsap.fromTo(media, { scale: 1.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 3, ease: "expo.out" });
+      // 1. Initial media fade in (1.5s is snappy — frame 0 is typically decoded within 200ms)
+      gsap.fromTo(media, { scale: 1.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.5, ease: "expo.out" });
 
-      // 2. Scroll indicator logic
+      // 2. Scroll indicator logic + breathing chevron pulse
       gsap.fromTo(".scroll-indicator", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 1 });
+      gsap.to(".scroll-chevron", { y: 4, repeat: -1, yoyo: true, duration: 1.2, ease: "sine.inOut" });
       gsap.to(".scroll-indicator", {
         opacity: 0, y: -10, ease: "none",
         scrollTrigger: { trigger: containerRef.current, start: "top top", end: "120px top", scrub: true }
       });
 
       // 3. Cinematic Text Reveal Master Timeline
-      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, filter: "blur(15px)", transformPerspective: 1000 });
+      // NOTE: Uses only compositor-only properties (opacity, transform, rotateX).
+      // No `filter: blur()` — that triggers CPU paint on every scroll frame.
+      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, rotateX: -8, transformPerspective: 1000 });
       
       const textTl = gsap.timeline();
       
       // Empty tween to pad timeline to the final section (Start reveal at frame 291 - last 220 frames)
       textTl.to({}, { duration: 291 }, 0);
       
-      // 1. Reveal wrapper
+      // 1. Reveal wrapper — pure compositor path (opacity + scale + rotateX)
       textTl.to(textContentRef.current, {
-        opacity: 1, scale: 1, filter: "blur(0px)", ease: "power2.out", duration: 220
+        opacity: 1, scale: 1, rotateX: 0, ease: "power2.out", duration: 220
       }, 291);
 
       // 2. 3D Staggered word reveal
@@ -383,10 +386,10 @@ export function HeroDesktop() {
         305
       );
       
-      // 3. Subhead fade in with subtle blur removal
+      // 3. Subhead fade in — compositor-only (no blur)
       textTl.fromTo(subheadRef.current,
-        { y: 30, opacity: 0, filter: "blur(5px)" },
-        { y: 0, opacity: 1, filter: "blur(0px)", ease: "power2.out", duration: 100 },
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, ease: "power2.out", duration: 100 },
         380
       );
 
@@ -444,16 +447,18 @@ export function HeroDesktop() {
       <section ref={containerRef} className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white">
         <div ref={mediaRef} className="absolute inset-0 w-full h-full will-change-transform transform-gpu z-0 opacity-0 bg-black">
           {/* Instant poster — shows immediately while frame 0 decodes, canvas paints over it */}
+          {/* Matches canvas CSS filters exactly so there's zero color shift during crossfade */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/assets/cave-poster.webp"
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover"
+            fetchPriority="high"
+            className="absolute inset-0 w-full h-full object-cover z-0 saturate-[1.05] contrast-[1.05] brightness-[0.90]"
           />
           <canvas 
             ref={canvasRef} 
-            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu saturate-[1.05] contrast-[1.05] brightness-[0.90]" 
+            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1] saturate-[1.05] contrast-[1.05] brightness-[0.90]" 
             aria-hidden="true" 
           />
           {/* Ultra-subtle cinematic edge shading (top and bottom only) to frame the visuals like a movie */}
