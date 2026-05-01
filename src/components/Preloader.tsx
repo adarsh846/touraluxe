@@ -52,14 +52,13 @@ export function Preloader() {
 
       // Simulated smooth crawl (ticker)
       const ticker = () => {
-        // If on mobile, target is always 100 eventually
-        if (!isDesktop) targetProgress = 100;
-        
-        // Approach target smoothly
-        currentProgress += (targetProgress - currentProgress) * 0.05;
+        // Approach target smoothly — use a slower dampening for 'heavy' feel
+        const ease = targetProgress > currentProgress ? 0.03 : 0.08;
+        currentProgress += (targetProgress - currentProgress) * ease;
         updateUI();
 
-        if (currentProgress > 99.5) {
+        // PRODUCTION GATE: Only exit if we are at 100% and the target is also 100%
+        if (currentProgress > 99.9 && targetProgress >= 100) {
           currentProgress = 100;
           updateUI();
           gsap.ticker.remove(ticker);
@@ -70,15 +69,17 @@ export function Preloader() {
       gsap.ticker.add(ticker);
 
       const onProgress = (e: any) => {
+        // Map the 0-100 hero progress to the target
         targetProgress = e.detail;
       };
 
       window.addEventListener("hero-progress", onProgress);
 
-      // Fallback: if nothing happens for 5s, just finish
+      // Fallback: Extend the timeout to 15s to allow for real heavy loading on slow networks
+      // But only if we aren't seeing any progress at all
       const timeout = setTimeout(() => {
-        targetProgress = 100;
-      }, 5000);
+        if (targetProgress < 10) targetProgress = 100;
+      }, 15000);
 
       return () => {
         gsap.ticker.remove(ticker);

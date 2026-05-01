@@ -30,10 +30,17 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
       const lenis = (window as any).__lenis;
       if (lenis) lenis.stop();
 
-      // Entrance animation
+      // Entrance animation - Liquid & Deep
       const tl = gsap.timeline();
-      tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" })
-        .fromTo(panelRef.current, { y: 100, opacity: 0, scale: 0.95 }, { y: 0, opacity: 1, scale: 1, duration: 1, ease: "expo.out" }, "-=0.6");
+      tl.fromTo(overlayRef.current, 
+        { opacity: 0, backdropFilter: "blur(0px)" }, 
+        { opacity: 1, backdropFilter: "blur(24px)", duration: 1.2, ease: "power3.out" }
+      )
+      .fromTo(panelRef.current, 
+        { y: 80, opacity: 0, scale: 0.96 }, 
+        { y: 0, opacity: 1, scale: 1, duration: 1.4, ease: "expo.out" }, 
+        "-=1.0"
+      );
     } else {
       document.body.style.overflow = "";
       const lenis = (window as any).__lenis;
@@ -42,9 +49,23 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   }, [isOpen]);
 
   const handleClose = () => {
-    const tl = gsap.timeline({ onComplete: onClose });
-    tl.to(panelRef.current, { y: 50, opacity: 0, scale: 0.98, duration: 0.6, ease: "power2.inOut" })
-      .to(overlayRef.current, { opacity: 0, duration: 0.4, ease: "power2.inOut" }, "-=0.4");
+    // Exit animation - Snappy & Fade
+    const tl = gsap.timeline({ 
+      onComplete: onClose,
+      defaults: { ease: "power4.inOut" }
+    });
+    
+    tl.to(panelRef.current, { 
+      y: 40, 
+      opacity: 0, 
+      scale: 0.98, 
+      duration: 0.8,
+    })
+    .to(overlayRef.current, { 
+      opacity: 0, 
+      backdropFilter: "blur(0px)",
+      duration: 0.6,
+    }, "-=0.6");
   };
 
   if (!mounted || !isOpen) return null;
@@ -62,7 +83,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
       <div 
         ref={panelRef} 
         data-lenis-prevent
-        className="relative w-full max-w-[920px] h-[90vh] bg-[#0a0a0a] border border-white/[0.06] rounded-3xl overflow-hidden shadow-2xl"
+        className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform"
       >
         {/* Top Controls Header Mask — Perfect Mix Easing */}
         <div 
@@ -78,7 +99,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <div className="absolute top-6 left-6 right-6 z-[100] flex justify-between items-center pointer-events-none">
           <div className="pointer-events-auto">
             <Magnetic>
-              <div className="relative group">
+              <div className="relative group will-change-transform">
                 {/* Multi-layered Shadow for Deep Floating Effect */}
                 <div className="absolute inset-0 bg-black/60 blur-2xl rounded-full translate-y-3 scale-95 opacity-80" />
                 <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
@@ -102,7 +123,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           
           <div className="pointer-events-auto">
             <Magnetic>
-              <div className="relative group">
+              <div className="relative group will-change-transform">
                 {/* Matching shadow for close button */}
                 <div className="absolute inset-0 bg-black/60 blur-xl rounded-full translate-y-2 scale-90 opacity-60" />
                 <button 

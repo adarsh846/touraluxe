@@ -203,21 +203,25 @@ export function HeroDesktop() {
       const onGlobalAbort = () => frameAbort.abort();
       abortCtrl.signal.addEventListener("abort", onGlobalAbort);
 
-      const onDone = (entry: ImageBitmap | HTMLImageElement) => {
+      const onDone = (entry: ImageBitmap | HTMLImageElement | null) => {
         if (destroyed) {
-          if ("close" in entry) (entry as ImageBitmap).close();
+          if (entry && "close" in entry) (entry as ImageBitmap).close();
           return;
         }
-        cache.set(n, entry);
-        loaded.add(n);
-        touchLRU(n);
-        evictIfNeeded();
-        drawFrame(Math.round(smoothFrame));
+        
+        if (entry) {
+          cache.set(n, entry);
+          loaded.add(n);
+          touchLRU(n);
+          evictIfNeeded();
+          drawFrame(Math.round(smoothFrame));
+        }
 
         // Report progress for skeleton frames to the preloader
+        // We count any 'resolved' frame (success or fail) toward progress to prevent stuck loaders
         if (SKELETON_SET.has(n)) {
-          const loadedSkeletonCount = Array.from(SKELETON_SET).filter(f => loaded.has(f)).length;
-          const progress = Math.round((loadedSkeletonCount / SKELETON_SET.size) * 100);
+          const resolvedSkeletonCount = Array.from(SKELETON_SET).filter(f => loaded.has(f) || cache.has(f) || !loading.has(f)).length;
+          const progress = Math.min(100, Math.round((resolvedSkeletonCount / SKELETON_SET.size) * 100));
           (window as any).__heroProgress = progress;
           window.dispatchEvent(new CustomEvent("hero-progress", { detail: progress }));
         }
@@ -238,7 +242,10 @@ export function HeroDesktop() {
           })
           .then((blob) => createImageBitmap(blob))
           .then(onDone)
-          .catch(() => undefined)
+          .catch(() => {
+            // Even on error, we mark the skeleton frame as 'resolved' to move the loader
+            if (SKELETON_SET.has(n)) onDone(null);
+          })
           .then(cleanup);
       }
 
@@ -250,7 +257,9 @@ export function HeroDesktop() {
       return img
         .decode()
         .then(() => onDone(img))
-        .catch(() => undefined)
+        .catch(() => {
+          if (SKELETON_SET.has(n)) onDone(null);
+        })
         .finally(() => {
           frameAbort.signal.removeEventListener("abort", onImageAbort);
           cleanup();
@@ -386,23 +395,23 @@ export function HeroDesktop() {
         opacity: 1, scale: 1, y: 0, ease: "power2.out", duration: 220
       }, 291);
 
-      // 2. 3D Staggered word reveal
+      // 2. 3D Staggered word reveal — Performance Tuned
       textTl.fromTo(".word", 
-        { y: 80, opacity: 0, rotateX: -50, scale: 0.9 },
-        { y: 0, opacity: 1, rotateX: 0, scale: 1, stagger: 5, ease: "power3.out", duration: 150 },
+        { y: 60, opacity: 0, rotateX: -30, scale: 0.95 },
+        { y: 0, opacity: 1, rotateX: 0, scale: 1, stagger: 4, ease: "power2.out", duration: 120 },
         305
       );
       
-      // 3. Subhead fade in — compositor-only (no blur)
+      // 3. Subhead fade in
       textTl.fromTo(subheadRef.current,
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, ease: "power2.out", duration: 100 },
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, ease: "power2.out", duration: 80 },
         380
       );
 
-      // 4. MAIN SCROLL SCRUB TRIGGER (Binds Canvas Frame Update + Text Reveal)
-      // Premium Apple-style weight: ~7.5px per frame makes the scrub feel deliberate and cinematic.
-      const scrollDist = Math.round(Math.max(window.innerHeight * 4, FRAME_COUNT * 7.5));
+      // 4. MAIN SCROLL SCRUB TRIGGER
+      // Adjusted scroll distance for better tactile feel
+      const scrollDist = Math.round(Math.max(window.innerHeight * 3, FRAME_COUNT * 6));
       
       if (!reduceMotion) {
         ScrollTrigger.create({
@@ -485,15 +494,15 @@ export function HeroDesktop() {
           <div className="w-[120%] h-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.35)_0%,_transparent_60%)]" />
         </div>
 
-        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform" style={{ perspective: '1200px' }}>
-          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-semibold tracking-[-0.04em] leading-[1] mb-6 opacity-100 flex flex-wrap justify-center gap-x-4 md:gap-x-6" style={{ transform: 'translateZ(60px)', transformStyle: 'preserve-3d' }}>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>Beyond</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>travel.</span>
+        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform" style={{ perspective: '1000px', transformStyle: 'flat' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[1] mb-6 opacity-100 flex flex-wrap justify-center gap-x-4 md:gap-x-6">
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>Beyond</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>travel.</span>
             <div className="basis-full h-0 md:h-4" />
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>Pure</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7]" style={{ filter: 'drop-shadow(0px 20px 40px rgba(0,0,0,0.3))' }}>experience.</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>Pure</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>experience.</span>
           </h1>
-          <p ref={subheadRef} className="text-[17px] md:text-[21px] font-normal tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ transform: 'translateZ(30px)' }}>
+          <p ref={subheadRef} className="text-[17px] md:text-[21px] font-medium tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ backfaceVisibility: 'hidden' }}>
             Meticulously curated journeys for those who demand the exceptional.
           </p>
         </div>

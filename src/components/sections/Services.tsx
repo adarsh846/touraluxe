@@ -83,23 +83,33 @@ function ServiceModal({
     lenis?.stop();
 
     const tl = gsap.timeline();
-    tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4 });
-    tl.fromTo(panelRef.current, { y: 60, opacity: 0, scale: 0.96 }, { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 0.1);
+    tl.fromTo(overlayRef.current, 
+      { opacity: 0, backdropFilter: "blur(0px)" }, 
+      { opacity: 1, backdropFilter: "blur(20px)", duration: 1.0, ease: "power3.out" }
+    );
+    tl.fromTo(panelRef.current, 
+      { y: 80, opacity: 0, scale: 0.96 }, 
+      { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out" }, 
+      0.1
+    );
 
     return () => lenis?.start();
   }, [service]);
 
   const handleClose = useCallback(() => {
-    const tl = gsap.timeline({ onComplete: onClose });
-    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.97, duration: 0.3, ease: "power2.in" });
-    tl.to(overlayRef.current, { opacity: 0, duration: 0.25 }, 0.1);
+    const tl = gsap.timeline({ 
+      onComplete: onClose,
+      defaults: { ease: "power4.inOut" }
+    });
+    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.98, duration: 0.7 });
+    tl.to(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)", duration: 0.5 }, 0.1);
   }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-[9999]">
       <div ref={overlayRef} className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={handleClose} />
       <div className="absolute inset-0 flex items-center justify-center p-4 md:p-8 pointer-events-none">
-        <div ref={panelRef} data-lenis-prevent className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl">
+        <div ref={panelRef} data-lenis-prevent className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform">
           {/* Close Button */}
           <div className="absolute top-6 right-6 z-[100]">
             <Magnetic>

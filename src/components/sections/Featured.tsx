@@ -96,24 +96,24 @@ function PackageModal({
     const lenis = (window as any).__lenis;
     lenis?.stop();
 
-    // Entrance animation
+    // Entrance animation - Ultra Smooth & Liquid
     const tl = gsap.timeline();
     tl.fromTo(
       overlayRef.current,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.4, ease: "power2.out" }
+      { opacity: 0, backdropFilter: "blur(0px)" },
+      { opacity: 1, backdropFilter: "blur(20px)", duration: 1.0, ease: "power3.out" }
     );
     tl.fromTo(
       panelRef.current,
-      { y: 60, opacity: 0, scale: 0.96 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" },
+      { y: 80, opacity: 0, scale: 0.96 },
+      { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out" },
       0.1
     );
     tl.fromTo(
       contentRef.current?.children ? Array.from(contentRef.current.children) : [],
       { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, stagger: 0.06, duration: 0.5, ease: "expo.out" },
-      0.25
+      { y: 0, opacity: 1, stagger: 0.05, duration: 0.8, ease: "expo.out" },
+      0.2
     );
 
     return () => {
@@ -124,15 +124,15 @@ function PackageModal({
   const handleClose = useCallback(() => {
     const tl = gsap.timeline({
       onComplete: onClose,
+      defaults: { ease: "power4.inOut" }
     });
     tl.to(panelRef.current, {
       y: 40,
       opacity: 0,
-      scale: 0.97,
-      duration: 0.3,
-      ease: "power2.in",
+      scale: 0.98,
+      duration: 0.7,
     });
-    tl.to(overlayRef.current, { opacity: 0, duration: 0.25, ease: "power2.in" }, 0.1);
+    tl.to(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)", duration: 0.5 }, 0.1);
   }, [onClose]);
 
   if (!experience) return null;
@@ -151,7 +151,7 @@ function PackageModal({
         <div 
           ref={panelRef}
           data-lenis-prevent
-          className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl"
+          className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform"
         >
           {/* Static Close Button - No jitter on scroll */}
           <div className="absolute top-6 right-6 z-[100]">
@@ -178,10 +178,6 @@ function PackageModal({
               setIsScrolled(scrollPos > 30 || scrollPos > maxScroll - 140);
             }}
             className="w-full h-full overflow-y-auto scrollbar-hide"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255,255,255,0.1) transparent",
-            }}
           >
             {/* Hero Image */}
             <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">

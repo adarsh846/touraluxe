@@ -58,10 +58,13 @@ export function CTA() {
     // GSAP entrance
     setTimeout(() => {
       const tl = gsap.timeline();
-      tl.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.4 });
+      tl.fromTo(overlayRef.current, 
+        { opacity: 0, backdropFilter: "blur(0px)" }, 
+        { opacity: 1, backdropFilter: "blur(20px)", duration: 1.0, ease: "power3.out" }
+      );
       tl.fromTo(panelRef.current, 
-        { y: 60, opacity: 0, scale: 0.96 }, 
-        { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "expo.out" }, 
+        { y: 80, opacity: 0, scale: 0.96 }, 
+        { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out" }, 
         0.1
       );
     }, 0);
@@ -73,10 +76,11 @@ export function CTA() {
         setIsModalOpen(false);
         const lenis = (window as any).__lenis;
         lenis?.start();
-      } 
+      },
+      defaults: { ease: "power4.inOut" }
     });
-    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.97, duration: 0.3, ease: "power2.in" });
-    tl.to(overlayRef.current, { opacity: 0, duration: 0.25 }, 0.1);
+    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.98, duration: 0.7 });
+    tl.to(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)", duration: 0.5 }, 0.1);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -144,18 +148,58 @@ export function CTA() {
             <div 
               ref={panelRef} 
               data-lenis-prevent 
-              className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl"
+              className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform"
             >
-              {/* Close Button */}
-              <div className="absolute top-6 right-6 z-[100]">
-                <Magnetic>
-                  <button 
-                    onClick={closeModal} 
-                    className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all hover:bg-white/10 text-white"
-                  >
-                    <X size={18} />
-                  </button>
-                </Magnetic>
+              {/* Top Controls Header Mask — Perfect Mix Easing */}
+              <div 
+                className="absolute top-0 left-0 right-0 h-40 transition-all duration-1000 backdrop-blur-[5px] z-[90] pointer-events-none" 
+                style={{
+                  background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
+                  maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+                }}
+              />
+
+              {/* Top Controls */}
+              <div className="absolute top-6 left-6 right-6 z-[100] flex justify-between items-center pointer-events-none">
+                <div className="pointer-events-auto">
+                  <Magnetic>
+                    <div className="relative group will-change-transform">
+                      {/* Multi-layered Shadow for Deep Floating Effect */}
+                      <div className="absolute inset-0 bg-black/60 blur-2xl rounded-full translate-y-3 scale-95 opacity-80" />
+                      <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
+                      
+                      <div className="relative flex items-center justify-center bg-white rounded-full w-28 h-10 overflow-hidden cursor-default transition-all duration-500 group-hover:scale-[1.05]">
+                        <div className="relative w-28 h-10">
+                          <Image
+                            src="/assets/logo-transparent.webp"
+                            alt="TouraLuxe Logo"
+                            fill
+                            priority
+                            quality={75}
+                            sizes="112px"
+                            className="object-contain scale-[2.1] translate-y-[4px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </Magnetic>
+                </div>
+                
+                <div className="pointer-events-auto">
+                  <Magnetic>
+                    <div className="relative group will-change-transform">
+                      {/* Matching shadow for close button */}
+                      <div className="absolute inset-0 bg-black/60 blur-xl rounded-full translate-y-2 scale-90 opacity-60" />
+                      <button 
+                        onClick={closeModal} 
+                        className="relative w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all duration-500 hover:bg-white/10 text-white"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  </Magnetic>
+                </div>
               </div>
 
               <div 
