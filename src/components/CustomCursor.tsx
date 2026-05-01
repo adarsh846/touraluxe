@@ -19,24 +19,17 @@ export function CustomCursor() {
     // Set initial High-Res down-scale (tracking starts at 32px visually but rasterized at 80px)
     gsap.set(follower, { scale: 0.4 });
 
-    const moveCursor = (e: MouseEvent) => {
-      // Main cursor (tight)
-      gsap.to(cursor, {
-        x: e.clientX,
-        y: e.clientY,
-        duration: 0.1,
-        ease: "power2.out",
-        force3D: true,
-      });
+    // Use quickTo for high-frequency events to recycle tween instances and eliminate GC pressure
+    const xCursor = gsap.quickTo(cursor, "x", { duration: 0.1, ease: "power2.out" });
+    const yCursor = gsap.quickTo(cursor, "y", { duration: 0.1, ease: "power2.out" });
+    const xFollower = gsap.quickTo(follower, "x", { duration: 0.4, ease: "power3.out" });
+    const yFollower = gsap.quickTo(follower, "y", { duration: 0.4, ease: "power3.out" });
 
-      // Follower (lagging for smoothness, High-Res rendering)
-      gsap.to(follower, {
-        x: e.clientX,
-        y: e.clientY,
-        duration: 0.4,
-        ease: "power3.out",
-        force3D: true,
-      });
+    const moveCursor = (e: MouseEvent) => {
+      xCursor(e.clientX);
+      yCursor(e.clientY);
+      xFollower(e.clientX);
+      yFollower(e.clientY);
     };
 
     const handleHover = () => {
@@ -80,12 +73,12 @@ export function CustomCursor() {
     <>
       <div 
         ref={cursorRef} 
-        className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[9999] mix-blend-difference hidden md:block will-change-transform"
+        className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[10001] mix-blend-difference hidden md:block will-change-transform"
         style={{ transform: "translate(-50%, -50%)" }}
       />
       <div 
         ref={followerRef} 
-        className="fixed top-0 left-0 w-20 h-20 border border-white/30 rounded-full pointer-events-none z-[9998] hidden md:block will-change-transform"
+        className="fixed top-0 left-0 w-20 h-20 border border-white/30 rounded-full pointer-events-none z-[10000] hidden md:block will-change-transform"
         style={{ transform: "translate(-50%, -50%) scale(0.4)" }}
       />
     </>

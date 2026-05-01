@@ -141,22 +141,21 @@ export function HeroDesktop() {
       }
     };
 
-    /* ── CANVAS RENDER ENGINE (60FPS OPTIMIZED) ── */
+    /* ── CANVAS RENDER ENGINE (GPU-COMPOSITED) ── */
     const sizeCanvas = () => {
-      // Lock canvas internal resolution to the exact source image resolution.
-      // This prevents `drawImage` from doing expensive scaling/cropping on the CPU.
+      // Render at source resolution (1:1). The GPU compositor handles display
+      // scaling via CSS `object-cover` on the canvas element — zero CPU cost.
+      // Retina upscaling in canvas is a trap: 4x pixels + scaled drawImage = 100% CPU.
       if (canvas.width !== srcW || canvas.height !== srcH) {
         canvas.width = srcW;
         canvas.height = srcH;
         drawnFrame = -1;
       }
-      // Disable smoothing since we are drawing 1:1
-      ctx2d.imageSmoothingEnabled = false; 
+      ctx2d.imageSmoothingEnabled = false;
     };
 
     const drawCover = (img: ImageBitmap | HTMLImageElement) => {
-      // Blazing fast 1:1 copy. The GPU compositor handles the scaling 
-      // via the CSS `object-cover` utility class on the canvas.
+      // Blazing fast 1:1 blit — no scaling, no math, one GPU-friendly memcpy.
       ctx2d.drawImage(img as CanvasImageSource, 0, 0);
     };
 
@@ -357,7 +356,8 @@ export function HeroDesktop() {
       gsap.fromTo(media, { scale: 1.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.5, ease: "expo.out" });
 
       // 2. Scroll indicator logic + breathing chevron pulse
-      gsap.fromTo(".scroll-indicator", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 1 });
+      // Separated into entrance wrapper and scroll inner to prevent GSAP overwrite conflicts
+      gsap.fromTo(".scroll-entrance", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 1 });
       gsap.to(".scroll-chevron", { y: 4, repeat: -1, yoyo: true, duration: 1.2, ease: "sine.inOut" });
       gsap.to(".scroll-indicator", {
         opacity: 0, y: -10, ease: "none",
@@ -365,18 +365,17 @@ export function HeroDesktop() {
       });
 
       // 3. Cinematic Text Reveal Master Timeline
-      // NOTE: Uses only compositor-only properties (opacity, transform, rotateX).
-      // No `filter: blur()` — that triggers CPU paint on every scroll frame.
-      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, rotateX: -8, transformPerspective: 1000 });
+      // Uses compositor-only properties (opacity, transform).
+      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, y: 40 });
       
       const textTl = gsap.timeline();
       
       // Empty tween to pad timeline to the final section (Start reveal at frame 291 - last 220 frames)
       textTl.to({}, { duration: 291 }, 0);
       
-      // 1. Reveal wrapper — pure compositor path (opacity + scale + rotateX)
+      // 1. Reveal wrapper — pure compositor path (opacity + scale + y)
       textTl.to(textContentRef.current, {
-        opacity: 1, scale: 1, rotateX: 0, ease: "power2.out", duration: 220
+        opacity: 1, scale: 1, y: 0, ease: "power2.out", duration: 220
       }, 291);
 
       // 2. 3D Staggered word reveal
@@ -447,52 +446,57 @@ export function HeroDesktop() {
     <div className="w-full h-full">
       <section ref={containerRef} className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white">
         <div ref={mediaRef} className="absolute inset-0 w-full h-full will-change-transform transform-gpu z-0 opacity-0 bg-black">
-          {/* Instant poster — shows immediately while frame 0 decodes, canvas paints over it */}
-          {/* Matches canvas CSS filters exactly so there's zero color shift during crossfade */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/assets/cave-poster.webp"
             alt=""
             aria-hidden="true"
             fetchPriority="high"
-            className="absolute inset-0 w-full h-full object-cover z-0 saturate-[1.05] contrast-[1.05] brightness-[0.90]"
+            className="absolute inset-0 w-full h-full object-cover z-0 saturate-[1.30] contrast-[1.08]"
           />
           <canvas 
             ref={canvasRef} 
-            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1] saturate-[1.05] contrast-[1.05] brightness-[0.90]" 
+            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1] saturate-[1.30] contrast-[1.08]" 
             aria-hidden="true" 
           />
-          {/* Ultra-subtle cinematic edge shading (top and bottom only) to frame the visuals like a movie */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+          {/* Minimal top fade for navbar legibility */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-[2]" />
+          {/* Minimal bottom fade for scroll indicator */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[2]" />
+
+          {/* Film grain — organic texture at 2.5% opacity, invisible but removes digital flatness */}
+          <div 
+            className="absolute inset-0 opacity-[0.025] mix-blend-overlay pointer-events-none z-[3] transform-gpu" 
+            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
+          />
         </div>
 
-        {/* Localized soft glow behind the text ensures perfect legibility without ruining the video's lighting */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <div className="w-[150%] h-[80%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.65)_0%,_transparent_50%)]" />
+        {/* Tight text-only backing — just enough to separate text from busy backgrounds */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[4]">
+          <div className="w-[120%] h-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.35)_0%,_transparent_60%)]" />
         </div>
 
-        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform mt-[-4vh]">
-          <h1 className="text-4xl md:text-6xl lg:text-[5.5rem] font-medium tracking-tighter leading-[1.05] mb-6 opacity-100 flex flex-wrap justify-center gap-x-[0.25em]">
-            <span className="word inline-block opacity-0 text-white/75">We</span>
-            <span className="word inline-block opacity-0 text-white/75">don&apos;t</span>
-            <span className="word inline-block opacity-0 text-white/75">sell</span>
-            <span className="word inline-block opacity-0 text-white/75">trips.</span>
-            <div className="basis-full h-0 md:h-2" />
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>We</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>craft</span>
-            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f0ebe1] to-[#b3ada0] font-semibold" style={{ filter: "drop-shadow(0px 12px 24px rgba(0,0,0,0.8))" }}>experiences.</span>
+        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform mt-[-4vh]" style={{ perspective: '1200px' }}>
+          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-semibold tracking-[-0.04em] leading-[1] mb-4 opacity-100 flex flex-wrap justify-center gap-x-[0.22em]" style={{ transform: 'translateZ(60px)', transformStyle: 'preserve-3d' }}>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>Beyond</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>travel.</span>
+            <div className="basis-full h-0 md:h-3" />
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>Pure</span>
+            <span className="word inline-block opacity-0 text-transparent bg-clip-text bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#86868b]" style={{ filter: 'drop-shadow(0px 30px 60px rgba(0,0,0,0.25)) drop-shadow(0px 8px 16px rgba(0,0,0,0.15))' }}>experience.</span>
           </h1>
-          <p ref={subheadRef} className="text-lg md:text-xl text-white/90 max-w-2xl font-light tracking-wide opacity-0 will-change-transform mt-4" style={{ filter: "drop-shadow(0px 4px 10px rgba(0,0,0,0.8))" }}>
-            A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
+          <p ref={subheadRef} className="text-[17px] md:text-[21px] font-normal tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ transform: 'translateZ(30px)' }}>
+            Meticulously curated journeys for those who demand the exceptional.
           </p>
         </div>
 
-        <div className="scroll-indicator absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
-          <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
-          <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+        <div className="scroll-entrance absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 opacity-0">
+          <div className="scroll-indicator flex flex-col items-center gap-2">
+            <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
+            <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6l4 4 4-4" />
+            </svg>
+          </div>
         </div>
       </section>
     </div>

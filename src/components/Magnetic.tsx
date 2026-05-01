@@ -43,17 +43,22 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       yToLive = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
     };
 
+    let cachedCx = 0;
+    let cachedCy = 0;
+
     const moveWithLive = (clientX: number, clientY: number) => {
-      const rect = wrapper.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      xToLive((clientX - cx) * 0.6);
-      yToLive((clientY - cy) * 0.6);
+      xToLive((clientX - cachedCx) * 0.6);
+      yToLive((clientY - cachedCy) * 0.6);
     };
 
     const onMouseMove = (e: MouseEvent) => moveWithLive(e.clientX, e.clientY);
 
     const onMouseEnter = () => {
+      // Cache the bounding rect on enter so we don't force a layout read on every single mousemove pixel
+      const rect = wrapper.getBoundingClientRect();
+      cachedCx = rect.left + rect.width / 2;
+      cachedCy = rect.top + rect.height / 2;
+
       // Kill any running elastic reset and refresh quickTo instances
       gsap.killTweensOf(inner);
       refreshQuickTo();
