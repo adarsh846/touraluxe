@@ -60,12 +60,13 @@ export function Navbar() {
         {/* iOS 26-style Hyper-Smooth Progressive Mask */}
         {!isMobileMenuOpen && (
           <div 
-            className="pointer-events-none absolute inset-0 h-40 transition-all duration-1000 backdrop-blur-[5px]" 
+            className="pointer-events-none absolute inset-0 h-40 transition-all duration-1000 backdrop-blur-[5px] will-change-transform" 
             style={{ 
               opacity: isScrolled ? 0.95 : 0.85,
               background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
               maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
               WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+              transform: "translateZ(0)", // GPU Layer Isolation
             }}
           />
         )}
@@ -141,13 +142,12 @@ export function Navbar() {
       </header>
 
       {/* ── Mobile Toggle Button — always above overlay ── */}
-      <div className="fixed top-4 right-6 md:hidden z-[100]">
+      <div className="fixed top-4 right-6 md:hidden z-[60]">
         <Magnetic>
           <button
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/20 active:scale-90"
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/20"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
-            style={{ touchAction: 'manipulation' }}
           >
             {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>

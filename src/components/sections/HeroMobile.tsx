@@ -13,6 +13,11 @@ export function HeroMobile() {
   const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Mobile uses a static image — no frame sequence to load.
+    // Signal the Preloader immediately so it transitions out.
+    (window as any).__heroProgress = 100;
+    window.dispatchEvent(new CustomEvent("hero-progress", { detail: 100 }));
+
     const ctx = gsap.context(() => {
       // Premium Apple-style Intro Animation
       // Use only transform + opacity (translate3d for performance)
