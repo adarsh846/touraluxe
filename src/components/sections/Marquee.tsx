@@ -17,27 +17,32 @@ export function Marquee() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Row Animations
+      // Row Animations Consolidatied into a Single Timeline
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: true, // Direct scrub is more performant than lerped scrub for complex layouts
+        },
+      });
+
       const rows = [row1Ref, row2Ref, row3Ref, row4Ref, row5Ref, row6Ref, row7Ref, row8Ref];
       rows.forEach((ref, i) => {
         const direction = i % 2 === 0 ? -1 : 1;
-        gsap.to(ref.current, {
+        tl.to(ref.current, {
           xPercent: 50 * direction,
           ease: "none",
-          force3D: "auto",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 0.5,
-          },
-        });
+        }, 0); // All start at 0 (concurrently)
+        
+        // Promote to GPU layer
+        gsap.set(ref.current, { willChange: "transform" });
       });
 
       // Chips: set invisible initially without y mutation
       gsap.set(".marquee-chip", { opacity: 0, scale: 0.6 });
 
-      // Chips: pop-in entrance (no-y transition to avoid parallax conflict)
+      // Chips: pop-in entrance
       gsap.to(".marquee-chip", {
         opacity: 1,
         scale: 1,
@@ -50,16 +55,15 @@ export function Marquee() {
         },
       });
 
-      // Chips: parallax float after pop-in (owns Y axis exclusively)
+      // Chips: parallax float after pop-in
       gsap.to(".marquee-chip", {
         y: -150,
         ease: "none",
-        force3D: "auto",
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top bottom",
           end: "bottom top",
-          scrub: 0.5,
+          scrub: true,
         },
       });
     }, sectionRef);
@@ -73,8 +77,8 @@ export function Marquee() {
       className="relative z-30 min-h-[400px] bg-black text-white w-full overflow-hidden flex flex-col justify-center gap-[clamp(1rem,3vw,3rem)] py-20 md:py-32"
     >
       {/* Row 1: Left */}
-      <div ref={row1Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-50 select-none whitespace-nowrap gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row1Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-50 select-none whitespace-nowrap gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span>Explore</span><span className="text-outline-white">Discover</span><span>Journey</span><span className="text-outline-white">Wander</span><span>Roam</span><span className="text-outline-white">Venture</span><span>Navigate</span><span className="text-outline-white">FUN</span><span>Excellence</span><span className="text-outline-white">Adventure</span>
           </div>
@@ -82,8 +86,8 @@ export function Marquee() {
       </div>
 
       {/* Row 2: Right */}
-      <div ref={row2Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-45 select-none whitespace-nowrap ml-[-25%] gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row2Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-45 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span className="text-outline-white">Mountains</span><span>Oceans</span><span className="text-outline-white">Cities</span><span>Islands</span><span className="text-outline-white">Horizons</span><span>Landscapes</span><span className="text-outline-white">Destinations</span><span>Worlds</span><span className="text-outline-white">Discovery</span><span>Bespoke</span>
           </div>
@@ -91,8 +95,8 @@ export function Marquee() {
       </div>
 
       {/* Row 3: Left */}
-      <div ref={row3Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row3Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span>Curated</span><span className="text-outline-white">Elite</span><span>Luxury</span><span className="text-outline-white">Sanctuary</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Unrivaled</span><span className="text-outline-white">Grandeur</span>
           </div>
@@ -100,8 +104,8 @@ export function Marquee() {
       </div>
 
       {/* Row 4: Right */}
-      <div ref={row4Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap ml-[-25%] gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row4Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span className="text-outline-white">Navigate</span><span>FUN</span><span className="text-outline-white">Journey</span><span>Worlds</span><span className="text-outline-white">Explore</span><span>Discover</span><span className="text-outline-white">Venture</span><span>Islands</span><span className="text-outline-white">Legacy</span><span>Zenith</span>
           </div>
@@ -109,8 +113,8 @@ export function Marquee() {
       </div>
 
       {/* Row 5: Left */}
-      <div ref={row5Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-35 select-none whitespace-nowrap gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row5Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-35 select-none whitespace-nowrap gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span>Mountains</span><span className="text-outline-white">Oceans</span><span>Landscapes</span><span className="text-outline-white">Horizons</span><span>Roaming</span><span className="text-outline-white">Wandering</span><span>Destinations</span><span className="text-outline-white">Cities</span><span>Global</span><span className="text-outline-white">Apex</span>
           </div>
@@ -118,8 +122,8 @@ export function Marquee() {
       </div>
 
       {/* Row 6: Right */}
-      <div ref={row6Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-30 select-none whitespace-nowrap ml-[-25%] gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row6Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-30 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span className="text-outline-white">Beyond</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Elite</span><span className="text-outline-white">Luxury</span><span>Excellence</span><span className="text-outline-white">Heritage</span><span>Sanctuary</span>
           </div>
@@ -127,8 +131,8 @@ export function Marquee() {
       </div>
 
       {/* Row 7: Left */}
-      <div ref={row7Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-25 select-none whitespace-nowrap gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row7Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-25 select-none whitespace-nowrap gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span>Roaming</span><span className="text-outline-white">Wandering</span><span>Destinations</span><span className="text-outline-white">Cities</span><span>Global</span><span className="text-outline-white">Apex</span><span>Mountains</span><span className="text-outline-white">Oceans</span><span>Landscapes</span><span className="text-outline-white">Horizons</span>
           </div>
@@ -136,8 +140,8 @@ export function Marquee() {
       </div>
 
       {/* Row 8: Right */}
-      <div ref={row8Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-25 select-none whitespace-nowrap ml-[-25%] gap-[4vw]">
-        {[...Array(6)].map((_, i) => (
+      <div ref={row8Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-25 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
             <span className="text-outline-white">Beyond</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Elite</span><span className="text-outline-white">Luxury</span><span>Excellence</span><span className="text-outline-white">Heritage</span><span>Sanctuary</span>
           </div>

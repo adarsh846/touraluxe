@@ -320,7 +320,7 @@ export function Featured() {
       gsap.fromTo(titleRef.current,
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 1, ease: "expo.out",
+          y: 0, opacity: 1, duration: 1.5, ease: "expo.out",
           scrollTrigger: {
             trigger: titleRef.current,
             start: "top 85%",
@@ -328,11 +328,10 @@ export function Featured() {
         }
       );
 
-      // Items slide-in with alternating horizontal movement
+      // Restore individual reveals to match original visual feel
       itemsRef.current.forEach((item, index) => {
         if (!item) return;
 
-        // Initial reveal
         gsap.fromTo(
           item,
           {
@@ -353,14 +352,12 @@ export function Featured() {
           }
         );
 
-        // Sublayer parallax on the image internal
+        // Optimized Parallax
         const img = item.querySelector("img");
         if (img) {
-          // Add initial scale to give room for parallax movement
-          gsap.set(img, { scale: 1.15 });
-
+          gsap.set(img, { scale: 1.15, transformGpu: true });
           gsap.to(img, {
-            yPercent: 10,
+            yPercent: 12,
             ease: "none",
             scrollTrigger: {
               trigger: item,
@@ -372,8 +369,6 @@ export function Featured() {
         }
       });
 
-      // Refresh ScrollTrigger after items are rendered and layout is stable
-      // This prevents the "stale path" issue in Flight3D when content shifts
       ScrollTrigger.refresh();
     }, containerRef);
 
@@ -400,15 +395,15 @@ export function Featured() {
               <div
                 key={exp.id}
                 ref={(el) => { itemsRef.current[index] = el; }}
-                className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0"
+                className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu will-change-transform"
               >
                 {/* Image Container with strict hover constraints */}
-                <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
+                <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu will-change-transform">
                   <Image
                     src={exp.image}
                     alt={exp.title}
                     fill
-                    className="object-cover will-change-transform"
+                    className="object-cover will-change-transform transform-gpu"
                     quality={75}
                     sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
                   />

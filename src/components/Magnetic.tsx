@@ -39,8 +39,14 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       yToLive = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
     };
 
+    let cachedRect: DOMRect | null = null;
+    const updateRect = () => {
+      cachedRect = wrapper.getBoundingClientRect();
+    };
+
     const moveWithLive = (clientX: number, clientY: number) => {
-      const rect = wrapper.getBoundingClientRect();
+      if (!cachedRect) updateRect();
+      const rect = cachedRect!;
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       xToLive((clientX - cx) * 0.6);
@@ -50,6 +56,7 @@ export function Magnetic({ children, className }: { children: React.ReactElement
     const onMouseMove = (e: MouseEvent) => moveWithLive(e.clientX, e.clientY);
 
     const onMouseEnter = () => {
+      updateRect(); // Cache rect once per interaction
       gsap.killTweensOf(inner);
       refreshQuickTo();
       gsap.to(inner, { filter: "brightness(1.4)", duration: 0.3, ease: "power2.out", overwrite: "auto" });
@@ -101,6 +108,8 @@ export function Magnetic({ children, className }: { children: React.ReactElement
     wrapper.addEventListener("mouseenter", onMouseEnter);
     wrapper.addEventListener("mousemove", onMouseMove);
     wrapper.addEventListener("mouseleave", onMouseLeave);
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, { passive: true });
 
     if (isTouch) {
       wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -113,6 +122,8 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       wrapper.removeEventListener("mouseenter", onMouseEnter);
       wrapper.removeEventListener("mousemove", onMouseMove);
       wrapper.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect);
       wrapper.removeEventListener("touchstart", onTouchStart);
       wrapper.removeEventListener("touchmove", onTouchMove);
       wrapper.removeEventListener("touchend", onTouchEnd);

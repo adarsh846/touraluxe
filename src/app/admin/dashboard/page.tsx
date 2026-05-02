@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { Package } from "@/lib/supabase";
 
 export default function AdminDashboard() {
@@ -93,8 +94,24 @@ export default function AdminDashboard() {
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-black/80 backdrop-blur-2xl">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-[15px] font-semibold text-white">TouraLuxe</h1>
-            <span className="text-xs text-[#48484a]">Admin</span>
+            <div className="relative group block">
+              <div className="relative flex items-center justify-center bg-[#f5f5f7] rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] w-[5.5rem] h-8">
+                <div className="relative flex items-center justify-center w-[5.5rem] h-8">
+                  <Image
+                    src="/assets/logo-transparent.webp"
+                    alt="TouraLuxe Logo"
+                    fill
+                    priority
+                    quality={75}
+                    sizes="88px"
+                    className="object-contain scale-[2.1] translate-y-[2.5px] brightness-[0.05]"
+                  />
+                </div>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+              Admin
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <button

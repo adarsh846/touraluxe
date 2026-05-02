@@ -10,9 +10,11 @@ gsap.registerPlugin(ScrollTrigger);
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const lenis = new Lenis({
-      syncTouch: true,
-      touchMultiplier: 1.0,
-      lerp: 0.08,
+      syncTouch: true, // Preserve smooth touch as requested
+      touchMultiplier: 1.2, // Slightly higher for more responsive mobile flick
+      wheelMultiplier: 1.0,
+      lerp: 0.1, // Snappier response (0.1 is industry standard for 'Apple' feel)
+      infinite: false,
     });
 
     // ─── SCROLL TOP FIX ON REFRESH ───
@@ -22,20 +24,29 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     window.scrollTo(0, 0);
     lenis.scrollTo(0, { immediate: true });
 
-    // Expose globally for programmatic scrolling from other components
+    // Expose globally for programmatic scrolling
     (window as any).__lenis = lenis;
 
+    // ─── THE CRITICAL SYNC: Ticker Integration ───
+    // We add Lenis to the GSAP ticker with a priority of -1.
+    // This ensures Lenis updates the scroll position FIRST,
+    // then GSAP calculates animations based on that NEW position in the same frame.
     const onTick = (time: number) => {
       lenis.raf(time * 1000);
     };
-
-    lenis.on("scroll", ScrollTrigger.update);
     gsap.ticker.add(onTick);
+    gsap.ticker.lagSmoothing(0); // Disable lag smoothing to prevent 'drifting' during heavy load
 
-    gsap.ticker.lagSmoothing(0);
+    // Tell ScrollTrigger to listen to Lenis
+    lenis.on("scroll", () => {
+      ScrollTrigger.update();
+    });
+
+    // Reset ScrollTrigger on refresh
+    ScrollTrigger.addEventListener("refreshInit", () => lenis.stop());
+    ScrollTrigger.addEventListener("refresh", () => lenis.start());
 
     return () => {
-      lenis.off("scroll", ScrollTrigger.update);
       gsap.ticker.remove(onTick);
       lenis.destroy();
     };

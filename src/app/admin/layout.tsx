@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "TouraLuxe | Admin Dashboard",
+  description: "Management portal for TouraLuxe experiences.",
+};
+
 export default function AdminLayout({
   children,
 }: {

@@ -19,6 +19,7 @@ export function Preloader() {
     
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
+      let is3DReady = false;
 
       // 1. Initial Reveal
       tl.fromTo(
@@ -52,17 +53,16 @@ export function Preloader() {
 
       // Simulated smooth crawl (ticker)
       const ticker = () => {
-        // Approach target smoothly
-        // Mobile optimization: Use a much faster ease (0.15 vs 0.03) to release the user instantly
-        const mobileEase = 0.15;
-        const desktopEase = 0.03;
-        const ease = isDesktop ? (targetProgress > currentProgress ? desktopEase : 0.08) : mobileEase;
+        const ease = isDesktop ? (targetProgress > currentProgress ? 0.03 : 0.08) : 0.15;
         
-        currentProgress += (targetProgress - currentProgress) * ease;
+        // Cap the progress at 95% if 3D isn't ready yet
+        let effectiveTarget = targetProgress;
+        if (!is3DReady && effectiveTarget > 95) effectiveTarget = 95;
+
+        currentProgress += (effectiveTarget - currentProgress) * ease;
         updateUI();
 
-        // PRODUCTION GATE: Only exit if we are at 100% and the target is also 100%
-        if (currentProgress > (isDesktop ? 99.9 : 98) && targetProgress >= 100) {
+        if (currentProgress > (isDesktop ? 99.9 : 98) && targetProgress >= 100 && is3DReady) {
           currentProgress = 100;
           updateUI();
           gsap.ticker.remove(ticker);
@@ -73,22 +73,32 @@ export function Preloader() {
       gsap.ticker.add(ticker);
 
       const onProgress = (e: any) => {
-        // Map the 0-100 hero progress to the target
         targetProgress = e.detail;
       };
 
-      window.addEventListener("hero-progress", onProgress);
+      const on3DReady = () => {
+        is3DReady = true;
+      };
 
-      // Fallback: Extend the timeout to 15s to allow for real heavy loading on slow networks
-      // But only if we aren't seeing any progress at all
+      window.addEventListener("hero-progress", onProgress);
+      window.addEventListener("3d-ready", on3DReady);
+
+      // Fallback: If 3D takes too long (8s), assume ready to prevent stuck loader
+      const threeDFallback = setTimeout(() => {
+        is3DReady = true;
+      }, 8000);
+
       const timeout = setTimeout(() => {
         if (targetProgress < 10) targetProgress = 100;
+        is3DReady = true; // Fallback for 3D too
       }, 15000);
 
       return () => {
         gsap.ticker.remove(ticker);
         window.removeEventListener("hero-progress", onProgress);
+        window.removeEventListener("3d-ready", on3DReady);
         clearTimeout(timeout);
+        clearTimeout(threeDFallback);
       };
     }, preloaderRef);
 

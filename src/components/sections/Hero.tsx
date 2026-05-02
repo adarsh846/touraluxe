@@ -96,6 +96,18 @@ export function HeroDesktop() {
     };
     document.addEventListener("visibilitychange", onVisibility);
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isPaused = !entry.isIntersecting;
+        if (!isPaused) {
+          pumpBoot();
+          startRAF();
+        }
+      },
+      { threshold: 0, rootMargin: "100px" }
+    );
+    observer.observe(container);
+
     /* ── Apple-Level Preload Injection ── */
     // Inject link tags into head to force browser network priority for the first few critical frames
     const preloadFrames = [0, SKELETON_STEP, SKELETON_STEP * 2];
@@ -330,23 +342,34 @@ export function HeroDesktop() {
       rafId = requestAnimationFrame(renderLoop);
     };
 
+    let lastPrioritizeFrame = -100;
+
     const renderLoop = () => {
       if (destroyed) { rafRunning = false; return; }
 
       const dist = targetFrame - smoothFrame;
-      // Calculate how many frames around our current position are actually loaded.
-      // If density is low (frames missing), lerp drops heavily so the animation "waits" instead of skipping frames.
-      const density = localDensity(Math.round(smoothFrame), 15);
-      const lerp = 0.18 + density * 0.17;
       
+      // OPTIMIZATION: Only calculate density when we are actually moving or loading
+      // and only do it occasionally, not every single frame.
+      const roundedSmooth = Math.round(smoothFrame);
+      const density = localDensity(roundedSmooth, 15);
+      
+      const lerp = 0.18 + density * 0.17;
       smoothFrame += Math.abs(dist) < 0.3 ? dist : dist * lerp;
 
       drawFrame(Math.round(smoothFrame));
       
-      // Continuously update the preloader window to follow the scroll
-      prioritizeQueue();
+      // OPTIMIZATION: Moving prioritizeQueue out of the main 60fps loop.
+      // We only need to re-prioritize the network queue if the scroll position 
+      // has moved significantly (e.g. 5 frames) from the last time we checked.
+      if (Math.abs(roundedSmooth - lastPrioritizeFrame) > 5) {
+        prioritizeQueue();
+        lastPrioritizeFrame = roundedSmooth;
+      }
 
       if (Math.abs(dist) < 0.01) {
+        // One final check on idle to ensure the queue is caught up
+        prioritizeQueue();
         rafRunning = false;
         return;
       }
@@ -448,6 +471,7 @@ export function HeroDesktop() {
       if (refreshTimer) window.clearTimeout(refreshTimer);
       window.removeEventListener("resize", sizeCanvas);
       document.removeEventListener("visibilitychange", onVisibility);
+      observer.disconnect();
       connApi?.removeEventListener?.("change", onConnectionChange);
       cancelAnimationFrame(rafId);
       for (const entry of cache.values()) {
