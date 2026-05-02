@@ -52,13 +52,17 @@ export function Preloader() {
 
       // Simulated smooth crawl (ticker)
       const ticker = () => {
-        // Approach target smoothly — use a slower dampening for 'heavy' feel
-        const ease = targetProgress > currentProgress ? 0.03 : 0.08;
+        // Approach target smoothly
+        // Mobile optimization: Use a much faster ease (0.15 vs 0.03) to release the user instantly
+        const mobileEase = 0.15;
+        const desktopEase = 0.03;
+        const ease = isDesktop ? (targetProgress > currentProgress ? desktopEase : 0.08) : mobileEase;
+        
         currentProgress += (targetProgress - currentProgress) * ease;
         updateUI();
 
         // PRODUCTION GATE: Only exit if we are at 100% and the target is also 100%
-        if (currentProgress > 99.9 && targetProgress >= 100) {
+        if (currentProgress > (isDesktop ? 99.9 : 98) && targetProgress >= 100) {
           currentProgress = 100;
           updateUI();
           gsap.ticker.remove(ticker);

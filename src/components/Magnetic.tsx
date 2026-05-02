@@ -76,16 +76,18 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
       
-      // Calibrated Liquid Move: Removes 'stretching' (skew) to keep interaction safe.
-      // Uses a 0.15 multiplier to keep the button pinned to the finger.
-      gsap.to(inner, {
-        x: dx * 0.15,
-        y: dy * 0.15,
-        scale: 0.95,
-        duration: 0.3,
-        ease: "power2.out",
-        overwrite: "auto",
-      });
+      // Calibrated Liquid Move: Reduced multiplier to 0.1 to prevent 'stretching' feel
+      // and added a threshold check to keep the button stable during vertical scroll.
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        gsap.to(inner, {
+          x: dx * 0.1,
+          y: dy * 0.1,
+          scale: 0.98,
+          duration: 0.4,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
     };
 
     const onTouchEnd = () => {
@@ -123,9 +125,13 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       ref={wrapperRef} 
       className={cn("relative inline-block w-fit touch-manipulation", className)}
     >
-      {/* Invisible expanded hit-zone — only active on desktop to prevent mobile tap conflicts */}
-      {/* This is the 'magnetic mask' that causes dead zones on touchscreens */}
-      {!isTouchDevice && <div className="absolute inset-[-20px] z-[-1] pointer-events-auto" />}
+      {/* 
+          ═══ THE MAGNETIC MASK ═══
+          This expanded hit-zone is now CSS-HIDDEN on mobile/touch devices.
+          This eliminates the 'dead zones' where one chip's mask would 
+          prevent you from tapping a neighboring chip.
+      */}
+      <div className="absolute inset-[-20px] z-[-1] pointer-events-none md:pointer-events-auto hidden md:block" />
       
       {/* Inner visual element that translates independently */}
       <div 

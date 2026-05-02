@@ -469,11 +469,11 @@ export function HeroDesktop() {
             alt=""
             aria-hidden="true"
             fetchPriority="high"
-            className="absolute inset-0 w-full h-full object-cover z-0 saturate-[1.30] contrast-[1.08]"
+            className="absolute inset-0 w-full h-full object-cover z-0"
           />
           <canvas 
             ref={canvasRef} 
-            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1] saturate-[1.30] contrast-[1.08]" 
+            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1]" 
             aria-hidden="true" 
           />
 
@@ -482,10 +482,13 @@ export function HeroDesktop() {
           {/* Minimal bottom fade for scroll indicator */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[2]" />
 
-          {/* Film grain — organic texture at 2.5% opacity, invisible but removes digital flatness */}
+          {/* High-Performance Static Grain — Zero CPU overhead compared to SVG Turbulence */}
           <div 
-            className="absolute inset-0 opacity-[0.025] mix-blend-overlay pointer-events-none z-[3] transform-gpu" 
-            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
+            className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none z-[3] transform-gpu" 
+            style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+              backgroundSize: '250px 250px' // Tiling a small static SVG is much faster than a full-screen dynamic one
+            }}
           />
         </div>
 
@@ -496,11 +499,11 @@ export function HeroDesktop() {
 
         <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform" style={{ perspective: '1000px', transformStyle: 'flat' }}>
           <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[1] mb-6 opacity-100 flex flex-wrap justify-center gap-x-4 md:gap-x-6">
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>Beyond</span>
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>travel.</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>Beyond</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>travel.</span>
             <div className="basis-full h-0 md:h-4" />
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>Pure</span>
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0,0,0,0.3))', backfaceVisibility: 'hidden' }}>experience.</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>Pure</span>
+            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>experience.</span>
           </h1>
           <p ref={subheadRef} className="text-[17px] md:text-[21px] font-medium tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ backfaceVisibility: 'hidden' }}>
             Meticulously curated journeys for those who demand the exceptional.

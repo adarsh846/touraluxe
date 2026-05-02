@@ -198,10 +198,13 @@ export function Flight3D() {
       // Fade the fuselage in during descent
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
-          flightTimeline?.to((child as THREE.Mesh).material, {
+          const mat = (child as THREE.Mesh).material as any;
+          flightTimeline?.to(mat, {
             opacity: 1,
-            duration: sectionDuration * 0.5
-          }, delay);
+            duration: sectionDuration * 0.5,
+            onStart: () => { mat.transparent = true; }
+          }, delay)
+          .set(mat, { transparent: false }, delay + sectionDuration * 0.5);
         }
       });
 

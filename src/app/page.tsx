@@ -69,8 +69,7 @@ export default function Home() {
               style={{
                 backgroundImage: "url('/assets/cloud-ceiling.png')",
                 WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)",
-                maskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)",
-                filter: "brightness(0.9) contrast(1.1) saturate(0.85) hue-rotate(5deg) grayscale(0.15)"
+                maskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)"
               }}
             />
             {/* Layer 2: Mirrored for extra density and gap-filling */}
@@ -80,8 +79,7 @@ export default function Home() {
                 backgroundImage: "url('/assets/cloud-ceiling.png')",
                 transform: "scaleX(-1)",
                 WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)",
-                maskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)",
-                filter: "brightness(0.9) contrast(1.1) saturate(0.85) hue-rotate(5deg) grayscale(0.15)"
+                maskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)"
               }}
             />
             {/* Dark gradient at top to blend into #0a0a0a background */}

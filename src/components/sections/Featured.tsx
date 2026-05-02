@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const EXPERIENCES = [
   {
@@ -368,6 +371,10 @@ export function Featured() {
           });
         }
       });
+
+      // Refresh ScrollTrigger after items are rendered and layout is stable
+      // This prevents the "stale path" issue in Flight3D when content shifts
+      ScrollTrigger.refresh();
     }, containerRef);
 
     return () => ctx.revert();
@@ -393,7 +400,7 @@ export function Featured() {
               <div
                 key={exp.id}
                 ref={(el) => { itemsRef.current[index] = el; }}
-                className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 will-change-transform"
+                className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0"
               >
                 {/* Image Container with strict hover constraints */}
                 <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5">
@@ -401,7 +408,7 @@ export function Featured() {
                     src={exp.image}
                     alt={exp.title}
                     fill
-                    className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform"
+                    className="object-cover will-change-transform"
                     quality={75}
                     sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
                   />
