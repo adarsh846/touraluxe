@@ -85,10 +85,11 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
         data-lenis-prevent
         className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform"
       >
-        {/* Top Controls Header Mask — Perfect Mix Easing */}
+        {/* iOS 26-style Hyper-Smooth Progressive Mask — Unified Proportions */}
         <div 
-          className="absolute top-0 left-0 right-0 h-40 transition-all duration-1000 backdrop-blur-[5px] z-[90] pointer-events-none" 
+          className="pointer-events-none absolute top-0 left-0 right-0 h-24 md:h-32 transition-all duration-1000 backdrop-blur-[5px] z-[90]" 
           style={{
+            opacity: isScrolled ? 0.95 : 0.85,
             background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
             maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
