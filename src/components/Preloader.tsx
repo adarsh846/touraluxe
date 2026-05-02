@@ -79,7 +79,7 @@ export function Preloader() {
       // But only if we aren't seeing any progress at all
       const timeout = setTimeout(() => {
         if (targetProgress < 10) targetProgress = 100;
-      }, isDesktop ? 15000 : 3000); // Mobile gets a much shorter fallback since it only loads a static image
+      }, 15000);
 
       return () => {
         gsap.ticker.remove(ticker);

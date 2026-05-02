@@ -13,15 +13,14 @@ export function HeroMobile() {
   const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Mobile uses a static image — no frame sequence to load.
-    // Signal the Preloader immediately so it transitions out.
+    // Mobile Hero is lightweight (static image), so we signal 100% progress immediately 
+    // to release the Preloader once the component mounts.
     (window as any).__heroProgress = 100;
     window.dispatchEvent(new CustomEvent("hero-progress", { detail: 100 }));
 
     const ctx = gsap.context(() => {
-      // Premium Apple-style Intro Animation
-      // Use only transform + opacity (translate3d for performance)
-      const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
+      // Snappier Apple-style Intro Animation for Mobile
+      const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.2 } });
 
       tl.fromTo(
         imageRef.current,
@@ -30,21 +29,21 @@ export function HeroMobile() {
       )
         .fromTo(
           ".word",
-          { y: 100, opacity: 0, rotate: 5, x: -20 },
-          { y: 0, opacity: 1, rotate: 0, x: 0, stagger: 0.1 },
-          "-=2.5"
+          { y: 60, opacity: 0, rotate: 2 },
+          { y: 0, opacity: 1, rotate: 0, stagger: 0.06 },
+          "-=2.7"
         )
         .fromTo(
           subheadRef.current,
-          { y: 40, x: 30, opacity: 0 },
-          { y: 0, x: 0, opacity: 1 },
-          "-=2.2"
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1 },
+          "-=2.4"
         )
         .fromTo(
           ".scroll-indicator",
           { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 1, ease: "expo.out" },
-          "-=0.8"
+          { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
+          "-=1.5"
         );
 
       // Fade out scroll indicator on scroll, reappear when scrolling back

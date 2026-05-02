@@ -54,19 +54,18 @@ export function Navbar() {
       <header
         className={cn(
           "fixed top-0 left-0 w-full z-50 px-6 transition-[padding] duration-300",
-          isMobileMenuOpen ? "py-4" : isScrolled ? "py-3" : "py-6"
+          isMobileMenuOpen ? "py-4" : isScrolled ? "py-3" : "py-4 md:py-6"
         )}
       >
         {/* iOS 26-style Hyper-Smooth Progressive Mask */}
         {!isMobileMenuOpen && (
           <div 
-            className="pointer-events-none absolute inset-0 h-40 transition-all duration-1000 backdrop-blur-[5px] will-change-transform" 
+            className="pointer-events-none absolute inset-0 h-24 md:h-32 transition-all duration-1000 backdrop-blur-[5px]" 
             style={{ 
               opacity: isScrolled ? 0.95 : 0.85,
               background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
               maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
               WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
-              transform: "translateZ(0)", // GPU Layer Isolation
             }}
           />
         )}

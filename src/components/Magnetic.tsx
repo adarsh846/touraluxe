@@ -68,14 +68,11 @@ export function Magnetic({ children, className }: { children: React.ReactElement
     // ═══ TOUCH: iOS 26-style stretch ═══
     let startX = 0;
     let startY = 0;
-    let touchMoved = false;
-    const TOUCH_THRESHOLD = 6; // px — below this, treat as a tap, not a drag
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      touchMoved = false;
       gsap.to(inner, { scale: 0.92, filter: "brightness(1.7)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
     };
 
@@ -83,12 +80,6 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
-
-      // Only activate magnetic drag if finger has moved beyond the threshold
-      // This prevents micro-movements during a tap from hijacking the touch event
-      if (!touchMoved && Math.abs(dx) < TOUCH_THRESHOLD && Math.abs(dy) < TOUCH_THRESHOLD) return;
-      touchMoved = true;
-
       gsap.to(inner, {
         x: dx * 0.4,
         y: dy * 0.4,
@@ -135,8 +126,8 @@ export function Magnetic({ children, className }: { children: React.ReactElement
 
   return (
     <div ref={wrapperRef} className={cn("relative inline-block w-fit", className)}>
-      {/* Invisible expanded hit-zone — tightened to prevent overlap between adjacent buttons on touch */}
-      <div className="absolute inset-[-8px] z-[-1] pointer-events-auto" />
+      {/* Invisible expanded hit-zone (absolute means it doesn't break layout heights/widths!) */}
+      <div className="absolute inset-[-20px] z-[-1] pointer-events-auto" />
       {/* Inner visual element that translates independently */}
       <div ref={innerRef} className={cn("relative z-10 will-change-transform inline-block w-fit", className)}>
         {children}
