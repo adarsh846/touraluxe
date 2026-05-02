@@ -10,9 +10,9 @@ gsap.registerPlugin(ScrollTrigger);
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const lenis = new Lenis({
-      syncTouch: true,
+      syncTouch: false, // Fixes "dead zones" on mobile where buttons don't react to taps
       touchMultiplier: 1.0,
-      lerp: 0.08,
+      lerp: 0.1,
     });
 
     // ─── SCROLL TOP FIX ON REFRESH ───

@@ -141,12 +141,13 @@ export function Navbar() {
       </header>
 
       {/* ── Mobile Toggle Button — always above overlay ── */}
-      <div className="fixed top-4 right-6 md:hidden z-[60]">
+      <div className="fixed top-4 right-6 md:hidden z-[100]">
         <Magnetic>
           <button
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/20"
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/20 active:scale-90"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
+            style={{ touchAction: 'manipulation' }}
           >
             {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
