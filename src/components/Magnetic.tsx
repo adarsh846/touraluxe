@@ -1,28 +1,26 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { cn } from "@/lib/utils";
 
 export function Magnetic({ children, className }: { children: React.ReactElement; className?: string }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(isTouch);
+    
     const wrapper = wrapperRef.current;
     const inner = innerRef.current;
     if (!wrapper || !inner) return;
 
-    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
     // ═══ TRACKING: smooth, no overshoot ═══
-    // power3.out → glides to target, never bounces/vibrates
     const xTo = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out" });
     const yTo = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
 
-    // ═══ RESET: elastic snap-back (only fires on leave) ═══
-    // Uses gsap.to (not quickTo) so we get elastic ease
-    // Gets auto-overwritten when quickTo fires on next mousemove
     const reset = () => {
       gsap.to(inner, {
         x: 0,
@@ -33,8 +31,6 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       });
     };
 
-    // After elastic reset completes, re-create quickTo so they work again
-    // (overwrite: true kills them, so we need fresh instances)
     let xToLive = xTo;
     let yToLive = yTo;
 
@@ -54,7 +50,6 @@ export function Magnetic({ children, className }: { children: React.ReactElement
     const onMouseMove = (e: MouseEvent) => moveWithLive(e.clientX, e.clientY);
 
     const onMouseEnter = () => {
-      // Kill any running elastic reset and refresh quickTo instances
       gsap.killTweensOf(inner);
       refreshQuickTo();
       gsap.to(inner, { filter: "brightness(1.4)", duration: 0.3, ease: "power2.out", overwrite: "auto" });
@@ -65,7 +60,7 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       gsap.to(inner, { filter: "brightness(1)", duration: 0.6, ease: "power2.out", overwrite: "auto" });
     };
 
-    // ═══ TOUCH: iOS 26-style stretch ═══
+    // ═══ TOUCH: Liquid Interaction Logic ═══
     let startX = 0;
     let startY = 0;
 
@@ -73,21 +68,21 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      gsap.to(inner, { scale: 0.92, filter: "brightness(1.7)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
+      gsap.to(inner, { scale: 0.95, filter: "brightness(1.5)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
     };
 
     const onTouchMove = (e: TouchEvent) => {
       const t = e.touches[0];
       const dx = t.clientX - startX;
       const dy = t.clientY - startY;
+      
+      // Calibrated Liquid Move: Removes 'stretching' (skew) to keep interaction safe.
+      // Uses a 0.15 multiplier to keep the button pinned to the finger.
       gsap.to(inner, {
-        x: dx * 0.4,
-        y: dy * 0.4,
-        skewX: gsap.utils.clamp(-8, 8, dx * 0.03),
-        skewY: gsap.utils.clamp(-8, 8, -dy * 0.03),
-        rotation: gsap.utils.clamp(-5, 5, dx * 0.02),
-        scale: 0.92,
-        duration: 0.15,
+        x: dx * 0.15,
+        y: dy * 0.15,
+        scale: 0.95,
+        duration: 0.3,
         ease: "power2.out",
         overwrite: "auto",
       });
@@ -95,22 +90,21 @@ export function Magnetic({ children, className }: { children: React.ReactElement
 
     const onTouchEnd = () => {
       gsap.to(inner, {
-        x: 0, y: 0, scale: 1, skewX: 0, skewY: 0, rotation: 0, filter: "brightness(1)",
-        duration: 1, ease: "elastic.out(1.2, 0.25)", overwrite: "auto",
+        x: 0, y: 0, scale: 1, filter: "brightness(1)",
+        duration: 0.8, ease: "elastic.out(1.2, 0.4)", overwrite: "auto",
       });
     };
 
-    if (!isTouch) {
-      wrapper.addEventListener("mouseenter", onMouseEnter);
-      wrapper.addEventListener("mousemove", onMouseMove);
-      wrapper.addEventListener("mouseleave", onMouseLeave);
-    }
+    // Listeners
+    wrapper.addEventListener("mouseenter", onMouseEnter);
+    wrapper.addEventListener("mousemove", onMouseMove);
+    wrapper.addEventListener("mouseleave", onMouseLeave);
 
     if (isTouch) {
       wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
       wrapper.addEventListener("touchmove", onTouchMove, { passive: true });
-      wrapper.addEventListener("touchend", onTouchEnd);
-      wrapper.addEventListener("touchcancel", onTouchEnd);
+      wrapper.addEventListener("touchend", onTouchEnd, { passive: true });
+      wrapper.addEventListener("touchcancel", onTouchEnd, { passive: true });
     }
 
     return () => {
@@ -125,11 +119,19 @@ export function Magnetic({ children, className }: { children: React.ReactElement
   }, []);
 
   return (
-    <div ref={wrapperRef} className={cn("relative inline-block w-fit", className)}>
-      {/* Invisible expanded hit-zone (absolute means it doesn't break layout heights/widths!) */}
-      <div className="absolute inset-[-20px] z-[-1] pointer-events-auto" />
+    <div 
+      ref={wrapperRef} 
+      className={cn("relative inline-block w-fit touch-manipulation", className)}
+    >
+      {/* Invisible expanded hit-zone — only active on desktop to prevent mobile tap conflicts */}
+      {/* This is the 'magnetic mask' that causes dead zones on touchscreens */}
+      {!isTouchDevice && <div className="absolute inset-[-20px] z-[-1] pointer-events-auto" />}
+      
       {/* Inner visual element that translates independently */}
-      <div ref={innerRef} className={cn("relative z-10 will-change-transform inline-block w-fit", className)}>
+      <div 
+        ref={innerRef} 
+        className={cn("relative z-10 will-change-transform inline-block w-fit", className)}
+      >
         {children}
       </div>
     </div>
