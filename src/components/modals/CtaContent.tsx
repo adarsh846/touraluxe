@@ -42,7 +42,7 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
           className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
         >
           {/* Hero Image */}
-        <div className="relative w-full aspect-[4/3] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">
+        <div className="relative w-full aspect-[4/3] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
           <Image 
             src="/private_jet_interior_sunset_1777656427557.png" 
             alt="Private Jet Interior" 
@@ -51,8 +51,8 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
             priority 
           />
           {/* Hyper-Smooth Progressive Blend */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#1c1c1e]" />
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#1c1c1e] via-[#1c1c1e]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
           
           {/* Scroll Indicator */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700">
@@ -64,7 +64,7 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
         </div>
 
         {/* Content */}
-        <div className="relative z-10 px-6 md:px-12 pb-32 md:pb-24 -mt-8 bg-[#1c1c1e] rounded-t-3xl">
+        <div className="relative z-10 px-6 md:px-12 pb-32 md:pb-24 -mt-8 bg-[#0a0a0b] rounded-t-3xl">
           {!isSubmitted ? (
             <div className="max-w-xl mx-auto">
               <div className="mb-8 md:mb-10 mt-10 text-center">

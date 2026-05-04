@@ -6,6 +6,7 @@ import Image from "next/image";
 import { X, Calendar, Users, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Plane, Map, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 
+import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 
 export const BookingContent = memo(function BookingContent({ 
@@ -353,7 +354,7 @@ export const BookingContent = memo(function BookingContent({
       {isSelectorOpen && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 transform-gpu">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsSelectorOpen(false)} />
-          <div className="relative w-full max-w-[320px] mx-auto bg-[#1c1c1e] border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-[320px] mx-auto bg-[#0a0a0b] border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-white/5 flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white italic">Select Region</h4>
@@ -394,15 +395,15 @@ export const BookingContent = memo(function BookingContent({
           className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
         >
             {/* Hero Section */}
-            <div className="relative w-full h-[35vh] md:h-[50vh] shrink-0">
+            <div className="relative w-full h-[40vh] md:h-[50vh] shrink-0">
               <img 
                 src={packageData?.image || "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=2000"} 
                 alt={packageData?.title || "Custom Journey"} 
                 className="object-cover w-full h-full opacity-60 grayscale-[0.2]" 
               />
               {/* Hyper-Smooth Progressive Blend */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#1c1c1e]" />
-              <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#1c1c1e] via-[#1c1c1e]/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
               
               <div className="absolute bottom-0 left-6 md:left-16 right-6 pb-8 md:pb-12">
                 <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter text-white uppercase italic leading-tight mb-4 drop-shadow-2xl">
@@ -420,9 +421,9 @@ export const BookingContent = memo(function BookingContent({
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
                   {/* Trip Summary Column */}
                   <div className="lg:col-span-2 space-y-8">
-                    <div className="space-y-4">
+                    <div className="space-y-4 hidden lg:block">
                       <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Trip Summary</label>
-                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden group border border-white/5 bg-[#1c1c1e] shadow-2xl">
+                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden group border border-white/5 bg-[#0a0a0b] shadow-2xl">
                         <img 
                           src={packageData?.image || "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=2000"} 
                           alt={packageData?.title || "Custom Journey"} 
@@ -524,10 +525,13 @@ export const BookingContent = memo(function BookingContent({
 
                         {/* Est Total Section inside protocol for unity */}
                         <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pt-2" />
-                        <div className="pt-2 flex justify-between items-end">
+                        <div className="pt-2 flex justify-between items-center">
                           <span className="text-[9px] text-white/30 uppercase tracking-[0.2em]">Total Est. Cost</span>
                           <div className="text-right">
-                            <span className="text-2xl font-mono font-bold text-white leading-none">
+                            <span className={cn(
+                              "font-bold text-white leading-none block",
+                              packageData?.price ? "text-2xl font-mono" : "text-[11px] uppercase tracking-[0.12em] italic opacity-85"
+                            )}>
                               {(() => {
                                 if (!packageData?.price) return "Quote on Request";
                                 const symbol = packageData?.currency || "₹";
@@ -537,6 +541,11 @@ export const BookingContent = memo(function BookingContent({
                                 return `${symbol}${total}`;
                               })()}
                             </span>
+                            {packageData?.price && (
+                              <span className="block text-[8px] text-white/30 uppercase tracking-[0.1em] mt-1.5 italic">
+                                {packageData.tax_status || "Inclusive of Taxes"}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -550,13 +559,13 @@ export const BookingContent = memo(function BookingContent({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Full Name" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
                         <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Email Address" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
-                        <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
+                        <div className="md:col-span-2 flex flex-row gap-3">
                           <button 
                             type="button" 
                             onClick={() => setIsSelectorOpen(true)} 
-                            className="bg-white/[0.07] border border-white/20 rounded-2xl px-6 flex items-center justify-center sm:justify-start gap-4 hover:bg-white/[0.1] transition-all min-w-[120px] h-[64px] group"
+                            className="bg-white/[0.07] border border-white/20 rounded-2xl px-4 flex items-center justify-center gap-3 hover:bg-white/[0.1] transition-all min-w-[90px] h-[64px] group"
                           >
-                            <span className="text-2xl group-hover:scale-110 transition-transform">{selectedCountry.flag}</span>
+                            <span className="text-xl group-hover:scale-110 transition-transform">{selectedCountry.flag}</span>
                             <span className="text-sm font-bold text-white/80">{selectedCountry.dial}</span>
                           </button>
                           <input 
@@ -573,18 +582,18 @@ export const BookingContent = memo(function BookingContent({
 
                     <div className="space-y-6">
                       <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Preferred Dates</label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div onClick={() => startInputRef.current?.showPicker()} className="p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-2 cursor-pointer hover:bg-white/[0.05] transition-all h-[90px] flex flex-col justify-center">
-                          <p className="text-[9px] text-white/40 uppercase tracking-[0.2em]">Departure Date</p>
-                          <p className="text-sm font-bold">{formatDate(startDate) !== "---" ? formatDate(startDate) : "Select Date"}</p>
+                      <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        <div onClick={() => startInputRef.current?.showPicker()} className="p-4 md:p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-1.5 cursor-pointer hover:bg-white/[0.05] transition-all h-[80px] md:h-[90px] flex flex-col justify-center">
+                          <p className="text-[8px] md:text-[9px] text-white/40 uppercase tracking-[0.2em]">Departure</p>
+                          <p className="text-xs md:text-sm font-bold truncate">{formatDate(startDate) !== "---" ? formatDate(startDate) : "Select"}</p>
                           <input ref={startInputRef} type="date" className="sr-only" onChange={(e) => setStartDate(e.target.value)} />
                         </div>
-                        <div onClick={() => !hasFixedDuration && endInputRef.current?.showPicker()} className={`p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-2 h-[90px] flex flex-col justify-center transition-all ${hasFixedDuration ? 'opacity-60 cursor-not-allowed grayscale-[0.3]' : 'cursor-pointer hover:bg-white/[0.05]'}`}>
-                          <p className="text-[9px] text-white/40 uppercase tracking-[0.2em]">Return Date</p>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold">{formatDate(endDate) !== "---" ? formatDate(endDate) : "Select Date"}</p>
-                            {hasFixedDuration && <span className="text-[8px] bg-white/10 text-white/60 px-2 py-0.5 rounded font-black uppercase tracking-widest border border-white/5">{packageData?.duration}</span>}
+                        <div onClick={() => !hasFixedDuration && endInputRef.current?.showPicker()} className={`p-4 md:p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-1.5 h-[80px] md:h-[90px] flex flex-col justify-center transition-all ${hasFixedDuration ? 'opacity-60 cursor-not-allowed grayscale-[0.3]' : 'cursor-pointer hover:bg-white/[0.05]'}`}>
+                          <p className="text-[8px] md:text-[9px] text-white/40 uppercase tracking-[0.2em]">Return</p>
+                          <div className="flex items-center justify-between overflow-hidden">
+                            <p className="text-xs md:text-sm font-bold truncate">{formatDate(endDate) !== "---" ? formatDate(endDate) : "Select"}</p>
                           </div>
+                          {hasFixedDuration && <span className="absolute top-2 right-2 text-[7px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-white/5">{packageData?.duration}</span>}
                           <input ref={endInputRef} type="date" className="sr-only" min={startDate} onChange={(e) => setEndDate(e.target.value)} disabled={hasFixedDuration} />
                         </div>
                       </div>

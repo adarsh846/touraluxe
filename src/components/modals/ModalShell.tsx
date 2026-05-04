@@ -32,7 +32,7 @@ export function ModalShell() {
   const prevHistoryLength = useRef(0);
   
   const overlayRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
   const headerMaskRef = useRef<HTMLDivElement>(null);
 
@@ -130,15 +130,29 @@ export function ModalShell() {
     }
   }, [view, data, source, activeView]);
 
+  // Persistent Background Lock
+  useEffect(() => {
+    if (isOpen && !isClosing) {
+      const lock = () => {
+        (window as any).__lenis?.stop();
+        document.body.style.setProperty("overflow", "hidden", "important");
+        document.documentElement.style.setProperty("overflow", "hidden", "important");
+      };
+      lock();
+      return () => {
+        (window as any).__lenis?.start();
+        document.body.style.removeProperty("overflow");
+        document.documentElement.style.removeProperty("overflow");
+      };
+    }
+  }, [isOpen, isClosing]);
+
   // Entrance/Exit Animations
   useEffect(() => {
-    if (isOpen && !isClosing && panelRef.current) {
-      (window as any).__lenis?.stop();
-      document.body.style.overflow = "hidden";
-
+    if (isOpen && !isClosing && modalRef.current) {
       const tl = gsap.timeline();
       gsap.set(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)" });
-      gsap.set(panelRef.current, { y: 100, opacity: 0, scale: 0.95, pointerEvents: "none" });
+      gsap.set(modalRef.current, { y: 100, opacity: 0, scale: 0.95, pointerEvents: "none" });
 
       tl.to(overlayRef.current, { 
         opacity: 1, 
@@ -146,7 +160,7 @@ export function ModalShell() {
         duration: 0.4, 
         ease: "power3.out" 
       })
-      .to(panelRef.current, { 
+      .to(modalRef.current, { 
         y: 0, 
         opacity: 1, 
         scale: 1, 
@@ -155,20 +169,18 @@ export function ModalShell() {
         force3D: true,
         clearProps: "pointerEvents"
       }, "-=0.2");
-    } else if (isClosing && panelRef.current) {
+    } else if (isClosing && modalRef.current) {
       const tl = gsap.timeline({
         onComplete: () => {
           setActiveView(null);
           closeModal();
-          (window as any).__lenis?.start();
-          document.body.style.overflow = "unset";
         }
       });
 
       // Disable interactions immediately on close
-      gsap.set(panelRef.current, { pointerEvents: "none" });
+      gsap.set(modalRef.current, { pointerEvents: "none" });
 
-      tl.to(panelRef.current, { 
+      tl.to(modalRef.current, { 
         y: 60, 
         opacity: 0, 
         scale: 0.97, 
@@ -178,8 +190,9 @@ export function ModalShell() {
       .to(overlayRef.current, { 
         opacity: 0, 
         backdropFilter: "blur(0px)", 
-        duration: 0.2 
-      }, "-=0.2");
+        duration: 0.3, 
+        ease: "power3.in" 
+      }, "-=0.1");
     }
   }, [isOpen, isClosing, closeModal]);
   
@@ -214,7 +227,7 @@ export function ModalShell() {
   return createPortal(
     <div 
       key="modal-portal" 
-      className={`fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-0 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
     >
       {/* Backdrop - Shared across all views */}
       <div 
@@ -226,20 +239,26 @@ export function ModalShell() {
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full h-full md:h-[90vh] md:max-h-[850px] max-w-[1100px] bg-[#0a0a0b] md:rounded-[40px] shadow-2xl border-0 md:border border-white/10 flex flex-col overflow-hidden transform-gpu"
+        className="relative w-full h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
         data-lenis-prevent
       >
         {/* Global Error Alert */}
         {error && (
-          <div className="absolute top-20 md:top-24 left-1/2 -translate-x-1/2 z-[500] w-full max-w-[90vw] md:max-w-max animate-in slide-in-from-top-12 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]">
-          <div ref={alertRef} className="relative w-full max-w-[88vw] md:max-w-max mx-auto bg-black/60 backdrop-blur-2xl border border-red-500/30 px-5 md:px-6 py-4 md:py-3 rounded-[24px] md:rounded-full flex items-start md:items-center gap-4 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-            <div className="shrink-0 p-1.5 rounded-full bg-red-500/10 border border-red-500/20 mt-0.5 md:mt-0">
-              <AlertCircle className="w-4 h-4 text-red-500" />
+          <div className="absolute bottom-[164px] md:top-9 left-1/2 -translate-x-1/2 z-[500] w-full px-6 md:px-0 md:max-w-max pointer-events-none animate-in slide-in-from-bottom-8 md:slide-in-from-top-4 duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]">
+            <div ref={alertRef} className="relative w-full max-w-[400px] md:max-w-max mx-auto bg-[#0a0a0b]/98 backdrop-blur-3xl border border-white/10 p-2.5 md:px-5 md:py-2.5 rounded-xl md:rounded-full flex items-center gap-3 shadow-2xl transition-all duration-500 pointer-events-auto">
+              <AlertCircle className="w-3.5 h-3.5 text-red-500/80 shrink-0" />
+              <div className="flex-1 flex items-center justify-between gap-4">
+                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 leading-none">
+                  {error}
+                </span>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors font-black pr-1"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] text-red-500/90 leading-[1.6] md:leading-tight">
-              {error}
-            </span>
-          </div>
           </div>
         )}
 
@@ -259,7 +278,7 @@ export function ModalShell() {
         />
 
         {/* Shared Top Controls */}
-        <div className="absolute top-5 left-5 right-5 z-[100] flex justify-between items-center pointer-events-none">
+        <div className="absolute top-5 md:top-10 left-5 md:left-12 right-5 md:right-12 z-[100] flex justify-between items-center pointer-events-none">
           <div className="pointer-events-auto">
             <Magnetic>
               <div className="relative group block">

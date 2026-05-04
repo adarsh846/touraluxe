@@ -19,7 +19,7 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
           className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
         >
           {/* Hero Section */}
-        <div className="relative w-full aspect-[4/3] md:aspect-[2/1] overflow-hidden bg-[#1c1c1e]">
+        <div className="relative w-full aspect-[4/3] md:aspect-[2/1] overflow-hidden bg-[#0a0a0b]">
           <Image 
             src="/about_hero.png" 
             alt="TouraLuxe Vision" 
@@ -28,8 +28,8 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
             priority 
           />
           {/* Hyper-Smooth Progressive Blend */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#1c1c1e]" />
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#1c1c1e] via-[#1c1c1e]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
           
           {/* Header Content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">

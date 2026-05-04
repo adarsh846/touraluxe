@@ -36,7 +36,7 @@ export const PackageContent = memo(function PackageContent({
             className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
           >
             {/* Hero Image */}
-            <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">
+            <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
               <Image
                 src={experience.image}
                 alt={experience.title}
@@ -46,23 +46,28 @@ export const PackageContent = memo(function PackageContent({
                 sizes="920px"
               />
               {/* Hyper-Smooth Progressive Blend */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#1c1c1e]" />
-              <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#1c1c1e] via-[#1c1c1e]/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
 
               {/* Price badge */}
-              <div className="absolute bottom-6 left-8 flex items-baseline gap-2">
+              <div className="absolute bottom-8 left-8 flex items-baseline gap-2">
                 <span className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight py-1">
                   {experience.currency || "€"}{Number(experience.price.toString().replace(/[^0-9]/g, "")).toLocaleString('en-IN')}
                 </span>
-                <span className="text-sm text-white/60 font-normal uppercase tracking-wider">
-                  / Person
-                </span>
+                <div className="flex flex-col mb-1">
+                  <span className="text-sm text-white/60 font-normal uppercase tracking-wider">
+                    / Person
+                  </span>
+                  <span className="text-[9px] text-white/30 font-medium uppercase tracking-[0.1em] mt-0.5 whitespace-nowrap">
+                    {experience.tax_status || "Inclusive of Taxes"}
+                  </span>
+                </div>
               </div>
 
               {/* Scroll Indicator */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white drop-shadow-md">Scroll</span>
-                <svg className="w-5 h-5 text-white drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="absolute bottom-6 right-8 md:left-1/2 md:-translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce pointer-events-none z-50 transition-all duration-700">
+                <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/80 drop-shadow-md">Scroll</span>
+                <svg className="w-4 h-4 text-white/60 drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 6l4 4 4-4" />
                 </svg>
               </div>
@@ -71,7 +76,7 @@ export const PackageContent = memo(function PackageContent({
             {/* Content */}
             <div 
               ref={contentRef} 
-              className="relative z-10 px-8 md:px-10 pb-8 -mt-8 bg-[#1c1c1e] rounded-t-3xl"
+              className="relative z-10 px-8 md:px-10 pb-8 -mt-8 bg-[#0a0a0b] rounded-t-3xl"
             >
               {/* Header */}
               <div className="mb-8 mt-8">
