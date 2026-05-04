@@ -17,7 +17,16 @@ export const BookingContent = memo(function BookingContent({
   setInternalCanGoBack,
   registerBackHandler
 }: { 
-  data: any, 
+  data: {
+    id: string;
+    title: string;
+    price: string;
+    location: string;
+    image: string;
+    duration?: string;
+    currency?: string;
+    child_price?: string;
+  } | undefined, 
   isActive: boolean, 
   source: string, 
   onScroll: (scrolled: boolean) => void, 

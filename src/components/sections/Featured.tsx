@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
@@ -169,17 +169,17 @@ export function Featured() {
         </h2>
 
         <div className="flex flex-col gap-12 md:gap-24">
-          {experiences.map((exp, index) => (
+          {experiences.map((pkg: { id: string | number; title: string; location: string; image: string; price: string; duration: string; guests: string; currency?: string; }, idx: number) => (
             <div
-              key={exp.id}
-              ref={(el) => { itemsRef.current[index] = el; }}
+              key={pkg.id}
+              ref={(el) => { itemsRef.current[idx] = el; }}
               className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu will-change-transform"
             >
               {/* Image Container with strict hover constraints */}
               <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu will-change-transform">
                 <Image
-                  src={exp.image}
-                  alt={exp.title}
+                  src={pkg.image}
+                  alt={pkg.title}
                   fill
                   className="object-cover will-change-transform transform-gpu"
                   quality={75}
@@ -190,15 +190,15 @@ export function Featured() {
               {/* Text Content */}
               <div className="w-full md:w-1/3 flex flex-col items-start gap-4 p-4 md:p-8">
                 <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  {exp.location}
+                  {pkg.location}
                 </span>
                 <h3 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground">
-                  {exp.title}
+                  {pkg.title}
                 </h3>
-                <span className="text-sm text-[#86868b] font-medium">{(exp as any).currency || ""}{Number(exp.price.toString().replace(/[^0-9]/g, "")).toLocaleString('en-IN')} / Person · {exp.duration}</span>
+                <span className="text-sm text-[#86868b] font-medium">{pkg.currency || ""}{Number(pkg.price.toString().replace(/[^0-9]/g, "")).toLocaleString('en-IN')} / Person · {pkg.duration}</span>
                 <Magnetic>
                   <button
-                    onClick={() => openModal('PACKAGE', exp)}
+                    onClick={() => openModal('PACKAGE', pkg)}
                     className="mt-4 border-b border-foreground/30 pb-1 text-sm font-medium transition-colors hover:border-foreground uppercase tracking-wider text-muted hover:text-foreground"
                   >
                     View Details

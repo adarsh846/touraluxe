@@ -20,17 +20,17 @@ interface PackageData {
 
 interface ModalState {
   view: ModalView;
-  data?: any;
+  data?: unknown;
   source?: string;
 }
 
 interface BookingContextType {
   isOpen: boolean;
   view: ModalView;
-  data: any;
+  data: unknown;
   source: string;
   isClosing: boolean;
-  openModal: (view: ModalView, data?: any, source?: string) => void;
+  openModal: (view: ModalView, data?: unknown, source?: string) => void;
   closeModal: () => void;
   // Legacy support for openBooking
   openBooking: (data?: PackageData, source?: string) => void;
@@ -80,7 +80,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  const openModal = useCallback((view: ModalView, data?: any, source: string = "GENERAL_INQUIRY") => {
+  const openModal = useCallback((view: ModalView, data?: unknown, source: string = "GENERAL_INQUIRY") => {
     setErrorState(null); // Clear errors on view change
     if (isOpenRef.current && stateRef.current.view && stateRef.current.view !== view) {
       const currentState = stateRef.current;

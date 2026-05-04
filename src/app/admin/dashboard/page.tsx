@@ -18,6 +18,7 @@ interface Booking {
   status: string;
   special_requests: string;
   internal_notes?: string;
+  booking_source?: string;
 }
 
 
@@ -62,7 +63,7 @@ const BookingDetailModal = ({
   
   let coTravelers: {name: string, age?: string}[] = [];
   try {
-    if (coTravelersRaw) coTravelers = JSON.parse(coTravelersRaw).filter((ct: any) => ct.name.trim() !== "");
+    if (coTravelersRaw) coTravelers = JSON.parse(coTravelersRaw).filter((ct: {name: string}) => ct.name.trim() !== "");
   } catch (e) {}
 
   return (
@@ -72,9 +73,9 @@ const BookingDetailModal = ({
           <div>
             <h2 className="text-2xl md:text-3xl font-bold tracking-tighter text-white uppercase italic">{booking.package_name}</h2>
             <p className="text-xs tracking-[0.2em] text-white/40 uppercase mt-1">Booking ID: TRX-{booking.id.slice(0, 8).toUpperCase()}</p>
-            {(booking as any).booking_source && (
+            {booking.booking_source && (
               <span className="inline-block mt-3 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
-                Source: {formatSource((booking as any).booking_source)}
+                Source: {formatSource(booking.booking_source)}
               </span>
             )}
           </div>
