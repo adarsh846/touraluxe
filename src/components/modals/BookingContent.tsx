@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState, memo, useCallback } from "react";
-import gsap from "gsap";
-import Image from "next/image";
-import { X, Calendar, Users, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Plane, Map, ShieldCheck, ArrowLeft } from "lucide-react";
-import { Magnetic } from "../Magnetic";
-
+import React, { useEffect, useRef, useState, memo } from "react";
+import { Search, Calendar, Users, Check, ArrowLeft, ChevronRight, Plane, Command, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
+import { supabase } from "@/lib/supabase";
 
 export const BookingContent = memo(function BookingContent({ 
   data: packageData, 
@@ -16,7 +13,8 @@ export const BookingContent = memo(function BookingContent({
   onScroll, 
   startClosing,
   setInternalCanGoBack,
-  registerBackHandler
+  registerBackHandler,
+  openModal
 }: { 
   data: any, 
   isActive: boolean, 
@@ -24,72 +22,111 @@ export const BookingContent = memo(function BookingContent({
   onScroll: (scrolled: boolean) => void, 
   startClosing: () => void,
   setInternalCanGoBack?: (can: boolean) => void,
-  registerBackHandler?: (handler: (() => boolean) | null) => void
+  registerBackHandler?: (handler: (() => boolean) | null) => void,
+  openModal?: (view: any, data?: any, source?: string) => void
 }) {
   const { setError } = useBooking();
-  const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "---";
-    if (!dateStr.includes("-")) return dateStr;
-    const [year, month, day] = dateStr.split("-");
-    return `${day}-${month}-${year}`;
-  };
-
-
-  
-  const isHoneymoon = bookingSource?.includes("HONEYMOON");
-
+  // Flow State
   const [step, setStep] = useState(1);
+  const [discoveryPhase, setDiscoveryPhase] = useState(packageData ? 2 : 1); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
-  // Form State
+  // Form Data
   const [adults, setAdults] = useState(1);
   const [kids, setKids] = useState(0);
+  const [infants, setInfants] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
   const [notes, setNotes] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  
-  // Country Selector State
-  const COUNTRIES = [
-    { name: "United States", code: "US", dial: "+1", flag: "🇺🇸", len: 10 },
-    { name: "United Kingdom", code: "GB", dial: "+44", flag: "🇬🇧", len: 10 },
-    { name: "India", code: "IN", dial: "+91", flag: "🇮🇳", len: 10 },
-    { name: "United Arab Emirates", code: "AE", dial: "+971", flag: "🇦🇪", len: 9 },
-    { name: "Australia", code: "AU", dial: "+61", flag: "🇦🇺", len: 9 },
-    { name: "France", code: "FR", dial: "+33", flag: "🇫🇷", len: 9 },
-    { name: "Germany", code: "DE", dial: "+49", flag: "🇩🇪", len: 11 },
-    { name: "Japan", code: "JP", dial: "+81", flag: "🇯🇵", len: 10 },
-    { name: "Singapore", code: "SG", dial: "+65", flag: "🇸🇬", len: 8 },
-    { name: "Canada", code: "CA", dial: "+1", flag: "🇨🇦", len: 10 },
-    { name: "Switzerland", code: "CH", dial: "+41", flag: "🇨🇭", len: 9 },
-    { name: "Maldives", code: "MV", dial: "+960", flag: "🇲🇻", len: 7 },
-    { name: "Indonesia", code: "ID", dial: "+62", flag: "🇮🇩", len: 11 },
-    { name: "Thailand", code: "TH", dial: "+66", flag: "🇹🇭", len: 9 },
-    { name: "Italy", code: "IT", dial: "+39", flag: "🇮🇹", len: 10 },
-    { name: "Spain", code: "ES", dial: "+34", flag: "🇪🇸", len: 9 },
-  ];
 
-  const hasFixedDuration = Boolean(packageData?.duration && packageData?.duration?.match(/\d+\s*Night/i));
+  // Search UI State
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [trendingPackages, setTrendingPackages] = useState<any[]>([]);
 
+  // Navigation Logic
+  const nextPhase = () => setDiscoveryPhase(prev => Math.min(4, prev + 1));
+  const prevPhase = () => setDiscoveryPhase(prev => Math.max(1, prev - 1));
+
+  const handlePackageSelect = (pkg: any) => {
+    // Open the full package details view instead of advancing phases
+    openModal?.('PACKAGE', pkg, bookingSource);
+  };
+
+  // Sync state with props (Essential for seamless flow between Discovery and Details)
   useEffect(() => {
-    if (isActive) {
-      setStep(1);
-      setError(null);
-      setIsSubmitting(false);
-      setBookingId(null);
+    if (packageData) {
+      setInternalPackage(packageData);
+      setDiscoveryPhase(2);
+    } else {
+      setDiscoveryPhase(1);
     }
-  }, [packageData?.id, bookingSource, isActive]);
+  }, [packageData]);
 
   useEffect(() => {
-    if (startDate && packageData?.duration) {
-      const nightsMatch = packageData?.duration?.match(/(\d+)\s*Night/i);
+    // If we have packageData, our "internal start" is Phase 2.
+    // Going back from Phase 2 should respect global history (taking us back to Details).
+    const canGoBackInternally = (packageData ? discoveryPhase > 2 : discoveryPhase > 1) || step === 2;
+    setInternalCanGoBack?.(canGoBackInternally);
+    
+    registerBackHandler?.(() => {
+      if (discoveryPhase > (packageData ? 2 : 1)) { prevPhase(); return true; }
+      if (step === 2) { setStep(1); return true; }
+      return false;
+    });
+  }, [discoveryPhase, step, registerBackHandler, setInternalCanGoBack, packageData]);
+
+  // Search Functionality
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) { setSearchResults([]); return; }
+    setIsSearching(true);
+    try {
+      const { data } = await supabase
+        .from('packages')
+        .select('*')
+        .or(`location.ilike.%${query}%,title.ilike.%${query}%,category.cs.{${query}}`)
+        .eq('is_published', true)
+        .limit(10);
+      setSearchResults(data || []);
+    } finally { setIsSearching(false); }
+  };
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      const { data } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('is_published', true)
+        .order('price', { ascending: false })
+        .limit(4);
+      if (data) setTrendingPackages(data);
+    };
+    fetchTrending();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (destination.length > 0) handleSearch(destination);
+      else setSearchResults([]);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [destination]);
+
+  // Temporal Intelligence: Auto-calculate return date for fixed-duration packages
+  const isDurationFixed = Boolean(internalPackage?.duration?.match(/(\d+)\s*Night/i));
+
+  useEffect(() => {
+    if (startDate && isDurationFixed) {
+      const nightsMatch = internalPackage.duration.match(/(\d+)\s*Night/i);
       if (nightsMatch) {
         const nights = parseInt(nightsMatch[1]);
         const start = new Date(startDate);
@@ -98,148 +135,18 @@ export const BookingContent = memo(function BookingContent({
         setEndDate(end.toISOString().split('T')[0]);
       }
     }
-  }, [startDate, packageData?.duration]);
+  }, [startDate, internalPackage, isDurationFixed]);
 
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[2]);
-  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [coTravelers, setCoTravelers] = useState<{ id: string; name: string; age?: string; type: 'adult' | 'child'; isExiting?: boolean }[]>([]);
-
-  // Persistence Key
-  const STORAGE_KEY = `toura_booking_${packageData?.id || 'bespoke'}`;
-
-  // Hydrate State
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setAdults(data.adults || 1);
-        setKids(data.kids || 0);
-        setStartDate(data.startDate || "");
-        setEndDate(data.endDate || "");
-        setDestination(data.destination || "");
-        setNotes(data.notes || "");
-        setCustomerName(data.customerName || "");
-        setCustomerEmail(data.customerEmail || "");
-        setCustomerPhone(data.customerPhone || "");
-        if (data.coTravelers) setCoTravelers(data.coTravelers);
-      } catch (e) {
-        console.error("Hydration error:", e);
-      }
-    }
-  }, [STORAGE_KEY]);
-
-  // Persist State
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const data = { adults, kids, startDate, endDate, destination, notes, customerName, customerEmail, customerPhone, coTravelers };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [adults, kids, startDate, endDate, destination, notes, customerName, customerEmail, customerPhone, coTravelers, STORAGE_KEY]);
-
-  // Dynamic Pricing Engine
+  // Pricing Logic
   const totalInvestment = React.useMemo(() => {
-    const symbol = packageData?.currency || "₹";
-    const base = packageData?.price ? parseInt(packageData.price.replace(/[^0-9]/g, "")) : 5025;
-    const childBase = packageData?.child_price ? parseInt(packageData.child_price.replace(/[^0-9]/g, "")) : (base * 0.5);
-    const total = ((adults * base) + (kids * childBase)).toLocaleString();
-    return `${symbol}${total}`;
-  }, [adults, kids, packageData]);
-  const startInputRef = useRef<HTMLInputElement>(null);
-  const endInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setCoTravelers(prev => {
-      // 1. Separate current active items from those already exiting
-      const active = prev.filter(t => !t.isExiting);
-      const existingExits = prev.filter(t => t.isExiting);
-      
-      const extraAdultsCount = adults - 1;
-      
-      // 2. Separate active adults and children
-      let currentAdults = active.filter(t => t.type === 'adult');
-      let currentKids = active.filter(t => t.type === 'child');
-      let newExits: typeof prev = [];
-
-      // 3. Reconcile Adults
-      if (currentAdults.length < extraAdultsCount) {
-        for (let i = currentAdults.length; i < extraAdultsCount; i++) {
-          currentAdults.push({ id: Math.random().toString(36).substr(2, 9), name: "", type: 'adult' });
-        }
-      } else if (currentAdults.length > extraAdultsCount) {
-        const itemsToExit = currentAdults.slice(extraAdultsCount).map(t => ({ ...t, isExiting: true }));
-        currentAdults = currentAdults.slice(0, extraAdultsCount);
-        newExits = [...newExits, ...itemsToExit];
-      }
-
-      // 4. Reconcile Kids
-      if (currentKids.length < kids) {
-        for (let i = currentKids.length; i < kids; i++) {
-          currentKids.push({ id: Math.random().toString(36).substr(2, 9), name: "", age: "", type: 'child' });
-        }
-      } else if (currentKids.length > kids) {
-        const itemsToExit = currentKids.slice(kids).map(t => ({ ...t, isExiting: true }));
-        currentKids = currentKids.slice(0, kids);
-        newExits = [...newExits, ...itemsToExit];
-      }
-
-      // 5. Combine and schedule cleanup
-      const finalExits = [...existingExits, ...newExits];
-      if (newExits.length > 0) {
-        setTimeout(() => {
-          setCoTravelers(current => current.filter(t => !t.isExiting));
-        }, 500);
-      }
-
-      return [...currentAdults, ...currentKids, ...finalExits];
-    });
-  }, [adults, kids]);
-
-
-  useEffect(() => {
-    if (packageData) {
-      setDestination(packageData.title);
-    } else {
-      setDestination("");
-    }
-  }, [packageData]);
-
-  useEffect(() => {
-    if (isActive) {
-      if (isHoneymoon) {
-        setAdults(2);
-        setKids(0);
-      } else {
-        // If not honeymoon, default to 1 adult and 0 kids
-        // This ensures that even if we came from a honeymoon session for the same package, 
-        // the normal view starts at 1.
-        setAdults(1);
-        setKids(0);
-      }
-    }
-  }, [isActive, isHoneymoon]);
-
-  useEffect(() => {
-    if (adults > 1 || kids > 0) {
-      const tl = gsap.timeline();
-      tl.to(".animate-manifest-reveal", {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: "power4.out"
-      }).to(".manifest-item", {
-        opacity: 1,
-        x: 0,
-        stagger: 0.1,
-        duration: 0.6,
-        ease: "power4.out"
-      }, "-=0.4");
-    }
-  }, [adults, kids]);
-
-
+    const pkg = internalPackage || packageData;
+    if (!pkg?.price) return "Quote on Request";
+    const symbol = pkg.currency || "₹";
+    const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
+    const child = pkg.child_price ? parseInt(pkg.child_price.replace(/[^0-9]/g, "")) : 0;
+    const infant = pkg.infant_price ? parseInt(pkg.infant_price.replace(/[^0-9]/g, "")) : 0;
+    return `${symbol}${(adults * base + kids * child + infants * infant).toLocaleString()}`;
+  }, [adults, kids, infants, internalPackage, packageData]);
 
   const submitBooking = async () => {
     setIsSubmitting(true);
@@ -248,661 +155,447 @@ export const BookingContent = memo(function BookingContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageId: packageData?.id,
-          packageName: packageData?.title,
-          travelerCount: adults + kids,
+          packageId: internalPackage?.id || packageData?.id,
+          packageName: internalPackage?.title || destination || "Bespoke Journey",
+          travelerCount: adults + kids + infants,
           customerName,
           customerEmail,
-          customerPhone: `${selectedCountry.dial}${customerPhone}`,
-          specialRequests: `Dates: ${startDate} to ${endDate} | Destination: ${destination || 'Not Specified'} | Adults: ${adults} | Kids: ${kids} | Co-Travelers: ${JSON.stringify(coTravelers)} | Source: ${bookingSource} | Notes: ${notes}`,
+          customerPhone,
+          specialRequests: `Dates: ${startDate} to ${endDate} | Notes: ${notes}`,
           bookingSource,
-          totalAmount: (() => {
-            if (!packageData?.price) return 0;
-            const base = parseInt(packageData.price.replace(/[^0-9]/g, "")) || 0;
-            const childBase = packageData?.child_price ? parseInt(packageData.child_price.replace(/[^0-9]/g, "")) : (base * 0.5);
-            return (adults * base) + (kids * childBase);
-          })()
+          totalAmount: parseInt(totalInvestment.replace(/[^0-9]/g, "")) || 0
         }),
       });
-
-      if (!response.ok) throw new Error("Booking failed");
-      
-      const resData = await response.json();
-      if (resData.data && resData.data[0]) {
-        setBookingId(resData.data[0].id);
+      if (response.ok) {
+        const res = await response.json();
+        setBookingId(res.data?.[0]?.id);
+        setStep(3);
       }
-      
-      setStep(3);
-    } catch (error) {
-      console.error("Booking failed:", error);
-      alert("Failed to confirm booking. Please check your connection.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
-  const handleNext = () => {
-    if (step === 1) {
-      const missingFields = [];
-      if (!customerName.trim()) missingFields.push("Name");
-      if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) missingFields.push("Email");
-      if (!customerPhone || customerPhone.length < selectedCountry.len) missingFields.push("Phone");
-      if (!startDate || !endDate) missingFields.push("Dates");
-      
-      const incompleteTraveler = coTravelers.some((t, idx) => {
-        const isChild = idx >= (adults - 1);
-        return !t.name.trim() || (isChild && !t.age);
-      });
-      if (incompleteTraveler) missingFields.push("All Guest Details");
-
-      if (missingFields.length > 0) {
-        setError(`Information Required: ${missingFields.join(", ")}`);
-        return;
-      }
-    }
-
-    if (step === 2) {
-      submitBooking();
-      return;
-    }
-
-    gsap.to(contentRef.current, {
-      opacity: 0,
-      x: -20,
-      duration: 0.2,
-      onComplete: () => {
-        setStep(step + 1);
-        if (scrollRef.current) scrollRef.current.scrollTop = 0;
-        gsap.fromTo(contentRef.current, { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3 });
-      }
-    });
-  };
-
-  const handleBack = useCallback(() => {
-    if (step > 1 && step < 3) {
-      gsap.to(contentRef.current, {
-        opacity: 0,
-        x: 20,
-        duration: 0.2,
-        onComplete: () => {
-          setStep(step - 1);
-          if (scrollRef.current) scrollRef.current.scrollTop = 0;
-          gsap.fromTo(contentRef.current, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.3 });
-        }
-      });
-      return true;
-    }
-    return false;
-  }, [step]);
-
-  useEffect(() => {
-    if (isActive) {
-      registerBackHandler?.(handleBack);
-      setInternalCanGoBack?.(step > 1 && step < 3);
-    }
-    return () => {
-      if (isActive) {
-        registerBackHandler?.(null);
-        setInternalCanGoBack?.(false);
-      }
-    };
-  }, [isActive, step, handleBack, registerBackHandler, setInternalCanGoBack]);
+  const canSubmit = Boolean(customerName.length > 2 && customerEmail.includes("@"));
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden">
-      {/* Country Selection Portal - High Z-Index Overlay */}
-      {isSelectorOpen && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 transform-gpu">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsSelectorOpen(false)} />
-          <div className="relative w-full max-w-[320px] mx-auto bg-[#0a0a0b] border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-white/5 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-widest text-white italic">Select Region</h4>
-              </div>
-              <button onClick={() => setIsSelectorOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-all">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-              <input autoFocus type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search countries..." className="w-full bg-white/5 border border-white/20 rounded-xl p-3 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all" />
-            </div>
-            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-2" data-lenis-prevent>
-              {COUNTRIES.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.dial.includes(searchQuery)).map((country) => (
-                <button key={country.code} type="button" onClick={() => { setSelectedCountry(country); setIsSelectorOpen(false); setSearchQuery(""); }} className="w-full p-4 flex items-center justify-between hover:bg-white/5 rounded-2xl transition-all text-left group">
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl leading-none group-hover:scale-110 transition-transform">{country.flag}</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-white/80">{country.name}</span>
-                      <span className="text-[9px] text-white/30 uppercase tracking-widest">{country.code}</span>
+    <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden">
+      
+      {/* 1. PROGRESS LINE (PINNED) */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] z-[150] flex gap-px px-px">
+        {[1, 2, 3, 4].map((p) => (
+          <div key={p} className={cn("flex-1 h-full transition-colors duration-1000", discoveryPhase >= p ? "bg-white/30" : "bg-white/5")} />
+        ))}
+      </div>
+
+      {/* 2. ATMOSPHERIC CANVAS (IMMERSIVE CONTEXT) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div className={cn(
+          "absolute inset-0 transition-opacity duration-[2000ms] ease-in-out",
+          internalPackage?.image ? "opacity-100" : "opacity-0"
+        )}>
+          {internalPackage?.image && (
+            <img 
+              src={internalPackage.image} 
+              className="absolute inset-0 w-full h-full object-cover opacity-50 blur-[60px] scale-110 saturate-[2.5]" 
+              alt="Atmosphere"
+            />
+          )}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0b]/40 to-[#0a0a0b] via-[#0a0a0b]/80" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.04] to-transparent rounded-full blur-[140px] opacity-30" />
+      </div>
+
+      {/* 3. VIEWPORT-LOCKED WORKSPACE */}
+      <div className="flex-1 w-full relative z-10 flex flex-col overflow-hidden">
+        
+        <div className="flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden">
+          
+          {step === 1 && (
+            <div className="w-full h-full flex flex-col items-center justify-center px-6 md:px-12 relative">
+              
+              {/* PHASE 01: DESTINY (PAN-HORIZON) */}
+              {discoveryPhase === 1 && (
+                <div className="w-full flex flex-col items-center justify-center space-y-8 md:space-y-10">
+                  
+                  {/* Dynamic Header & Search Container */}
+                  <div className="w-full flex flex-col items-center text-center">
+                    
+                    {/* The Headline (Subtle Whisper on Search) */}
+                    <div className={cn(
+                      "space-y-4 transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) origin-top",
+                      searchResults.length > 0 ? "opacity-70 scale-[0.85] mb-4" : "opacity-100 scale-100 mb-8"
+                    )}>
+                      <div className="inline-flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.4em] text-white/60">
+                        <Command size={10} />
+                        <span>Phase 01 — Discovery Hub</span>
+                      </div>
+                      <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-[#f5f5f7] leading-tight">Where shall we craft<br/><span className="text-white/60">your private experience?</span></h2>
+                    </div>
+
+                    {/* The Search Input (Morphs to subtle on Search) */}
+                    <div className={cn(
+                      "w-full relative group transition-all duration-1000",
+                      searchResults.length > 0 ? "max-w-md scale-95" : "max-w-2xl scale-100"
+                    )}>
+                      <div className="relative group/search max-w-2xl w-full mx-auto">
+                        <Search className={cn("absolute left-6 top-1/2 -translate-y-1/2 transition-all duration-500 z-10", searchFocused ? "text-white/80" : "text-white/30")} size={20} />
+                        <input 
+                          type="text" value={destination} 
+                          onChange={(e) => setDestination(e.target.value)} 
+                          onFocus={() => setSearchFocused(true)}
+                          onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                          placeholder="Type a Destiny..." 
+                          className={cn(
+                            "w-full py-5 pl-14 pr-12 text-xl font-medium focus:outline-none transition-all duration-1000 text-center relative z-0",
+                            searchResults.length > 0 
+                              ? "bg-white/[0.03] border border-white/[0.1] text-white/80 placeholder:text-white/20 hover:bg-white/[0.05] hover:border-white/20 focus:text-white focus:bg-white/[0.05] focus:border-white/30 rounded-full" 
+                              : "bg-black/40 backdrop-blur-3xl border border-white/[0.15] rounded-[32px] text-white focus:bg-black/60 focus:border-white/40 focus:scale-[1.02] placeholder:text-white/40 shadow-2xl"
+                          )}
+                          autoFocus
+                        />
+                        {destination.length > 0 && (
+                          <button 
+                            onClick={() => setDestination('')}
+                            className="absolute right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-all p-1.5 hover:bg-white/10 rounded-full z-10 animate-in fade-in zoom-in-50 duration-300"
+                          >
+                            <X size={16} strokeWidth={3} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-white/40 group-hover:text-white/60 transition-colors">{country.dial}</span>
+
+                  {/* ADAPTIVE HORIZONTAL REEL (VIEWPORT-LOCKED) */}
+                  <div className="w-full relative min-h-[100px] md:min-h-[150px] flex flex-col items-center justify-center">
+                    {searchResults.length > 0 && !isSearching && (
+                      <div className="flex items-center gap-4 text-[7px] font-bold uppercase tracking-[0.6em] text-white/30 mb-6 animate-in fade-in slide-in-from-top-2 duration-1000">
+                        <div className="h-[1px] w-6 bg-white/10" />
+                        <span>{searchResults.length} {searchResults.length === 1 ? 'Unique Horizon' : 'Curated Horizons'}</span>
+                        <div className="h-[1px] w-6 bg-white/10" />
+                      </div>
+                    )}
+                    {isSearching ? (
+                      <div className="flex items-center gap-3 opacity-20">
+                        <div className="w-3 h-3 border-t border-white rounded-full animate-spin" />
+                        <span className="text-[7px] font-bold uppercase tracking-[0.4em]">Consulting Archives</span>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="w-full overflow-x-auto scrollbar-hide pb-8 flex items-center px-[10vw]">
+                        <div className="flex gap-6 mx-auto">
+                          {searchResults.map((pkg) => (
+                            <div 
+                              key={pkg.id}
+                              onClick={() => handlePackageSelect(pkg)}
+                              className={cn(
+                                "relative rounded-[48px] overflow-hidden border transition-all duration-700 group/card cursor-pointer flex-shrink-0 w-[clamp(280px,30vw,380px)] h-[clamp(320px,48vh,480px)]",
+                                internalPackage?.id === pkg.id 
+                                  ? "border-white/40 bg-white/[0.05] shadow-2xl scale-[0.98]" 
+                                  : "border-white/[0.12] hover:border-white/40 hover:scale-[1.02] hover:shadow-2xl"
+                              )}
+                            >
+                              <div className="absolute inset-0 overflow-hidden">
+                                <img src={pkg.image} className="absolute inset-0 w-full h-full object-cover grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-[1.5s] group-hover/card:scale-110" alt="" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent transition-opacity duration-700" />
+                              </div>
+
+                              <div className="absolute bottom-0 left-0 right-0 p-10 space-y-6 z-20 transition-transform duration-700 group-hover/card:-translate-y-2">
+                                <div className="space-y-1.5">
+                                  <span className="text-[8px] font-black uppercase tracking-[0.5em] text-white/50 block">{pkg.location}</span>
+                                  <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight">{pkg.title}</h3>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-6 border-t border-white/15 opacity-85 group-hover/card:opacity-100 transition-opacity duration-500">
+                                   <div className="flex items-start gap-2.5">
+                                      <span className="text-3xl font-bold text-white tracking-tight leading-none">
+                                        {new Intl.NumberFormat('en-IN', {
+                                          style: 'currency',
+                                          currency: 'INR',
+                                          maximumFractionDigits: 0
+                                        }).format(parseInt(pkg.price.toString().replace(/[^0-9]/g, '')) || 0)}
+                                      </span>
+                                      <div className="flex flex-col gap-1.5 mt-0.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/80 leading-none">/ Person</span>
+                                        <span className="text-[7px] font-bold uppercase tracking-[0.1em] text-white/50 leading-none">Excluding of Taxes</span>
+                                      </div>
+                                   </div>
+                                   <div className="flex flex-col items-end gap-1.5 text-right">
+                                      <span className="text-[11px] font-bold text-white/90 tracking-[0.2em] uppercase leading-tight">{pkg.duration || 'Bespoke'}</span>
+                                      <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-white/70 leading-none">Duration Period</span>
+                                   </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : destination.length === 0 ? (
+                      <div className="w-full flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-1000 mt-4">
+                        <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-white/60">Curated Horizons</span>
+                        <div className="flex flex-wrap justify-center gap-6 w-full max-w-5xl">
+                          {trendingPackages.map(pkg => (
+                            <button 
+                              key={pkg.id} 
+                              onClick={() => handlePackageSelect(pkg)} 
+                              className="relative overflow-hidden w-52 h-32 rounded-3xl border border-white/[0.15] hover:border-white/50 hover:scale-105 transition-all duration-700 group/mini flex-shrink-0 shadow-2xl"
+                            >
+                              <img src={pkg.image} className="absolute inset-0 w-full h-full object-cover grayscale-[0.3] group-hover/mini:grayscale-0 transition-all duration-1000 group-hover/mini:scale-110" alt="" />
+                              <div className="absolute inset-0 bg-black/60 group-hover/mini:bg-black/30 transition-all duration-500" />
+                              <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
+                                <span className="text-xs font-bold tracking-[0.2em] uppercase text-white drop-shadow-2xl">{pkg.title}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center space-y-5 opacity-80">
+                        <p className="text-sm font-medium uppercase tracking-[0.6em] italic text-white/50">Horizon Not Found</p>
+                        <button onClick={nextPhase} className="text-[9px] font-bold uppercase tracking-[0.5em] text-white/80 hover:text-white transition-colors underline underline-offset-8 decoration-white/20">Proceed with Custom Plan →</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PHASE 02: TIMELINE (UNIFIED MODAL STYLE) */}
+              {discoveryPhase === 2 && (
+                <div 
+                  ref={scrollRef}
+                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
+                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
+                  data-lenis-prevent
+                >
+                  {/* Hero Cover (Dynamic Selection) */}
+                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
+                    {internalPackage?.image && (
+                      <img 
+                        src={internalPackage.image} 
+                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
+                        alt={internalPackage.title}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
+                    
+                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
+                       <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">{internalPackage?.location || 'Bespoke Experience'}</span>
+                       <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">{internalPackage?.title || 'Personalized Journey'}</h3>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
+                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
+                    
+                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                      <div className="text-center space-y-4">
+                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">Phase 02 — Temporal Window</div>
+                        <h2 className="text-4xl font-bold tracking-tight text-white/90">Timeline Selection</h2>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-10 rounded-[48px] bg-white/[0.04] border border-white/[0.1] space-y-5">
+                          <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">Arrival Protocol</span>
+                          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-transparent text-3xl font-bold focus:outline-none [color-scheme:dark] text-white/90" />
+                        </div>
+                        <div className={cn(
+                          "p-10 rounded-[48px] bg-white/[0.04] border border-white/[0.1] space-y-5 transition-all duration-500",
+                          isDurationFixed ? "opacity-80" : "opacity-100"
+                        )}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
+                              {isDurationFixed ? "Return Protocol (Locked)" : "Return Protocol"}
+                            </span>
+                            {isDurationFixed && <div className="text-[7px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-white/10 text-white/70">{internalPackage.duration}</div>}
+                          </div>
+                          <input 
+                            type="date" 
+                            value={endDate} 
+                            onChange={(e) => !isDurationFixed && setEndDate(e.target.value)} 
+                            readOnly={isDurationFixed}
+                            className={cn(
+                              "w-full bg-transparent text-3xl font-bold focus:outline-none [color-scheme:dark] text-white/90",
+                              isDurationFixed ? "cursor-not-allowed" : "cursor-pointer"
+                            )} 
+                          />
+                        </div>
+                      </div>
+                      <button onClick={nextPhase} disabled={!startDate || !endDate} className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] shadow-2xl disabled:opacity-10 transition-all">Establish Window</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PHASE 03: THE PARTY (UNIFIED MODAL STYLE) */}
+              {discoveryPhase === 3 && (
+                <div 
+                  ref={scrollRef}
+                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
+                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
+                  data-lenis-prevent
+                >
+                  {/* Hero Cover (Dynamic Selection) */}
+                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
+                    {internalPackage?.image && (
+                      <img 
+                        src={internalPackage.image} 
+                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
+                        alt={internalPackage.title}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
+                    
+                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
+                       <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">{internalPackage?.location || 'Bespoke Experience'}</span>
+                       <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">{internalPackage?.title || 'Personalized Journey'}</h3>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
+                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
+                    
+                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                      <div className="text-center space-y-4">
+                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">Phase 03 — Group Manifest</div>
+                        <h2 className="text-4xl font-bold tracking-tight text-white/90">Group Composition</h2>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[
+                          { label: "Adults", count: adults, set: setAdults, min: 1 },
+                          { label: "Children", count: kids, set: setKids, min: 0 },
+                          { label: "Infants", count: infants, set: setInfants, min: 0 }
+                        ].map((t) => (
+                          <div key={t.label} className="p-10 rounded-[56px] bg-white/[0.02] border border-white/[0.05] text-center space-y-8">
+                            <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-white/60 block">{t.label}</span>
+                            <div className="flex items-center justify-between bg-black/40 p-2 rounded-2xl border border-white/[0.05]">
+                              <button onClick={() => t.set(Math.max(t.min, t.count - 1))} className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#f5f5f7] hover:text-black transition-all font-bold text-lg">-</button>
+                              <span className="text-4xl font-bold italic text-white/90">{t.count}</span>
+                              <button onClick={() => t.set(t.count + 1)} className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#f5f5f7] hover:text-black transition-all font-bold text-lg">+</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={nextPhase} className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] shadow-2xl transition-all">Confirm Manifest</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PHASE 04: CURATION (UNIFIED MODAL STYLE) */}
+              {discoveryPhase === 4 && (
+                <div 
+                  ref={scrollRef}
+                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
+                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
+                  data-lenis-prevent
+                >
+                  {/* Hero Cover (Dynamic Selection) */}
+                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
+                    {internalPackage?.image && (
+                      <img 
+                        src={internalPackage.image} 
+                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
+                        alt={internalPackage.title}
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
+                    
+                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
+                       <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">{internalPackage?.location || 'Bespoke Experience'}</span>
+                       <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">{internalPackage?.title || 'Personalized Journey'}</h3>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
+                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
+                    
+                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                      <div className="text-center space-y-4">
+                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">Phase 04 — Final Verification</div>
+                        <h2 className="text-4xl font-bold tracking-tight text-white/90">Curation Details</h2>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                          <div className="space-y-3">
+                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">Primary Guest</span>
+                            <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full bg-white/[0.03] border border-white/[0.08] p-6 rounded-[28px] text-lg font-semibold focus:border-white/20 transition-all text-white/90" placeholder="Full Name" />
+                          </div>
+                          <div className="space-y-3">
+                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">Contact Email</span>
+                            <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/[0.08] p-6 rounded-[28px] text-lg font-semibold focus:border-white/20 transition-all text-white/90" placeholder="name@domain.com" />
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">Special Requests</span>
+                          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full h-full min-h-[160px] bg-white/[0.03] border border-white/[0.08] p-6 rounded-[32px] text-lg font-medium focus:border-white/20 transition-all resize-none text-white/90" placeholder="Type custom requests..." />
+                        </div>
+                      </div>
+                      <button onClick={() => canSubmit ? setStep(2) : null} className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] transition-all shadow-2xl disabled:opacity-10" disabled={!canSubmit}>Generate Protocol</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="w-full max-w-2xl space-y-12 animate-in zoom-in-95 duration-1000">
+              <div className="text-center space-y-4">
+                <h3 className="text-3xl font-bold tracking-tight text-white/90 uppercase">Protocol Verification</h3>
+                <p className="text-[8px] font-bold uppercase tracking-[0.5em] text-white/60 italic">TRX-SECURE TRANSMISSION</p>
+              </div>
+              <div className="p-12 rounded-[56px] bg-white/[0.01] border border-white/[0.05] space-y-12 backdrop-blur-3xl shadow-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left text-sm font-medium">
+                  <div className="space-y-2"><span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">Guest</span><p className="text-lg text-white/90">{customerName}</p></div>
+                  <div className="space-y-2 md:text-right"><span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">Horizon</span><p className="text-lg text-white/90">{internalPackage?.title || destination}</p></div>
+                  <div className="space-y-2"><span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">Dates</span><p className="text-lg text-white/90">{startDate} — {endDate}</p></div>
+                  <div className="space-y-2 md:text-right"><span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">Investment</span><p className="text-3xl font-bold font-mono text-white/90">{totalInvestment}</p></div>
+                </div>
+                <button onClick={submitBooking} disabled={isSubmitting} className="w-full py-6 bg-[#f5f5f7] text-black rounded-[28px] font-bold uppercase tracking-widest text-[10px] shadow-2xl transition-all">{isSubmitting ? "Transmitting..." : "Activate Protocol"}</button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="flex flex-col items-center justify-center text-center space-y-12 animate-in zoom-in-95 duration-1000">
+              <div className="w-20 h-20 rounded-full bg-[#f5f5f7] text-black flex items-center justify-center shadow-2xl"><Check size={32} /></div>
+              <div className="space-y-4">
+                <h3 className="text-5xl font-bold tracking-tight text-white/90 uppercase">Established</h3>
+                <p className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/30 italic">Reference TRX-{bookingId?.split('-')[0].toUpperCase()}</p>
+              </div>
+              <button onClick={startClosing} className="px-16 py-5 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-white/50 hover:bg-[#f5f5f7] hover:text-black transition-all">Close Consultation</button>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* 4. PRECISION PILL MANIFEST (PINNED) */}
+      {step === 1 && discoveryPhase > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 p-8 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-10 duration-1000 cubic-bezier(0.23,1,0.32,1)">
+          <div className="w-full max-w-4xl flex items-center justify-between bg-black/60 backdrop-blur-3xl border border-white/[0.08] p-5 px-10 rounded-full pointer-events-auto shadow-2xl transition-all duration-700">
+            <div className="flex items-center gap-10">
+              <div className="space-y-1.5">
+                <span className="text-[7px] font-bold uppercase tracking-[0.3em] text-white/40">Investment</span>
+                <p className="text-2xl font-mono font-bold leading-none text-white/90">{totalInvestment}</p>
+              </div>
+              <div className="w-px h-10 bg-white/[0.08] hidden md:block" />
+              <div className="hidden lg:flex flex-col space-y-1.5">
+                <span className="text-[7px] font-bold uppercase tracking-[0.3em] text-white/40">Manifest Window</span>
+                <p className="text-[9px] font-bold text-white/60 uppercase tracking-tighter">{startDate ? `${startDate} / ${endDate}` : 'Awaiting Window'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-8">
+              {discoveryPhase > 1 && (
+                <button onClick={nextPhase} className="px-10 py-4 bg-[#f5f5f7] text-black rounded-2xl font-bold uppercase tracking-widest text-[9px] hover:bg-white transition-all flex items-center gap-2 shadow-xl shadow-white/5">
+                  Continue
+                  <ChevronRight size={14} />
                 </button>
-              ))}
+              )}
             </div>
           </div>
         </div>
       )}
-
-      {/* Primary Scroller */}
-      <div 
-        ref={scrollRef} 
-        onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
-        className="flex-1 w-full overflow-y-auto scrollbar-hide overscroll-behavior-contain transform-gpu"
-        data-lenis-prevent
-      >
-        <div 
-          className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
-        >
-            {/* Hero Section */}
-            <div className="relative w-full h-[40vh] md:h-[50vh] shrink-0">
-              <img 
-                src={packageData?.image || "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=2000"} 
-                alt={packageData?.title || "Custom Journey"} 
-                className="object-cover w-full h-full opacity-60 grayscale-[0.2]" 
-              />
-              {/* Hyper-Smooth Progressive Blend */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
-              <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
-              
-              <div className="absolute bottom-0 left-6 md:left-16 right-6 pb-8 md:pb-12">
-                <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter text-white uppercase italic leading-tight mb-4 drop-shadow-2xl">
-                  {packageData?.title ? `${packageData.title}` : "Plan Your Journey"}
-                </h2>
-                <p className="text-[10px] md:text-xs tracking-[0.3em] text-white/60 uppercase font-bold drop-shadow-md">
-                  {packageData?.location || "Complete your booking details below"}
-                </p>
-              </div>
-            </div>
-
-            {/* Form Content */}
-            <div ref={contentRef} className="px-6 md:px-16 pb-4">
-              {step === 1 && (
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
-                  {/* Trip Summary Column */}
-                  <div className="lg:col-span-2 space-y-8">
-                    <div className="space-y-4 hidden lg:block">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Trip Summary</label>
-                      <div className="relative aspect-[4/5] rounded-3xl overflow-hidden group border border-white/5 bg-[#0a0a0b] shadow-2xl">
-                        <img 
-                          src={packageData?.image || "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=2000"} 
-                          alt={packageData?.title || "Custom Journey"} 
-                          className="object-cover w-full h-full transition-transform duration-1000 group-hover:scale-105 opacity-80" 
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                        <div className="absolute bottom-8 left-8 right-8">
-                          <h3 className="text-3xl font-bold text-white italic tracking-tighter mb-2">
-                            {packageData?.title || "Bespoke Journey"}
-                          </h3>
-                          <p className="text-xs text-white/60 uppercase tracking-[0.2em]">
-                            {packageData?.location || "Exclusive Escape"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6 pt-8 border-t border-white/[0.08] mt-8 animate-in fade-in duration-1000">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block font-black">Booking Details</label>
-                      <div className="p-6 md:p-8 rounded-[32px] bg-white/[0.03] border border-white/[0.08] space-y-8 shadow-2xl relative overflow-hidden backdrop-blur-md group/protocol transition-all duration-1000 hover:bg-white/[0.04]">
-                        {/* Ambient Glows */}
-                        <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/[0.02] rounded-full blur-[80px] pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/[0.01] rounded-full blur-[80px] pointer-events-none" />
-
-                        {/* Contact Information Section */}
-                        <div className="space-y-5">
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Lead Guest</span>
-                            <span className="text-xs font-bold text-white/80 italic group-hover/row:text-white transition-colors">{customerName || "Pending Identification"}</span>
-                          </div>
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Email Address</span>
-                            <span className="text-[10px] font-bold text-white/80 italic truncate ml-4 group-hover/row:text-white transition-colors">{customerEmail || "Pending"}</span>
-                          </div>
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Contact Number</span>
-                            <span className="text-[10px] font-bold text-white/80 italic group-hover/row:text-white transition-colors">{customerPhone ? `${selectedCountry.dial} ${customerPhone}` : "Pending"}</span>
-                          </div>
-                        </div>
-
-                        {/* Divider Line */}
-                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-                        {/* Journey Stats Section */}
-                        <div className="space-y-5">
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Selected Journey</span>
-                            <span className="text-xs font-bold text-white/80 italic group-hover/row:text-white transition-colors">{packageData?.title || "Bespoke Journey"}</span>
-                          </div>
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Travel Window</span>
-                            <span className="text-[10px] font-bold text-white/80 italic group-hover/row:text-white transition-colors">
-                              {formatDate(startDate) || "---"} <span className="mx-2 text-white/20 not-italic">to</span> {formatDate(endDate) || "---"}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-end py-1 group/row transition-all duration-500">
-                            <span className="text-[9px] text-white/30 uppercase tracking-[0.2em] group-hover/row:text-white/50 transition-colors">Total Travelers</span>
-                            <span className="text-xs font-bold text-white/80 flex items-center group-hover/row:text-white transition-colors">
-                              <span>{String(adults).padStart(2, '0')} {adults === 1 ? 'Adult' : 'Adults'}</span>
-                              {kids > 0 && <span>{` / ${String(kids).padStart(2, '0')} ${kids === 1 ? 'Child' : 'Children'}`}</span>}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Additional Guests Manifest Section */}
-                        {(() => {
-                          const activeGuests = coTravelers.filter(t => !t.isExiting);
-                          if (activeGuests.length === 0) return null;
-                          return (
-                            <div className="space-y-5 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                              <div className="flex items-center gap-3">
-                                <span className="text-[9px] tracking-[0.3em] text-white/40 uppercase font-black">
-                                  {activeGuests.length === 1 ? 'Additional Guest' : 'Additional Guests'}
-                                </span>
-                                <div className="h-[1px] flex-1 bg-white/[0.05]" />
-                              </div>
-                              <div className="space-y-4 pl-4 border-l border-white/[0.08]">
-                                {activeGuests.map((t, idx, arr) => {
-                                  const adultsList = arr.filter(p => p.type === 'adult');
-                                  const kidsList = arr.filter(p => p.type === 'child');
-                                  const label = t.type === 'adult' 
-                                    ? `Adult ${adultsList.indexOf(t) + 2}` 
-                                    : `Child ${kidsList.indexOf(t) + 1}`;
-                                  
-                                  return (
-                                    <div key={t.id} className="flex justify-between items-baseline group/manifest">
-                                      <span className="text-[9px] text-white/30 uppercase tracking-[0.15em] group-hover/manifest:text-white/60 transition-colors">{label}</span>
-                                      <span className="text-xs font-bold text-white/90 italic group-hover/manifest:text-white transition-colors">
-                                        {t.name || "---"}
-                                        {t.type === 'child' && t.age && <span className="ml-2 not-italic text-[10px] text-white/30 font-mono">[{t.age}Y]</span>}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Est Total Section inside protocol for unity */}
-                        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent pt-2" />
-                        <div className="pt-2 flex justify-between items-center">
-                          <span className="text-[9px] text-white/30 uppercase tracking-[0.2em]">Total Est. Cost</span>
-                          <div className="text-right">
-                            <span className={cn(
-                              "font-bold text-white leading-none block",
-                              packageData?.price ? "text-2xl font-mono" : "text-[11px] uppercase tracking-[0.12em] italic opacity-85"
-                            )}>
-                              {(() => {
-                                if (!packageData?.price) return "Quote on Request";
-                                const symbol = packageData?.currency || "₹";
-                                const base = parseInt(packageData.price.replace(/[^0-9]/g, "")) || 0;
-                                const childBase = packageData?.child_price ? parseInt(packageData.child_price.replace(/[^0-9]/g, "")) : (base * 0.5);
-                                const total = ((adults * base) + (kids * childBase)).toLocaleString();
-                                return `${symbol}${total}`;
-                              })()}
-                            </span>
-                            {packageData?.price && (
-                              <span className="block text-[8px] text-white/30 uppercase tracking-[0.1em] mt-1.5 italic">
-                                {packageData.tax_status || "Inclusive of Taxes"}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Booking Details Column */}
-                  <div className="lg:col-span-3 space-y-12">
-                    <div className="space-y-6">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Contact Details</label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Full Name" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
-                        <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Email Address" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
-                        <div className="md:col-span-2 flex flex-row gap-3">
-                          <button 
-                            type="button" 
-                            onClick={() => setIsSelectorOpen(true)} 
-                            className="bg-white/[0.07] border border-white/20 rounded-2xl px-4 flex items-center justify-center gap-3 hover:bg-white/[0.1] transition-all min-w-[90px] h-[64px] group"
-                          >
-                            <span className="text-xl group-hover:scale-110 transition-transform">{selectedCountry.flag}</span>
-                            <span className="text-sm font-bold text-white/80">{selectedCountry.dial}</span>
-                          </button>
-                          <input 
-                            type="tel" 
-                            value={customerPhone} 
-                            maxLength={selectedCountry.len} 
-                            onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))} 
-                            placeholder="Phone Number" 
-                            className="flex-1 bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" 
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Preferred Dates</label>
-                      <div className="grid grid-cols-2 gap-3 md:gap-4">
-                        <div onClick={() => startInputRef.current?.showPicker()} className="p-4 md:p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-1.5 cursor-pointer hover:bg-white/[0.05] transition-all h-[80px] md:h-[90px] flex flex-col justify-center">
-                          <p className="text-[8px] md:text-[9px] text-white/40 uppercase tracking-[0.2em]">Departure</p>
-                          <p className="text-xs md:text-sm font-bold truncate">{formatDate(startDate) !== "---" ? formatDate(startDate) : "Select"}</p>
-                          <input ref={startInputRef} type="date" className="sr-only" onChange={(e) => setStartDate(e.target.value)} />
-                        </div>
-                        <div onClick={() => !hasFixedDuration && endInputRef.current?.showPicker()} className={`p-4 md:p-5 bg-white/[0.07] border border-white/20 rounded-2xl space-y-1.5 h-[80px] md:h-[90px] flex flex-col justify-center transition-all ${hasFixedDuration ? 'opacity-60 cursor-not-allowed grayscale-[0.3]' : 'cursor-pointer hover:bg-white/[0.05]'}`}>
-                          <p className="text-[8px] md:text-[9px] text-white/40 uppercase tracking-[0.2em]">Return</p>
-                          <div className="flex items-center justify-between overflow-hidden">
-                            <p className="text-xs md:text-sm font-bold truncate">{formatDate(endDate) !== "---" ? formatDate(endDate) : "Select"}</p>
-                          </div>
-                          {hasFixedDuration && <span className="absolute top-2 right-2 text-[7px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-white/5">{packageData?.duration}</span>}
-                          <input ref={endInputRef} type="date" className="sr-only" min={startDate} onChange={(e) => setEndDate(e.target.value)} disabled={hasFixedDuration} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Travelers</label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 bg-white/[0.07] border border-white/20 rounded-[24px] flex items-center justify-between group hover:bg-white/[0.05] transition-all duration-700">
-                          <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-all duration-500">
-                              <Users size={18} />
-                            </div>
-                            <div className="space-y-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Adults</span>
-                                <div className="w-[1px] h-2 bg-white/10" />
-                                <span className="text-[8px] font-medium text-white/30 italic">12+ Years</span>
-                              </div>
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-2xl font-mono font-bold text-white leading-none tracking-tighter">{String(adults).padStart(2, '0')}</span>
-                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Guests</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-2xl border border-white/10 shadow-lg">
-                            <button 
-                              onClick={() => setAdults(Math.max(isHoneymoon ? 2 : 1, adults - 1))} 
-                              className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white text-white/60 hover:text-black transition-all duration-500 text-lg font-medium"
-                            >-</button>
-                            <button 
-                              onClick={() => setAdults(Math.min(20, adults + 1))} 
-                              className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white text-white/60 hover:text-black transition-all duration-500 text-lg font-medium"
-                            >+</button>
-                          </div>
-                        </div>
-                        {!isHoneymoon && (
-                          <div className="p-4 bg-white/[0.07] border border-white/20 rounded-[24px] flex items-center justify-between group hover:bg-white/[0.05] transition-all duration-700">
-                            <div className="flex items-center gap-4">
-                              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-all duration-500">
-                                <Users size={18} className="opacity-50" />
-                              </div>
-                              <div className="space-y-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Children</span>
-                                  <div className="w-[1px] h-2 bg-white/10" />
-                                  <span className="text-[8px] font-medium text-white/30 italic">0-12 Years</span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-2xl font-mono font-bold text-white leading-none tracking-tighter">{String(kids).padStart(2, '0')}</span>
-                                  <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Guests</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 bg-white/10 p-1 rounded-2xl border border-white/10 shadow-lg">
-                              <button onClick={() => setKids(Math.max(0, kids - 1))} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white text-white/60 hover:text-black transition-all duration-500 text-lg font-medium">-</button>
-                              <button onClick={() => setKids(Math.min(20, kids + 1))} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-white text-white/60 hover:text-black transition-all duration-500 text-lg font-medium">+</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {coTravelers.length > 0 && (
-                        <div className="space-y-6 pt-6">
-                          <div className="space-y-1">
-                            <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Who's Joining You?</label>
-                            <p className="text-[10px] text-white/40 uppercase tracking-[0.1em]">Enter details for additional guests</p>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {coTravelers.map((traveler, i) => {
-                              const isChild = traveler.type === 'child';
-                              return (
-                                <div 
-                                  key={traveler.id} 
-                                  className={`group relative flex gap-3 p-1 rounded-[22px] bg-white/[0.08] border border-white/20 hover:border-white/40 hover:bg-white/[0.12] transition-all duration-500 shadow-xl ${traveler.isExiting ? 'animate-out fade-out zoom-out-95 slide-out-to-top-2 pointer-events-none' : 'animate-in fade-in zoom-in-95 slide-in-from-top-2'}`}
-                                >
-                                  <div className="flex-1 relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white/80 transition-colors">
-                                      {isChild ? <Users size={14} className="opacity-70" /> : <Users size={14} />}
-                                    </div>
-                                    <input 
-                                      type="text" 
-                                      value={traveler.name} 
-                                      onChange={(e) => {
-                                        const next = [...coTravelers];
-                                        next[i].name = e.target.value;
-                                        setCoTravelers(next);
-                                      }} 
-                                      placeholder={isChild ? `Child ${coTravelers.filter((t, idx) => t.type === 'child' && !t.isExiting && idx <= i).length} Name` : `Adult ${coTravelers.filter((t, idx) => t.type === 'adult' && !t.isExiting && idx <= i).length + 1} Name`}
-                                      className="w-full bg-transparent pl-12 pr-5 py-5 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all h-[60px]" 
-                                    />
-                                  </div>
-                                  {isChild && (
-                                    <div className="w-24 relative border-l border-white/10">
-                                      <input 
-                                        type="text" 
-                                        value={traveler.age} 
-                                        onChange={(e) => {
-                                          const val = e.target.value.replace(/\D/g, "");
-                                          const numVal = parseInt(val);
-                                          const next = [...coTravelers];
-                                          next[i].age = numVal > 12 ? "12" : val;
-                                          setCoTravelers(next);
-                                        }} 
-                                        placeholder="Age"
-                                        className="w-full bg-transparent px-4 py-5 text-sm text-white text-center placeholder:text-white/40 focus:outline-none transition-all h-[60px]" 
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-6">
-                      <label className="text-[10px] tracking-[0.2em] text-white/60 uppercase block">Special Desire? Tell us!</label>
-                      <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any specific requirements, celebration details, or requests..." className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-6 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all resize-none" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {step === 2 && (
-                <div className="max-w-2xl mx-auto space-y-10 pt-10 pb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <div className="text-center space-y-4">
-                    <h3 className="text-4xl font-bold italic tracking-tight uppercase">Booking Confirmation</h3>
-                    <p className="text-white/60 uppercase tracking-[0.3em] text-[10px]">Please review your journey details</p>
-                  </div>
-                  <div className="p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 space-y-1 shadow-2xl">
-                    <div className="flex justify-between items-center py-4 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Journey</span>
-                      <span className="text-sm font-bold italic text-right">{packageData?.title || "Bespoke Journey"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-start py-6 border-b border-white/5 gap-4">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px] sm:pt-1">Primary Traveler</span>
-                      <div className="text-left sm:text-right space-y-1 w-full sm:w-auto">
-                        <p className="text-sm font-bold italic">{customerName || "---"}</p>
-                        <p className="text-[10px] text-white/40 truncate">{customerEmail}</p>
-                        <p className="text-[10px] text-white/40 font-mono tracking-tighter">{selectedCountry.dial} {customerPhone}</p>
-                      </div>
-                    </div>
-                    {(() => {
-                      const activeGuests = coTravelers.filter(t => !t.isExiting);
-                      if (activeGuests.length === 0) return null;
-                      return (
-                        <div className="flex flex-col sm:flex-row justify-between items-start py-6 border-b border-white/5 gap-4">
-                          <span className="text-white/60 uppercase tracking-widest text-[10px] sm:pt-1">
-                            {activeGuests.length === 1 ? 'Additional Guest' : 'Additional Guests'}
-                          </span>
-                          <div className="text-left sm:text-right space-y-2 w-full sm:w-auto">
-                            {activeGuests.map((t, idx, arr) => {
-                              const adultsList = arr.filter(p => p.type === 'adult');
-                              const kidsList = arr.filter(p => p.type === 'child');
-                              const label = t.type === 'adult' 
-                                ? `Adult ${adultsList.indexOf(t) + 2}` 
-                                : `Child ${kidsList.indexOf(t) + 1}`;
-                              return (
-                                <p key={t.id} className="text-[11px] font-bold italic text-white/80">
-                                  <span className="text-[9px] text-white/20 uppercase not-italic mr-2 font-black">{label}</span>
-                                  {t.name || "---"} {t.type === 'child' && t.age && <span className="ml-1 text-[10px] text-white/30 not-italic font-mono">[{t.age}Y]</span>}
-                                </p>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <div className="flex justify-between items-center py-4 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Dates</span>
-                      <span className="text-sm font-bold italic text-right">{formatDate(startDate)} — {formatDate(endDate)}</span>
-                    </div>
-                    <div className="flex flex-col gap-3 py-5 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Special Desire</span>
-                      <p className="text-[11px] text-white/80 italic leading-relaxed bg-white/[0.03] p-4 rounded-2xl border border-white/[0.05]">
-                        {notes.trim() || "N/A"}
-                      </p>
-                    </div>
-                    <div className="flex justify-between items-center py-5 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Total Est. Cost</span>
-                      <div className="text-right">
-                        <span className="text-3xl font-mono font-bold text-white">
-                          {totalInvestment}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-4 pt-6 text-center">
-                      <button onClick={submitBooking} disabled={isSubmitting} className="w-full flex items-center justify-center gap-4 p-6 bg-white text-black rounded-full hover:bg-white/90 transition-all font-bold uppercase tracking-[0.2em] text-xs">
-                        <CreditCard className="w-5 h-5" />
-                        {isSubmitting ? "Processing..." : "Proceed to Payment"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-10 py-12">
-                  <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-white/5 animate-in zoom-in duration-700">
-                    <CheckCircle2 className="w-8 h-8 text-white" />
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-4xl md:text-5xl font-bold tracking-tighter uppercase italic">Booking Received</h3>
-                    {bookingId && (
-                      <div className="inline-block px-6 py-3 border border-white/20 bg-white/[0.07] rounded-2xl shadow-xl">
-                        <span className="text-[10px] text-white/60 uppercase tracking-[0.2em]">Booking ID: </span>
-                        <span className="text-sm font-mono font-bold text-white tracking-widest ml-2">TRX-{bookingId.split('-')[0].toUpperCase()}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="w-full max-w-xl mx-auto p-6 md:p-10 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-1 shadow-2xl text-left animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                    <div className="flex justify-between items-center py-4 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Journey</span>
-                      <span className="text-sm font-bold italic text-right">{packageData?.title || "Bespoke Journey"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-start py-6 border-b border-white/5 gap-4">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px] sm:pt-1">Primary Traveler</span>
-                      <div className="text-left sm:text-right space-y-1 w-full sm:w-auto">
-                        <p className="text-sm font-bold italic">{customerName || "---"}</p>
-                        <p className="text-[10px] text-white/40 truncate">{customerEmail}</p>
-                        <p className="text-[10px] text-white/40 font-mono tracking-tighter">{selectedCountry.dial} {customerPhone}</p>
-                      </div>
-                    </div>
-                    {(() => {
-                      const activeGuests = coTravelers.filter(t => !t.isExiting);
-                      if (activeGuests.length === 0) return null;
-                      return (
-                        <div className="flex flex-col sm:flex-row justify-between items-start py-6 border-b border-white/5 gap-4">
-                          <span className="text-white/60 uppercase tracking-widest text-[10px] sm:pt-1">
-                            {activeGuests.length === 1 ? 'Additional Guest' : 'Additional Guests'}
-                          </span>
-                          <div className="text-left sm:text-right space-y-2 w-full sm:w-auto">
-                            {activeGuests.map((t, idx, arr) => {
-                              const adultsList = arr.filter(p => p.type === 'adult');
-                              const kidsList = arr.filter(p => p.type === 'child');
-                              const label = t.type === 'adult' 
-                                ? `Adult ${adultsList.indexOf(t) + 2}` 
-                                : `Child ${kidsList.indexOf(t) + 1}`;
-                              return (
-                                <p key={t.id} className="text-[11px] font-bold italic text-white/80">
-                                  <span className="text-[9px] text-white/20 uppercase not-italic mr-2 font-black">{label}</span>
-                                  {t.name || "---"} {t.type === 'child' && t.age && <span className="ml-1 text-[10px] text-white/30 not-italic font-mono">[{t.age}Y]</span>}
-                                </p>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    <div className="flex justify-between items-center py-4 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Dates</span>
-                      <span className="text-sm font-bold italic text-right">{formatDate(startDate)} — {formatDate(endDate)}</span>
-                    </div>
-                    <div className="flex flex-col gap-3 py-5 border-b border-white/5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Special Desire</span>
-                      <p className="text-[11px] text-white/50 italic leading-relaxed">{notes.trim() || "N/A"}</p>
-                    </div>
-                    <div className="flex justify-between items-center py-5">
-                      <span className="text-white/60 uppercase tracking-widest text-[10px]">Total Est. Cost</span>
-                      <div className="text-right">
-                        <span className="text-2xl font-mono font-bold text-white">
-                          {totalInvestment}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    <p className="text-white/60 uppercase tracking-[0.2em] text-[10px] max-w-md mx-auto leading-loose">
-                      Thank you for choosing TouraLuxe. Our concierge team will contact you shortly to finalize your itinerary.
-                    </p>
-                    <Magnetic>
-                      <button onClick={() => startClosing()} className="px-12 py-4 bg-white text-black font-bold uppercase tracking-widest text-[10px] rounded-full hover:bg-white/90 transition-all">Return Home</button>
-                    </Magnetic>
-                  </div>
-                </div>
-              )}
-
-              {/* CTA */}
-              {step < 3 && (
-                <div className="mt-12 pt-8 border-t border-white/[0.1] flex flex-col items-center gap-8 mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-[1px] w-8 bg-white/10" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Step 0{step} / 02</span>
-                    <div className="h-[1px] w-8 bg-white/10" />
-                  </div>
-                  <Magnetic>
-                    <button
-                      onClick={handleNext}
-                      disabled={isSubmitting}
-                      className="flex flex-col items-center gap-4 group/btn"
-                    >
-                      <div className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center group-hover/btn:scale-110 transition-all duration-700 shadow-[0_0_40px_rgba(255,255,255,0.15)] group-hover/btn:shadow-[0_0_60px_rgba(255,255,255,0.25)]">
-                        <ChevronRight size={28} strokeWidth={2.5} />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/btn:text-white group-hover/btn:tracking-[0.5em] transition-all duration-700 mt-2">
-                        {step === 1 ? 'Review Journey Details' : 'Finalize Booking'}
-                      </span>
-                    </button>
-                  </Magnetic>
-                </div>
-              )}
-            </div>
-          </div>
-      </div>
 
     </div>
   );

@@ -64,12 +64,12 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
         </div>
 
         {/* Content */}
-        <div className="relative z-10 px-6 md:px-12 pb-32 md:pb-24 -mt-8 bg-[#0a0a0b] rounded-t-3xl">
+        <div className="relative z-10 px-[clamp(1.25rem,6vw,3rem)] pb-32 md:pb-24 -mt-8 bg-[#0a0a0b] rounded-t-3xl">
           {!isSubmitted ? (
             <div className="max-w-xl mx-auto">
-              <div className="mb-8 md:mb-10 mt-10 text-center">
+              <div className="mb-8 md:mb-10 mt-10 text-center px-4">
                 <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Curated Inquiry</span>
-                <h3 className="text-2xl md:text-4xl font-semibold tracking-tight text-white mt-2 leading-tight">Let&apos;s craft your experience.</h3>
+                <h3 className="text-[clamp(1.5rem,5vw,2.25rem)] font-semibold tracking-tight text-white mt-2 leading-tight">Let&apos;s craft your experience.</h3>
                 <p className="text-sm md:text-base text-[#86868b] mt-3">Provide your details and our lead curators will reach out within 24 hours.</p>
               </div>
 

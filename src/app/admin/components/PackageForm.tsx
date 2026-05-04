@@ -28,6 +28,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     image: initialData?.image || "",
     price: initialData?.price || "",
     child_price: initialData?.child_price || "",
+    infant_price: initialData?.infant_price || "",
     nights: initialDur.nights,
     days: initialDur.days,
     guests: initialData?.guests || "",
@@ -296,6 +297,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               <SegmentedControl label="Currency" value={form.currency} onChange={(v) => setForm(p => ({ ...p, currency: v }))} options={[{ label: "₹", value: "₹" }, { label: "$", value: "$" }, { label: "€", value: "€" }]} />
               <Field label="Adult Price" value={form.price} onChange={(v) => setForm((p) => ({ ...p, price: v }))} placeholder="e.g. 79,000" required />
               <Field label="Child Price" value={form.child_price} onChange={(v) => setForm((p) => ({ ...p, child_price: v }))} placeholder="Optional" />
+              <Field label="Infant Price" value={form.infant_price} onChange={(v) => setForm((p) => ({ ...p, infant_price: v }))} placeholder="Optional" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-2">

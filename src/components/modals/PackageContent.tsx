@@ -65,7 +65,7 @@ export const PackageContent = memo(function PackageContent({
               </div>
 
               {/* Scroll Indicator */}
-              <div className="absolute bottom-6 right-8 md:left-1/2 md:-translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce pointer-events-none z-50 transition-all duration-700">
+              <div className="absolute bottom-[clamp(1.5rem,5vh,2rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce pointer-events-none z-50 transition-all duration-700">
                 <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/80 drop-shadow-md">Scroll</span>
                 <svg className="w-4 h-4 text-white/60 drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 6l4 4 4-4" />
@@ -76,7 +76,7 @@ export const PackageContent = memo(function PackageContent({
             {/* Content */}
             <div 
               ref={contentRef} 
-              className="relative z-10 px-8 md:px-10 pb-8 -mt-8 bg-[#0a0a0b] rounded-t-3xl"
+              className="relative z-10 px-[clamp(1.5rem,6vw,4rem)] pb-8 -mt-8 bg-[#0a0a0b] rounded-t-3xl"
             >
               {/* Header */}
               <div className="mb-8 mt-8">

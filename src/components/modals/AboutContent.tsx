@@ -32,9 +32,9 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
           
           {/* Header Content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-[clamp(1rem,5vw,2rem)]">
             <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.4em] text-white/60 mb-4 drop-shadow-lg">Luxury Redefined</span>
-            <h2 className="text-4xl md:text-7xl font-semibold tracking-tighter text-white drop-shadow-2xl">About Us</h2>
+            <h2 className="text-[clamp(2.5rem,10vw,4.5rem)] font-semibold tracking-tighter text-white drop-shadow-2xl">About Us</h2>
           </div>
 
           {/* Scroll Indicator */}
@@ -47,15 +47,15 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
         </div>
 
         {/* Body Content */}
-        <div className="px-6 md:px-16 py-12 md:py-20 max-w-4xl mx-auto pb-32">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+        <div className="px-[clamp(1.25rem,7vw,4rem)] py-[clamp(3rem,8vh,5rem)] max-w-4xl mx-auto pb-32">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[clamp(2rem,6vw,4rem)]">
             {/* Vision */}
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-[1px] bg-white/20" />
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] text-white/40">Our Vision</span>
               </div>
-              <h3 className="text-2xl md:text-3xl font-medium text-white leading-tight">Setting new benchmarks in global travel.</h3>
+              <h3 className="text-[clamp(1.25rem,4vw,1.875rem)] font-medium text-white leading-tight">Setting new benchmarks in global travel.</h3>
               <p className="text-[#86868b] leading-relaxed text-sm md:text-base">
                 To become a globally trusted travel and lifestyle brand delivering exceptional luxury experiences, innovative travel solutions, and personalized services. We aspire to redefine journeys through excellence, reliability, and customer satisfaction, creating memorable experiences while building lasting relationships and setting new benchmarks in travel, tourism, and corporate event management worldwide.
               </p>

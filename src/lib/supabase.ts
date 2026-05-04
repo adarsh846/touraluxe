@@ -23,6 +23,7 @@ export type Package = {
   tax_status?: string;
   currency?: string;
   child_price?: string;
+  infant_price?: string;
   created_at: string;
   updated_at: string;
 };

@@ -278,7 +278,7 @@ export function ModalShell() {
         />
 
         {/* Shared Top Controls */}
-        <div className="absolute top-5 md:top-10 left-5 md:left-12 right-5 md:right-12 z-[100] flex justify-between items-center pointer-events-none">
+        <div className="absolute top-[clamp(1.25rem,5vh,2.5rem)] left-[clamp(1.25rem,6vw,3rem)] right-[clamp(1.25rem,6vw,3rem)] z-[100] flex justify-between items-center pointer-events-none">
           <div className="pointer-events-auto">
             <Magnetic>
               <div className="relative group block">
@@ -366,6 +366,7 @@ export function ModalShell() {
               startClosing={startClosing} 
               setInternalCanGoBack={setInternalCanGoBack}
               registerBackHandler={registerBackHandler}
+              openModal={openModal}
             />
           </div>
 

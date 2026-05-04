@@ -84,7 +84,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
             {service.id === 7 ? (
               <div className="flex-1 flex flex-col min-h-[80vh] bg-[#0a0a0b]">
                 {/* AI Header */}
-                <div className="p-8 pt-24 border-b border-white/[0.1] bg-zinc-900/50 backdrop-blur-xl">
+                <div className="p-[clamp(1.5rem,6vw,3rem)] pt-[clamp(4.5rem,10vh,6rem)] border-b border-white/[0.1] bg-zinc-900/50 backdrop-blur-xl">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
                       {service.icon}
