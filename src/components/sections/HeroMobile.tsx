@@ -7,10 +7,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-interface TouraWindow extends Window {
-  __heroProgress?: number;
-}
-
 export function HeroMobile() {
   const containerRef = useRef<HTMLElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
@@ -19,7 +15,7 @@ export function HeroMobile() {
   useEffect(() => {
     // Mobile Hero is lightweight (static image), so we signal 100% progress immediately 
     // to release the Preloader once the component mounts.
-    (window as TouraWindow).__heroProgress = 100;
+    (window as any).__heroProgress = 100;
     window.dispatchEvent(new CustomEvent("hero-progress", { detail: 100 }));
 
     const ctx = gsap.context(() => {

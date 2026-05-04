@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
+import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { useBooking } from "../BookingProvider";
+import { supabase } from "@/lib/supabase";
 
 const SERVICES = [
   {
@@ -135,9 +137,8 @@ export function Services() {
   }, []);
 
   useEffect(() => {
-    const handleRemoteOpen = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      const serviceId = detail?.serviceId;
+    const handleRemoteOpen = (e: any) => {
+      const serviceId = e.detail?.serviceId;
       const service = SERVICES.find(s => s.id === serviceId);
       if (service) {
         openModal('SERVICES', service);

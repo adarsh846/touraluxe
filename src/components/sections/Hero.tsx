@@ -101,7 +101,7 @@ export function Hero() {
           className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
         >
           <span className="word inline-block opacity-0">We</span>
-          <span className="word inline-block opacity-0">don&apos;t</span>
+          <span className="word inline-block opacity-0">don't</span>
           <span className="word inline-block opacity-0">sell</span>
           <span className="word inline-block opacity-0">trips.</span>
           <div className="basis-full h-0" />

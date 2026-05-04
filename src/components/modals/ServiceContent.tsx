@@ -6,37 +6,12 @@ import gsap from "gsap";
 import { supabase } from "@/lib/supabase";
 import { Magnetic } from "../Magnetic";
 
-export const ServiceContent = memo(function ServiceContent({ 
-  data: service, 
-  isActive, 
-  onScroll, 
-  openModal 
-}: { 
-  data: {
-    id: number;
-    title: string;
-    icon: React.ReactNode;
-    tagline?: string;
-    description?: string;
-    features?: string[];
-  } | undefined, 
-  isActive: boolean, 
-  onScroll: (scrolled: boolean) => void, 
-  openModal: (view: string, data?: any, source?: string) => void 
-}) {
+export const ServiceContent = memo(function ServiceContent({ data: service, isActive, onScroll, openModal }: { data: any, isActive: boolean, onScroll: (scrolled: boolean) => void, openModal: any }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
   // --- Discovery Logic ---
-  const [livePackages, setLivePackages] = useState<{
-    id: string;
-    title: string;
-    price: string;
-    location: string;
-    image: string;
-    currency?: string;
-    child_price?: string;
-  }[]>([]);
+  const [livePackages, setLivePackages] = useState<any[]>([]);
   const [isDiscoveryLoading, setIsDiscoveryLoading] = useState(false);
   const [discoveryScrolled, setDiscoveryScrolled] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([]);
@@ -219,9 +194,9 @@ export const ServiceContent = memo(function ServiceContent({
                   <div className="mb-10">
                     <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b] mb-5">Division Highlights</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                      {service.features?.map((item: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-4 py-1 animate-in slide-in-from-left duration-1000 fill-mode-both" style={{ animationDelay: `${idx * 100}ms` }}>
-                          <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                      {service.highlights?.map((item: string, i: number) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="mt-[6px] w-[6px] h-[6px] rounded-full bg-white/40 flex-shrink-0" />
                           <span className="text-[15px] text-white/70">{item}</span>
                         </div>
                       ))}

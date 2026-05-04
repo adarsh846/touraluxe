@@ -74,7 +74,7 @@ export function HeroSequence() {
       desynchronized: true,
       willReadFrequently: false,
       colorSpace: "display-p3"
-    } as CanvasRenderingContextSettings2D) as CanvasRenderingContext2D;
+    } as any) as CanvasRenderingContext2D;
     
     // Enable highest quality GPU downscaling/upscaling
     ctx.imageSmoothingEnabled = true;
@@ -141,7 +141,7 @@ export function HeroSequence() {
       // 3. Blob Pre-caching (Apple-tier Network Bypass)
       // We fetch raw bytes via HTTP/2 and convert to local memory blobs. 
       // This completely bypasses the DOM's strict 6-connection image limit.
-      fetch(dynamicUrls[targetIdx], { priority: "low" } as RequestInit)
+      fetch(dynamicUrls[targetIdx], { priority: "low" } as any)
         .then(res => res.blob())
         .then(blob => {
           if (!isActive) return;
@@ -236,7 +236,7 @@ export function HeroSequence() {
       // 4. Aggressive Memory Garbage Collection
       framesRef.current.forEach(img => {
         if (img) {
-          try { URL.revokeObjectURL(img.src); } catch(_e){}
+          try { URL.revokeObjectURL(img.src); } catch(e){}
           img.src = "";
         }
       });
@@ -430,3 +430,15 @@ export function HeroSequence() {
   );
 }
 
+function coverFit(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  img: HTMLImageElement
+) {
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+  const sw = img.naturalWidth * scale;
+  const sh = img.naturalHeight * scale;
+  ctx.drawImage(img, (cw - sw) / 2, (ch - sh) / 2, sw, sh);
+}

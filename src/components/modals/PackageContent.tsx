@@ -12,22 +12,11 @@ export const PackageContent = memo(function PackageContent({
   onScroll, 
   openModal 
 }: { 
-  data: {
-    id: string;
-    title: string;
-    price: string;
-    location: string;
-    image: string;
-    tagline?: string;
-    description?: string;
-    duration?: string;
-    guests?: string;
-    currency?: string;
-  } | undefined, 
+  data: any, 
   isActive: boolean, 
   source: string,
   onScroll: (scrolled: boolean) => void, 
-  openModal: (view: string, data?: any, source?: string) => void 
+  openModal: any 
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
