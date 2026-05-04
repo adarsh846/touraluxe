@@ -214,32 +214,32 @@ export function ModalShell() {
   return createPortal(
     <div 
       key="modal-portal" 
-      className={`fixed inset-0 z-[999999] flex items-center justify-center p-4 md:p-8 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
     >
       {/* Backdrop - Shared across all views */}
       <div 
         ref={overlayRef} 
-        className="absolute inset-0 bg-black/85 transition-opacity" 
-        onClick={handleCloseClick} 
+        onClick={startClosing}
+        className="absolute inset-0 bg-black/40 backdrop-blur-3xl" 
       />
 
       {/* Modal Shell Panel */}
       <div 
-        ref={panelRef} 
-        className="relative w-full max-w-[1100px] h-[90vh] bg-[#1c1c1e] border border-white/20 rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform flex flex-col transform-gpu"
+        ref={modalRef}
+        className="relative w-full h-full md:h-[90vh] md:max-h-[850px] max-w-[1100px] bg-[#0a0a0b] md:rounded-[40px] shadow-2xl border-0 md:border border-white/10 flex flex-col overflow-hidden transform-gpu"
         data-lenis-prevent
       >
         {/* Global Error Alert */}
         {error && (
           <div className="absolute top-20 md:top-24 left-1/2 -translate-x-1/2 z-[500] w-full max-w-[90vw] md:max-w-max animate-in slide-in-from-top-12 duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]">
-            <div ref={alertRef} className="bg-black/90 backdrop-blur-3xl border border-white/20 px-4 md:px-6 py-2.5 md:py-3 rounded-full flex items-center justify-center md:justify-start gap-3 md:gap-4 shadow-[0_30px_60px_rgba(0,0,0,0.6)] mx-auto">
-              <div className="shrink-0 p-1 md:p-1.5 rounded-full bg-red-500/10 border border-red-500/20">
-                <AlertCircle className="w-3 md:w-3.5 h-3 md:h-3.5 text-red-500" />
-              </div>
-              <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-red-500/90 whitespace-nowrap">
-                {error}
-              </span>
+          <div ref={alertRef} className="relative w-full max-w-[88vw] md:max-w-max mx-auto bg-black/60 backdrop-blur-2xl border border-red-500/30 px-5 md:px-6 py-4 md:py-3 rounded-[24px] md:rounded-full flex items-start md:items-center gap-4 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <div className="shrink-0 p-1.5 rounded-full bg-red-500/10 border border-red-500/20 mt-0.5 md:mt-0">
+              <AlertCircle className="w-4 h-4 text-red-500" />
             </div>
+            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] text-red-500/90 leading-[1.6] md:leading-tight">
+              {error}
+            </span>
+          </div>
           </div>
         )}
 
@@ -293,9 +293,9 @@ export function ModalShell() {
                   <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
                   <button 
                     onClick={handleBackAction} 
-                    className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                    className="relative w-10 h-10 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
                   >
-                    <ArrowLeft size={18} strokeWidth={2.5} />
+                    <ArrowLeft size={20} strokeWidth={2.5} />
                   </button>
                 </div>
               </Magnetic>
@@ -307,9 +307,9 @@ export function ModalShell() {
                 <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
                 <button 
                   onClick={handleCloseClick} 
-                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                  className="relative w-10 h-10 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
                 >
-                  <X size={18} strokeWidth={2.5} />
+                  <X size={20} strokeWidth={2.5} />
                 </button>
               </div>
             </Magnetic>

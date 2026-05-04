@@ -353,7 +353,7 @@ export const BookingContent = memo(function BookingContent({
       {isSelectorOpen && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 transform-gpu">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setIsSelectorOpen(false)} />
-          <div className="relative w-full max-w-[340px] bg-[#1c1c1e] border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-[320px] mx-auto bg-[#1c1c1e] border border-white/20 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-white/5 flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-widest text-white italic">Select Region</h4>
@@ -550,12 +550,23 @@ export const BookingContent = memo(function BookingContent({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Full Name" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
                         <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Email Address" className="w-full bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
-                        <div className="md:col-span-2 flex gap-4">
-                          <button type="button" onClick={() => setIsSelectorOpen(true)} className="bg-white/[0.07] border border-white/20 rounded-2xl px-6 flex items-center gap-3 hover:bg-white/[0.05] transition-all min-w-[120px] h-[64px]">
-                            <span className="text-2xl">{selectedCountry.flag}</span>
+                        <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
+                          <button 
+                            type="button" 
+                            onClick={() => setIsSelectorOpen(true)} 
+                            className="bg-white/[0.07] border border-white/20 rounded-2xl px-6 flex items-center justify-center sm:justify-start gap-4 hover:bg-white/[0.1] transition-all min-w-[120px] h-[64px] group"
+                          >
+                            <span className="text-2xl group-hover:scale-110 transition-transform">{selectedCountry.flag}</span>
                             <span className="text-sm font-bold text-white/80">{selectedCountry.dial}</span>
                           </button>
-                          <input type="tel" value={customerPhone} maxLength={selectedCountry.len} onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))} placeholder="Phone Number" className="flex-1 bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" />
+                          <input 
+                            type="tel" 
+                            value={customerPhone} 
+                            maxLength={selectedCountry.len} 
+                            onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))} 
+                            placeholder="Phone Number" 
+                            className="flex-1 bg-white/[0.07] border border-white/20 rounded-2xl p-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-all h-[64px]" 
+                          />
                         </div>
                       </div>
                     </div>
@@ -788,7 +799,7 @@ export const BookingContent = memo(function BookingContent({
                     )}
                   </div>
 
-                  <div className="w-full max-w-xl mx-auto p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 space-y-1 shadow-2xl text-left animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                  <div className="w-full max-w-xl mx-auto p-6 md:p-10 rounded-[32px] bg-white/[0.02] border border-white/5 space-y-1 shadow-2xl text-left animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
                     <div className="flex justify-between items-center py-4 border-b border-white/5">
                       <span className="text-white/60 uppercase tracking-widest text-[10px]">Journey</span>
                       <span className="text-sm font-bold italic text-right">{packageData?.title || "Bespoke Journey"}</span>
