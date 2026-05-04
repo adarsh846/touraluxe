@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 // GET all published packages (public) or all packages (admin)
 export async function GET(req: NextRequest) {
   console.log("DEBUG: Admin password loaded?", !!process.env.ADMIN_PASSWORD);
