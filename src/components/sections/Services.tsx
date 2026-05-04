@@ -4,16 +4,19 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
+import { useBooking } from "../BookingProvider";
+import { supabase } from "@/lib/supabase";
 
 const SERVICES = [
   {
     id: 1,
-    title: "Luxury Travel",
-    tagline: "Access the inaccessible.",
-    desc: "Access the inaccessible. Private villas, chartered yachts, and elite retreats.",
-    fullDesc: "We specialize in curating ultra-high-end travel experiences that go beyond the typical 'luxury' itinerary. From private villas in secluded Mediterranean coves to chartered superyachts in the Caribbean, our global network provides access to properties and locations that aren't listed on any public site.",
+    title: "Luxury Tours",
+    tagline: "Exclusive global access.",
+    desc: "Bespoke luxury journeys across the world’s most exclusive destinations.",
+    fullDesc: "We curate bespoke luxury journeys across the world’s most exclusive destinations—combining personalized itineraries, premium stays, and unforgettable experiences. From secluded Mediterranean villas to private island escapes, every journey is a masterpiece of comfort and discovery.",
     image: "/luxury_villa_secluded_1777655165196.png",
-    highlights: ["Private Villa Sourcing", "Superyacht Charters", "Elite Retreats", "Bespoke Itineraries"],
+    highlights: ["Personalized Itineraries", "Premium Property Access", "Luxury Urban Transfers", "Visa Concierge Support"],
+    cta: "Book Your Journey",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
@@ -22,169 +25,105 @@ const SERVICES = [
   },
   {
     id: 2,
-    title: "Sports Tours",
-    tagline: "The ultimate front row.",
-    desc: "VIP access, best seats, and exclusive backstage experiences at major events.",
-    fullDesc: "Experience global sporting events with unparalleled access. We provide VIP hospitality at major events like the Monaco Grand Prix, Wimbledon, and the World Cup. Beyond just tickets, we arrange meet-and-greets, backstage pit-lane tours, and private jet transfers directly to the host cities.",
-    image: "/f1_monaco_vip_1777655187300.png",
-    highlights: ["VIP Box Access", "Meet & Greets", "Pit Lane Tours", "Official Hospitality"],
+    title: "Group Trips",
+    tagline: "Travel together, luxuriously.",
+    desc: "Luxury backpacking and group journeys for those who seek connection and adventure.",
+    fullDesc: "Inspired by the community spirit of the world's leading group travel sites, our Group Expeditions redefine collective travel. We combine the raw thrill of backpacking with the refinement of TouraLuxe. From shared villas in the Swiss Alps to curated group treks in Patagonia, we ensure you never travel alone while maintaining absolute comfort.",
+    image: "/assets/services/group.png",
+    highlights: ["Fixed-Date Departures", "Curated Group Villas", "Adventure Curation", "Community Events"],
+    cta: "Join an Expedition",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
   },
   {
     id: 3,
-    title: "MICE Events",
-    tagline: "Corporate excellence redefined.",
-    desc: "Corporate getaways, incentive programs, and world-class meetings.",
-    fullDesc: "Elevate your corporate presence with flawlessly executed meetings, incentives, conferences, and events. We handle everything from location scouting in exotic destinations to high-tech staging and high-level security for your most important delegates.",
-    image: "/corporate_event_exotic_1777655212281.png",
-    highlights: ["Destination Management", "Incentive Programs", "High-Security Meetings", "Executive Retreats"],
+    title: "Adventure Tours",
+    tagline: "Luxury at the edge.",
+    desc: "High-altitude trekking, specialized biking, and elite survival experiences.",
+    fullDesc: "For those who demand more than a vacation. Our Extreme division manages the logistics for high-risk, high-reward adventures. Whether it's a private biking expedition across the Spiti Valley or a guided ascent of a 6,000m peak, our precision planning keeps you safe at the edge of the world.",
+    image: "/assets/services/extreme.png",
+    highlights: ["Specialized Gear Logistics", "Elite Mountain Guides", "Off-Road Expeditions", "Satellite Comms Support"],
+    cta: "Start Your Adventure",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 7h10" /><path d="M7 12h10" /><path d="M7 17h10" />
+        <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
       </svg>
     ),
   },
   {
     id: 4,
-    title: "Global Retreats",
-    tagline: "Soul-enriching immersions.",
-    desc: "Hand-picked, life-changing wellness and cultural immersions.",
-    fullDesc: "Discover the world's most transformative wellness and cultural retreats. We hand-pick destinations that offer deep restorative power—from Ayurvedic centers in the Himalayas to silent meditation retreats in Kyoto's ancient temples. Every detail is managed to ensure complete peace of mind.",
-    image: "/zen_retreat_kyoto_1777655233180.png",
-    highlights: ["Ayurvedic Wellness", "Cultural Immersions", "Holistic Spas", "Mindfulness Retreats"],
+    title: "Luxury Honeymoons",
+    tagline: "Absolute romantic perfection.",
+    desc: "Choreographed romantic immersions where every detail is executed to achieve flawlessness.",
+    fullDesc: "We craft the perfect beginning to your forever. Every detail—from the precise thread count of your linens to the timing of a private sunset dinner on a deserted sandbank—is choreographed to achieve absolute romantic perfection. Our Eternal Escapes are more than trips; they are immortal immersions in love, curated for those who demand nothing less than a flawless reality.",
+    image: "/assets/services/honeymoon.png",
+    highlights: ["Overwater Villas", "Private Island Dining", "Couples' Wellness", "Bespoke Romance Concierge"],
+    cta: "Plan Your Honeymoon",
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      </svg>
+    ),
+  },
+  {
+    id: 5,
+    title: "MICE Events",
+    tagline: "Corporate excellence redefined.",
+    desc: "World-class Meetings, Incentives, Conferences, and Events across global destinations.",
+    fullDesc: "Our MICE division delivers seamless, high-impact corporate programs that go beyond logistics. From executive board meetings and large-scale global summits to achievement-based incentive travel and gala events, we blend strategic expertise with elevated luxury to create meaningful, results-driven experiences.",
+    image: "/corporate_event_exotic_1777655212281.png",
+    highlights: ["Global Summit Curation", "Executive Board Meetings", "Corporate Incentive Programs", "Event Management Solutions"],
+    cta: "Plan Your Event",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="20" height="14" x="2" y="7" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+      </svg>
+    ),
+  },
+  {
+    id: 6,
+    title: "Custom Journeys",
+    tagline: "Luxury tailored to you.",
+    desc: "Fully customized journeys tailored to your specific preferences and travel style.",
+    fullDesc: "Taking the 'Customized Tours' from our heritage and elevating them to art. We design fully bespoke journeys that reflect your unique interests. From vintage car tours through the Italian countryside to private museum access, we deliver seamless, luxurious experiences crafted just for you.",
+    image: "/assets/services/bespoke.png",
+    highlights: ["Tailored Itineraries", "Private Access Tours", "Boutique Stays", "Personalized Welcome"],
+    cta: "Design Your Tour",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v4" /><path d="m4.9 4.9 2.9 2.9" /><path d="M2 12h4" /><path d="m4.9 19.1 2.9-2.9" /><path d="M12 18v4" /><path d="m16.2 16.2 2.9 2.9" /><path d="M18 12h4" /><path d="m16.2 7.8 2.9-2.9" />
+      </svg>
+    ),
+  },
+  {
+    id: 7,
+    title: "AI Travel Planner",
+    tagline: "Instant luxe itineraries.",
+    desc: "Instant, AI-driven travel planning that learns from your desires.",
+    fullDesc: "Taking the innovation of TouraLuxe to the digital frontier. Our AI Travel Planner uses generative intelligence to build complex itineraries in real-time. Simply describe your mood, and our system will bank the aircraft towards your next dream destination, presenting a fully-costed plan in seconds.",
+    image: "/assets/services/ai.png",
+    highlights: ["Generative Planning", "Instant Price Breakdown", "Dynamic Scenic Sync", "24/7 AI Support"],
+    cta: "Start Planning",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m12 14 4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" />
       </svg>
     ),
   },
 ];
 
-function ServiceModal({ 
-  service, 
-  onClose 
-}: { 
-  service: typeof SERVICES[0]; 
-  onClose: () => void;
-}) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
 
-  useEffect(() => {
-    // Lock scroll
-    const lenis = (window as any).__lenis;
-    lenis?.stop();
 
-    const tl = gsap.timeline();
-    tl.fromTo(overlayRef.current, 
-      { opacity: 0, backdropFilter: "blur(0px)" }, 
-      { opacity: 1, backdropFilter: "blur(20px)", duration: 1.0, ease: "power3.out" }
-    );
-    tl.fromTo(panelRef.current, 
-      { y: 80, opacity: 0, scale: 0.96 }, 
-      { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out" }, 
-      0.1
-    );
 
-    return () => lenis?.start();
-  }, [service]);
 
-  const handleClose = useCallback(() => {
-    const tl = gsap.timeline({ 
-      onComplete: onClose,
-      defaults: { ease: "power4.inOut" }
-    });
-    tl.to(panelRef.current, { y: 40, opacity: 0, scale: 0.98, duration: 0.7 });
-    tl.to(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)", duration: 0.5 }, 0.1);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-[9999]">
-      <div ref={overlayRef} className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={handleClose} />
-      <div className="absolute inset-0 flex items-center justify-center p-4 md:p-8 pointer-events-none">
-        <div ref={panelRef} data-lenis-prevent className="relative w-full max-w-[920px] h-[90vh] bg-[#1c1c1e] border border-white/[0.06] rounded-3xl overflow-hidden pointer-events-auto shadow-2xl will-change-transform">
-          {/* Close Button */}
-          <div className="absolute top-6 right-6 z-[100]">
-            <Magnetic>
-              <button onClick={handleClose} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all hover:bg-white/10" aria-label="Close">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M1.5 1.5l13 13M14.5 1.5l-13 13" /></svg>
-              </button>
-            </Magnetic>
-          </div>
-
-          <div 
-            ref={scrollRef} 
-            onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 30)}
-            className="w-full h-full overflow-y-auto scrollbar-hide"
-          >
-            {/* Hero */}
-            <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#1c1c1e]">
-              <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01]" priority />
-              <div className="absolute inset-x-0 -bottom-px h-40 bg-gradient-to-t from-[#1c1c1e] to-transparent" />
-
-              {/* Scroll Indicator - Clearly Visible */}
-              <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700 ${isScrolled ? 'opacity-0 translate-y-4' : 'opacity-100'}`}>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white drop-shadow-md">Scroll</span>
-                <svg className="w-5 h-5 text-white drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div ref={contentRef} className="relative z-10 px-8 md:px-10 pb-10 -mt-8 bg-[#1c1c1e] rounded-t-3xl">
-              <div className="mb-8 mt-8">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Our Specialization</span>
-                <h3 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mt-2">{service.title}</h3>
-                <p className="text-lg md:text-xl text-[#86868b] font-medium tracking-tight mt-2 italic">{service.tagline}</p>
-              </div>
-
-              <div className="mb-10">
-                <p className="text-[17px] leading-[1.65] text-[#a1a1a6]">{service.fullDesc}</p>
-              </div>
-
-              <div className="mb-10">
-                <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b] mb-5">Division Highlights</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                  {service.highlights.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="mt-[6px] w-[6px] h-[6px] rounded-full bg-white/40 flex-shrink-0" />
-                      <span className="text-[15px] text-white/70">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-white/[0.06]">
-                <Magnetic>
-                  <button className="flex-1 py-4 px-8 rounded-full bg-white text-black font-semibold text-[15px] transition-all hover:scale-[1.02]">
-                    Inquire About This Division
-                  </button>
-                </Magnetic>
-                <Magnetic>
-                  <button onClick={handleClose} className="flex-1 py-4 px-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/70 font-medium text-[15px] transition-all hover:scale-[1.02]">
-                    Back to Services
-                  </button>
-                </Magnetic>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function Services() {
   const containerRef = useRef<HTMLElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const [activeService, setActiveService] = useState<typeof SERVICES[0] | null>(null);
+  const { openModal } = useBooking();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -202,13 +141,13 @@ export function Services() {
       const serviceId = e.detail?.serviceId;
       const service = SERVICES.find(s => s.id === serviceId);
       if (service) {
-        setActiveService(service);
+        openModal('SERVICES', service);
       }
     };
 
     window.addEventListener('open-service-modal', handleRemoteOpen);
     return () => window.removeEventListener('open-service-modal', handleRemoteOpen);
-  }, []);
+  }, [openModal]);
 
   return (
     <section ref={containerRef} id="services" className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden">
@@ -220,7 +159,7 @@ export function Services() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {SERVICES.map((service, index) => (
-            <div key={service.title} ref={(el) => { cardsRef.current[index] = el; }} className="opacity-0 h-full" onClick={() => setActiveService(service)}>
+            <div key={service.title} ref={(el) => { cardsRef.current[index] = el; }} className="opacity-0 h-full" onClick={() => openModal('SERVICES', service)}>
               <Magnetic className="block w-full h-full">
                 <div className="group relative h-full p-8 pt-10 border border-white/10 rounded-2xl bg-zinc-900 transition-all duration-500 hover:bg-zinc-800 hover:border-white/20 cursor-pointer overflow-hidden">
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-2xl" style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 60%)" }} />
@@ -234,8 +173,6 @@ export function Services() {
           ))}
         </div>
       </div>
-
-      {activeService && <ServiceModal service={activeService} onClose={() => setActiveService(null)} />}
     </section>
   );
 }

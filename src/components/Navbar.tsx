@@ -5,8 +5,7 @@ import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
-
-import { AboutModal } from "./AboutModal";
+import { useBooking } from "./BookingProvider";
 
 const NAV_LINKS = [
   { name: "New Journey", href: "featured", offset: 0 },
@@ -15,10 +14,10 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
+  const { openBooking, openModal } = useBooking();
   const [blurOpacity, setBlurOpacity] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,7 +34,7 @@ export function Navbar() {
     if (!id) return;
     
     if (id === "about") {
-      setIsAboutOpen(true);
+      openModal('ABOUT');
       return;
     }
 
@@ -49,7 +48,6 @@ export function Navbar() {
 
   return (
     <>
-      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       {/* ── Header ── */}
       <header
         className={cn(
@@ -126,7 +124,7 @@ export function Navbar() {
                 {/* Matching shadow for action button */}
                 <div className="absolute inset-0 bg-black/60 blur-xl rounded-full translate-y-2 scale-90 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <button
-                  onClick={() => scrollToSection("contact")}
+                  onClick={() => openBooking(undefined, "NAVBAR_CTA")}
                   className="relative rounded-full bg-white px-5 py-2 text-[11px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 active:scale-95 shadow-2xl border border-white/20"
                 >
                   Start Journey
@@ -190,7 +188,7 @@ export function Navbar() {
             >
               <Magnetic>
                 <button
-                  onClick={() => { scrollToSection("contact"); setIsMobileMenuOpen(false); }}
+                  onClick={() => { openBooking(undefined, "NAVBAR_MOBILE_CTA"); setIsMobileMenuOpen(false); }}
                   className="inline-flex rounded-full bg-foreground px-7 py-3.5 text-sm font-medium text-background transition-transform hover:scale-105"
                 >
                   Curate Your Trip

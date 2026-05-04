@@ -126,8 +126,17 @@ html.lenis {
 }
 
 @keyframes chevron-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(5px); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, 5px, 0); }
+}
+
+@keyframes bounce-horizontal {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(6px, 0, 0); }
+}
+
+@utility animate-bounce-horizontal {
+  animation: bounce-horizontal 2s ease-in-out infinite;
 }
 
 /* ─── DIALOG / MODAL RESET ─── */
@@ -183,4 +192,93 @@ textarea:-webkit-autofill {
   -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.05) inset;
   -webkit-text-fill-color: #ffffff;
   transition: background-color 5000s ease-in-out 0s;
+}
+@utility ios-progressive-mask {
+  background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.4) 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.4) 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.4) 80%, transparent 100%);
+}
+
+/* ─── ANIMATION SYSTEM ─── */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), 1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+}
+
+@utility animate-in {
+  animation: enter 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility fade-in {
+  --tw-enter-opacity: 0;
+}
+
+@utility zoom-in-95 {
+  --tw-enter-scale: 0.95;
+}
+
+@utility slide-in-from-top-2 {
+  --tw-enter-translate-y: -10px;
+}
+
+@utility slide-in-from-bottom-4 {
+  --tw-enter-translate-y: 20px;
+}
+
+@utility duration-500 {
+  animation-duration: 500ms;
+}
+
+@utility duration-700 {
+  animation-duration: 700ms;
+}
+
+@utility duration-1000 {
+  animation-duration: 1000ms;
+}
+
+/* ─── EXIT ANIMATION SYSTEM ─── */
+@keyframes exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+      scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), 1);
+  }
+}
+
+@utility animate-out {
+  animation: exit 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility fade-out {
+  --tw-exit-opacity: 0;
+}
+
+@utility zoom-out-95 {
+  --tw-exit-scale: 0.95;
+}
+
+@utility slide-out-to-top-2 {
+  --tw-exit-translate-y: -10px;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20%, 60% { transform: translate3d(-6px, 0, 0); }
+  40%, 80% { transform: translate3d(6px, 0, 0); }
+}
+
+@utility animate-shake {
+  animation: shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }

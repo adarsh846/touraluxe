@@ -1,582 +1,130 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { HeroMobile } from "./HeroMobile";
+import Image from "next/image";
 
-gsap.registerPlugin(ScrollTrigger);
-
-/* ═══════════════════════════════════════════════════════════════════
- * CONFIGURATION
- * ═══════════════════════════════════════════════════════════════════ */
-const FRAME_COUNT = 511;
-// We revert to the original, pristine JPEGs for maximum quality!
-const DESKTOP_SEQ = "/assets/cave-sequence-60";
-
-// Progressive loading pass intervals
-const SKELETON_STEP = 8;
-
-// LRU memory caps — prevents OOM on constrained devices
-const DESKTOP_CACHE_CAP = 180;
-
-const SKELETON_SET = new Set<number>();
-for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) SKELETON_SET.add(i);
-SKELETON_SET.add(0);
-SKELETON_SET.add(FRAME_COUNT - 1);
-
-function framePath(base: string, n: number) {
-  return `${base}/frame_${String(n).padStart(4, "0")}.jpg`;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
- * COMPONENT
- * ═══════════════════════════════════════════════════════════════════ */
-export function HeroDesktop() {
+export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
-  const mediaRef = useRef<HTMLDivElement>(null);
-  const textContentRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    const media = mediaRef.current;
-    const canvas = canvasRef.current;
-    const ctx2d = canvas?.getContext("2d", { alpha: false, desynchronized: true });
-    if (!container || !media || !canvas || !ctx2d) return;
+    const ctx = gsap.context(() => {
+      // Premium Apple-style Intro Animation
+      // Use only transform + opacity (translate3d for performance)
+      const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
 
-    /* ── Device & capability detection ── */
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const seqPath = DESKTOP_SEQ;
-    
-    // Original dimensions to preserve exact aspect ratio and framing
-    const srcW = 1920;
-    const srcH = 1080;
-    const CACHE_CAP = DESKTOP_CACHE_CAP;
-    const useImageBitmap = typeof createImageBitmap === "function";
+      tl.fromTo(
+        imageRef.current,
+        { scale: 1.15, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 3 }
+      )
+        .fromTo(
+          ".word",
+          { y: 100, opacity: 0, rotate: 5, x: -20 },
+          { y: 0, opacity: 1, rotate: 0, x: 0, stagger: 0.1 },
+          "-=2.5"
+        )
+        .fromTo(
+          subheadRef.current,
+          { y: 40, x: 30, opacity: 0 },
+          { y: 0, x: 0, opacity: 1 },
+          "-=2.2"
+        )
+        .fromTo(
+          ".scroll-indicator",
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 1, ease: "expo.out" },
+          "-=0.8"
+        );
 
-    /* ── Network-aware concurrency ── */
-    const getMaxConcurrent = (): number => {
-      const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-      if (conn?.saveData) return 2;
-      const ect = conn?.effectiveType;
-      if (ect === "slow-2g" || ect === "2g") return 2;
-      if (ect === "3g") return 4;
-      return 10;
-    };
-
-    /* ── Mutable state ── */
-    let destroyed = false;
-    let targetFrame = 0;
-    let smoothFrame = 0;
-    let rafId = 0;
-    let rafRunning = false;
-    let drawnFrame = -1;
-    let isPaused = false;
-    let refreshTimer: number | null = null;
-    const abortCtrl = new AbortController();
-
-    const loaded = new Set<number>();
-    const loading = new Set<number>();
-    const cache = new Map<number, ImageBitmap | HTMLImageElement>();
-    const lruOrder: number[] = [];
-    const frameAbortControllers = new Map<number, AbortController>();
-    let activeLoads = 0;
-    let maxConcurrent = getMaxConcurrent();
-
-    /* ── Network change listener ── */
-    const connApi = (navigator as unknown as { connection?: EventTarget }).connection;
-    const onConnectionChange = () => { maxConcurrent = getMaxConcurrent(); };
-    connApi?.addEventListener?.("change", onConnectionChange);
-
-    const onVisibility = () => {
-      isPaused = document.hidden;
-      if (!isPaused) pumpBoot();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isPaused = !entry.isIntersecting;
-        if (!isPaused) {
-          pumpBoot();
-          startRAF();
-        }
-      },
-      { threshold: 0, rootMargin: "100px" }
-    );
-    observer.observe(container);
-
-    /* ── Apple-Level Preload Injection ── */
-    // Inject link tags into head to force browser network priority for the first few critical frames
-    const preloadFrames = [0, SKELETON_STEP, SKELETON_STEP * 2];
-    preloadFrames.forEach((n) => {
-      const url = framePath(seqPath, n);
-      if (!document.querySelector(`link[href="${url}"]`)) {
-        const link = document.createElement("link");
-        link.rel = "preload";
-        link.as = "image";
-        link.href = url;
-        document.head.appendChild(link);
-      }
-    });
-
-    /* ── LRU CACHE ── */
-    const touchLRU = (n: number) => {
-      const idx = lruOrder.indexOf(n);
-      if (idx !== -1) lruOrder.splice(idx, 1);
-      lruOrder.push(n);
-    };
-
-    const evictIfNeeded = () => {
-      let attempts = 0;
-      while (lruOrder.length > CACHE_CAP && attempts < lruOrder.length) {
-        const candidate = lruOrder[0];
-        attempts++;
-
-        if (SKELETON_SET.has(candidate)) {
-          lruOrder.push(lruOrder.shift()!);
-          continue;
-        }
-
-        if (Math.abs(candidate - Math.round(smoothFrame)) < 30) {
-          lruOrder.push(lruOrder.shift()!);
-          continue;
-        }
-
-        lruOrder.shift();
-        const entry = cache.get(candidate);
-        if (entry && "close" in entry) (entry as ImageBitmap).close();
-        cache.delete(candidate);
-        loaded.delete(candidate);
-      }
-    };
-
-    /* ── CANVAS RENDER ENGINE (GPU-COMPOSITED) ── */
-    const sizeCanvas = () => {
-      // Render at source resolution (1:1). The GPU compositor handles display
-      // scaling via CSS `object-cover` on the canvas element — zero CPU cost.
-      // Retina upscaling in canvas is a trap: 4x pixels + scaled drawImage = 100% CPU.
-      if (canvas.width !== srcW || canvas.height !== srcH) {
-        canvas.width = srcW;
-        canvas.height = srcH;
-        drawnFrame = -1;
-      }
-      ctx2d.imageSmoothingEnabled = false;
-    };
-
-    const drawCover = (img: ImageBitmap | HTMLImageElement) => {
-      // Blazing fast 1:1 blit — no scaling, no math, one GPU-friendly memcpy.
-      ctx2d.drawImage(img as CanvasImageSource, 0, 0);
-    };
-
-    const nearestLoaded = (f: number): number => {
-      if (loaded.has(f)) return f;
-      for (let d = 1; d < FRAME_COUNT; d++) {
-        if (f - d >= 0 && loaded.has(f - d)) return f - d;
-        if (f + d < FRAME_COUNT && loaded.has(f + d)) return f + d;
-      }
-      return -1;
-    };
-
-    const localDensity = (center: number, radius: number): number => {
-      let count = 0;
-      const lo = Math.max(0, center - radius);
-      const hi = Math.min(FRAME_COUNT - 1, center + radius);
-      for (let i = lo; i <= hi; i++) {
-        if (loaded.has(i)) count++;
-      }
-      return count / (hi - lo + 1);
-    };
-
-    const drawFrame = (f: number) => {
-      const actual = nearestLoaded(f);
-      if (actual === -1 || actual === drawnFrame) return;
-      const img = cache.get(actual);
-      if (!img) return;
-      drawCover(img);
-      drawnFrame = actual;
-      touchLRU(actual);
-    };
-
-    /* ── FRAME LOADING ── */
-    const loadFrame = (n: number): Promise<void> => {
-      if (loaded.has(n) || loading.has(n) || n < 0 || n >= FRAME_COUNT) {
-        return Promise.resolve();
-      }
-      loading.add(n);
-      activeLoads++;
-
-      const url = framePath(seqPath, n);
-      const frameAbort = new AbortController();
-      frameAbortControllers.set(n, frameAbort);
-      
-      const onGlobalAbort = () => frameAbort.abort();
-      abortCtrl.signal.addEventListener("abort", onGlobalAbort);
-
-      const onDone = (entry: ImageBitmap | HTMLImageElement | null) => {
-        if (destroyed) {
-          if (entry && "close" in entry) (entry as ImageBitmap).close();
-          return;
-        }
-        
-        if (entry) {
-          cache.set(n, entry);
-          loaded.add(n);
-          touchLRU(n);
-          evictIfNeeded();
-          drawFrame(Math.round(smoothFrame));
-        }
-
-        // Report progress for skeleton frames to the preloader
-        // We count any 'resolved' frame (success or fail) toward progress to prevent stuck loaders
-        if (SKELETON_SET.has(n)) {
-          const resolvedSkeletonCount = Array.from(SKELETON_SET).filter(f => loaded.has(f) || cache.has(f) || !loading.has(f)).length;
-          const progress = Math.min(100, Math.round((resolvedSkeletonCount / SKELETON_SET.size) * 100));
-          (window as any).__heroProgress = progress;
-          window.dispatchEvent(new CustomEvent("hero-progress", { detail: progress }));
-        }
-      };
-
-      const cleanup = () => {
-        loading.delete(n);
-        frameAbortControllers.delete(n);
-        abortCtrl.signal.removeEventListener("abort", onGlobalAbort);
-        activeLoads--;
-      };
-
-      if (useImageBitmap) {
-        return fetch(url, { signal: frameAbort.signal })
-          .then((r) => {
-            if (!r.ok) throw new Error("Network error");
-            return r.blob();
-          })
-          .then((blob) => createImageBitmap(blob))
-          .then(onDone)
-          .catch(() => {
-            // Even on error, we mark the skeleton frame as 'resolved' to move the loader
-            if (SKELETON_SET.has(n)) onDone(null);
-          })
-          .then(cleanup);
-      }
-
-      const img = new Image();
-      img.decoding = "async";
-      const onImageAbort = () => { img.src = ""; };
-      frameAbort.signal.addEventListener("abort", onImageAbort);
-      img.src = url;
-      return img
-        .decode()
-        .then(() => onDone(img))
-        .catch(() => {
-          if (SKELETON_SET.has(n)) onDone(null);
-        })
-        .finally(() => {
-          frameAbort.signal.removeEventListener("abort", onImageAbort);
-          cleanup();
-        });
-    };
-
-    let bootFrames: number[] = [];
-    let bootCursor = 0;
-
-    const pumpBoot = () => {
-      if (destroyed || isPaused) return;
-      while (activeLoads < maxConcurrent && bootCursor < bootFrames.length) {
-        const n = bootFrames[bootCursor++];
-        if (loaded.has(n) || loading.has(n)) continue;
-        loadFrame(n).then(pumpBoot);
-      }
-    };
-
-    // The core of the 60fps sliding window! 
-    // SKELETON-FIRST strategy: loads every 8th frame across the entire sequence
-    // before filling in local gaps. This ensures global coverage within ~300ms,
-    // so fast scrolling on first load always has a frame within 4 positions.
-    const prioritizeQueue = () => {
-      const center = Math.round(targetFrame);
-      const radius = 60;
-      
-      // Abort inflight requests that are too far away to free up connections instantly
-      for (const [loadingFrame, controller] of frameAbortControllers.entries()) {
-        if (Math.abs(loadingFrame - center) > radius + 20 && !SKELETON_SET.has(loadingFrame)) {
-          controller.abort();
-        }
-      }
-
-      const newQueue: number[] = [];
-      const queued = new Set<number>();
-      
-      // PHASE 1: Skeleton frames first — global coverage sorted by distance from center.
-      // 64 frames total. On a fast connection (10 concurrent), fully loaded in ~7 batches.
-      // After this phase, every scroll position has a visible frame within 4 positions.
-      const skeletonPending: number[] = [];
-      for (let i = 0; i < FRAME_COUNT; i += SKELETON_STEP) {
-        if (!loaded.has(i) && !loading.has(i)) skeletonPending.push(i);
-      }
-      skeletonPending.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
-      for (const f of skeletonPending) { newQueue.push(f); queued.add(f); }
-      
-      // PHASE 2: Local gap-fill — dense coverage around the current scroll position.
-      // Only runs after skeleton frames are queued, filling in the gaps for smooth playback.
-      const start = Math.max(0, center - 15);
-      const end = Math.min(FRAME_COUNT - 1, center + radius);
-      const localPending: number[] = [];
-      for (let i = start; i <= end; i++) {
-        if (!loaded.has(i) && !loading.has(i) && !queued.has(i)) localPending.push(i);
-      }
-      localPending.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
-      newQueue.push(...localPending);
-
-      bootFrames = newQueue;
-      bootCursor = 0;
-      pumpBoot();
-    };
-
-    /* ── RENDER LOOP ── */
-    // Decouples canvas drawing from scroll events to lock to monitor refresh rate (60fps)
-    const startRAF = () => {
-      if (rafRunning || destroyed) return;
-      rafRunning = true;
-      rafId = requestAnimationFrame(renderLoop);
-    };
-
-    let lastPrioritizeFrame = -100;
-
-    const renderLoop = () => {
-      if (destroyed) { rafRunning = false; return; }
-
-      const dist = targetFrame - smoothFrame;
-      
-      // OPTIMIZATION: Only calculate density when we are actually moving or loading
-      // and only do it occasionally, not every single frame.
-      const roundedSmooth = Math.round(smoothFrame);
-      const density = localDensity(roundedSmooth, 15);
-      
-      const lerp = 0.18 + density * 0.17;
-      smoothFrame += Math.abs(dist) < 0.3 ? dist : dist * lerp;
-
-      drawFrame(Math.round(smoothFrame));
-      
-      // OPTIMIZATION: Moving prioritizeQueue out of the main 60fps loop.
-      // We only need to re-prioritize the network queue if the scroll position 
-      // has moved significantly (e.g. 5 frames) from the last time we checked.
-      if (Math.abs(roundedSmooth - lastPrioritizeFrame) > 5) {
-        prioritizeQueue();
-        lastPrioritizeFrame = roundedSmooth;
-      }
-
-      if (Math.abs(dist) < 0.01) {
-        // One final check on idle to ensure the queue is caught up
-        prioritizeQueue();
-        rafRunning = false;
-        return;
-      }
-      rafId = requestAnimationFrame(renderLoop);
-    };
-
-    const refreshScroll = () => {
-      if (refreshTimer) window.clearTimeout(refreshTimer);
-      refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 80);
-    };
-
-    /* ── SYNCHRONOUS BOOT ── */
-    sizeCanvas();
-    startRAF();
-    // Initial fetch trigger
-    prioritizeQueue();
-
-    window.addEventListener("resize", sizeCanvas);
-    refreshScroll();
-
-    /* ── GSAP Animations ── */
-    const gsapCtx = gsap.context(() => {
-      // 1. Initial media fade in (1.5s is snappy — frame 0 is typically decoded within 200ms)
-      gsap.fromTo(media, { scale: 1.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.5, ease: "expo.out" });
-
-      // 2. Scroll indicator logic + breathing chevron pulse
-      // Separated into entrance wrapper and scroll inner to prevent GSAP overwrite conflicts
-      gsap.fromTo(".scroll-entrance", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1.5, ease: "expo.out", delay: 1 });
-      gsap.to(".scroll-chevron", { y: 4, repeat: -1, yoyo: true, duration: 1.2, ease: "sine.inOut" });
-      gsap.to(".scroll-indicator", {
-        opacity: 0, y: -10, ease: "none",
-        scrollTrigger: { trigger: containerRef.current, start: "top top", end: "120px top", scrub: true }
-      });
-
-      // 3. Cinematic Text Reveal Master Timeline
-      // Uses compositor-only properties (opacity, transform).
-      gsap.set(textContentRef.current, { opacity: 0, scale: 0.85, y: 40 });
-      
-      const textTl = gsap.timeline();
-      
-      // Empty tween to pad timeline to the final section (Start reveal at frame 291 - last 220 frames)
-      textTl.to({}, { duration: 291 }, 0);
-      
-      // 1. Reveal wrapper — pure compositor path (opacity + scale + y)
-      textTl.to(textContentRef.current, {
-        opacity: 1, scale: 1, y: 0, ease: "power2.out", duration: 220
-      }, 291);
-
-      // 2. 3D Staggered word reveal — Performance Tuned
-      textTl.fromTo(".word", 
-        { y: 60, opacity: 0, rotateX: -30, scale: 0.95 },
-        { y: 0, opacity: 1, rotateX: 0, scale: 1, stagger: 4, ease: "power2.out", duration: 120 },
-        305
-      );
-      
-      // 3. Subhead fade in
-      textTl.fromTo(subheadRef.current,
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, ease: "power2.out", duration: 80 },
-        380
-      );
-
-      // 4. MAIN SCROLL SCRUB TRIGGER
-      // Adjusted scroll distance for better tactile feel
-      const scrollDist = Math.round(Math.max(window.innerHeight * 3, FRAME_COUNT * 6));
-      
-      if (!reduceMotion) {
-        ScrollTrigger.create({
-          trigger: containerRef.current,
-          start: "top top",
-          end: `+=${scrollDist}`,
-          pin: true,
-          pinSpacing: true,
-          refreshPriority: 1, // Ensures this top-level pin is calculated before downstream sections
-          animation: textTl, // Unifies the text animation with the main pin! No jitter.
-          scrub: true,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => {
-            targetFrame = Math.round(self.progress * (FRAME_COUNT - 1));
-            startRAF();
+      // Fade out scroll indicator on scroll, reappear when scrolling back
+      gsap.fromTo(".scroll-indicator",
+        { opacity: 1, y: 0 },
+        {
+          opacity: 0,
+          y: -10,
+          ease: "none",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top top",
+            end: "120px top",
+            scrub: true,
           },
-        });
-      } else {
-        ScrollTrigger.create({
+        }
+      );
+
+      // Subtle Scroll Parallax on the image
+      gsap.to(imageRef.current, {
+        yPercent: 15,
+        force3D: true,
+        ease: "none",
+        scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
-          end: `+=${window.innerHeight * 2}`,
-          pin: true,
-          pinSpacing: true,
-        });
-      }
+          end: "bottom top",
+          scrub: true,
+        },
+      });
     }, containerRef);
 
-    /* ── CLEANUP ── */
-    return () => {
-      gsapCtx.revert(); // Revert FIRST to restore original DOM before React tries to remove it
-      destroyed = true;
-      abortCtrl.abort();
-      if (refreshTimer) window.clearTimeout(refreshTimer);
-      window.removeEventListener("resize", sizeCanvas);
-      document.removeEventListener("visibilitychange", onVisibility);
-      observer.disconnect();
-      connApi?.removeEventListener?.("change", onConnectionChange);
-      cancelAnimationFrame(rafId);
-      for (const entry of cache.values()) {
-        if ("close" in entry) (entry as ImageBitmap).close();
-      }
-      cache.clear();
-      loaded.clear();
-      lruOrder.length = 0;
-    };
+    return () => ctx.revert(); // Cleanup GSAP
   }, []);
 
   return (
-    <div className="w-full h-full">
-      <section ref={containerRef} className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white">
-        <div ref={mediaRef} className="absolute inset-0 w-full h-full will-change-transform transform-gpu z-0 opacity-0 bg-black">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/assets/cave-poster.webp"
-            alt=""
-            aria-hidden="true"
-            fetchPriority="high"
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
-          <canvas 
-            ref={canvasRef} 
-            className="absolute inset-0 h-full w-full object-cover will-change-transform transform-gpu z-[1]" 
-            aria-hidden="true" 
-          />
+    <section 
+      ref={containerRef}
+      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white"
+    >
+      {/* Background Image Container */}
+      <div
+        ref={imageRef}
+        className="absolute inset-0 w-full h-full will-change-transform z-0 opacity-0"
+      >
+        <Image
+          src="/assets/hero-bg.webp"
+          alt="Luxury Scenic View"
+          fill
+          className="object-cover opacity-60"
+          priority
+          quality={75}
+          sizes="100vw"
+        />
+        {/* Subtle gradient overlay to ensure text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+      </div>
 
-          {/* Minimal top fade for navbar legibility */}
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-[2]" />
-          {/* Minimal bottom fade for scroll indicator */}
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[2]" />
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto">
+        <h1
+          className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
+        >
+          <span className="word inline-block opacity-0">We</span>
+          <span className="word inline-block opacity-0">don't</span>
+          <span className="word inline-block opacity-0">sell</span>
+          <span className="word inline-block opacity-0">trips.</span>
+          <div className="basis-full h-0" />
+          <span className="word inline-block opacity-0 text-white/80">We</span>
+          <span className="word inline-block opacity-0 text-white/80">craft</span>
+          <span className="word inline-block opacity-0 text-white/80">experiences.</span>
+        </h1>
 
-          {/* High-Performance Static Grain — Zero CPU overhead compared to SVG Turbulence */}
-          <div 
-            className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none z-[3] transform-gpu" 
-            style={{ 
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-              backgroundSize: '250px 250px' // Tiling a small static SVG is much faster than a full-screen dynamic one
-            }}
-          />
-        </div>
+        <p
+          ref={subheadRef}
+          className="text-lg md:text-xl text-white/70 max-w-2xl font-normal tracking-wide opacity-0 will-change-transform"
+        >
+          A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
+        </p>
+      </div>
 
-        {/* Tight text-only backing — just enough to separate text from busy backgrounds */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[4]">
-          <div className="w-[120%] h-[50%] bg-[radial-gradient(ellipse_at_center,_rgba(0,0,0,0.35)_0%,_transparent_60%)]" />
-        </div>
-
-        <div ref={textContentRef} className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl mx-auto will-change-transform" style={{ perspective: '1000px', transformStyle: 'flat' }}>
-          <h1 className="text-5xl md:text-7xl lg:text-[6.5rem] font-bold tracking-tight leading-[1] mb-6 opacity-100 flex flex-wrap justify-center gap-x-4 md:gap-x-6">
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>Beyond</span>
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>travel.</span>
-            <div className="basis-full h-0 md:h-4" />
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>Pure</span>
-            <span className="word inline-block opacity-0 py-4 -my-4 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-b from-[#ffffff] via-[#f5f5f7] to-[#d2d2d7] will-change-transform" style={{ textShadow: '0px 10px 15px rgba(0,0,0,0.3)', backfaceVisibility: 'hidden' }}>experience.</span>
-          </h1>
-          <p ref={subheadRef} className="text-[17px] md:text-[21px] font-medium tracking-[0.012em] leading-[1.4] opacity-0 will-change-transform mt-2 text-transparent bg-clip-text [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] bg-gradient-to-r from-[#a1a1a6] via-[#d2d2d7] to-[#a1a1a6]" style={{ backfaceVisibility: 'hidden' }}>
-            Meticulously curated journeys for those who demand the exceptional.
-          </p>
-        </div>
-
-        <div className="scroll-entrance absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 opacity-0">
-          <div className="scroll-indicator flex flex-col items-center gap-2">
-            <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
-            <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 6l4 4 4-4" />
-            </svg>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
- * WRAPPER
- * ═══════════════════════════════════════════════════════════════════ */
-export function Hero() {
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-    const mql = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mql.matches);
-
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", handler);
-
-    // Initial refresh to ensure all downstream triggers align
-    ScrollTrigger.refresh();
-
-    return () => mql.removeEventListener("change", handler);
-  }, []); // Only run once on mount
-
-  if (!mounted) {
-    // Return a stable black placeholder during SSR/Hydration to prevent layout shifts
-    return <div className="w-full h-screen bg-black" />;
-  }
-
-  return (
-    <div className="w-full">
-      {isMobile ? <HeroMobile /> : <HeroDesktop />}
-    </div>
+      {/* Scroll Indicator */}
+      <div className="scroll-indicator absolute bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
+        <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
+        <svg className="scroll-chevron w-4 h-4 text-white/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6l4 4 4-4" />
+        </svg>
+      </div>
+    </section>
   );
 }

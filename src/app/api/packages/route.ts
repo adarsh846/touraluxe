@@ -53,8 +53,12 @@ export async function POST(req: NextRequest) {
         tagline: body.tagline,
         description: body.description,
         highlights: body.highlights || [],
+        category: body.category || ["Custom Journeys"],
         is_published: body.is_published ?? false,
         sort_order: body.sort_order ?? 99,
+        tax_status: body.tax_status || "Inclusive of Taxes",
+        currency: body.currency || "₹",
+        child_price: body.child_price,
       },
     ])
     .select()

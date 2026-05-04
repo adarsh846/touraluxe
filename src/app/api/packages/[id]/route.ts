@@ -47,8 +47,12 @@ export async function PUT(
       tagline: body.tagline,
       description: body.description,
       highlights: body.highlights,
+      category: body.category,
       is_published: body.is_published,
       sort_order: body.sort_order,
+      tax_status: body.tax_status,
+      currency: body.currency,
+      child_price: body.child_price,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

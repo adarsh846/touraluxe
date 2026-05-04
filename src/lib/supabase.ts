@@ -17,8 +17,12 @@ export type Package = {
   tagline: string;
   description: string;
   highlights: string[];
+  category: string[];
   is_published: boolean;
   sort_order: number;
+  tax_status?: string;
+  currency?: string;
+  child_price?: string;
   created_at: string;
   updated_at: string;
 };
