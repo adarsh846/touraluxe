@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { useBooking, ModalView } from "@/components/BookingProvider";
-import { X, ArrowLeft, AlertCircle } from "lucide-react";
+import { X, ArrowLeft, AlertCircle, Check } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export function ModalShell() {
 
   // Internal Step Navigation Support
   const [internalCanGoBack, setInternalCanGoBack] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState(1);
   const backHandlerRef = useRef<(() => boolean) | null>(null);
 
   const registerBackHandler = useCallback((handler: (() => boolean) | null) => {
@@ -279,7 +280,7 @@ export function ModalShell() {
 
         {/* Shared Top Controls */}
         <div className="absolute top-[clamp(1.25rem,5vh,2.5rem)] left-[clamp(1.25rem,6vw,3rem)] right-[clamp(1.25rem,6vw,3rem)] z-[100] flex justify-between items-center pointer-events-none">
-          <div className="pointer-events-auto">
+          <div className="flex-1 flex items-center justify-start pointer-events-auto">
             <Magnetic>
               <div className="relative group block">
                 {/* iOS 26 Deep Shadow & Glow */}
@@ -302,8 +303,45 @@ export function ModalShell() {
               </div>
             </Magnetic>
           </div>
-          
-          <div className="flex items-center gap-3 pointer-events-auto">
+
+          {/* DYNAMIC BREADCRUMBS (CHRONOLOGICAL PROGRESS - CENTER ANCHOR) */}
+          <div className="flex-1 hidden lg:flex items-center justify-center pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-1000 cubic-bezier(0.23,1,0.32,1)">
+            {activeView === 'BOOKING' && currentPhase > 1 && (
+              <div className="flex items-center gap-6 bg-black/40 backdrop-blur-3xl px-8 py-2.5 rounded-full border border-white/5 shadow-2xl">
+                {[
+                  { id: 1, label: "Discover" },
+                  { id: 2, label: "Timeline" },
+                  { id: 3, label: "Guests" },
+                  { id: 4, label: "Finalize" }
+                ].map((step, index, array) => (
+                  <Fragment key={step.id}>
+                    <div className="flex items-center gap-2.5 group/step">
+                      <div className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all duration-700 border",
+                        step.id === currentPhase ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110" : 
+                        step.id < currentPhase ? "bg-white/30 text-white border-transparent" : "border-white/20 text-white/40"
+                      )}>
+                        {step.id < currentPhase ? <Check size={10} strokeWidth={3} /> : `0${step.id}`}
+                      </div>
+                      {step.id === currentPhase && (
+                        <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white animate-in fade-in slide-in-from-left-2 duration-700">
+                          {step.label}
+                        </span>
+                      )}
+                    </div>
+                    {index < array.length - 1 && (
+                      <div className={cn(
+                        "w-6 h-[1px] transition-all duration-1000",
+                        step.id < currentPhase ? "bg-white/40" : "bg-white/10"
+                      )} />
+                    )}
+                  </Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 flex items-center justify-end gap-3 pointer-events-auto">
             {(canGoBack || internalCanGoBack) && (
               <Magnetic>
                 <div className="relative group block">
@@ -312,9 +350,20 @@ export function ModalShell() {
                   <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
                   <button 
                     onClick={handleBackAction} 
-                    className="relative w-10 h-10 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
+                    className="relative px-5 h-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn"
                   >
-                    <ArrowLeft size={20} strokeWidth={2.5} />
+                    <ArrowLeft size={18} strokeWidth={2.5} className="group-hover/backbtn:-translate-x-1 transition-transform" />
+                    {activeView === 'BOOKING' && currentPhase > 1 && (
+                      <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
+                        {[
+                          "",
+                          "Discover",
+                          "Timeline",
+                          "Guests",
+                          "Finalize"
+                        ][currentPhase - 1]}
+                      </span>
+                    )}
                   </button>
                 </div>
               </Magnetic>
@@ -367,6 +416,7 @@ export function ModalShell() {
               setInternalCanGoBack={setInternalCanGoBack}
               registerBackHandler={registerBackHandler}
               openModal={openModal}
+              onPhaseChange={setCurrentPhase}
             />
           </div>
 
@@ -402,6 +452,7 @@ export function ModalShell() {
             <PackageContent data={packageDetailData} isActive={activeView === 'PACKAGE'} source={activeSource} onScroll={handleScroll} openModal={openModal} />
           </div>
         </div>
+
       </div>
     </div>,
     document.body
