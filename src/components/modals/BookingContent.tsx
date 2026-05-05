@@ -8,15 +8,18 @@ import {
   Check,
   ArrowLeft,
   ChevronRight,
+  ChevronDown,
   Plane,
   Command,
   X,
   ArrowRight,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
+import { Magnetic } from "@/components/Magnetic";
 
 export const BookingContent = memo(function BookingContent({
   data: packageData,
@@ -28,6 +31,7 @@ export const BookingContent = memo(function BookingContent({
   registerBackHandler,
   openModal,
   onPhaseChange,
+  onStepChange,
 }: {
   data: any;
   isActive: boolean;
@@ -38,9 +42,11 @@ export const BookingContent = memo(function BookingContent({
   registerBackHandler?: (handler: (() => boolean) | null) => void;
   openModal?: (view: any, data?: any, source?: string) => void;
   onPhaseChange?: (phase: number) => void;
+  onStepChange?: (step: number) => void;
 }) {
   const { setError } = useBooking();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   // Flow State
   const [step, setStep] = useState(1);
@@ -56,10 +62,80 @@ export const BookingContent = memo(function BookingContent({
   const [endDate, setEndDate] = useState("");
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = React.useState("");
+  const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age?: string; type: 'adult' | 'child' }[]>([]);
+
+  // Synchronize additionalGuests when traveler counts change
+  React.useEffect(() => {
+    const totalAdditional = (adults - 1) + kids;
+    setAdditionalGuests(prev => {
+      const next = [...prev];
+      if (next.length > totalAdditional) {
+        return next.slice(0, totalAdditional);
+      }
+      while (next.length < totalAdditional) {
+        const index = next.length;
+        const type = index < (adults - 1) ? 'adult' : 'child';
+        next.push({ name: "", type });
+      }
+      return next;
+    });
+  }, [adults, kids]);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [taxRate, setTaxRate] = useState(0);
+  const curationScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleCurationScroll = () => {
+    if (curationScrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = curationScrollRef.current;
+      // Show if there is more than 20px of scrollable content remaining
+      setShowScrollIndicator(scrollHeight > clientHeight && scrollTop + clientHeight < scrollHeight - 20);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch
+    fetch("/api/settings", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.tax_percentage) setTaxRate(parseFloat(data.tax_percentage));
+      })
+      .catch(err => console.error("Settings fetch error:", err));
+
+    // Real-time subscription for hyper-dynamic updates
+    const channel = supabase
+      .channel('site_settings_changes')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'key=eq.tax_percentage' }, 
+        (payload: any) => {
+          if (payload.new && payload.new.value) {
+            setTaxRate(parseFloat(payload.new.value));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
+
+  useEffect(() => {
+    if (discoveryPhase === 4) {
+      // Give the DOM a moment to settle before measuring
+      const timer = setTimeout(handleCurationScroll, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [discoveryPhase]);
 
   // Discovery Architecture
   const {
@@ -102,12 +178,14 @@ export const BookingContent = memo(function BookingContent({
     setInternalCanGoBack?.(canGoBackInternally);
 
     registerBackHandler?.(() => {
-      if (discoveryPhase > (packageData ? 2 : 1)) {
-        prevPhase();
+      // Step 1: Step-level regression (Back from Verification/Success)
+      if (step > 1) {
+        setStep(1);
         return true;
       }
-      if (step === 2) {
-        setStep(1);
+      // Step 2: Phase-level regression (Internal Discovery phases)
+      if (discoveryPhase > (packageData ? 2 : 1)) {
+        prevPhase();
         return true;
       }
       return false;
@@ -125,11 +203,18 @@ export const BookingContent = memo(function BookingContent({
   }, [discoveryPhase, onPhaseChange]);
 
   useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       search(destination);
     }, 150);
     return () => clearTimeout(timer);
   }, [destination, search]);
+
+  const startInputRef = React.useRef<HTMLInputElement>(null);
+  const endInputRef = React.useRef<HTMLInputElement>(null);
 
   // Temporal Intelligence: Auto-calculate return date for fixed-duration packages
   const isDurationFixed = Boolean(
@@ -150,19 +235,36 @@ export const BookingContent = memo(function BookingContent({
   }, [startDate, internalPackage, isDurationFixed]);
 
   // Pricing Logic
-  const totalInvestment = React.useMemo(() => {
+  const pricing = React.useMemo(() => {
     const pkg = internalPackage || packageData;
-    if (!pkg?.price) return "Quote on Request";
+    if (!pkg?.price) return { baseTotal: 0, taxAmount: 0, finalTotal: 0, symbol: "₹", isTaxApplied: false };
+    
     const symbol = pkg.currency || "₹";
-    const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
+    const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
     const child = pkg.child_price
-      ? parseInt(pkg.child_price.replace(/[^0-9]/g, ""))
+      ? parseInt(String(pkg.child_price).replace(/[^0-9]/g, ""))
       : 0;
     const infant = pkg.infant_price
-      ? parseInt(pkg.infant_price.replace(/[^0-9]/g, ""))
+      ? parseInt(String(pkg.infant_price).replace(/[^0-9]/g, ""))
       : 0;
-    return `${symbol}${(adults * base + kids * child + infants * infant).toLocaleString()}`;
-  }, [adults, kids, infants, internalPackage, packageData]);
+
+    const subtotal = adults * base + kids * child + infants * infant;
+    
+    // Per-package tax toggle logic: Only apply if global taxRate > 0 AND package has tax enabled
+    const isTaxApplied = taxRate > 0 && pkg.tax_status === "Inclusive of Taxes";
+    const tax = isTaxApplied ? (subtotal * taxRate) / 100 : 0;
+    
+    return {
+      baseTotal: subtotal,
+      taxAmount: tax,
+      finalTotal: subtotal + tax,
+      symbol,
+      isTaxApplied,
+      activeTaxRate: isTaxApplied ? taxRate : 0
+    };
+  }, [adults, kids, infants, internalPackage, packageData, taxRate]);
+
+  const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
   const submitBooking = async () => {
     setIsSubmitting(true);
@@ -202,8 +304,29 @@ export const BookingContent = memo(function BookingContent({
   };
 
   const canSubmit = Boolean(
-    customerName.length > 2 && customerEmail.includes("@"),
+    customerName.trim().length >= 3 && 
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
+    customerPhone.trim().length >= 8
   );
+
+  const isPhaseValid = React.useMemo(() => {
+    switch (discoveryPhase) {
+      case 2:
+        return Boolean(startDate && endDate);
+      case 3:
+        return adults > 0;
+      case 4:
+        return canSubmit;
+      default:
+        return true;
+    }
+  }, [discoveryPhase, startDate, endDate, adults, canSubmit, customerName, customerEmail, customerPhone]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const isScrolled = e.currentTarget.scrollTop > 30;
+    setScrolled(isScrolled);
+    onScroll(isScrolled);
+  };
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden">
@@ -244,6 +367,22 @@ export const BookingContent = memo(function BookingContent({
       {/* 3. VIEWPORT-LOCKED WORKSPACE */}
       <div className="flex-1 w-full relative z-10 flex flex-col overflow-hidden">
         <div className="flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden">
+          {/* Unified Background Hero for Phases 02-04 */}
+          {discoveryPhase > 1 && (
+            <div className="absolute inset-0 w-full h-full animate-in fade-in duration-1000 z-0 overflow-hidden bg-[#0a0a0b]">
+              <div className="absolute inset-0 w-full h-full overflow-hidden">
+                {internalPackage?.image && (
+                  <img
+                    src={internalPackage.image}
+                    className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-60"
+                    alt={internalPackage.title}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#0a0a0b]" />
+                <div className="absolute inset-0 bg-black/20" />
+              </div>
+            </div>
+          )}
           {step === 1 && (
             <div className="w-full h-full flex flex-col items-center justify-center px-6 md:px-12 relative">
               {/* PHASE 01: DESTINY (PAN-HORIZON) */}
@@ -506,7 +645,7 @@ export const BookingContent = memo(function BookingContent({
                             }}
                             className="px-8 py-3 bg-white/5 border border-white/10 hover:border-white/30 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] text-white/80 hover:text-white transition-all duration-500 shadow-2xl backdrop-blur-xl"
                           >
-                            Consult Elite Concierge
+                            Craft Your Own Journey
                           </button>
 
                           <button
@@ -516,7 +655,7 @@ export const BookingContent = memo(function BookingContent({
                             }}
                             className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/20 hover:text-white transition-colors border-b border-white/10 pb-1"
                           >
-                            Try another destiny
+                            Explore Alternative Destinations
                           </button>
                         </div>
                       </div>
@@ -569,298 +708,423 @@ export const BookingContent = memo(function BookingContent({
                   </div>
                 </div>
               )}
-
-              {/* PHASE 02: TIMELINE (UNIFIED MODAL STYLE) */}
-              {discoveryPhase === 2 && (
-                <div
-                  ref={scrollRef}
-                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
-                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
-                  data-lenis-prevent
-                >
-                  {/* Hero Cover (Dynamic Selection) */}
-                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
-                    {internalPackage?.image && (
-                      <img
-                        src={internalPackage.image}
-                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
-                        alt={internalPackage.title}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
-                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
-
-                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">
-                        {internalPackage?.location || "Bespoke Experience"}
-                      </span>
-                      <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">
-                        {internalPackage?.title || "Personalized Journey"}
+              {/* DISCOVERY PHASES 02-04: CONTENT ORCHESTRATION */}
+              {discoveryPhase > 1 && (
+                <div className="absolute inset-0 w-full h-full z-[200] overflow-hidden pointer-events-none">
+                  <div className="flex-1 w-full flex flex-col justify-between p-8 md:p-20 lg:p-24 pb-28 md:pb-20 relative z-20 h-full pointer-events-auto">
+                    {/* Top Section: Title (Hidden in Phase 04 to avoid duplication) */}
+                    <div className={cn(
+                      "max-w-4xl space-y-3 px-4 md:px-0 transition-all duration-1000",
+                      discoveryPhase === 4 ? "opacity-0 -translate-y-8 pointer-events-none h-0" : "mt-20 md:mt-24"
+                    )}>
+                      <h3 className="text-[clamp(2.5rem,10vw,6rem)] font-bold tracking-tighter text-white drop-shadow-2xl leading-[0.9] max-w-[90vw] md:max-w-full animate-in fade-in slide-in-from-top-4 duration-700">
+                        {internalPackage?.title || "Journey"}
                       </h3>
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
-                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
-
-                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                      <div className="text-center space-y-4">
-                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                          Phase 02 — Temporal Window
-                        </div>
-                        <h2 className="text-4xl font-bold tracking-tight text-white/90">
-                          Timeline Selection
-                        </h2>
+                      <div className="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.6em] text-white/40 drop-shadow-lg leading-relaxed">
+                          {internalPackage?.location || "Bespoke"}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-10 rounded-[48px] bg-white/[0.04] border border-white/[0.1] space-y-5">
-                          <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
-                            Arrival Protocol
-                          </span>
-                          <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full bg-transparent text-3xl font-bold focus:outline-none [color-scheme:dark] text-white/90"
-                          />
-                        </div>
-                        <div
-                          className={cn(
-                            "p-10 rounded-[48px] bg-white/[0.04] border border-white/[0.1] space-y-5 transition-all duration-500",
-                            isDurationFixed ? "opacity-80" : "opacity-100",
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
-                              {isDurationFixed
-                                ? "Return Protocol (Locked)"
-                                : "Return Protocol"}
-                            </span>
-                            {isDurationFixed && (
-                              <div className="text-[7px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-white/10 text-white/70">
-                                {internalPackage.duration}
+                    </div>
+
+                    {/* Middle Section: Discovery Hub (Centered) */}
+                    <div className="flex-1 flex flex-col justify-center items-center">
+                      <div className="w-full max-w-5xl min-h-[160px] h-auto relative flex items-center justify-center">
+                        
+                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 2 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none")}>
+                          <div className="w-full flex justify-center px-6 md:px-0">
+                            <div 
+                              className={cn(
+                                "relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40",
+                                isDurationFixed && "md:max-w-xl"
+                              )}
+                            >
+                              {/* LEFT: DEPARTURE */}
+                              <div 
+                                onClick={() => startInputRef.current?.showPicker()}
+                                className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08] transition-all group/arrival border-b md:border-b-0 md:border-r border-white/10 md:border-transparent"
+                              >
+                                <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/arrival:text-white/70 transition-colors">
+                                  Departure
+                                </span>
+                              <div className="flex flex-col items-center">
+                                {startDate ? (
+                                  <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <span className="text-2xl font-light tracking-tight text-white">
+                                      {new Date(startDate).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </span>
+                                    {/* Spacer to match Return side's badge rhythm */}
+                                    <div className="h-[14px] opacity-0" />
+                                  </div>
+                                ) : (
+                                  <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 group-hover/arrival:text-white/50 transition-colors">
+                                    Set Date
+                                  </span>
+                                )}
                               </div>
-                            )}
-                          </div>
-                          <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) =>
-                              !isDurationFixed && setEndDate(e.target.value)
-                            }
-                            readOnly={isDurationFixed}
-                            className={cn(
-                              "w-full bg-transparent text-3xl font-bold focus:outline-none [color-scheme:dark] text-white/90",
-                              isDurationFixed
-                                ? "cursor-not-allowed"
-                                : "cursor-pointer",
-                            )}
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={nextPhase}
-                        disabled={!startDate || !endDate}
-                        className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] shadow-2xl disabled:opacity-10 transition-all"
-                      >
-                        Establish Window
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+                              {/* Selection Indicator */}
+                              <div className={cn(
+                                "absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-white/60 transition-all duration-700",
+                                startDate ? "w-12 opacity-100" : "w-0 opacity-0"
+                              )} />
 
-              {/* PHASE 03: THE PARTY (UNIFIED MODAL STYLE) */}
-              {discoveryPhase === 3 && (
-                <div
-                  ref={scrollRef}
-                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
-                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
-                  data-lenis-prevent
-                >
-                  {/* Hero Cover (Dynamic Selection) */}
-                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
-                    {internalPackage?.image && (
-                      <img
-                        src={internalPackage.image}
-                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
-                        alt={internalPackage.title}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
-                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
+                              <input
+                                ref={startInputRef}
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
+                              />
+                            </div>
 
-                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">
-                        {internalPackage?.location || "Bespoke Experience"}
-                      </span>
-                      <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">
-                        {internalPackage?.title || "Personalized Journey"}
-                      </h3>
-                    </div>
-                  </div>
+                            {/* DIVIDER (HIDDEN ON MOBILE DUE TO BORDER) */}
+                            <div className="hidden md:block w-[1px] h-8 my-auto bg-white/20" />
 
-                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
-                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
+                            {/* RIGHT: RETURN */}
+                            <div 
+                              onClick={() => !isDurationFixed && endInputRef.current?.showPicker()}
+                              className={cn(
+                                "flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 transition-all group/return",
+                                isDurationFixed ? "cursor-default bg-white/[0.02]" : "cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08]"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={cn(
+                                  "text-[7px] font-black uppercase tracking-[0.5em] transition-colors",
+                                  isDurationFixed ? "text-white/20" : "text-white/40 group-hover/return:text-white/70"
+                                )}>
+                                  Return
+                                </span>
+                                {isDurationFixed && <Lock size={8} className="text-white/20" />}
+                              </div>
+                              <div className="flex flex-col items-center">
+                                {endDate ? (
+                                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                      <span className={cn(
+                                        "text-2xl font-light tracking-tight transition-colors",
+                                        isDurationFixed ? "text-white/30" : "text-white"
+                                      )}>
+                                        {new Date(endDate).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                      </span>
+                                      
+                                      {/* Subtle Duration Badge */}
+                                      <div className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 opacity-60">
+                                        <span className="text-[6px] font-black uppercase tracking-widest text-white/40">
+                                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate ? startDate : endDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights
+                                        </span>
+                                        <div className="w-[1px] h-1.5 bg-white/10" />
+                                        <span className="text-[6px] font-black uppercase tracking-widest text-white/40">
+                                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate ? startDate : endDate).getTime()) / (1000 * 60 * 60 * 24))) + 1} Days
+                                        </span>
+                                      </div>
+                                    </div>
+                                ) : (
+                                  <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 group-hover/return:text-white/50 transition-colors">
+                                    {isDurationFixed ? "Awaiting Arrival" : "Set Date"}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Selection Indicator */}
+                              {!isDurationFixed && (
+                                <div className={cn(
+                                  "absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-white/60 transition-all duration-700",
+                                  endDate ? "w-12 opacity-100" : "w-0 opacity-0"
+                                )} />
+                              )}
 
-                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                      <div className="text-center space-y-4">
-                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                          Phase 03 — Group Manifest
-                        </div>
-                        <h2 className="text-4xl font-bold tracking-tight text-white/90">
-                          Group Composition
-                        </h2>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {[
-                          {
-                            label: "Adults",
-                            count: adults,
-                            set: setAdults,
-                            min: 1,
-                          },
-                          {
-                            label: "Children",
-                            count: kids,
-                            set: setKids,
-                            min: 0,
-                          },
-                          {
-                            label: "Infants",
-                            count: infants,
-                            set: setInfants,
-                            min: 0,
-                          },
-                        ].map((t) => (
-                          <div
-                            key={t.label}
-                            className="p-10 rounded-[56px] bg-white/[0.02] border border-white/[0.05] text-center space-y-8"
-                          >
-                            <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-white/60 block">
-                              {t.label}
-                            </span>
-                            <div className="flex items-center justify-between bg-black/40 p-2 rounded-2xl border border-white/[0.05]">
-                              <button
-                                onClick={() =>
-                                  t.set(Math.max(t.min, t.count - 1))
-                                }
-                                className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#f5f5f7] hover:text-black transition-all font-bold text-lg"
-                              >
-                                -
-                              </button>
-                              <span className="text-4xl font-bold italic text-white/90">
-                                {t.count}
-                              </span>
-                              <button
-                                onClick={() => t.set(t.count + 1)}
-                                className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#f5f5f7] hover:text-black transition-all font-bold text-lg"
-                              >
-                                +
-                              </button>
+                              {!isDurationFixed && (
+                                <input
+                                  ref={endInputRef}
+                                  type="date"
+                                  value={endDate}
+                                  onChange={(e) => setEndDate(e.target.value)}
+                                  className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
+                                />
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={nextPhase}
-                        className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] shadow-2xl transition-all"
-                      >
-                        Confirm Manifest
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* PHASE 04: CURATION (UNIFIED MODAL STYLE) */}
-              {discoveryPhase === 4 && (
-                <div
-                  ref={scrollRef}
-                  onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
-                  className="absolute inset-0 w-full h-full overflow-y-auto scrollbar-hide overscroll-behavior-contain animate-in fade-in duration-1000 z-[200]"
-                  data-lenis-prevent
-                >
-                  {/* Hero Cover (Dynamic Selection) */}
-                  <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
-                    {internalPackage?.image && (
-                      <img
-                        src={internalPackage.image}
-                        className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-70"
-                        alt={internalPackage.title}
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
-                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
-
-                    <div className="absolute bottom-12 left-8 md:left-16 space-y-3">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 drop-shadow-lg">
-                        {internalPackage?.location || "Bespoke Experience"}
-                      </span>
-                      <h3 className="text-3xl md:text-5xl font-bold tracking-tight text-white drop-shadow-2xl">
-                        {internalPackage?.title || "Personalized Journey"}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 px-6 md:px-16 pb-40 -mt-10 bg-[#0a0a0b] rounded-t-[48px] flex flex-col items-center border-t border-white/[0.05]">
-                    <div className="w-12 h-1.5 bg-white/10 rounded-full my-8" />
-
-                    <div className="w-full max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                      <div className="text-center space-y-4">
-                        <div className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                          Phase 04 — Final Verification
                         </div>
-                        <h2 className="text-4xl font-bold tracking-tight text-white/90">
-                          Curation Details
-                        </h2>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                          <div className="space-y-3">
-                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
-                              Primary Guest
-                            </span>
-                            <input
-                              type="text"
-                              value={customerName}
-                              onChange={(e) => setCustomerName(e.target.value)}
-                              className="w-full bg-white/[0.03] border border-white/[0.08] p-6 rounded-[28px] text-lg font-semibold focus:border-white/20 transition-all text-white/90"
-                              placeholder="Full Name"
-                            />
-                          </div>
-                          <div className="space-y-3">
-                            <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
-                              Contact Email
-                            </span>
-                            <input
-                              type="email"
-                              value={customerEmail}
-                              onChange={(e) => setCustomerEmail(e.target.value)}
-                              className="w-full bg-white/[0.03] border border-white/[0.08] p-6 rounded-[28px] text-lg font-semibold focus:border-white/20 transition-all text-white/90"
-                              placeholder="name@domain.com"
-                            />
+
+                      {/* Phase 03: Group */}
+                      <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 3 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                        <div className="w-full flex justify-center px-6 md:px-0">
+                          <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40">
+                            {[
+                              { id: 'adults', label: "Adults", count: adults, set: setAdults, min: 1 },
+                              { id: 'kids', label: "Children", count: kids, set: setKids, min: 0 },
+                              { id: 'infants', label: "Infants", count: infants, set: setInfants, min: 0 },
+                            ].map((t, idx) => (
+                              <React.Fragment key={t.id}>
+                                <div className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 group/segment transition-all">
+                                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/segment:text-white/70 transition-colors">
+                                    {t.label}
+                                  </span>
+                                  <div className="flex items-center gap-6 md:gap-8">
+                                    <button
+                                      onClick={() => t.set(Math.max(t.min, t.count - 1))}
+                                      className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="text-2xl md:text-3xl font-light tracking-tight text-white tabular-nums">
+                                      {t.count}
+                                    </span>
+                                    <button
+                                      onClick={() => t.set(t.count + 1)}
+                                      className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                                {idx < 2 && (
+                                  <>
+                                    {/* Mobile Divider */}
+                                    <div className="block md:hidden h-[1px] w-12 mx-auto bg-white/10" />
+                                    {/* Desktop Divider */}
+                                    <div className="hidden md:block w-[1px] h-8 my-auto bg-white/20" />
+                                  </>
+                                )}
+                              </React.Fragment>
+                            ))}
                           </div>
                         </div>
-                        <div className="space-y-3">
-                          <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/60">
-                            Special Requests
-                          </span>
-                          <textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            className="w-full h-full min-h-[160px] bg-white/[0.03] border border-white/[0.08] p-6 rounded-[32px] text-lg font-medium focus:border-white/20 transition-all resize-none text-white/90"
-                            placeholder="Type custom requests..."
-                          />
+                      </div>
+
+                      {/* Phase 04: Curation */}
+                      <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                          <div className="w-full flex flex-col items-center gap-10 px-6 md:px-0 mt-32 md:mt-24">
+                            
+                            {/* Phase 04 Destination Title & Location (Sovereign Style - Synchronized with Global Color) */}
+                            <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
+                              <h2 className="text-[1.5rem] md:text-[2.2rem] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
+                                {internalPackage?.title || "Journey"}
+                              </h2>
+                              <div className="flex items-center justify-center gap-4 pt-1">
+                                <div className="w-12 h-[1px] bg-white/10" />
+                                <span className="text-[7px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
+                                  {internalPackage?.location || "Bespoke"}
+                                </span>
+                                <div className="w-12 h-[1px] bg-white/10" />
+                              </div>
+                            </div>
+
+                            <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col shadow-2xl hover:border-white/40 overflow-visible group/instrument">
+                            
+                              {/* Scrollable Protocol Area */}
+                              <div 
+                                ref={curationScrollRef}
+                                onScroll={handleCurationScroll}
+                                className="w-full max-h-[400px] md:max-h-[500px] overflow-y-auto scrollbar-hide p-6 md:p-10 space-y-12"
+                              >
+                                
+                                {/* Section 1: Primary Identification */}
+                                <div className="space-y-10">
+                                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+                                      Lead Traveler
+                                    </span>
+                                    <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+                                      Step 04 / 04
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10 items-start">
+                                    <div className="space-y-4 group/id">
+                                      <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/id:text-white/80 transition-colors">
+                                        Full Name
+                                      </span>
+                                      <div className="h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all">
+                                        <input
+                                          type="text"
+                                          value={customerName}
+                                          onChange={(e) => setCustomerName(e.target.value)}
+                                          placeholder="Enter your name"
+                                          className="w-full bg-transparent text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-4 group/contact">
+                                      <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
+                                        Contact Information
+                                      </span>
+                                      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-end">
+                                        <div className="flex-1 h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full">
+                                          <input
+                                            type="email"
+                                            value={customerEmail}
+                                            onChange={(e) => setCustomerEmail(e.target.value)}
+                                            placeholder="Email address"
+                                            className="w-full bg-transparent text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
+                                          />
+                                        </div>
+                                        
+                                        {/* Contact Number with Country Selector */}
+                                        <div className="flex-1 flex items-center gap-3 h-10 border-b border-white/20 group/phone focus-within:border-white/50 transition-all relative w-full">
+                                          <div className="relative mb-1">
+                                            <div 
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCountryMenuOpen(!countryMenuOpen);
+                                              }}
+                                              className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all active:scale-95 bg-white/5"
+                                            >
+                                              <span className="text-xs">{selectedCountry.flag}</span>
+                                              <span className="text-[10px] md:text-xs font-bold text-white/60 group-focus-within/phone:text-white/90">{selectedCountry.code}</span>
+                                            </div>
+                                            {countryMenuOpen && (
+                                              <div className="absolute top-full left-0 mt-2 w-48 max-h-40 overflow-y-auto bg-[#121214] backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-none">
+                                                {[
+                                                  { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
+                                                  { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
+                                                  { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
+                                                  { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
+                                                  { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
+                                                  { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 },
+                                                ].map((c) => (
+                                                  <div key={c.name} onClick={() => { setSelectedCountry(c); setCustomerPhone(""); setCountryMenuOpen(false); }} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/10 cursor-pointer transition-colors group/item">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-xs">{c.flag}</span>
+                                                      <span className="text-[10px] font-bold text-white/70 group-hover/item:text-white">{c.name}</span>
+                                                    </div>
+                                                    <span className="text-[9px] font-black text-white/30 group-hover/item:text-white/50">{c.code}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <input
+                                            type="tel"
+                                            value={customerPhone}
+                                            onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                                            maxLength={selectedCountry.length}
+                                            placeholder="Phone number"
+                                            onFocus={() => setCountryMenuOpen(false)}
+                                            className="flex-1 bg-transparent mb-1 text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Section 2: Group Manifesto (If > 1 Guest) */}
+                                {(adults > 1 || kids > 0) && (
+                                  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+                                        Travelers
+                                      </span>
+                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
+                                        {adults} ADULTS • {kids} CHILDREN
+                                      </span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 md:gap-x-16 gap-y-12">
+                                      {/* Additional Adults */}
+                                      {Array.from({ length: adults - 1 }).map((_, i) => (
+                                        <div key={`adult-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
+                                              Guest {i + 2} <span className="text-[7px] text-white/20 pl-1">(Adult)</span>
+                                            </span>
+                                          </div>
+                                          <div className="border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                            <input
+                                              type="text"
+                                              placeholder="Full name"
+                                              value={additionalGuests[i]?.name || ""}
+                                              onChange={(e) => {
+                                                const next = [...additionalGuests];
+                                                if (next[i]) next[i].name = e.target.value;
+                                                setAdditionalGuests(next);
+                                              }}
+                                              className="w-full bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                            />
+                                          </div>
+                                        </div>
+                                      ))}
+                                      
+                                      {/* Children */}
+                                      {Array.from({ length: kids }).map((_, i) => {
+                                        const guestIdx = (adults - 1) + i;
+                                        return (
+                                          <div key={`child-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
+                                                Guest {adults + i + 1} <span className="text-[7px] text-white/20 pl-1">(Child)</span>
+                                              </span>
+                                            </div>
+                                            <div className="flex gap-4 border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                              <input
+                                                type="text"
+                                                placeholder="Full name"
+                                                value={additionalGuests[guestIdx]?.name || ""}
+                                                onChange={(e) => {
+                                                  const next = [...additionalGuests];
+                                                  if (next[guestIdx]) next[guestIdx].name = e.target.value;
+                                                  setAdditionalGuests(next);
+                                                }}
+                                                className="flex-[2] bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                              />
+                                              <div className="w-[1px] h-3 bg-white/10 my-auto" />
+                                              <input
+                                                type="text"
+                                                placeholder="Age"
+                                                value={additionalGuests[guestIdx]?.age || ""}
+                                                onChange={(e) => {
+                                                  const next = [...additionalGuests];
+                                                  if (next[guestIdx]) next[guestIdx].age = e.target.value;
+                                                  setAdditionalGuests(next);
+                                                }}
+                                                className="w-10 bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all text-center"
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Section 3: Protocol Refinements */}
+                                <div className="space-y-6 group/notes pb-32">
+                                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+                                      Special Requests <span className="text-[8px] md:text-[10px] opacity-40 ml-1">(Optional)</span>
+                                    </span>
+                                  </div>
+                                  <textarea
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    placeholder="Any special desire? Tell us!"
+                                    className="w-full h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-none shadow-inner"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Sovereign Scroll Indicator (Smooth Ease Fade) */}
+                              <div className={cn(
+                                "absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 pointer-events-none z-[130] transition-all duration-700 cubic-bezier(0.23,1,0.32,1)",
+                                (showScrollIndicator && discoveryPhase === 4) 
+                                  ? "opacity-100 translate-y-0" 
+                                  : "opacity-0 translate-y-4"
+                              )}>
+                                <span className="text-[8px] md:text-[9px] font-black tracking-[0.4em] text-white/70 uppercase pl-[0.4em] animate-pulse drop-shadow-[0_0_12px_rgba(255,255,255,0.5)]">
+                                  Scroll
+                                </span>
+                                <div className="relative flex items-center justify-center">
+                                  <ChevronDown size={14} strokeWidth={3} className="text-white/60 animate-bounce relative z-10" />
+                                  <div className="absolute w-6 h-6 bg-white/20 blur-xl rounded-full animate-pulse opacity-40" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => (canSubmit ? setStep(2) : null)}
-                        className="w-full py-6 bg-white text-black rounded-[24px] font-bold uppercase tracking-widest text-[10px] transition-all shadow-2xl disabled:opacity-10"
-                        disabled={!canSubmit}
-                      >
-                        Generate Protocol
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -869,56 +1133,134 @@ export const BookingContent = memo(function BookingContent({
           )}
 
           {step === 2 && (
-            <div className="w-full max-w-2xl space-y-12 animate-in zoom-in-95 duration-1000">
-              <div className="text-center space-y-4">
-                <h3 className="text-3xl font-bold tracking-tight text-white/90 uppercase">
-                  Protocol Verification
-                </h3>
-                <p className="text-[8px] font-bold uppercase tracking-[0.5em] text-white/60 italic">
-                  TRX-SECURE TRANSMISSION
-                </p>
-              </div>
-              <div className="p-12 rounded-[56px] bg-white/[0.01] border border-white/[0.05] space-y-12 backdrop-blur-3xl shadow-2xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left text-sm font-medium">
-                  <div className="space-y-2">
-                    <span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">
-                      Guest
+            <div 
+              onScroll={handleScroll}
+              className="w-full h-full relative z-[210] flex flex-col items-center justify-start md:justify-center p-[clamp(1rem,4vh,2.5rem)] pt-[clamp(4rem,12vh,6rem)] pb-40 md:py-[clamp(1rem,4vh,2.5rem)] overflow-y-auto scrollbar-hide animate-in fade-in duration-1000 transform-gpu"
+            >
+              <div className="w-full max-w-5xl space-y-[clamp(1.5rem,4vh,3rem)] flex flex-col items-center shrink-0">
+                
+                {/* Unified Title Segment */}
+                <div className="text-center space-y-1 md:space-y-3 shrink-0">
+                  <h3 className="text-[clamp(1.2rem,5vw,2.5rem)] font-bold tracking-tighter text-white/90 uppercase drop-shadow-2xl leading-none">
+                    Review Your Journey
+                  </h3>
+                  <p className="text-[clamp(7px,1vw,9px)] font-black uppercase tracking-[0.6em] text-white/40 italic pl-[0.6em]">
+                    Final verification before secure transmission
+                  </p>
+                </div>
+
+                {/* Primary Manifest Instrument (Unified Horizontal Logic) */}
+                <div className="relative w-full max-w-4xl h-auto transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[28px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden shadow-2xl hover:border-white/40 group/manifest">
+                  {/* Segment 1: Lead Traveler */}
+                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
+                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
+                      Lead Traveler
                     </span>
-                    <p className="text-lg text-white/90">{customerName}</p>
+                    <div className="flex flex-col items-center text-center space-y-0.5">
+                      <span className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">{customerName}</span>
+                      <div className="flex flex-col gap-0">
+                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{customerEmail}</span>
+                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{selectedCountry.code} {customerPhone}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2 md:text-right">
-                    <span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">
-                      Horizon
+
+                  {/* Segment 2: Destination */}
+                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
+                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
+                      Destination
                     </span>
-                    <p className="text-lg text-white/90">
-                      {internalPackage?.title || destination}
-                    </p>
+                    <div className="flex flex-col items-center text-center space-y-0.5">
+                      <span className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">{internalPackage?.title || destination}</span>
+                      <div className="flex flex-col gap-0">
+                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{internalPackage?.location || destination}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">
-                      Dates
+
+                  {/* Segment 3: Travel Dates */}
+                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
+                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
+                      Travel Dates
                     </span>
-                    <p className="text-lg text-white/90">
-                      {formatDateForDisplay(startDate)} —{" "}
-                      {formatDateForDisplay(endDate)}
-                    </p>
+                    <div className="flex flex-col items-center text-center space-y-1.5 md:space-y-2">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs md:text-sm font-bold text-white tracking-tight leading-tight">
+                          {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
+                        </span>
+                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">
+                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-center px-4 py-1.5 rounded-full bg-white/[0.08] border border-white/15 shadow-sm">
+                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-[0.2em] leading-none text-center">
+                          {adults} {adults > 1 ? "ADULTS" : "ADULT"} {kids > 0 && `• ${kids} ${kids > 1 ? "CHILDREN" : "CHILD"}`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2 md:text-right">
-                    <span className="text-[7px] font-bold uppercase text-white/60 tracking-widest">
+
+                  {/* Segment 4: Itinerary Cost */}
+                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 px-6 bg-white/[0.03]">
+                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
                       Itinerary Cost
                     </span>
-                    <p className="text-3xl font-bold font-mono text-white/90">
-                      {totalInvestment}
-                    </p>
+                    <div className="flex flex-col items-center text-center space-y-0.5">
+                      <span className="text-2xl md:text-3xl font-bold text-white tabular-nums tracking-tighter leading-none">{totalInvestment}</span>
+                      <div className="flex flex-col gap-0">
+                        <span className="text-[8px] font-bold text-white/60 uppercase tracking-[0.3em]">
+                          {pricing.isTaxApplied ? "Inclusive of Taxes" : "Excluding Taxes"}
+                        </span>
+                        {pricing.isTaxApplied && (
+                          <div className="flex flex-col gap-0.5 mt-1.5">
+                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.15em] leading-none">Base: {pricing.symbol}{pricing.baseTotal.toLocaleString()}</span>
+                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.15em] leading-none">Tax ({pricing.activeTaxRate}%): {pricing.symbol}{pricing.taxAmount.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={submitBooking}
-                  disabled={isSubmitting}
-                  className="w-full py-6 bg-[#f5f5f7] text-black rounded-[28px] font-bold uppercase tracking-widest text-[10px] shadow-2xl transition-all"
-                >
-                  {isSubmitting ? "Transmitting..." : "Activate Protocol"}
-                </button>
+
+                {/* Secondary Manifesto Area (Guest List & Notes) */}
+                <div className={cn(
+                  "w-full max-w-4xl gap-8 items-start",
+                  additionalGuests.filter(g => g.name).length > 0 && notes ? "grid grid-cols-1 md:grid-cols-2" : "flex flex-col items-center"
+                )}>
+                  {/* Guest Manifesto List - Only shown if additional guests exist */}
+                  {additionalGuests.filter(g => g.name).length > 0 && (
+                    <div className="space-y-4 w-full">
+                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30 pl-4">
+                        Guest Manifesto
+                      </span>
+                      <div className="grid grid-cols-1 gap-2 max-h-[120px] overflow-y-auto scrollbar-hide pr-2">
+                        {additionalGuests.filter(g => g.name).map((guest, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
+                              Guest {i + 2} {guest.type === 'child' ? `(Child${guest.age ? `, ${guest.age}y` : ''})` : '(Adult)'}
+                            </span>
+                            <span className="text-xs font-bold text-white/80">{guest.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Requests Section */}
+                  {notes && (
+                    <div className={cn("space-y-4", additionalGuests.filter(g => g.name).length === 0 ? "w-full max-w-2xl" : "w-full")}>
+                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30 pl-4">
+                        Special Requests
+                      </span>
+                      <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 h-fit">
+                        <p className="text-xs font-light text-white/60 leading-relaxed italic border-l border-white/20 pl-4 py-1">
+                          "{notes}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -932,62 +1274,194 @@ export const BookingContent = memo(function BookingContent({
                 <h3 className="text-5xl font-bold tracking-tight text-white/90 uppercase">
                   Established
                 </h3>
-                <p className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/30 italic">
-                  Reference TRX-{bookingId?.split("-")[0].toUpperCase()}
-                </p>
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80 pl-[0.4em]">
+                    Reference ID: TRX-{bookingId?.split("-")[0].toUpperCase()}
+                  </p>
+                  <div className="h-[1px] w-12 bg-white/20" />
+                </div>
               </div>
               <button
                 onClick={startClosing}
-                className="px-16 py-5 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-white/50 hover:bg-[#f5f5f7] hover:text-black transition-all"
+                className="px-20 py-5 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white/90 hover:bg-[#f5f5f7] hover:text-black transition-all shadow-lg"
               >
-                Close Consultation
+                Close
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* 4. PRECISION PILL MANIFEST (PINNED) */}
+      {/* 4. PROGRESSIVE BOTTOM MASK (MIRRORED iOS STYLE) */}
       {step === 1 && discoveryPhase > 1 && (
-        <div className="absolute bottom-0 left-0 right-0 p-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
-          <div className="w-full max-w-4xl flex items-center justify-between bg-white/[0.04] backdrop-blur-3xl border border-white/[0.08] p-4 px-12 rounded-full pointer-events-auto shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] group/pill transition-all duration-700">
-            <div className="flex items-center gap-12">
-              <div className="space-y-1">
-                <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors">
+        <div
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 md:h-48 transition-all duration-1000 backdrop-blur-sm z-[110] transform-gpu will-change-[opacity,backdrop-filter] animate-in fade-in duration-1000"
+          style={{
+            opacity: 0.95,
+            background:
+              "linear-gradient(to top, #0a0a0b 0%, #0a0a0b 40%, rgba(10,10,11,0.8) 65%, rgba(10,10,11,0) 100%)",
+            maskImage:
+              "linear-gradient(to top, black 0%, black 40%, rgba(0,0,0,0.8) 70%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to top, black 0%, black 40%, rgba(0,0,0,0.8) 70%, transparent 100%)",
+          }}
+        />
+      )}
+
+      {/* 5. PRECISION PILL MANIFEST (DYNAMIC ISLAND) */}
+      {((step === 1 && discoveryPhase > 1) || step === 2) && (
+        <div className="absolute bottom-4 md:bottom-0 left-0 right-0 p-6 md:p-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
+          <div className={cn(
+            "w-full flex items-center bg-white/[0.08] backdrop-blur-3xl border border-white/[0.12] p-2.5 px-6 md:p-4 rounded-full pointer-events-auto shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)] group/pill transition-all duration-[1000ms] cubic-bezier(0.23,1,0.32,1)",
+            discoveryPhase >= 3 || step === 2 ? "max-w-screen-lg md:px-10" :
+            discoveryPhase === 2 ? "max-w-3xl md:px-10" : "max-w-xl md:px-6"
+          )}>
+            {/* Expansive Horizontal Layout with Morphing Logic */}
+            <div className="flex flex-1 items-center justify-between gap-4 md:gap-6">
+              
+              {/* Segment 1: Itinerary Cost (Always Visible) */}
+              <div className="flex flex-col space-y-1.5 items-start min-w-fit pl-2">
+                <span className="text-[6px] md:text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
                   Itinerary Cost
                 </span>
-                <p className="text-2xl font-bold tracking-tight text-white/90 leading-none">
-                  {totalInvestment}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[clamp(1.1rem,2.5vw,1.6rem)] font-bold tracking-tight text-white/90 leading-none tabular-nums whitespace-nowrap">
+                    {totalInvestment}
+                  </p>
+                  <div className="px-1.5 py-0.5 rounded-[4px] bg-white/[0.03] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000">
+                    <span className="text-[5px] md:text-[6px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap">
+                      {pricing.isTaxApplied ? "Incl. Tax" : "Excl. Tax"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="w-[1px] h-8 bg-white/[0.1] hidden md:block" />
-              <div className="hidden lg:flex flex-col space-y-1">
-                <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors">
+
+              {discoveryPhase > 2 && <div className="hidden md:block w-[1px] h-8 bg-white/[0.12] shrink-0 animate-in fade-in duration-1000" />}
+
+              {/* Segment 2: Dynamic Guest Manifest (Phase 03/04 Transition) */}
+              {discoveryPhase > 2 && (
+                <div className={cn(
+                  "hidden md:flex flex-col space-y-1 items-center min-w-fit transition-all duration-1000 animate-in fade-in slide-in-from-bottom-2 px-4",
+                  discoveryPhase === 3 ? "opacity-60 scale-95" : "opacity-100 scale-100"
+                )}>
+                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap">
+                    {Number(adults) + Number(kids) === 1 ? "Guest" : "Guests"} Manifest
+                  </span>
+                  <div className="flex items-center gap-4 whitespace-nowrap">
+                    <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
+                      {adults} {Number(adults) === 1 ? "Adult" : "Adults"}
+                    </span>
+                    {Number(kids) > 0 && (
+                      <>
+                        <div className="w-[1px] h-3 bg-white/10" />
+                        <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
+                          {kids} {Number(kids) === 1 ? "Child" : "Kids"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="hidden md:block w-[1px] h-8 bg-white/[0.12] shrink-0" />
+
+              {/* Segment 3: Travel Dates (Contextual Reveal) */}
+              <div className={cn(
+                "hidden md:flex flex-col space-y-1 items-center min-w-fit px-4 transition-all duration-700",
+                discoveryPhase === 2 ? "flex-shrink" : "flex-1"
+              )}>
+                <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
                   Travel Dates
                 </span>
-                <p className="text-[10px] font-bold text-white/70 uppercase tracking-tighter">
-                  {startDate ? (
-                    <span className="flex items-center gap-2">
-                      {formatDateForDisplay(startDate)}{" "}
-                      <ArrowRight size={10} className="text-white/20" />{" "}
+                {startDate && endDate && (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-4 whitespace-nowrap">
+                      <span className="text-[11px] md:text-[12px] font-bold text-white/90 uppercase tracking-tighter tabular-nums">
+                        {formatDateForDisplay(startDate)}
+                      </span>
+                      <div className="w-4 h-[1px] bg-white/20" />
+                      <span className="text-[11px] md:text-[12px] font-bold text-white/90 uppercase tracking-tighter tabular-nums">
+                        {formatDateForDisplay(endDate)}
+                      </span>
+                    </div>
+                    {discoveryPhase > 2 && (
+                      <div className="flex items-center gap-1 bg-white/[0.05] border border-white/10 px-2.5 py-0.5 rounded-full animate-in zoom-in-95 duration-700">
+                        <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
+                        <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60 pl-0.5 whitespace-nowrap">
+                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile-Only Unified Readout */}
+              <div className="flex md:hidden flex-col gap-1.5 animate-in fade-in slide-in-from-left-2 duration-700">
+                {startDate && endDate && (
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <span className="text-[8px] font-bold text-white/50 uppercase tracking-tighter">
+                      {formatDateForDisplay(startDate)}
+                    </span>
+                    <ArrowRight size={8} className="text-white/20" />
+                    <span className="text-[8px] font-bold text-white/50 uppercase tracking-tighter">
                       {formatDateForDisplay(endDate)}
                     </span>
-                  ) : (
-                    "Awaiting Window"
-                  )}
-                </p>
+                  </div>
+                )}
+                {discoveryPhase > 3 && (
+                  <div className="flex items-center gap-2 bg-white/[0.05] px-2 py-0.5 rounded-full w-fit">
+                    <div className="w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" />
+                    <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60">
+                      {adults}A {kids > 0 ? `• ${kids}C` : ""}
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="flex items-center">
-              {discoveryPhase > 1 && (
-                <button
-                  onClick={nextPhase}
-                  className="px-12 py-4 bg-white text-black rounded-full font-black uppercase tracking-[0.2em] text-[9px] hover:bg-[#f5f5f7] hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 flex items-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-                >
-                  Continue
-                  <ChevronRight size={14} strokeWidth={3} />
-                </button>
-              )}
+
+              {/* Right: Action Button Area */}
+              <div className="flex items-center justify-end pl-2 md:pl-8 border-l border-white/10 ml-2 md:ml-6 shrink-0 pr-2">
+                {discoveryPhase > 1 && (
+                  <Magnetic>
+                    <button
+                      onClick={() => {
+                        if (!isPhaseValid || isSubmitting) return;
+                        if (step === 2) {
+                          submitBooking();
+                        } else if (discoveryPhase === 4) {
+                          setStep(2);
+                        } else {
+                          nextPhase();
+                        }
+                      }}
+                      disabled={isSubmitting || !isPhaseValid}
+                      className={cn(
+                        "group/btn relative overflow-hidden h-10 md:h-14 rounded-full transition-all duration-700 active:scale-95",
+                        isPhaseValid 
+                          ? "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100" 
+                          : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
+                        discoveryPhase === 2 ? "px-6 md:px-8" : 
+                        discoveryPhase === 3 ? "px-7 md:px-10" : "px-8 md:px-12"
+                      )}
+                    >
+                      <div className="relative z-10 flex items-center gap-2.5">
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
+                          {step === 2 ? (isSubmitting ? "Sending Request" : "Confirm & Send") : 
+                           discoveryPhase === 4 ? "Review Booking" : 
+                           discoveryPhase === 3 ? "Continue" : "Next"}
+                        </span>
+                        <ChevronRight 
+                          size={14} 
+                          strokeWidth={3} 
+                          className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0" 
+                        />
+                      </div>
+
+                      <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                    </button>
+                  </Magnetic>
+                )}
+              </div>
             </div>
           </div>
         </div>

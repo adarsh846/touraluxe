@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, memo } from "react";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { Magnetic } from "../Magnetic";
+import { supabase } from "@/lib/supabase";
 
 export const PackageContent = memo(function PackageContent({ 
   data: experience, 
@@ -20,6 +21,35 @@ export const PackageContent = memo(function PackageContent({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [globalTaxRate, setGlobalTaxRate] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/settings", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.tax_percentage) setGlobalTaxRate(parseFloat(data.tax_percentage));
+      })
+      .catch(() => {});
+
+    // Real-time subscription for hyper-dynamic updates
+    const channel = supabase
+      .channel('site_settings_package_content')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'key=eq.tax_percentage' }, 
+        (payload: any) => {
+          if (payload.new && payload.new.value) {
+            setGlobalTaxRate(parseFloat(payload.new.value));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const isTaxApplied = globalTaxRate > 0 && experience?.tax_status === "Inclusive of Taxes";
 
 
 
@@ -52,14 +82,18 @@ export const PackageContent = memo(function PackageContent({
               {/* Price badge */}
               <div className="absolute bottom-8 left-8 flex items-baseline gap-2">
                 <span className="text-4xl md:text-5xl font-semibold tracking-tight text-white leading-tight py-1">
-                  {experience.currency || "€"}{Number(experience.price.toString().replace(/[^0-9]/g, "")).toLocaleString('en-IN')}
+                  {(() => {
+                    const base = parseInt(experience.price.toString().replace(/[^0-9]/g, "")) || 0;
+                    const finalPrice = isTaxApplied ? base + (base * globalTaxRate / 100) : base;
+                    return `${experience.currency || "₹"}${finalPrice.toLocaleString('en-IN')}`;
+                  })()}
                 </span>
                 <div className="flex flex-col mb-1">
                   <span className="text-sm text-white/60 font-normal uppercase tracking-wider">
                     / Person
                   </span>
                   <span className="text-[9px] text-white/30 font-medium uppercase tracking-[0.1em] mt-0.5 whitespace-nowrap">
-                    {experience.tax_status || "Inclusive of Taxes"}
+                    {isTaxApplied ? "Inclusive of Taxes" : "Excluding Taxes"}
                   </span>
                 </div>
               </div>

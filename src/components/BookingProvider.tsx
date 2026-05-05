@@ -37,6 +37,7 @@ interface BookingContextType {
   startClosing: () => void;
   goBack: () => void;
   canGoBack: boolean;
+  history: ModalState[];
   packageData?: PackageData;
   bookingSource?: string;
   error: string | null;
@@ -137,12 +138,13 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     startClosing,
     goBack,
     canGoBack: history.length > 0,
+    history,
     packageData: modalState.view === 'BOOKING' ? modalState.data : undefined,
     bookingSource: modalState.source,
     error,
     errorTrigger,
     setError
-  }), [isOpen, modalState, isClosing, history.length, openModal, closeModal, openBooking, startClosing, goBack, error, errorTrigger, setError]);
+  }), [isOpen, modalState, isClosing, history, openModal, closeModal, openBooking, startClosing, goBack, error, errorTrigger, setError]);
 
   return (
     <BookingContext.Provider value={contextValue}>

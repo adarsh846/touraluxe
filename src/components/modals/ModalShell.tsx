@@ -17,7 +17,7 @@ import { CtaContent } from "@/components/modals/CtaContent";
 import { PackageContent } from "@/components/modals/PackageContent";
 
 export function ModalShell() {
-  const { isOpen, view, data, source, openModal, closeModal, isClosing, startClosing, goBack, canGoBack, error, errorTrigger, setError } = useBooking();
+  const { isOpen, view, data, source, openModal, closeModal, isClosing, startClosing, goBack, canGoBack, history, error, errorTrigger, setError } = useBooking();
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ModalView>(null);
   const [activeSource, setActiveSource] = useState<string>("");
@@ -39,6 +39,7 @@ export function ModalShell() {
   // Internal Step Navigation Support
   const [internalCanGoBack, setInternalCanGoBack] = useState(false);
   const [currentPhase, setCurrentPhase] = useState(1);
+  const [activeStep, setActiveStep] = useState(1);
   const backHandlerRef = useRef<(() => boolean) | null>(null);
 
   const registerBackHandler = useCallback((handler: (() => boolean) | null) => {
@@ -88,12 +89,7 @@ export function ModalShell() {
 
   useEffect(() => {
     // Determine transition direction based on history change
-    const currentHistoryLength = (window as any).navigation_history_length || 0; 
-    // Actually, I can use a simpler method: just compare with the previous state
-    
     if (view && view !== activeView) {
-      // Logic for direction: if we are going back to a view that was previously active, or history shrunk
-      // For now, let's use a simple depth map
       const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1 };
       const newDepth = viewDepth[view as string] || 0;
       const oldDepth = viewDepth[activeView as string] || 0;
@@ -306,7 +302,7 @@ export function ModalShell() {
 
           {/* DYNAMIC BREADCRUMBS (CHRONOLOGICAL PROGRESS - CENTER ANCHOR) */}
           <div className="flex-1 hidden lg:flex items-center justify-center pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-1000 cubic-bezier(0.23,1,0.32,1)">
-            {activeView === 'BOOKING' && currentPhase > 1 && (
+            {activeView === 'BOOKING' && activeStep === 1 && currentPhase > 1 && (
               <div className="flex items-center gap-6 bg-black/40 backdrop-blur-3xl px-8 py-2.5 rounded-full border border-white/5 shadow-2xl">
                 {[
                   { id: 1, label: "Discover" },
@@ -342,7 +338,7 @@ export function ModalShell() {
           </div>
 
           <div className="flex-1 flex items-center justify-end gap-3 pointer-events-auto">
-            {(canGoBack || internalCanGoBack) && (
+            {(canGoBack || internalCanGoBack) && (activeView !== 'BOOKING' || activeStep !== 3) && (
               <Magnetic>
                 <div className="relative group block">
                   {/* iOS 26 Deep Shadow & Glow */}
@@ -353,17 +349,28 @@ export function ModalShell() {
                     className="relative px-5 h-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn"
                   >
                     <ArrowLeft size={18} strokeWidth={2.5} className="group-hover/backbtn:-translate-x-1 transition-transform" />
-                    {activeView === 'BOOKING' && currentPhase > 1 && (
-                      <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
-                        {[
-                          "",
-                          "Discover",
-                          "Timeline",
-                          "Guests",
-                          "Finalize"
-                        ][currentPhase - 1]}
-                      </span>
-                    )}
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
+                      {(() => {
+                        // 1. Internal Booking Logic (Phases/Steps)
+                        if (activeView === 'BOOKING') {
+                          if (activeStep === 2) return "Finalize";
+                          if (currentPhase > 1) {
+                            return ["", "Discover", "Timeline", "Guests", "Finalize"][currentPhase - 1];
+                          }
+                        }
+
+                        // 2. Global History Logic (Previous View)
+                        if (history.length > 0) {
+                          const prev = history[history.length - 1].view;
+                          if (prev === 'PACKAGE') return "Package";
+                          if (prev === 'SERVICES') return "Services";
+                          if (prev === 'ABOUT') return "About";
+                          if (prev === 'CTA') return "Join";
+                        }
+
+                        return "Back";
+                      })()}
+                    </span>
                   </button>
                 </div>
               </Magnetic>
@@ -417,6 +424,7 @@ export function ModalShell() {
               registerBackHandler={registerBackHandler}
               openModal={openModal}
               onPhaseChange={setCurrentPhase}
+              onStepChange={setActiveStep}
             />
           </div>
 

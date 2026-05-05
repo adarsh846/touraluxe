@@ -20,6 +20,12 @@ interface Booking {
   internal_notes?: string;
 }
 
+interface Notification {
+  id: string;
+  message: string;
+  type: "success" | "error" | "info";
+}
+
 
 
 // --- Helpers ---
@@ -205,7 +211,19 @@ export default function AdminDashboard() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [localTax, setLocalTax] = useState("");
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
+
+  const addNotification = useCallback((message: string, type: "success" | "error" | "info" = "info") => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 4000);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -223,15 +241,24 @@ export default function AdminDashboard() {
     const token = getToken();
     if (!token) return;
     try {
-      const [pkgRes, bookRes] = await Promise.all([
-        fetch("/api/packages", { headers: { "x-admin-token": token } }),
-        fetch("/api/bookings", { headers: { "x-admin-token": token } }),
+      const [pkgRes, bookRes, setRes] = await Promise.all([
+        fetch("/api/packages", { headers: { "x-admin-token": token }, cache: "no-store" }),
+        fetch("/api/bookings", { headers: { "x-admin-token": token }, cache: "no-store" }),
+        fetch("/api/settings", { headers: { "x-admin-token": token }, cache: "no-store" }),
       ]);
       if (pkgRes.ok) setPackages(await pkgRes.json());
       if (bookRes.ok) setBookings(await bookRes.json());
+      if (setRes.ok) {
+        const data = await setRes.json();
+        setSettings(data);
+        // Initialize localTax from DB only if it's currently empty
+        if (!localTax) {
+          setLocalTax(data.tax_percentage || "0");
+        }
+      }
     } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
-  }, [getToken]);
+  }, [getToken, isUpdatingSettings]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -244,6 +271,11 @@ export default function AdminDashboard() {
       })
       .on('postgres_changes', { event: '*', table: 'packages', schema: 'public' }, () => {
         fetchData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', table: 'site_settings', schema: 'public', filter: 'key=eq.tax_percentage' }, (payload: any) => {
+        if (payload.new && payload.new.value) {
+          setSettings(prev => ({ ...prev, tax_percentage: payload.new.value }));
+        }
       })
       .subscribe();
 
@@ -273,13 +305,47 @@ export default function AdminDashboard() {
     setIsUpdating(false);
   };
 
+  const handleUpdateTax = async () => {
+    const token = getToken();
+    if (!token) return;
+    setIsUpdatingSettings(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-token": token },
+        body: JSON.stringify({ key: "tax_percentage", value: localTax })
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setSettings(prev => ({ ...prev, tax_percentage: localTax }));
+        await fetchData();
+        addNotification("Tax policy updated successfully.", "success");
+      } else {
+        addNotification(`Update failed: ${result.error || "Unknown error"}`, "error");
+      }
+    } catch (err) { 
+      console.error("Settings update error:", err);
+      addNotification("A network error occurred while updating the policy.", "error");
+    }
+    setIsUpdatingSettings(false);
+  };
+
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"?`)) return;
     const token = getToken();
     if (!token) return;
     setDeleting(id);
-    await fetch(`/api/packages/${id}`, { method: "DELETE", headers: { "x-admin-token": token } });
-    setPackages((prev) => prev.filter((p) => p.id !== id));
+    try {
+      const res = await fetch(`/api/packages/${id}`, { method: "DELETE", headers: { "x-admin-token": token } });
+      if (res.ok) {
+        setPackages((prev) => prev.filter((p) => p.id !== id));
+        addNotification(`${title} deleted successfully.`, "success");
+      } else {
+        addNotification(`Failed to delete package.`, "error");
+      }
+    } catch (err) {
+      addNotification("Error deleting package.", "error");
+    }
     setDeleting(null);
   };
 
@@ -384,6 +450,42 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* Global Configuration Segment */}
+        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          <div className="p-6 md:p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-white tracking-tight italic">Global Tax Control</h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                  Live: {isUpdatingSettings ? localTax : (settings.tax_percentage || "0")}%
+                </span>
+              </div>
+              <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold">Governs tax-enabled packages</p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/20 uppercase tracking-widest">Percentage</span>
+                <input 
+                  type="number" 
+                  value={localTax} 
+                  onChange={(e) => setLocalTax(e.target.value)}
+                  placeholder="0"
+                  className="bg-black/40 border border-white/10 rounded-2xl py-3 pl-20 pr-10 text-sm font-bold text-white w-40 focus:outline-none focus:border-white/30 transition-all text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/40 uppercase tracking-widest">%</span>
+              </div>
+              <button 
+                onClick={handleUpdateTax}
+                disabled={isUpdatingSettings}
+                className="px-6 py-3 rounded-2xl bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isUpdatingSettings ? "Syncing..." : "Update Policy"}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {view === "catalog" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between mb-8">
@@ -399,13 +501,24 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[15px] md:text-[17px] font-bold truncate text-white">{pkg.title}</h3>
-                      <p className="text-[12px] md:text-[13px] text-[#86868b]">{pkg.location} · {pkg.currency || "₹"}{Number(pkg.price.replace(/[^0-9]/g, "")).toLocaleString('en-IN')}</p>
+                      <p className="text-[12px] md:text-[13px] text-[#86868b]">
+                        {pkg.location} · {(() => {
+                          const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
+                          const taxRate = parseFloat(settings.tax_percentage || "0");
+                          const isTaxApplied = taxRate > 0 && pkg.tax_status === "Inclusive of Taxes";
+                          const finalPrice = isTaxApplied ? base + (base * taxRate / 100) : base;
+                          return `${pkg.currency || "₹"}${finalPrice.toLocaleString('en-IN')}`;
+                        })()}
+                      </p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {Array.isArray(pkg.category) ? pkg.category.map((cat) => (
                           <span key={cat} className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{cat}</span>
                         )) : (
                           <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{pkg.category || "Uncategorized"}</span>
                         )}
+                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${pkg.tax_status === "Inclusive of Taxes" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-white/5 border-white/10 text-white/20"}`}>
+                          {pkg.tax_status === "Inclusive of Taxes" ? "Tax Active" : "Tax Disabled"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -473,10 +586,10 @@ export default function AdminDashboard() {
               <table className="w-full text-left border-separate border-spacing-y-2 table-fixed">
                 <thead>
                   <tr className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
-                    <th className="px-5 w-[14%]">Booking Date</th>
-                    <th className="px-5 w-[18%]">Division</th>
-                    <th className="px-5 w-[24%]">Client Name</th>
-                    <th className="px-5 w-[18%]">Origin</th>
+                    <th className="px-5 w-[12%]">Booking Date</th>
+                    <th className="px-5 w-[16%]">Division</th>
+                    <th className="px-5 w-[20%]">Client Name</th>
+                    <th className="px-5 w-[24%]">Origin</th>
                     <th className="px-5 w-[15%] text-right">Total Est. Cost</th>
                     <th className="px-5 w-[13%] text-center">Status</th>
                   </tr>
@@ -487,8 +600,8 @@ export default function AdminDashboard() {
                       <td className="py-5 px-5 text-[13px] text-[#86868b] font-bold first:rounded-l-[20px] truncate">{new Date(b.created_at).toLocaleDateString()}</td>
                       <td className="py-5 px-5 text-[14px] font-bold text-white truncate">{b.package_name}</td>
                       <td className="py-5 px-5 text-[14px] text-white/90 font-medium truncate">{b.customer_name || "Confidential"}</td>
-                      <td className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-white/30 truncate">
-                        <span className="bg-white/5 px-2 py-1 rounded-full border border-white/5">{formatSource((b as any).booking_source)}</span>
+                      <td className="py-5 px-5 text-[10px] font-black uppercase tracking-widest text-white/30">
+                        <span className="bg-white/5 px-2.5 py-1.5 rounded-full border border-white/5 whitespace-nowrap">{formatSource((b as any).booking_source)}</span>
                       </td>
                       <td className="py-5 px-5 text-[14px] text-white font-bold text-right tabular-nums whitespace-nowrap">₹{Number(b.total_amount).toLocaleString()}</td>
                       <td className="py-5 px-5 text-center last:rounded-r-[20px] whitespace-nowrap">
@@ -504,6 +617,27 @@ export default function AdminDashboard() {
       </main>
 
       {selectedBooking && <BookingDetailModal booking={selectedBooking} isUpdating={isUpdating} onClose={() => setSelectedBooking(null)} onUpdate={handleUpdateBooking} />}
+
+      {/* Dynamic Island Notification System */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none w-full max-w-[400px]">
+        {notifications.map((n) => (
+          <div 
+            key={n.id} 
+            className={`pointer-events-auto flex items-center gap-3 px-6 py-2.5 rounded-full backdrop-blur-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-top-8 zoom-in-95 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+              n.type === "success" ? "bg-black/80 border-emerald-500/30 text-emerald-400" :
+              n.type === "error" ? "bg-black/80 border-rose-500/30 text-rose-400" :
+              "bg-black/80 border-white/10 text-white"
+            }`}
+          >
+            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+              n.type === "success" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" :
+              n.type === "error" ? "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]" :
+              "bg-white/40"
+            }`} />
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] whitespace-nowrap">{n.message}</p>
+          </div>
+        ))}
+      </div>
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }

@@ -300,8 +300,27 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               <Field label="Infant Price" value={form.infant_price} onChange={(v) => setForm((p) => ({ ...p, infant_price: v }))} placeholder="Optional" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-2">
-              <SegmentedControl label="Tax Status" value={form.tax_status} onChange={(v) => setForm(p => ({ ...p, tax_status: v }))} options={[{ label: "Inclusive", value: "Inclusive of Taxes" }, { label: "Exclusive", value: "Excluding of Taxes" }]} />
+            <div className="pt-8 border-t border-white/[0.02]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
+                <div className="flex-1 space-y-1">
+                  <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Tax Policy</label>
+                  <span className="block text-[13px] font-bold text-white uppercase tracking-wider">
+                    {form.tax_status === "Inclusive of Taxes" ? "Global Tax Enabled" : "Global Tax Disabled"}
+                  </span>
+                  <p className="text-[11px] text-[#86868b] mt-1 leading-relaxed max-w-md">
+                    {form.tax_status === "Inclusive of Taxes" 
+                      ? "The administrative tax percentage will be calculated and added to the final total." 
+                      : "This journey will ignore global tax settings and display as tax-exclusive."}
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setForm((p) => ({ ...p, tax_status: p.tax_status === "Inclusive of Taxes" ? "Excluding of Taxes" : "Inclusive of Taxes" }))} 
+                  className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.tax_status === "Inclusive of Taxes" ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "bg-[#3a3a3c]"}`}
+                >
+                  <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.tax_status === "Inclusive of Taxes" ? "left-[34px]" : "left-1"}`} />
+                </button>
+              </div>
             </div>
           </section>
 
