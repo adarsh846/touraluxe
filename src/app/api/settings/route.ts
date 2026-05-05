@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Transform into a key-value object
-  const settings = data.reduce((acc: any, curr) => {
+  const settings = data.reduce((acc: Record<string, any>, curr: any) => {
     acc[curr.key] = curr.value;
     return acc;
   }, {});
