@@ -66,7 +66,7 @@ export const BookingContent = memo(function BookingContent({
   const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age?: string; type: 'adult' | 'child' }[]>([]);
 
   // Synchronize additionalGuests when traveler counts change
-  React.useEffect(() => {
+  useEffect(() => {
     const totalAdditional = (adults - 1) + kids;
     setAdditionalGuests(prev => {
       const next = [...prev];
@@ -93,8 +93,8 @@ export const BookingContent = memo(function BookingContent({
   const handleCurationScroll = () => {
     if (curationScrollRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = curationScrollRef.current;
-      // Show if there is more than 20px of scrollable content remaining
-      setShowScrollIndicator(scrollHeight > clientHeight && scrollTop + clientHeight < scrollHeight - 20);
+      // Precision threshold: only show if content is significantly larger (50px buffer)
+      setShowScrollIndicator(scrollHeight > clientHeight + 50 && scrollTop + clientHeight < scrollHeight - 30);
     }
   };
 
@@ -125,17 +125,38 @@ export const BookingContent = memo(function BookingContent({
     };
   }, []);
 
+  // Consolidated state synchronization
   useEffect(() => {
     onStepChange?.(step);
   }, [step, onStepChange]);
 
   useEffect(() => {
+    onPhaseChange?.(discoveryPhase);
+    
+    // Initial check for scrollability when entering phase 4
     if (discoveryPhase === 4) {
-      // Give the DOM a moment to settle before measuring
-      const timer = setTimeout(handleCurationScroll, 100);
-      return () => clearTimeout(timer);
+      setTimeout(handleCurationScroll, 100);
     }
-  }, [discoveryPhase]);
+  }, [discoveryPhase, onPhaseChange]);
+
+  // Dynamic Scroll & Resize Intelligence
+  useEffect(() => {
+    const scrollContainer = curationScrollRef.current;
+    if (!scrollContainer || discoveryPhase !== 4) return;
+
+    // Monitor both scrolling and content size changes (ResizeObserver)
+    const handleUpdate = () => handleCurationScroll();
+    
+    const resizeObserver = new ResizeObserver(handleUpdate);
+    resizeObserver.observe(scrollContainer);
+    
+    scrollContainer.addEventListener('scroll', handleUpdate);
+    
+    return () => {
+      resizeObserver.disconnect();
+      scrollContainer.removeEventListener('scroll', handleUpdate);
+    };
+  }, [discoveryPhase, handleCurationScroll]);
 
   // Discovery Architecture
   const {
@@ -198,13 +219,6 @@ export const BookingContent = memo(function BookingContent({
     packageData,
   ]);
 
-  useEffect(() => {
-    onPhaseChange?.(discoveryPhase);
-  }, [discoveryPhase, onPhaseChange]);
-
-  useEffect(() => {
-    onStepChange?.(step);
-  }, [step, onStepChange]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -852,9 +866,9 @@ export const BookingContent = memo(function BookingContent({
                         <div className="w-full flex justify-center px-6 md:px-0">
                           <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40">
                             {[
-                              { id: 'adults', label: "Adults", count: adults, set: setAdults, min: 1 },
-                              { id: 'kids', label: "Children", count: kids, set: setKids, min: 0 },
-                              { id: 'infants', label: "Infants", count: infants, set: setInfants, min: 0 },
+                              { id: 'adults', label: adults <= 1 ? "Adult" : "Adults", count: adults, set: setAdults, min: 1 },
+                              { id: 'kids', label: kids <= 1 ? "Child" : "Children", count: kids, set: setKids, min: 0 },
+                              { id: 'infants', label: infants <= 1 ? "Infant" : "Infants", count: infants, set: setInfants, min: 0 },
                             ].map((t, idx) => (
                               <React.Fragment key={t.id}>
                                 <div className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 group/segment transition-all">
@@ -893,35 +907,35 @@ export const BookingContent = memo(function BookingContent({
                         </div>
                       </div>
 
-                      {/* Phase 04: Curation */}
-                      <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
-                          <div className="w-full flex flex-col items-center gap-10 px-6 md:px-0 mt-32 md:mt-24">
+                        {/* Phase 04: Curation (Intrinsic Architectural Model) */}
+                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                            <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(3rem,8vh,8rem)]">
                             
                             {/* Phase 04 Destination Title & Location (Sovereign Style - Synchronized with Global Color) */}
-                            <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
-                              <h2 className="text-[1.5rem] md:text-[2.2rem] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
+                            <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000 shrink-0">
+                              <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
                                 {internalPackage?.title || "Journey"}
                               </h2>
                               <div className="flex items-center justify-center gap-4 pt-1">
-                                <div className="w-12 h-[1px] bg-white/10" />
-                                <span className="text-[7px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
+                                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
+                                <span className="text-[6px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
                                   {internalPackage?.location || "Bespoke"}
                                 </span>
-                                <div className="w-12 h-[1px] bg-white/10" />
+                                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
                               </div>
                             </div>
 
-                            <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col shadow-2xl hover:border-white/40 overflow-visible group/instrument">
+                            <div className="relative w-full max-w-[min(450px,92vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument">
                             
                               {/* Scrollable Protocol Area */}
                               <div 
                                 ref={curationScrollRef}
                                 onScroll={handleCurationScroll}
-                                className="w-full max-h-[400px] md:max-h-[500px] overflow-y-auto scrollbar-hide p-6 md:p-10 space-y-12"
+                                className="w-full max-h-[calc(100vh-clamp(220px,45vh,450px))] md:max-h-[clamp(350px,55vh,650px)] overflow-y-auto scrollbar-hide p-[clamp(1.5rem,6vw,3rem)] space-y-[clamp(1.5rem,5vh,3rem)] rounded-[inherit] overflow-hidden"
                               >
                                 
                                 {/* Section 1: Primary Identification */}
-                                <div className="space-y-10">
+                                <div className="space-y-6 md:space-y-10">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
                                       Lead Traveler
@@ -931,8 +945,11 @@ export const BookingContent = memo(function BookingContent({
                                     </span>
                                   </div>
                                   
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10 items-start">
-                                    <div className="space-y-4 group/id">
+                                  <div 
+                                    className="grid gap-[clamp(1.5rem,4vw,4rem)] items-start"
+                                    style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(280px,40%,450px), 1fr))' }}
+                                  >
+                                    <div className="space-y-3 md:space-y-4 group/id">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/id:text-white/80 transition-colors">
                                         Full Name
                                       </span>
@@ -951,7 +968,7 @@ export const BookingContent = memo(function BookingContent({
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
                                         Contact Information
                                       </span>
-                                      <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-end">
+                                      <div className="flex flex-col xl:flex-row gap-6 xl:gap-10 items-end">
                                         <div className="flex-1 h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full">
                                           <input
                                             type="email"
@@ -1012,14 +1029,14 @@ export const BookingContent = memo(function BookingContent({
                                 </div>
 
                                 {/* Section 2: Group Manifesto (If > 1 Guest) */}
-                                {(adults > 1 || kids > 0) && (
+                                {(adults > 1 || kids > 0 || infants > 0) && (
                                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
                                         Travelers
                                       </span>
                                       <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
-                                        {adults} ADULTS • {kids} CHILDREN
+                                        {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}
                                       </span>
                                     </div>
                                     
@@ -1086,12 +1103,50 @@ export const BookingContent = memo(function BookingContent({
                                           </div>
                                         );
                                       })}
+                                      {/* Infants */}
+                                      {Array.from({ length: infants }).map((_, i) => {
+                                        const guestIdx = (adults - 1) + kids + i;
+                                        return (
+                                          <div key={`infant-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
+                                                Guest {adults + kids + i + 1} <span className="text-[7px] text-white/20 pl-1">(Infant)</span>
+                                              </span>
+                                            </div>
+                                            <div className="flex gap-4 border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                              <input
+                                                type="text"
+                                                placeholder="Full name"
+                                                value={additionalGuests[guestIdx]?.name || ""}
+                                                onChange={(e) => {
+                                                  const next = [...additionalGuests];
+                                                  if (next[guestIdx]) next[guestIdx].name = e.target.value;
+                                                  setAdditionalGuests(next);
+                                                }}
+                                                className="flex-[2] bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                              />
+                                              <div className="w-[1px] h-3 bg-white/10 my-auto" />
+                                              <input
+                                                type="text"
+                                                placeholder="Age"
+                                                value={additionalGuests[guestIdx]?.age || ""}
+                                                onChange={(e) => {
+                                                  const next = [...additionalGuests];
+                                                  if (next[guestIdx]) next[guestIdx].age = e.target.value;
+                                                  setAdditionalGuests(next);
+                                                }}
+                                                className="w-10 bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all text-center"
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 )}
 
                                 {/* Section 3: Protocol Refinements */}
-                                <div className="space-y-6 group/notes pb-32">
+                                <div className="space-y-4 md:space-y-6 group/notes pb-10 md:pb-12">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
                                       Special Requests <span className="text-[8px] md:text-[10px] opacity-40 ml-1">(Optional)</span>
@@ -1101,24 +1156,25 @@ export const BookingContent = memo(function BookingContent({
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     placeholder="Any special desire? Tell us!"
-                                    className="w-full h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-none shadow-inner"
+                                    className="w-full h-24 md:h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-none shadow-inner"
                                   />
                                 </div>
                               </div>
 
-                              {/* Sovereign Scroll Indicator (Smooth Ease Fade) */}
+                              {/* Atmospheric Bottom Blur with Subtle Arrow (Sovereign Signal) */}
                               <div className={cn(
-                                "absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 pointer-events-none z-[130] transition-all duration-700 cubic-bezier(0.23,1,0.32,1)",
-                                (showScrollIndicator && discoveryPhase === 4) 
-                                  ? "opacity-100 translate-y-0" 
-                                  : "opacity-0 translate-y-4"
+                                "absolute bottom-0 left-0 right-0 h-16 md:h-12 pointer-events-none transition-all duration-[1.2s] z-[125] flex flex-col items-center justify-end pb-2 md:pb-12",
+                                showScrollIndicator ? "opacity-100" : "opacity-0"
                               )}>
-                                <span className="text-[8px] md:text-[9px] font-black tracking-[0.4em] text-white/70 uppercase pl-[0.4em] animate-pulse drop-shadow-[0_0_12px_rgba(255,255,255,0.5)]">
-                                  Scroll
-                                </span>
-                                <div className="relative flex items-center justify-center">
-                                  <ChevronDown size={14} strokeWidth={3} className="text-white/60 animate-bounce relative z-10" />
-                                  <div className="absolute w-6 h-6 bg-white/20 blur-xl rounded-full animate-pulse opacity-40" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                                <div className="absolute inset-0 backdrop-blur-[2px] [mask-image:linear-gradient(to_top,black,transparent)]" />
+                                <div className="relative z-10 flex flex-col items-center gap-1">
+                                  <span className="hidden md:block text-[7px] font-black uppercase tracking-[0.4em] text-white/80 animate-pulse drop-shadow-md">
+                                    Scroll
+                                  </span>
+                                  <div className="animate-[bounce_3s_infinite] drop-shadow-lg">
+                                    <ChevronDown size={12} strokeWidth={3} className="text-white/40 md:text-white" />
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1194,7 +1250,7 @@ export const BookingContent = memo(function BookingContent({
                       </div>
                       <div className="flex items-center justify-center px-4 py-1.5 rounded-full bg-white/[0.08] border border-white/15 shadow-sm">
                         <span className="text-[9px] font-bold text-white/70 uppercase tracking-[0.2em] leading-none text-center">
-                          {adults} {adults > 1 ? "ADULTS" : "ADULT"} {kids > 0 && `• ${kids} ${kids > 1 ? "CHILDREN" : "CHILD"}`}
+                          {adults} {adults > 1 ? "ADULTS" : "ADULT"}{kids > 0 ? ` • ${kids} ${kids > 1 ? "CHILDREN" : "CHILD"}` : ""}{infants > 0 ? ` • ${infants} ${infants > 1 ? "INFANTS" : "INFANT"}` : ""}
                         </span>
                       </div>
                     </div>
@@ -1295,15 +1351,15 @@ export const BookingContent = memo(function BookingContent({
       {/* 4. PROGRESSIVE BOTTOM MASK (MIRRORED iOS STYLE) */}
       {step === 1 && discoveryPhase > 1 && (
         <div
-          className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 md:h-48 transition-all duration-1000 backdrop-blur-sm z-[110] transform-gpu will-change-[opacity,backdrop-filter] animate-in fade-in duration-1000"
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 md:h-48 transition-all duration-1000 backdrop-blur-sm z-[110] transform-gpu will-change-[opacity,backdrop-filter] animate-in fade-in duration-1000"
           style={{
             opacity: 0.95,
             background:
-              "linear-gradient(to top, #0a0a0b 0%, #0a0a0b 40%, rgba(10,10,11,0.8) 65%, rgba(10,10,11,0) 100%)",
+              "linear-gradient(to top, #0a0a0b 0%, #0a0a0b 45%, rgba(10,10,11,0.8) 70%, rgba(10,10,11,0) 100%)",
             maskImage:
-              "linear-gradient(to top, black 0%, black 40%, rgba(0,0,0,0.8) 70%, transparent 100%)",
+              "linear-gradient(to top, black 0%, black 45%, rgba(0,0,0,0.8) 75%, transparent 100%)",
             WebkitMaskImage:
-              "linear-gradient(to top, black 0%, black 40%, rgba(0,0,0,0.8) 70%, transparent 100%)",
+              "linear-gradient(to top, black 0%, black 45%, rgba(0,0,0,0.8) 75%, transparent 100%)",
           }}
         />
       )}
@@ -1312,31 +1368,31 @@ export const BookingContent = memo(function BookingContent({
       {((step === 1 && discoveryPhase > 1) || step === 2) && (
         <div className="absolute bottom-4 md:bottom-0 left-0 right-0 p-6 md:p-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
           <div className={cn(
-            "w-full flex items-center bg-white/[0.08] backdrop-blur-3xl border border-white/[0.12] p-2.5 px-6 md:p-4 rounded-full pointer-events-auto shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)] group/pill transition-all duration-[1000ms] cubic-bezier(0.23,1,0.32,1)",
-            discoveryPhase >= 3 || step === 2 ? "max-w-screen-lg md:px-10" :
-            discoveryPhase === 2 ? "max-w-3xl md:px-10" : "max-w-xl md:px-6"
+            "w-full flex items-stretch bg-white/[0.08] backdrop-blur-3xl border border-white/[0.12] p-1.5 rounded-full pointer-events-auto shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)] group/pill transition-all duration-[1000ms] cubic-bezier(0.23,1,0.32,1) overflow-hidden",
+            discoveryPhase >= 3 || step === 2 ? "max-w-[clamp(600px,94vw,1100px)]" :
+            discoveryPhase === 2 ? "max-w-[clamp(400px,90vw,800px)]" : "max-w-[clamp(300px,80vw,600px)]"
           )}>
             {/* Expansive Horizontal Layout with Morphing Logic */}
-            <div className="flex flex-1 items-center justify-between gap-4 md:gap-6">
+            <div className="flex flex-1 items-center justify-between gap-1 md:gap-3 lg:gap-6">
               
-              {/* Segment 1: Itinerary Cost (Always Visible) */}
-              <div className="flex flex-col space-y-1.5 items-start min-w-fit pl-2">
-                <span className="text-[6px] md:text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
+              {/* Segment 1: Itinerary Cost (Adaptive Sizing & Left Buffer) */}
+              <div className="flex md:flex-none md:min-w-fit flex-1 flex-col space-y-0.5 md:space-y-1.5 items-center md:items-start justify-center pl-5 md:pl-8 lg:pl-10 shrink-0 transition-all duration-700">
+                <span className="text-[5px] md:text-[7px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-white/30 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
                   Itinerary Cost
                 </span>
-                <div className="flex items-center gap-3">
-                  <p className="text-[clamp(1.1rem,2.5vw,1.6rem)] font-bold tracking-tight text-white/90 leading-none tabular-nums whitespace-nowrap">
+                <div className="flex items-center gap-1.5 md:gap-3">
+                  <p className="text-base md:text-[clamp(1.1rem,2.5vw,1.6rem)] font-bold tracking-tight text-white/90 leading-none tabular-nums whitespace-nowrap">
                     {totalInvestment}
                   </p>
-                  <div className="px-1.5 py-0.5 rounded-[4px] bg-white/[0.03] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000">
-                    <span className="text-[5px] md:text-[6px] font-black uppercase tracking-[0.2em] text-white/30 whitespace-nowrap">
+                  <div className="px-1 py-0.5 rounded-[3px] bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000">
+                    <span className="text-[4px] md:text-[6px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white/30 whitespace-nowrap">
                       {pricing.isTaxApplied ? "Incl. Tax" : "Excl. Tax"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {discoveryPhase > 2 && <div className="hidden md:block w-[1px] h-8 bg-white/[0.12] shrink-0 animate-in fade-in duration-1000" />}
+              {discoveryPhase > 2 && <div className="hidden lg:block w-[1px] h-8 bg-white/[0.12] shrink-0 animate-in fade-in duration-1000" />}
 
               {/* Segment 2: Dynamic Guest Manifest (Phase 03/04 Transition) */}
               {discoveryPhase > 2 && (
@@ -1345,17 +1401,25 @@ export const BookingContent = memo(function BookingContent({
                   discoveryPhase === 3 ? "opacity-60 scale-95" : "opacity-100 scale-100"
                 )}>
                   <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap">
-                    {Number(adults) + Number(kids) === 1 ? "Guest" : "Guests"} Manifest
+                    {(Number(adults) + Number(kids) + Number(infants)) <= 1 ? "Guest" : "Guests"}
                   </span>
                   <div className="flex items-center gap-4 whitespace-nowrap">
                     <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
-                      {adults} {Number(adults) === 1 ? "Adult" : "Adults"}
+                      {adults} {Number(adults) <= 1 ? "Adult" : "Adults"}
                     </span>
                     {Number(kids) > 0 && (
                       <>
                         <div className="w-[1px] h-3 bg-white/10" />
                         <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
-                          {kids} {Number(kids) === 1 ? "Child" : "Kids"}
+                          {kids} {Number(kids) === 1 ? "Child" : "Children"}
+                        </span>
+                      </>
+                    )}
+                    {Number(infants) > 0 && (
+                      <>
+                        <div className="w-[1px] h-3 bg-white/10" />
+                        <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
+                          {infants} {Number(infants) === 1 ? "Infant" : "Infants"}
                         </span>
                       </>
                     )}
@@ -1396,31 +1460,40 @@ export const BookingContent = memo(function BookingContent({
                 )}
               </div>
 
-              {/* Mobile-Only Unified Readout */}
-              <div className="flex md:hidden flex-col gap-1.5 animate-in fade-in slide-in-from-left-2 duration-700">
-                {startDate && endDate && (
-                  <div className="flex items-center gap-2 whitespace-nowrap">
-                    <span className="text-[8px] font-bold text-white/50 uppercase tracking-tighter">
-                      {formatDateForDisplay(startDate)}
-                    </span>
-                    <ArrowRight size={8} className="text-white/20" />
-                    <span className="text-[8px] font-bold text-white/50 uppercase tracking-tighter">
-                      {formatDateForDisplay(endDate)}
+              {/* Mobile Contextual Readout (Persistence only for Phones) */}
+              <div className="flex md:hidden flex-1 flex-col items-center justify-center gap-1 transition-all duration-700">
+                <div className="flex flex-col items-center">
+                  <span className="text-[5px] font-black uppercase tracking-[0.3em] text-white/30 mb-0.5">
+                    Your Selection
+                  </span>
+                  {startDate && endDate && (
+                    <div className="flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-700">
+                      <span className="text-[9px] font-bold text-white/70 tracking-tighter tabular-nums uppercase">
+                        {formatDateForDisplay(startDate).split('/').slice(0, 2).join('/')}
+                      </span>
+                      <div className="w-1.5 h-[1px] bg-white/20" />
+                      <span className="text-[9px] font-bold text-white/70 tracking-tighter tabular-nums uppercase">
+                        {formatDateForDisplay(endDate).split('/').slice(0, 2).join('/')}
+                      </span>
+                      <span className="text-[7px] font-black text-white/30 ml-1">
+                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))}N
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-1000">
+                  <div className="flex items-center gap-1 bg-white/[0.04] border border-white/5 px-1.5 py-0.5 rounded-full">
+                    <div className="w-0.5 h-0.5 rounded-full bg-white/30 animate-pulse" />
+                    <span className="text-[6px] font-black uppercase tracking-[0.1em] text-white/50">
+                      {adults}A {kids > 0 ? `• ${kids}C` : ""}{infants > 0 ? ` • ${infants}I` : ""}
                     </span>
                   </div>
-                )}
-                {discoveryPhase > 3 && (
-                  <div className="flex items-center gap-2 bg-white/[0.05] px-2 py-0.5 rounded-full w-fit">
-                    <div className="w-0.5 h-0.5 rounded-full bg-white/40 animate-pulse" />
-                    <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60">
-                      {adults}A {kids > 0 ? `• ${kids}C` : ""}
-                    </span>
-                  </div>
-                )}
+                </div>
               </div>
 
-              {/* Right: Action Button Area */}
-              <div className="flex items-center justify-end pl-2 md:pl-8 border-l border-white/10 ml-2 md:ml-6 shrink-0 pr-2">
+              {/* Right: Action Button Area (Surgically Merged) */}
+              <div className="flex items-center justify-end pl-1 md:pl-2 lg:pl-8 border-l border-white/10 shrink-0 pr-0">
                 {discoveryPhase > 1 && (
                   <Magnetic>
                     <button
@@ -1436,24 +1509,24 @@ export const BookingContent = memo(function BookingContent({
                       }}
                       disabled={isSubmitting || !isPhaseValid}
                       className={cn(
-                        "group/btn relative overflow-hidden h-10 md:h-14 rounded-full transition-all duration-700 active:scale-95",
+                        "group/btn relative overflow-hidden h-11 xl:h-14 rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center",
                         isPhaseValid 
                           ? "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100" 
                           : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
-                        discoveryPhase === 2 ? "px-6 md:px-8" : 
-                        discoveryPhase === 3 ? "px-7 md:px-10" : "px-8 md:px-12"
+                        discoveryPhase === 2 ? "w-11 xl:w-auto xl:px-8" : 
+                        discoveryPhase === 3 ? "w-11 xl:w-auto xl:px-10" : "w-11 xl:w-auto xl:px-12"
                       )}
                     >
-                      <div className="relative z-10 flex items-center gap-2.5">
-                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
+                      <div className="relative z-10 flex items-center justify-center gap-2.5">
+                        <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
                           {step === 2 ? (isSubmitting ? "Sending Request" : "Confirm & Send") : 
                            discoveryPhase === 4 ? "Review Booking" : 
                            discoveryPhase === 3 ? "Continue" : "Next"}
                         </span>
                         <ChevronRight 
-                          size={14} 
+                          size={18} 
                           strokeWidth={3} 
-                          className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0" 
+                          className="text-black group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0" 
                         />
                       </div>
 
