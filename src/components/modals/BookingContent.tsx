@@ -20,6 +20,62 @@ import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { Magnetic } from "@/components/Magnetic";
+import { format } from "date-fns";
+
+// --- DOMAIN CONSTANTS ---
+const MS_PER_DAY = 86400000;
+const REFERENCE_PREFIX = "TRX-";
+const DEFAULT_CURRENCY = "₹";
+const APPLE_SILVER = "#f5f5f7";
+
+const INITIAL_ADULTS = 1;
+const INITIAL_KIDS = 0;
+const INITIAL_INFANTS = 0;
+
+const TAX_INCLUSIVE_LABEL = "Inclusive of Taxes";
+const TAX_EXCLUSIVE_LABEL = "Exclusive of Taxes";
+const STATUS_ESTABLISHED = "Established";
+const STATUS_REVIEW = "Review Your Journey";
+
+const DOSSIER_PROTOCOL = {
+  LABELS: {
+    NIGHTS_DAYS: (n: number, d: number) => `${n} Nights / ${d} Days`,
+    LEAD_TRAVELER: "Lead Traveler",
+    SPECIAL_DESIRES: "Special Desires",
+    PARTY_MANIFEST: "Party Manifest",
+    FULL_NAME: "Full Name",
+    EMAIL: "Email Address",
+    CONTACT: "Contact Number",
+    GUEST_LEAD: "Lead (Adult)",
+    GUEST_LABEL: (idx: number, type: string, age?: string) => `Guest ${idx} (${type}${age ? `, ${age}y` : ""})`,
+    PACKAGE_RATE: "Package Rate",
+    BASE_RATE: "Base Rate",
+    TAXES_LABEL: (rate: number) => `Taxes (${rate}%)`,
+    INVESTMENT_HEADER: "Itinerary Investment",
+    TOTAL_UNIFIED: "Unified Final Total",
+    TOTAL_PRE_TAX: "Pre-Tax Total",
+    TAX_INCL: "Incl. Tax",
+    TAX_EXCL: "Excl. Tax"
+  },
+  FALLBACKS: {
+    LOCATION: "Bespoke Journey",
+    REFERENCE_PREFIX: "TRX-",
+    ESTABLISHED_TITLE: "Established",
+    CLOSE_ACTION: "Close"
+  }
+};
+
+const UI_CONFIG = {
+  THRESHOLDS: {
+    SCROLL_MIN: 30,
+    SCROLL_BUFFER: 50,
+    ANIM_DELAY_SM: 100,
+    ANIM_DELAY_MD: 150
+  },
+  COLORS: {
+    FOUNDATION: "#0a0a0b"
+  }
+};
 
 export const BookingContent = memo(function BookingContent({
   data: packageData,
@@ -55,19 +111,19 @@ export const BookingContent = memo(function BookingContent({
   const [bookingId, setBookingId] = useState<string | null>(null);
 
   // Form Data
-  const [adults, setAdults] = useState(1);
-  const [kids, setKids] = useState(0);
-  const [infants, setInfants] = useState(0);
+  const [adults, setAdults] = useState(INITIAL_ADULTS);
+  const [kids, setKids] = useState(INITIAL_KIDS);
+  const [infants, setInfants] = useState(INITIAL_INFANTS);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
   const [notes, setNotes] = React.useState("");
-  const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age?: string; type: 'adult' | 'child' }[]>([]);
+  const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age: string; type: 'adult' | 'child' | 'infant' }[]>([]);
 
   // Synchronize additionalGuests when traveler counts change
   useEffect(() => {
-    const totalAdditional = (adults - 1) + kids;
+    const totalAdditional = (adults - 1) + kids + infants;
     setAdditionalGuests(prev => {
       const next = [...prev];
       if (next.length > totalAdditional) {
@@ -75,26 +131,44 @@ export const BookingContent = memo(function BookingContent({
       }
       while (next.length < totalAdditional) {
         const index = next.length;
-        const type = index < (adults - 1) ? 'adult' : 'child';
-        next.push({ name: "", type });
+        let type: 'adult' | 'child' | 'infant' = 'adult';
+        if (index >= (adults - 1) + kids) {
+          type = 'infant';
+        } else if (index >= (adults - 1)) {
+          type = 'child';
+        }
+        next.push({ name: "", age: "", type });
       }
       return next;
     });
-  }, [adults, kids]);
+  }, [adults, kids, infants]);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [showGuestScroll, setShowGuestScroll] = useState(false);
   const [taxRate, setTaxRate] = useState(0);
   const curationScrollRef = useRef<HTMLDivElement>(null);
+  const guestScrollRef = useRef<HTMLDivElement>(null);
 
   const handleCurationScroll = () => {
     if (curationScrollRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = curationScrollRef.current;
-      // Precision threshold: only show if content is significantly larger (50px buffer)
-      setShowScrollIndicator(scrollHeight > clientHeight + 50 && scrollTop + clientHeight < scrollHeight - 30);
+      // Precision threshold: only show if content is significantly larger (buffer)
+      setShowScrollIndicator(
+        scrollHeight > clientHeight + UI_CONFIG.THRESHOLDS.SCROLL_BUFFER && 
+        scrollTop + clientHeight < scrollHeight - UI_CONFIG.THRESHOLDS.SCROLL_MIN
+      );
+    }
+  };
+
+  const handleGuestScroll = () => {
+    if (guestScrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = guestScrollRef.current;
+      // Precision threshold: show if content is scrollable and we haven't reached the bottom yet
+      setShowGuestScroll(scrollHeight > clientHeight + 10 && scrollTop + clientHeight < scrollHeight - 20);
     }
   };
 
@@ -135,9 +209,13 @@ export const BookingContent = memo(function BookingContent({
     
     // Initial check for scrollability when entering phase 4
     if (discoveryPhase === 4) {
-      setTimeout(handleCurationScroll, 100);
+      setTimeout(handleCurationScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_SM);
     }
-  }, [discoveryPhase, onPhaseChange]);
+    // Check guest manifest scrollability in step 2
+    if (step === 2) {
+      setTimeout(handleGuestScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
+    }
+  }, [discoveryPhase, step, onPhaseChange]);
 
   // Dynamic Scroll & Resize Intelligence
   useEffect(() => {
@@ -223,7 +301,7 @@ export const BookingContent = memo(function BookingContent({
   useEffect(() => {
     const timer = setTimeout(() => {
       search(destination);
-    }, 150);
+    }, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
     return () => clearTimeout(timer);
   }, [destination, search]);
 
@@ -251,9 +329,9 @@ export const BookingContent = memo(function BookingContent({
   // Pricing Logic
   const pricing = React.useMemo(() => {
     const pkg = internalPackage || packageData;
-    if (!pkg?.price) return { baseTotal: 0, taxAmount: 0, finalTotal: 0, symbol: "₹", isTaxApplied: false };
+    if (!pkg?.price) return { packagePrice: 0, baseTotal: 0, taxAmount: 0, finalTotal: 0, symbol: DEFAULT_CURRENCY, isTaxApplied: false };
     
-    const symbol = pkg.currency || "₹";
+    const symbol = pkg.currency || DEFAULT_CURRENCY;
     const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
     const child = pkg.child_price
       ? parseInt(String(pkg.child_price).replace(/[^0-9]/g, ""))
@@ -262,19 +340,38 @@ export const BookingContent = memo(function BookingContent({
       ? parseInt(String(pkg.infant_price).replace(/[^0-9]/g, ""))
       : 0;
 
-    const subtotal = adults * base + kids * child + infants * infant;
     
-    // Per-package tax toggle logic: Only apply if global taxRate > 0 AND package has tax enabled
-    const isTaxApplied = taxRate > 0 && pkg.tax_status === "Inclusive of Taxes";
-    const tax = isTaxApplied ? (subtotal * taxRate) / 100 : 0;
+    // Unified Fiscal Protocol:
+    // If "Inclusive" -> The price shown to user INCLUDES tax (Price + Tax).
+    // If "Exclusive" -> The price shown to user is NET, tax is added later.
+    const isInclusive = pkg.tax_status === TAX_INCLUSIVE_LABEL;
+    const isExclusive = pkg.tax_status === TAX_EXCLUSIVE_LABEL;
+    
+    // Calculate the Gross Per-Person Rate for Inclusive packages
+    const grossPackagePrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
+    const grossSubtotal = adults * grossPackagePrice + kids * (isInclusive && taxRate > 0 ? child + (child * taxRate / 100) : child) + infants * (isInclusive && taxRate > 0 ? infant + (infant * taxRate / 100) : infant);
+    
+    // Tax Logic Refinement:
+    // If Exclusive -> We add tax to the net subtotal.
+    // If Inclusive -> We extract the embedded tax from the gross subtotal.
+    const shouldAddTax = isExclusive && taxRate > 0;
+    const addedTax = shouldAddTax ? (grossSubtotal * taxRate) / 100 : 0;
+    
+    // For Inclusive packages, we show the NET base rate in the breakdown for transparency
+    const finalInvestment = grossSubtotal + addedTax;
+    const terminalTaxAmount = isInclusive ? finalInvestment - (finalInvestment / (1 + taxRate/100)) : addedTax;
+    const netBaseRate = finalInvestment - terminalTaxAmount;
     
     return {
-      baseTotal: subtotal,
-      taxAmount: tax,
-      finalTotal: subtotal + tax,
+      packagePrice: grossPackagePrice,
+      baseTotal: netBaseRate,
+      taxAmount: terminalTaxAmount,
+      finalTotal: finalInvestment,
       symbol,
-      isTaxApplied,
-      activeTaxRate: isTaxApplied ? taxRate : 0
+      isBaseInclusive: isInclusive,
+      isFinalInclusive: isInclusive || (shouldAddTax && taxRate > 0),
+      activeTaxRate: isInclusive || shouldAddTax ? taxRate : 0,
+      shouldAddTax: shouldAddTax || isInclusive
     };
   }, [adults, kids, infants, internalPackage, packageData, taxRate]);
 
@@ -289,7 +386,7 @@ export const BookingContent = memo(function BookingContent({
         body: JSON.stringify({
           packageId: internalPackage?.id || packageData?.id,
           packageName:
-            internalPackage?.title || destination || "Bespoke Journey",
+            internalPackage?.title || destination || DOSSIER_PROTOCOL.FALLBACKS.LOCATION,
           travelerCount: adults + kids + infants,
           customerName,
           customerEmail,
@@ -320,7 +417,13 @@ export const BookingContent = memo(function BookingContent({
   const canSubmit = Boolean(
     customerName.trim().length >= 3 && 
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
-    customerPhone.trim().length >= 8
+    customerPhone.trim().length === selectedCountry.length &&
+    additionalGuests.every(guest => {
+      const nameValid = (guest?.name?.trim()?.length || 0) >= 2;
+      if (guest.type === 'adult') return nameValid;
+      const ageValid = (guest?.age?.trim()?.length || 0) >= 1;
+      return nameValid && ageValid;
+    })
   );
 
   const isPhaseValid = React.useMemo(() => {
@@ -337,7 +440,7 @@ export const BookingContent = memo(function BookingContent({
   }, [discoveryPhase, startDate, endDate, adults, canSubmit, customerName, customerEmail, customerPhone]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const isScrolled = e.currentTarget.scrollTop > 30;
+    const isScrolled = e.currentTarget.scrollTop > UI_CONFIG.THRESHOLDS.SCROLL_MIN;
     setScrolled(isScrolled);
     onScroll(isScrolled);
   };
@@ -937,7 +1040,7 @@ export const BookingContent = memo(function BookingContent({
                                 {/* Section 1: Primary Identification */}
                                 <div className="space-y-6 md:space-y-10">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                       Lead Traveler
                                     </span>
                                     <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
@@ -968,7 +1071,7 @@ export const BookingContent = memo(function BookingContent({
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
                                         Contact Information
                                       </span>
-                                      <div className="flex flex-col xl:flex-row gap-6 xl:gap-10 items-end">
+                                      <div className="flex flex-col gap-6 items-stretch">
                                         <div className="flex-1 h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full">
                                           <input
                                             type="email"
@@ -1032,8 +1135,8 @@ export const BookingContent = memo(function BookingContent({
                                 {(adults > 1 || kids > 0 || infants > 0) && (
                                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
-                                        Travelers
+                                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
+                                        Group Manifesto
                                       </span>
                                       <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
                                         {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}
@@ -1146,9 +1249,9 @@ export const BookingContent = memo(function BookingContent({
                                 )}
 
                                 {/* Section 3: Protocol Refinements */}
-                                <div className="space-y-4 md:space-y-6 group/notes pb-10 md:pb-12">
+                                <div className="space-y-4 md:space-y-6 group/notes pb-20 md:pb-24">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+                                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                       Special Requests <span className="text-[8px] md:text-[10px] opacity-40 ml-1">(Optional)</span>
                                     </span>
                                   </div>
@@ -1188,138 +1291,188 @@ export const BookingContent = memo(function BookingContent({
             </div>
           )}
 
-          {step === 2 && (
-            <div 
-              onScroll={handleScroll}
-              className="w-full h-full relative z-[210] flex flex-col items-center justify-start md:justify-center p-[clamp(1rem,4vh,2.5rem)] pt-[clamp(4rem,12vh,6rem)] pb-40 md:py-[clamp(1rem,4vh,2.5rem)] overflow-y-auto scrollbar-hide animate-in fade-in duration-1000 transform-gpu"
+          {step === 2 && (() => {
+            const totalNights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
+            const totalDays = totalNights + 1;
+            
+            return (
+              <div 
+                onScroll={handleScroll}
+              className="w-full h-full relative z-[210] flex flex-col items-center justify-start p-[clamp(1rem,4vw,2.5rem)] pt-[clamp(10rem,15vh,14rem)] pb-[clamp(10rem,25vh,15rem)] overflow-y-auto scrollbar-hide animate-in fade-in slide-in-from-bottom-8 duration-1000 transform-gpu"
             >
-              <div className="w-full max-w-5xl space-y-[clamp(1.5rem,4vh,3rem)] flex flex-col items-center shrink-0">
+              <div className="w-full max-w-5xl flex flex-col items-center space-y-[clamp(1.5rem,4vh,3rem)]">
                 
-                {/* Unified Title Segment */}
-                <div className="text-center space-y-1 md:space-y-3 shrink-0">
-                  <h3 className="text-[clamp(1.2rem,5vw,2.5rem)] font-bold tracking-tighter text-white/90 uppercase drop-shadow-2xl leading-none">
-                    Review Your Journey
+                {/* 1. Cinematic Title Manifest */}
+                <div className="text-center space-y-2 md:space-y-4">
+                  <h3 className="text-[clamp(1.2rem,6vw,2.8rem)] font-black tracking-tighter text-white uppercase drop-shadow-2xl leading-none">
+                    {STATUS_REVIEW}
                   </h3>
-                  <p className="text-[clamp(7px,1vw,9px)] font-black uppercase tracking-[0.6em] text-white/40 italic pl-[0.6em]">
-                    Final verification before secure transmission
+                  <p className="text-[clamp(8px,1.5vw,11px)] font-bold uppercase tracking-[0.4em] text-white/60">
+                    Double-check your curated details for secure transmission
                   </p>
                 </div>
 
-                {/* Primary Manifest Instrument (Unified Horizontal Logic) */}
-                <div className="relative w-full max-w-4xl h-auto transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[28px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden shadow-2xl hover:border-white/40 group/manifest">
-                  {/* Segment 1: Lead Traveler */}
-                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
-                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                      Lead Traveler
-                    </span>
-                    <div className="flex flex-col items-center text-center space-y-0.5">
-                      <span className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">{customerName}</span>
-                      <div className="flex flex-col gap-0">
-                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{customerEmail}</span>
-                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{selectedCountry.code} {customerPhone}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Segment 2: Destination */}
-                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
-                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                      Destination
-                    </span>
-                    <div className="flex flex-col items-center text-center space-y-0.5">
-                      <span className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">{internalPackage?.title || destination}</span>
-                      <div className="flex flex-col gap-0">
-                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">{internalPackage?.location || destination}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Segment 3: Travel Dates */}
-                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 border-b md:border-b-0 md:border-r border-white/10 px-6">
-                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                      Travel Dates
-                    </span>
-                    <div className="flex flex-col items-center text-center space-y-1.5 md:space-y-2">
-                      <div className="flex flex-col items-center">
-                        <span className="text-xs md:text-sm font-bold text-white tracking-tight leading-tight">
-                          {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
-                        </span>
-                        <span className="text-[9px] md:text-[10px] font-medium text-white/80 uppercase tracking-widest">
-                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-center px-4 py-1.5 rounded-full bg-white/[0.08] border border-white/15 shadow-sm">
-                        <span className="text-[9px] font-bold text-white/70 uppercase tracking-[0.2em] leading-none text-center">
-                          {adults} {adults > 1 ? "ADULTS" : "ADULT"}{kids > 0 ? ` • ${kids} ${kids > 1 ? "CHILDREN" : "CHILD"}` : ""}{infants > 0 ? ` • ${infants} ${infants > 1 ? "INFANTS" : "INFANT"}` : ""}
+                {/* 2. The Executive Dossier (Unified Curation Card) */}
+                <div className="w-full relative">
+                  {/* Chromatic Glow: High-Density Neutral Accents */}
+                  <div className="absolute -inset-0.5 bg-gradient-to-br from-white/20 via-transparent to-white/10 rounded-[2.5rem] blur opacity-40 transition duration-1000" />
+                  
+                  <div className="relative w-full bg-black/80 backdrop-blur-3xl border border-white/20 rounded-[2.2rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)]">
+                    
+                    {/* Dossier Header: Primary Identification */}
+                    <div className="w-full p-6 md:p-10 border-b border-white/15 bg-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="space-y-2 text-center md:text-left">
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">Destination</span>
+                        <h4 className="text-xl md:text-3xl font-black text-white tracking-tight leading-tight">
+                          {internalPackage?.title || destination}
+                        </h4>
+                        <div className="flex items-center justify-center md:justify-start gap-2 text-white/80">
+                          <span className="text-[9px] md:text-[11px] font-medium uppercase tracking-[0.2em]">
+                            {internalPackage?.location || "Bespoke Journey"}
+                          </span>
+                        </div>
+                        </div>
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="px-5 py-2 rounded-full bg-white/[0.08] border border-white/15 flex items-center gap-3 shadow-inner">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
+                          <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                            {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
+                          </span>
+                        </div>
+                        <span className="text-[8px] md:text-[9px] font-bold text-white/50 uppercase tracking-[0.3em]">
+                          {DOSSIER_PROTOCOL.LABELS.NIGHTS_DAYS(totalNights, totalDays)}
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Segment 4: Itinerary Cost */}
-                  <div className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-8 px-6 bg-white/[0.03]">
-                    <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/60">
-                      Itinerary Cost
-                    </span>
-                    <div className="flex flex-col items-center text-center space-y-0.5">
-                      <span className="text-2xl md:text-3xl font-bold text-white tabular-nums tracking-tighter leading-none">{totalInvestment}</span>
-                      <div className="flex flex-col gap-0">
-                        <span className="text-[8px] font-bold text-white/60 uppercase tracking-[0.3em]">
-                          {pricing.isTaxApplied ? "Inclusive of Taxes" : "Excluding Taxes"}
-                        </span>
-                        {pricing.isTaxApplied && (
-                          <div className="flex flex-col gap-0.5 mt-1.5">
-                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.15em] leading-none">Base: {pricing.symbol}{pricing.baseTotal.toLocaleString()}</span>
-                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.15em] leading-none">Tax ({pricing.activeTaxRate}%): {pricing.symbol}{pricing.taxAmount.toLocaleString()}</span>
+                    {/* Dossier Body: Curation Breakdown */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5">
+                      
+                      {/* Left Column: Lead Information */}
+                      <div className="p-8 md:p-12 space-y-12">
+                        <div className="space-y-8 flex flex-col items-center">
+                          <div className="flex items-center justify-center gap-3 w-full">
+                            <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.LEAD_TRAVELER}</span>
+                            <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                          </div>
+                          <div className="space-y-3 w-full">
+                            {/* Unified Bar: Full Name */}
+                            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
+                              <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.FULL_NAME}</span>
+                              <span className="text-[11px] font-black text-white uppercase tracking-widest">{customerName}</span>
+                            </div>
+                            
+                            {/* Unified Bar: Email Address */}
+                            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
+                              <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.EMAIL}</span>
+                              <span className="text-[10px] font-black text-white/90 break-all tracking-wide">{customerEmail}</span>
+                            </div>
+
+                            {/* Unified Bar: Contact Number */}
+                            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
+                              <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.CONTACT}</span>
+                              <span className="text-[10px] font-black text-white/90 tracking-widest">{selectedCountry.code} {customerPhone}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {notes && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 flex flex-col items-center">
+                            <div className="flex items-center justify-center gap-3 w-full">
+                              <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.SPECIAL_DESIRES}</span>
+                              <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                            </div>
+                            <div className="bg-white/[0.04] border border-white/15 rounded-2xl p-6 relative overflow-hidden shadow-sm w-full text-center">
+                              <div className="absolute top-0 left-0 right-0 h-1 w-full bg-white/40" />
+                              <p className="text-xs md:text-sm font-light text-white leading-relaxed italic">
+                                "{notes}"
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
+
+                      {/* Right Column: Party Manifest */}
+                      <div className="p-8 md:p-12 space-y-8 bg-white/[0.02] flex flex-col items-center">
+                        <div className="flex items-center justify-center gap-3 w-full">
+                          <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.PARTY_MANIFEST}</span>
+                          <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+                        </div>
+                        <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.5em] -mt-4">
+                          {adults} {adults > 1 ? "Adults" : "Adult"}{kids > 0 ? ` • ${kids}K` : ""}{infants > 0 ? ` • ${infants}I` : ""}
+                        </span>
+
+                        <div className="space-y-3 w-full">
+                          <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 text-center gap-1">
+                            <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.GUEST_LEAD}</span>
+                            <span className="text-[11px] font-black text-white uppercase tracking-widest">{customerName}</span>
+                          </div>
+                          {additionalGuests.filter(g => g.name).map((guest, i) => (
+                            <div key={i} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center gap-1">
+                              <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">
+                                {DOSSIER_PROTOCOL.LABELS.GUEST_LABEL(i + 2, guest.type === 'child' ? 'Child' : guest.type === 'infant' ? 'Infant' : 'Adult', guest.age)}
+                              </span>
+                              <span className="text-[11px] font-black text-white uppercase tracking-widest">{guest.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dossier Footer: Fiscal Summary */}
+                    <div className="p-8 md:p-10 bg-white/[0.08] border-t border-white/15 flex flex-col md:flex-row items-center justify-between gap-8">
+                      {/* Left Column: Tax Breakdown */}
+                      <div className="w-full flex flex-col items-center md:items-start gap-3">
+                        <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
+                          <div className="flex flex-col items-center md:items-start gap-0.5">
+                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.PACKAGE_RATE}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.packagePrice.toLocaleString()}</span>
+                              <span className="inline-flex items-center justify-center text-center text-[6px] font-black uppercase tracking-wider text-white/30 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 min-w-[50px]">
+                                {pricing.isBaseInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-center md:items-start gap-0.5">
+                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.BASE_RATE}</span>
+                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.baseTotal.toLocaleString()}</span>
+                          </div>
+                          <div className="flex flex-col items-center md:items-start gap-0.5">
+                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
+                              {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.activeTaxRate)}
+                            </span>
+                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
+                              {pricing.symbol}{pricing.taxAmount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Column: Itinerary Investment */}
+                      <div className="space-y-3 w-full flex flex-col items-center md:items-end text-center md:text-right">
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">{DOSSIER_PROTOCOL.LABELS.INVESTMENT_HEADER}</span>
+                        <div className="flex flex-col items-center md:items-end gap-3">
+                          <span className="text-3xl md:text-5xl font-black text-white tracking-tighter tabular-nums leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            {totalInvestment}
+                          </span>
+                          <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-sm flex items-center justify-center min-w-[120px]">
+                            <span className="text-[7px] md:text-[8px] font-black text-white/60 uppercase tracking-[0.3em] text-center leading-none">
+                              {pricing.isFinalInclusive ? DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED : DOSSIER_PROTOCOL.LABELS.TOTAL_PRE_TAX}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Secondary Manifesto Area (Guest List & Notes) */}
-                <div className={cn(
-                  "w-full max-w-4xl gap-8 items-start",
-                  additionalGuests.filter(g => g.name).length > 0 && notes ? "grid grid-cols-1 md:grid-cols-2" : "flex flex-col items-center"
-                )}>
-                  {/* Guest Manifesto List - Only shown if additional guests exist */}
-                  {additionalGuests.filter(g => g.name).length > 0 && (
-                    <div className="space-y-4 w-full">
-                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30 pl-4">
-                        Guest Manifesto
-                      </span>
-                      <div className="grid grid-cols-1 gap-2 max-h-[120px] overflow-y-auto scrollbar-hide pr-2">
-                        {additionalGuests.filter(g => g.name).map((guest, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">
-                              Guest {i + 2} {guest.type === 'child' ? `(Child${guest.age ? `, ${guest.age}y` : ''})` : '(Adult)'}
-                            </span>
-                            <span className="text-xs font-bold text-white/80">{guest.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Special Requests Section */}
-                  {notes && (
-                    <div className={cn("space-y-4", additionalGuests.filter(g => g.name).length === 0 ? "w-full max-w-2xl" : "w-full")}>
-                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/30 pl-4">
-                        Special Requests
-                      </span>
-                      <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 h-fit">
-                        <p className="text-xs font-light text-white/60 leading-relaxed italic border-l border-white/20 pl-4 py-1">
-                          "{notes}"
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {step === 3 && (
             <div className="flex flex-col items-center justify-center text-center space-y-12 animate-in zoom-in-95 duration-1000">
@@ -1328,11 +1481,11 @@ export const BookingContent = memo(function BookingContent({
               </div>
               <div className="space-y-4">
                 <h3 className="text-5xl font-bold tracking-tight text-white/90 uppercase">
-                  Established
+                  {DOSSIER_PROTOCOL.FALLBACKS.ESTABLISHED_TITLE}
                 </h3>
                 <div className="flex flex-col items-center gap-3">
                   <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80 pl-[0.4em]">
-                    Reference ID: TRX-{bookingId?.split("-")[0].toUpperCase()}
+                    Reference ID: {DOSSIER_PROTOCOL.FALLBACKS.REFERENCE_PREFIX}{bookingId?.split("-")[0].toUpperCase()}
                   </p>
                   <div className="h-[1px] w-12 bg-white/20" />
                 </div>
@@ -1341,7 +1494,7 @@ export const BookingContent = memo(function BookingContent({
                 onClick={startClosing}
                 className="px-20 py-5 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white/90 hover:bg-[#f5f5f7] hover:text-black transition-all shadow-lg"
               >
-                Close
+                {DOSSIER_PROTOCOL.FALLBACKS.CLOSE_ACTION}
               </button>
             </div>
           )}
@@ -1349,7 +1502,7 @@ export const BookingContent = memo(function BookingContent({
       </div>
 
       {/* 4. PROGRESSIVE BOTTOM MASK (MIRRORED iOS STYLE) */}
-      {step === 1 && discoveryPhase > 1 && (
+      {((step === 1 && discoveryPhase > 1) || step === 2) && (
         <div
           className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 md:h-48 transition-all duration-1000 backdrop-blur-sm z-[110] transform-gpu will-change-[opacity,backdrop-filter] animate-in fade-in duration-1000"
           style={{
@@ -1384,9 +1537,9 @@ export const BookingContent = memo(function BookingContent({
                   <p className="text-base md:text-[clamp(1.1rem,2.5vw,1.6rem)] font-bold tracking-tight text-white/90 leading-none tabular-nums whitespace-nowrap">
                     {totalInvestment}
                   </p>
-                  <div className="px-1 py-0.5 rounded-[3px] bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000">
-                    <span className="text-[4px] md:text-[6px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white/30 whitespace-nowrap">
-                      {pricing.isTaxApplied ? "Incl. Tax" : "Excl. Tax"}
+                  <div className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000 min-w-[60px]">
+                    <span className="text-[4px] md:text-[6px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white/30 whitespace-nowrap text-center leading-none">
+                      {pricing.isFinalInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
                     </span>
                   </div>
                 </div>
@@ -1476,7 +1629,7 @@ export const BookingContent = memo(function BookingContent({
                         {formatDateForDisplay(endDate).split('/').slice(0, 2).join('/')}
                       </span>
                       <span className="text-[7px] font-black text-white/30 ml-1">
-                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))}N
+                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY))}N
                       </span>
                     </div>
                   )}

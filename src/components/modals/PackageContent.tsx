@@ -51,8 +51,6 @@ export const PackageContent = memo(function PackageContent({
 
   const isTaxApplied = globalTaxRate > 0 && experience?.tax_status === "Inclusive of Taxes";
 
-
-
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
       <div 
