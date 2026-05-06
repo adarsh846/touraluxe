@@ -20,7 +20,6 @@ import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { Magnetic } from "@/components/Magnetic";
-import { format } from "date-fns";
 
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
