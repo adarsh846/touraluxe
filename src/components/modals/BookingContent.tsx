@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, memo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, memo } from "react";
 import {
   Search,
   Calendar,
@@ -13,13 +13,14 @@ import {
   Command,
   X,
   ArrowRight,
-  Lock,
+  LockKeyhole,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { Magnetic } from "@/components/Magnetic";
+import gsap from "gsap";
 
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
@@ -386,6 +387,67 @@ export const BookingContent = memo(function BookingContent({
 
   const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
+  // Haptic Feedback Trigger for Pricing Updates
+  const pillRef = useRef<HTMLDivElement>(null);
+  const segmentsRef = useRef<HTMLDivElement>(null);
+  const actionRef = useRef<HTMLDivElement>(null);
+
+
+
+  // Dynamic Island Observed Kinetic Engine (Zero-Jitter Adaptive Fit)
+  const lastWidth = useRef<number>(0);
+  const resizeTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  useLayoutEffect(() => {
+    if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+    
+    const updateGeometry = () => {
+      if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+      
+      // Calculate Total Intrinsic Mass
+      const segmentsWidth = segmentsRef.current.scrollWidth;
+      const actionWidth = actionRef.current.scrollWidth;
+      const gap = window.innerWidth >= 1024 ? 32 : window.innerWidth >= 768 ? 16 : 8;
+      const padding = window.innerWidth >= 768 ? 24 : 16;
+      
+      const targetWidth = segmentsWidth + actionWidth + gap + padding;
+      
+      if (Math.abs(lastWidth.current - targetWidth) > 1) {
+        gsap.killTweensOf(pillRef.current);
+        
+        // Authentic Sovereign Morph (Width-only Spring)
+        gsap.to(pillRef.current, {
+          width: targetWidth,
+          duration: 0.9,
+          ease: "elastic.out(1, 0.75)",
+          force3D: true,
+          onComplete: () => {
+            if (pillRef.current) pillRef.current.style.width = `${targetWidth}px`;
+          }
+        });
+        
+        lastWidth.current = targetWidth;
+      }
+    };
+
+    // Use ResizeObserver for surgical geometric tracking
+    const observer = new ResizeObserver(() => {
+      if (resizeTimeout.current) clearTimeout(resizeTimeout.current);
+      resizeTimeout.current = setTimeout(updateGeometry, 16); // Locked to 60fps frame budget
+    });
+
+    observer.observe(segmentsRef.current);
+    observer.observe(actionRef.current);
+    
+    // Initial measurement
+    updateGeometry();
+
+    return () => {
+      observer.disconnect();
+      if (resizeTimeout.current) clearTimeout(resizeTimeout.current);
+    };
+  }, [discoveryPhase, step]);
+
   const submitBooking = async () => {
     setIsSubmitting(true);
     try {
@@ -393,22 +455,27 @@ export const BookingContent = memo(function BookingContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          packageId: internalPackage?.id || packageData?.id,
+          packageId: internalPackage?.id || packageData?.id || "GENERAL_INQUIRY",
           packageName:
-            internalPackage?.title || destination || DOSSIER_PROTOCOL.FALLBACKS.LOCATION,
+            internalPackage?.title || packageData?.title || destination || DOSSIER_PROTOCOL.FALLBACKS.LOCATION,
           travelerCount: adults + kids + infants,
           customerName,
           customerEmail,
           customerPhone,
           specialRequests: `Dates: ${startDate} to ${endDate} | Notes: ${notes}`,
-          bookingSource,
-          totalAmount: parseInt(totalInvestment.replace(/[^0-9]/g, "")) || 0,
+          bookingSource: bookingSource || "WEB_DOSSIER",
+          totalAmount: Math.round(pricing.finalTotal),
         }),
       });
+
+      const res = await response.json();
+
       if (response.ok) {
-        const res = await response.json();
         setBookingId(res.data?.[0]?.id);
         setStep(3);
+      } else {
+        console.error("Booking Submission Error:", res.error);
+        setError?.(res.error || "Failed to establish journey. Please verify your connection.");
       }
     } finally {
       setIsSubmitting(false);
@@ -922,7 +989,7 @@ export const BookingContent = memo(function BookingContent({
                                 )}>
                                   Return
                                 </span>
-                                {isDurationFixed && <Lock size={8} className="text-white/20" />}
+                                {isDurationFixed && <LockKeyhole size={12} className="text-white/40" />}
                               </div>
                               <div className="flex flex-col items-center">
                                 {endDate ? (
@@ -1037,7 +1104,7 @@ export const BookingContent = memo(function BookingContent({
                               </div>
                             </div>
 
-                            <div className="relative w-full max-w-[min(450px,92vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument">
+                            <div className="relative w-full max-w-[min(850px,94vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
                             
                               {/* Scrollable Protocol Area */}
                               <div 
@@ -1058,14 +1125,13 @@ export const BookingContent = memo(function BookingContent({
                                   </div>
                                   
                                   <div 
-                                    className="grid gap-[clamp(1.5rem,4vw,4rem)] items-start"
-                                    style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(280px,40%,450px), 1fr))' }}
+                                    className="grid grid-cols-1 md:grid-cols-2 gap-x-[clamp(1.5rem,4vw,4rem)] gap-y-8 items-start"
                                   >
-                                    <div className="space-y-3 md:space-y-4 group/id">
+                                    <div className="space-y-3 md:space-y-4 group/id min-w-0">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/id:text-white/80 transition-colors">
                                         Full Name
                                       </span>
-                                      <div className="h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all">
+                                      <div className="h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full min-w-0">
                                         <input
                                           type="text"
                                           value={customerName}
@@ -1076,11 +1142,11 @@ export const BookingContent = memo(function BookingContent({
                                       </div>
                                     </div>
 
-                                    <div className="space-y-4 group/contact">
+                                    <div className="space-y-4 group/contact min-w-0">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
                                         Contact Information
                                       </span>
-                                      <div className="flex flex-col gap-6 items-stretch">
+                                      <div className="flex flex-col gap-6 items-stretch min-w-0">
                                         <div className="flex-1 h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full">
                                           <input
                                             type="email"
@@ -1155,13 +1221,13 @@ export const BookingContent = memo(function BookingContent({
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 md:gap-x-16 gap-y-12">
                                       {/* Additional Adults */}
                                       {Array.from({ length: adults - 1 }).map((_, i) => (
-                                        <div key={`adult-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
+                                        <div key={`adult-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500 min-w-0">
                                           <div className="flex items-center justify-between">
                                             <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
                                               Guest {i + 2} <span className="text-[7px] text-white/20 pl-1">(Adult)</span>
                                             </span>
                                           </div>
-                                          <div className="border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                          <div className="border-b border-white/10 pb-2 focus-within:border-white/40 transition-all w-full min-w-0">
                                             <input
                                               type="text"
                                               placeholder="Full name"
@@ -1526,136 +1592,144 @@ export const BookingContent = memo(function BookingContent({
         />
       )}
 
-      {/* 5. PRECISION PILL MANIFEST (DYNAMIC ISLAND) */}
+      {/* 5. PRECISION PILL MANIFEST (SOVEREIGN COCKPIT - LIQUID SPRING) */}
       {((step === 1 && discoveryPhase > 1) || step === 2) && (
-        <div className="absolute bottom-4 md:bottom-0 left-0 right-0 p-6 md:p-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
-          <div className={cn(
-            "w-full flex items-stretch bg-white/[0.08] backdrop-blur-3xl border border-white/[0.12] p-1.5 rounded-full pointer-events-auto shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)] group/pill transition-all duration-[1000ms] cubic-bezier(0.23,1,0.32,1) overflow-hidden",
-            discoveryPhase >= 3 || step === 2 ? "max-w-[clamp(600px,94vw,1100px)]" :
-            discoveryPhase === 2 ? "max-w-[clamp(400px,90vw,800px)]" : "max-w-[clamp(300px,80vw,600px)]"
-          )}>
-            {/* Expansive Horizontal Layout with Morphing Logic */}
-            <div className="flex flex-1 items-center justify-between gap-1 md:gap-3 lg:gap-6">
+        <>
+          {/* Liquid Morphing Filter Definition */}
+          <svg className="hidden">
+            <defs>
+              <filter id="pill-goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+              </filter>
+            </defs>
+          </svg>
+
+          <div className="absolute bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
+            <div 
+              ref={pillRef}
+              style={{ filter: 'url(#pill-goo)', width: 'fit-content' }}
+              className="relative flex items-stretch justify-between bg-black/90 backdrop-blur-[40px] border border-white/20 p-1.5 md:p-2 rounded-full pointer-events-auto shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] group/pill overflow-hidden mx-auto transform-gpu will-change-[width,transform]"
+            >
+              {/* Refractive Glow Layer */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent -translate-x-full group-hover/pill:translate-x-full transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
               
-              {/* Segment 1: Itinerary Cost (Adaptive Sizing & Left Buffer) */}
-              <div className="flex md:flex-none md:min-w-fit flex-1 flex-col space-y-0.5 md:space-y-1.5 items-center md:items-start justify-center pl-5 md:pl-8 lg:pl-10 shrink-0 transition-all duration-700">
-                <span className="text-[5px] md:text-[7px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-white/30 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
-                  Itinerary Cost
-                </span>
-                <div className="flex items-center gap-1.5 md:gap-3">
-                  <p className="text-base md:text-[clamp(1.1rem,2.5vw,1.6rem)] font-bold tracking-tight text-white/90 leading-none tabular-nums whitespace-nowrap">
-                    {totalInvestment}
-                  </p>
-                  <div className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in fade-in zoom-in-95 duration-1000 min-w-[60px]">
-                    <span className="text-[4px] md:text-[6px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] text-white/30 whitespace-nowrap text-center leading-none">
-                      {pricing.isFinalInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {discoveryPhase > 2 && <div className="hidden lg:block w-[1px] h-8 bg-white/[0.12] shrink-0 animate-in fade-in duration-1000" />}
-
-              {/* Segment 2: Dynamic Guest Manifest (Phase 03/04 Transition) */}
-              {discoveryPhase > 2 && (
+              {/* 
+                  DYNAMIC SEGMENT SPAWNING ENGINE 
+                  Segments are 'budded' into existence as data is captured.
+                  No placeholders, just living data.
+              */}
+              <div ref={segmentsRef} className="flex items-center justify-center gap-0 md:gap-1 lg:gap-2 overflow-hidden relative z-10 w-fit shrink-0">
+              
+                {/* Segment 1: Terminal Investment (Centered Alignment) */}
                 <div className={cn(
-                  "hidden md:flex flex-col space-y-1 items-center min-w-fit transition-all duration-1000 animate-in fade-in slide-in-from-bottom-2 px-4",
-                  discoveryPhase === 3 ? "opacity-60 scale-95" : "opacity-100 scale-100"
+                  "flex flex-col space-y-1 items-center justify-center px-4 md:px-6 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] min-w-0 shrink-0 will-change-[opacity,transform]",
+                  (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
                 )}>
-                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap">
-                    {(Number(adults) + Number(kids) + Number(infants)) <= 1 ? "Guest" : "Guests"}
+                  <span className="text-[5px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
+                    Itinerary Cost
                   </span>
-                  <div className="flex items-center gap-4 whitespace-nowrap">
-                    <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
-                      {adults} {Number(adults) <= 1 ? "Adult" : "Adults"}
-                    </span>
-                    {Number(kids) > 0 && (
-                      <>
-                        <div className="w-[1px] h-3 bg-white/10" />
-                        <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
-                          {kids} {Number(kids) === 1 ? "Child" : "Children"}
-                        </span>
-                      </>
-                    )}
-                    {Number(infants) > 0 && (
-                      <>
-                        <div className="w-[1px] h-3 bg-white/10" />
-                        <span className="text-[11px] md:text-[12px] font-bold text-white/80 tracking-tight leading-none uppercase">
-                          {infants} {Number(infants) === 1 ? "Infant" : "Infants"}
-                        </span>
-                      </>
-                    )}
+                  <div className="flex items-center justify-center gap-3">
+                    <p className="text-xl md:text-[clamp(1.4rem,3vw,1.8rem)] font-bold tracking-tight text-white leading-none tabular-nums whitespace-nowrap">
+                      {totalInvestment}
+                    </p>
+                    <div className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 hidden sm:flex items-center justify-center">
+                      <span className="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/30 leading-none">
+                        {pricing.isFinalInclusive ? "INCL. TAX" : "EXCL. TAX"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              <div className="hidden md:block w-[1px] h-8 bg-white/[0.12] shrink-0" />
-
-              {/* Segment 3: Travel Dates (Contextual Reveal) */}
-              <div className={cn(
-                "hidden md:flex flex-col space-y-1 items-center min-w-fit px-4 transition-all duration-700",
-                discoveryPhase === 2 ? "flex-shrink" : "flex-1"
-              )}>
-                <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/pill:text-white/60 transition-colors whitespace-nowrap">
-                  Travel Dates
-                </span>
+                {/* Segment 2: Timeline Spawning (Centered Alignment with Nights/Days Pill) */}
                 {startDate && endDate && (
-                  <div className="flex flex-col items-center gap-1.5">
-                    <div className="flex items-center gap-4 whitespace-nowrap">
-                      <span className="text-[11px] md:text-[12px] font-bold text-white/90 uppercase tracking-tighter tabular-nums">
+                  <div className={cn(
+                    "flex flex-col space-y-1.5 items-center justify-center px-4 md:px-6 border-l border-white/10 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] animate-in zoom-in-95 slide-in-from-left-4 fade-in min-w-fit shrink-0 will-change-[opacity,transform]",
+                    discoveryPhase === 2 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                  )}>
+                    <span className="text-[6px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
+                      Travel Dates
+                    </span>
+                    <div className="flex items-center justify-center gap-3 md:gap-5 whitespace-nowrap">
+                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight tabular-nums uppercase">
                         {formatDateForDisplay(startDate)}
                       </span>
-                      <div className="w-4 h-[1px] bg-white/20" />
-                      <span className="text-[11px] md:text-[12px] font-bold text-white/90 uppercase tracking-tighter tabular-nums">
+                      <div className="w-4 md:w-8 h-[1px] bg-white/20 shrink-0" />
+                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight tabular-nums uppercase">
                         {formatDateForDisplay(endDate)}
                       </span>
                     </div>
-                    {discoveryPhase > 2 && (
-                      <div className="flex items-center gap-1 bg-white/[0.05] border border-white/10 px-2.5 py-0.5 rounded-full animate-in zoom-in-95 duration-700">
-                        <div className="w-1 h-1 rounded-full bg-white/40 animate-pulse" />
-                        <span className="text-[6px] font-black uppercase tracking-[0.2em] text-white/60 pl-0.5 whitespace-nowrap">
-                          {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
-                        </span>
-                      </div>
-                    )}
+                    {/* Nights / Days Sub-Pill */}
+                    <div className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-1000">
+                      <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40 leading-none">
+                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY))} NIGHTS / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY)) + 1} DAYS
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Segment 3: Manifest Spawning (Centered Alignment) */}
+                {discoveryPhase >= 3 && (
+                  <div className={cn(
+                    "flex flex-col space-y-1.5 items-center justify-center px-4 md:px-6 border-l border-white/10 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] animate-in zoom-in-95 slide-in-from-left-4 fade-in min-w-fit shrink-0 will-change-[opacity,transform]",
+                    discoveryPhase === 3 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                  )}>
+                    <span className="text-[6px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
+                      Guests
+                    </span>
+                    <div className="flex items-center justify-center gap-3 whitespace-nowrap">
+                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight leading-none uppercase text-center">
+                        {adults} {adults <= 1 ? "Adult" : "Adults"}
+                        {kids > 0 && (
+                          <>
+                            <span className="mx-1 md:mx-2 text-white/20">|</span>
+                            {kids} {kids === 1 ? "Child" : "Children"}
+                          </>
+                        )}
+                        {infants > 0 && (
+                          <>
+                            <span className="mx-1 md:mx-2 text-white/20">|</span>
+                            {infants} {infants === 1 ? "Infant" : "Infants"}
+                          </>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Mobile Contextual Readout (Persistence only for Phones) */}
-              <div className="flex md:hidden flex-1 flex-col items-center justify-center gap-1 transition-all duration-700">
-                <div className="flex flex-col items-center">
-                  <span className="text-[5px] font-black uppercase tracking-[0.3em] text-white/30 mb-0.5">
+              <div className="flex md:hidden flex-1 flex-col items-center justify-center gap-1 transition-all duration-700 min-w-0 px-1">
+                <div className="flex flex-col items-center min-w-0 w-full">
+                  <span className="text-[5px] font-black uppercase tracking-[0.3em] text-white/50 mb-0.5 whitespace-nowrap">
                     Your Selection
                   </span>
                   {startDate && endDate && (
-                    <div className="flex items-center justify-center gap-1.5 animate-in fade-in slide-in-from-bottom-1 duration-700">
-                      <span className="text-[9px] font-bold text-white/70 tracking-tighter tabular-nums uppercase">
-                        {formatDateForDisplay(startDate).split('/').slice(0, 2).join('/')}
+                    <div className="flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-700 min-w-0 w-full">
+                      <span className="text-[8px] font-bold text-white/90 tracking-tighter tabular-nums uppercase whitespace-nowrap">
+                        {formatDateForDisplay(startDate)}
                       </span>
-                      <div className="w-1.5 h-[1px] bg-white/20" />
-                      <span className="text-[9px] font-bold text-white/70 tracking-tighter tabular-nums uppercase">
-                        {formatDateForDisplay(endDate).split('/').slice(0, 2).join('/')}
-                      </span>
-                      <span className="text-[7px] font-black text-white/30 ml-1">
-                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY))}N
+                      <div className="w-1 h-[1px] bg-white/30 shrink-0" />
+                      <span className="text-[8px] font-bold text-white/90 tracking-tighter tabular-nums uppercase whitespace-nowrap">
+                        {formatDateForDisplay(endDate)}
                       </span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-1000">
-                  <div className="flex items-center gap-1 bg-white/[0.04] border border-white/5 px-1.5 py-0.5 rounded-full">
-                    <div className="w-0.5 h-0.5 rounded-full bg-white/30 animate-pulse" />
-                    <span className="text-[6px] font-black uppercase tracking-[0.1em] text-white/50">
-                      {adults}A {kids > 0 ? `• ${kids}C` : ""}{infants > 0 ? ` • ${infants}I` : ""}
+                  <div className="flex items-center gap-1 bg-white/[0.08] border border-white/10 px-1.5 py-0.5 rounded-full">
+                    <div className="w-0.5 h-0.5 rounded-full bg-white/50 animate-pulse" />
+                    <span className="text-[6px] font-black uppercase tracking-[0.05em] text-white/70">
+                      {adults} {adults <= 1 ? "Adult" : "Adults"} {kids > 0 ? `• ${kids} ${kids === 1 ? "Child" : "Children"}` : ""}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Right: Action Button Area (Surgically Merged) */}
-              <div className="flex items-center justify-end pl-1 md:pl-2 lg:pl-8 border-l border-white/10 shrink-0 pr-0">
+              <div ref={actionRef} className="flex items-center justify-end pl-1 md:pl-2 lg:pl-8 border-l border-white/10 shrink-0 pr-0">
                 {discoveryPhase > 1 && (
                   <Magnetic>
                     <button
@@ -1699,7 +1773,7 @@ export const BookingContent = memo(function BookingContent({
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

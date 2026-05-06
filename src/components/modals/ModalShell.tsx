@@ -241,16 +241,16 @@ export function ModalShell() {
       >
         {/* Global Error Alert */}
         {error && (
-          <div className="absolute bottom-[164px] md:top-9 left-1/2 -translate-x-1/2 z-[500] w-full px-6 md:px-0 md:max-w-max pointer-events-none animate-in slide-in-from-bottom-8 md:slide-in-from-top-4 duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]">
-            <div ref={alertRef} className="relative w-full max-w-[400px] md:max-w-max mx-auto bg-[#0a0a0b]/98 backdrop-blur-3xl border border-white/10 p-2.5 md:px-5 md:py-2.5 rounded-xl md:rounded-full flex items-center gap-3 shadow-2xl transition-all duration-500 pointer-events-auto">
-              <AlertCircle className="w-3.5 h-3.5 text-red-500/80 shrink-0" />
-              <div className="flex-1 flex items-center justify-between gap-4">
-                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 leading-none">
+          <div className="absolute bottom-[clamp(7rem,16vh,10rem)] md:top-9 left-1/2 -translate-x-1/2 z-[500] w-full px-6 md:px-0 md:max-w-max pointer-events-none animate-in slide-in-from-bottom-8 md:slide-in-from-top-4 duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]">
+            <div ref={alertRef} className="relative w-full max-w-[min(450px,90vw)] md:max-w-max mx-auto bg-[#0a0a0b]/98 backdrop-blur-3xl border border-white/10 p-3 md:px-5 md:py-2.5 rounded-2xl md:rounded-full flex items-start md:items-center gap-3 shadow-2xl transition-all duration-500 pointer-events-auto min-w-0">
+              <AlertCircle className="w-3.5 h-3.5 text-red-500/80 shrink-0 mt-0.5 md:mt-0" />
+              <div className="flex-1 flex items-start justify-between gap-4 min-w-0">
+                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.12em] md:tracking-[0.15em] text-white/70 leading-normal md:leading-none py-0.5 md:py-0 min-w-0 break-words">
                   {error}
                 </span>
                 <button 
                   onClick={() => setError(null)}
-                  className="text-[8px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors font-black pr-1"
+                  className="text-[8px] md:text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors font-black pr-1 shrink-0 mt-0.5 md:mt-0"
                 >
                   ✕
                 </button>
@@ -351,11 +351,25 @@ export function ModalShell() {
                     <ArrowLeft size={18} strokeWidth={2.5} className="group-hover/backbtn:-translate-x-1 transition-transform" />
                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
                       {(() => {
+                        // Contextual Source Mapping - Harmonized Site Terminology
+                        const getOrigin = (src: string) => {
+                          const s = src?.toUpperCase() || "";
+                          if (s.includes("SERVICES")) return "Services";
+                          if (s.includes("ABOUT")) return "About";
+                          // CTA and HERO origins both map back to the main discovery flow
+                          if (s.includes("CTA") || s.includes("HERO") || s.includes("DISCOVER")) return "Discover";
+                          return "Discover";
+                        };
+
                         // 1. Internal Booking Logic (Phases/Steps)
                         if (activeView === 'BOOKING') {
                           if (activeStep === 2) return "Finalize";
                           if (currentPhase > 1) {
-                            return ["", "Discover", "Timeline", "Guests", "Finalize"][currentPhase - 1];
+                            return ["", "Package", "Timeline", "Guests", "Finalize"][currentPhase - 1];
+                          }
+                          if (history.length > 0) {
+                            const prev = history[history.length - 1].view;
+                            return prev === 'PACKAGE' ? "Package" : getOrigin(activeSource);
                           }
                         }
 
@@ -365,10 +379,11 @@ export function ModalShell() {
                           if (prev === 'PACKAGE') return "Package";
                           if (prev === 'SERVICES') return "Services";
                           if (prev === 'ABOUT') return "About";
-                          if (prev === 'CTA') return "Join";
+                          if (prev === 'CTA') return "Join"; // Keep for internal modal transitions
                         }
 
-                        return "Back";
+                        // 3. Fallback to Site Origin based on Source
+                        return getOrigin(activeSource);
                       })()}
                     </span>
                   </button>

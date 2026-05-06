@@ -35,6 +35,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     tagline: initialData?.tagline || "",
     description: initialData?.description || "",
     highlights: initialData?.highlights || [""],
+    inclusions: initialData?.inclusions || [""],
+    itinerary: initialData?.itinerary || [{ day: "1", title: "", description: "" }],
     category: Array.isArray(initialData?.category) 
       ? initialData.category.filter(cat => ALLOWED_CATEGORIES.includes(cat)) 
       : (initialData?.category && ALLOWED_CATEGORIES.includes(initialData.category as string) ? [initialData.category as string] : []),
@@ -112,6 +114,48 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     }));
   };
 
+  const handleInclusionChange = (index: number, value: string) => {
+    setForm((prev) => {
+      const inclusions = [...prev.inclusions];
+      inclusions[index] = value;
+      return { ...prev, inclusions };
+    });
+  };
+
+  const addInclusion = () => {
+    setForm((prev) => ({ ...prev, inclusions: [...prev.inclusions, ""] }));
+  };
+
+  const removeInclusion = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      inclusions: prev.inclusions.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleItineraryChange = (index: number, field: string, value: string) => {
+    setForm((prev) => {
+      const itinerary = [...prev.itinerary];
+      itinerary[index] = { ...itinerary[index], [field]: value };
+      return { ...prev, itinerary };
+    });
+  };
+
+  const addItineraryDay = () => {
+    const nextDay = (form.itinerary.length + 1).toString();
+    setForm((prev) => ({ 
+      ...prev, 
+      itinerary: [...prev.itinerary, { day: nextDay, title: "", description: "" }] 
+    }));
+  };
+
+  const removeItineraryDay = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      itinerary: prev.itinerary.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -125,6 +169,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       ...form,
       duration,
       highlights: form.highlights.filter((h) => h.trim() !== ""),
+      inclusions: form.inclusions.filter((h) => h.trim() !== ""),
+      itinerary: form.itinerary.filter((item) => item.title.trim() !== ""),
     };
 
     const url = isEditing
@@ -260,19 +306,70 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-5">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Included in Tour Package</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Journey Highlights</label>
               <div className="space-y-3">
                 {form.highlights.map((h, i) => (
                   <div key={i} className="flex gap-3">
-                    <input value={h} onChange={(e) => handleHighlightChange(i, e.target.value)} placeholder={`Feature ${i + 1}`} className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all" />
+                    <input value={h} onChange={(e) => handleHighlightChange(i, e.target.value)} placeholder={`Highlight ${i + 1}`} className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all" />
                     {form.highlights.length > 1 && (
-                      <button type="button" onClick={() => { const newHighlights = [...form.highlights]; newHighlights.splice(i, 1); setForm((p) => ({ ...p, highlights: newHighlights })); }} className="w-14 h-[56px] shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90">×</button>
+                      <button type="button" onClick={() => removeHighlight(i)} className="w-14 h-[56px] shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90">×</button>
                     )}
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={() => setForm(p => ({ ...p, highlights: [...p.highlights, ""] }))} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
-                + Include Feature
+              <button type="button" onClick={addHighlight} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+                + Add Highlight
+              </button>
+            </div>
+
+            <div className="space-y-5 pt-8 border-t border-white/[0.02]">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">What&apos;s Included (Inclusions)</label>
+              <div className="space-y-3">
+                {form.inclusions.map((h, i) => (
+                  <div key={i} className="flex gap-3">
+                    <input value={h} onChange={(e) => handleInclusionChange(i, e.target.value)} placeholder={`Inclusion ${i + 1}`} className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all" />
+                    {form.inclusions.length > 1 && (
+                      <button type="button" onClick={() => removeInclusion(i)} className="w-14 h-[56px] shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90">×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addInclusion} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+                + Add Inclusion
+              </button>
+            </div>
+
+            <div className="space-y-5 pt-8 border-t border-white/[0.02]">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Journey Itinerary (Day-by-Day)</label>
+              <div className="space-y-6">
+                {form.itinerary.map((item, i) => (
+                  <div key={i} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] space-y-4 relative group/itinerary">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-white/40">
+                        D{item.day}
+                      </div>
+                      <input 
+                        value={item.title} 
+                        onChange={(e) => handleItineraryChange(i, "title", e.target.value)} 
+                        placeholder="Day Title (e.g. Arrival in Paradise)" 
+                        className="flex-1 h-[56px] px-6 rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all" 
+                      />
+                      {form.itinerary.length > 1 && (
+                        <button type="button" onClick={() => removeItineraryDay(i)} className="w-12 h-12 shrink-0 flex items-center justify-center rounded-full bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90">×</button>
+                      )}
+                    </div>
+                    <textarea 
+                      value={item.description} 
+                      onChange={(e) => handleItineraryChange(i, "description", e.target.value)} 
+                      placeholder="Narrative for this day..." 
+                      rows={3} 
+                      className="w-full px-6 py-4 rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all resize-none" 
+                    />
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addItineraryDay} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+                + Add Day to Journey
               </button>
             </div>
           </section>

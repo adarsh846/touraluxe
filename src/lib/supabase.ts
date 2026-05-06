@@ -22,6 +22,8 @@ export type Package = {
   tagline: string;
   description: string;
   highlights: string[];
+  inclusions?: string[];
+  itinerary?: { day: string; title: string; description: string }[];
   category: string[];
   is_published: boolean;
   sort_order: number;

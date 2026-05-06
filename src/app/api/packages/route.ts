@@ -61,6 +61,9 @@ export async function POST(req: NextRequest) {
         tax_status: body.tax_status || "Inclusive of Taxes",
         currency: body.currency || "₹",
         child_price: body.child_price,
+        infant_price: body.infant_price,
+        inclusions: body.inclusions || [],
+        itinerary: body.itinerary || [],
       },
     ])
     .select()

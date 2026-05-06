@@ -55,6 +55,9 @@ export async function PUT(
       tax_status: body.tax_status,
       currency: body.currency,
       child_price: body.child_price,
+      infant_price: body.infant_price,
+      inclusions: body.inclusions,
+      itinerary: body.itinerary,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
