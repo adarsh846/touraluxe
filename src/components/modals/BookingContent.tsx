@@ -328,7 +328,17 @@ export const BookingContent = memo(function BookingContent({
   // Pricing Logic
   const pricing = React.useMemo(() => {
     const pkg = internalPackage || packageData;
-    if (!pkg?.price) return { packagePrice: 0, baseTotal: 0, taxAmount: 0, finalTotal: 0, symbol: DEFAULT_CURRENCY, isTaxApplied: false };
+    if (!pkg?.price) return { 
+      packagePrice: 0, 
+      baseTotal: 0, 
+      taxAmount: 0, 
+      finalTotal: 0, 
+      symbol: DEFAULT_CURRENCY, 
+      isBaseInclusive: false,
+      isFinalInclusive: false,
+      activeTaxRate: 0,
+      shouldAddTax: false
+    };
     
     const symbol = pkg.currency || DEFAULT_CURRENCY;
     const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
