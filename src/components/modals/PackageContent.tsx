@@ -88,24 +88,24 @@ export const PackageContent = memo(({
           <div className="flex flex-col gap-2 lg:gap-4 mb-4 lg:mb-8">
             <div className="flex items-center gap-2 pl-1">
               <MapPin size={10} className="text-white/60" />
-              <span className="text-[7px] lg:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{experience.location}</span>
+              <span className="text-[clamp(7px,1.5vw,10px)] font-black uppercase tracking-[0.4em] text-white/80">{experience.location}</span>
             </div>
           </div>
           
-          <h1 className="text-3xl lg:text-8xl font-bold tracking-tight text-white leading-[0.9] lg:leading-[0.85] mb-4 lg:mb-8 drop-shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
+          <h1 className="text-[clamp(2.2rem,8vw,6rem)] lg:text-[clamp(4rem,10vw,8.5rem)] font-bold tracking-tight text-white leading-[0.9] lg:leading-[0.82] mb-4 lg:mb-8 drop-shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
             {experience.title.split(' ').map((word: string, i: number) => (
               <span key={i} className="block">{word}</span>
             ))}
           </h1>
           
-          <p className="text-sm lg:text-2xl text-white/80 font-medium tracking-tight italic max-w-xl drop-shadow-md">
+          <p className="text-[clamp(0.8rem,2vw,1.2rem)] lg:text-[clamp(1.2rem,2.5vw,2.2rem)] text-white/80 font-medium tracking-tight italic max-w-xl drop-shadow-md">
             {experience.tagline}
           </p>
 
           {/* Price Anchor */}
-          <div className="mt-6 lg:mt-12 flex flex-col gap-2 lg:gap-4 drop-shadow-lg">
+          <div className="mt-[clamp(1.5rem,5vh,3rem)] lg:mt-12 flex flex-col gap-2 lg:gap-4 drop-shadow-lg">
             <div className="flex items-baseline gap-3">
-              <span className="text-2xl lg:text-5xl font-bold tracking-tighter text-white tabular-nums">
+              <span className="text-[clamp(1.5rem,4vw,2.5rem)] lg:text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter text-white tabular-nums">
                 {(() => {
                   const base = parseInt(experience.price.toString().replace(/[^0-9]/g, "")) || 0;
                   const finalPrice = isTaxApplied ? base + (base * globalTaxRate / 100) : base;

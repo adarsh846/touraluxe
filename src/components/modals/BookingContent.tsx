@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useRef, useState, memo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, memo } from "react";
 import {
   Search,
   Calendar,
@@ -391,38 +391,126 @@ export const BookingContent = memo(function BookingContent({
   const pillRef = useRef<HTMLDivElement>(null);
   const segmentsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
 
+  // iOS 26 Pointer-Tracking Glow (zero re-renders, direct DOM)
+  const handleGlowMove = useCallback((clientX: number, clientY: number) => {
+    if (!pillRef.current || !glowRef.current) return;
+    const rect = pillRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    // iOS 26: Single soft warm glow blob — large, diffused, slightly warm tint
+    glowRef.current.style.background = `radial-gradient(ellipse 200px 120px at ${x}px ${y}px, rgba(255,251,240,0.12), rgba(255,255,255,0.04) 50%, transparent 80%)`;
+    glowRef.current.style.opacity = '1';
+    pillRef.current.style.borderColor = 'rgba(255,255,255,0.32)';
+  }, []);
 
+  const handleGlowLeave = useCallback(() => {
+    if (glowRef.current) glowRef.current.style.opacity = '0';
+    if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.2)';
+  }, []);
 
   // Dynamic Island Observed Kinetic Engine (Zero-Jitter Adaptive Fit)
   const lastWidth = useRef<number>(0);
   const resizeTimeout = useRef<NodeJS.Timeout | null>(null);
-  
+  const [scrollMask, setScrollMask] = useState<'right' | 'left' | 'both' | 'none'>('none');
+  const [isMobile, setIsMobile] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  // Viewport Awareness Engine (Resize + Orientation)
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    window.addEventListener('orientationchange', () => setTimeout(checkMobile, 100));
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('orientationchange', checkMobile);
+    };
+  }, []);
+
+  // Dynamic Kinetic Mask Engine (Bidirectional Scroll Hints)
+  useEffect(() => {
+    const el = segmentsRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      if (scrollWidth <= clientWidth + 4) {
+        setScrollMask('none');
+        return;
+      }
+      
+      const isAtStart = scrollLeft <= 5;
+      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 85;
+      
+      if (isAtStart) setScrollMask('right');
+      else if (isAtEnd) setScrollMask('left');
+      else setScrollMask('both');
+    };
+
+    el.addEventListener('scroll', handleScroll);
+    handleScroll();
+    
+    // Create a ResizeObserver for the content itself to update masks when segments bud
+    const ro = new ResizeObserver(handleScroll);
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      ro.disconnect();
+    };
+  }, [discoveryPhase, step, adults, kids, infants, startDate, endDate, isMobile]);
+
   useLayoutEffect(() => {
     if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
     
     const updateGeometry = () => {
       if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
       
-      // Calculate Total Intrinsic Mass
+      const vw = window.innerWidth;
+      
+      // Calculate Total Intrinsic Mass (Precision Calibration)
       const segmentsWidth = segmentsRef.current.scrollWidth;
       const actionWidth = actionRef.current.scrollWidth;
-      const gap = window.innerWidth >= 1024 ? 32 : window.innerWidth >= 768 ? 16 : 8;
-      const padding = window.innerWidth >= 768 ? 24 : 16;
       
-      const targetWidth = segmentsWidth + actionWidth + gap + padding;
+      // Fluid Geometry Tokens — continuous scaling, no breakpoints
+      // Pill gap: clamp(4px, 2vw, 32px). Pill padding: p-2 = 16px constant.
+      const gap = Math.min(Math.max(vw * 0.02, 4), 32);
+      const padding = 16; 
       
-      if (Math.abs(lastWidth.current - targetWidth) > 1) {
+      // Calculate Natural Content Width (true intrinsic mass)
+      const naturalWidth = segmentsWidth + actionWidth + gap + padding;
+      
+      // Fluid safe margin: clamp(24px, 4vw, 80px)
+      const safeMargin = Math.min(Math.max(vw * 0.04, 24), 80);
+      const maxSafeWidth = vw - safeMargin;
+      
+      // Determine if content overflows — drives scroll behavior
+      const overflows = naturalWidth > maxSafeWidth;
+      setIsOverflowing(overflows);
+      
+      // Target: fit content exactly, or cap at max if overflowing
+      const targetWidth = overflows ? maxSafeWidth : naturalWidth;
+      
+      if (Math.abs(lastWidth.current - targetWidth) > 0.5) {
+        // Kill any existing tween for clean transitions
         gsap.killTweensOf(pillRef.current);
         
-        // Authentic Sovereign Morph (Width-only Spring)
+        // ═══ DYNAMIC ISLAND ELASTIC SPRING ═══
+        // Single tween, single property (width) = zero conflicts.
+        // elastic.out(1, 0.35): smooth rubbery overshoot with gentle bounce.
+        // Duration 1.5s: unhurried settle — the spring breathes naturally.
         gsap.to(pillRef.current, {
           width: targetWidth,
-          duration: 0.9,
-          ease: "elastic.out(1, 0.75)",
+          duration: 1.5,
+          ease: "elastic.out(1, 0.35)",
           force3D: true,
+          transformOrigin: "center center",
           onComplete: () => {
-            if (pillRef.current) pillRef.current.style.width = `${targetWidth}px`;
+            setTimeout(() => {
+              if (pillRef.current) pillRef.current.style.width = `${targetWidth}px`;
+            }, 50);
           }
         });
         
@@ -433,7 +521,7 @@ export const BookingContent = memo(function BookingContent({
     // Use ResizeObserver for surgical geometric tracking
     const observer = new ResizeObserver(() => {
       if (resizeTimeout.current) clearTimeout(resizeTimeout.current);
-      resizeTimeout.current = setTimeout(updateGeometry, 16); // Locked to 60fps frame budget
+      resizeTimeout.current = setTimeout(updateGeometry, 16); 
     });
 
     observer.observe(segmentsRef.current);
@@ -442,11 +530,17 @@ export const BookingContent = memo(function BookingContent({
     // Initial measurement
     updateGeometry();
 
+    // PHASE-DRIVEN KINETIC PULSE: Force geometry update when discovery states change
+    const pulseTimer = setTimeout(() => {
+      requestAnimationFrame(updateGeometry);
+    }, 100);
+
     return () => {
       observer.disconnect();
       if (resizeTimeout.current) clearTimeout(resizeTimeout.current);
+      clearTimeout(pulseTimer);
     };
-  }, [discoveryPhase, step]);
+  }, [discoveryPhase, step, adults, kids, infants, startDate, endDate, isMobile]);
 
   const submitBooking = async () => {
     setIsSubmitting(true);
@@ -482,11 +576,15 @@ export const BookingContent = memo(function BookingContent({
     }
   };
 
-  const formatDateForDisplay = (dateStr: string) => {
+  const formatDateForDisplay = (dateStr: string, compact = false) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
     const [y, m, d] = parts;
+    if (compact) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${parseInt(d)} ${months[parseInt(m) - 1]}`;
+    }
     return `${d}/${m}/${y}`;
   };
 
@@ -1609,127 +1707,114 @@ export const BookingContent = memo(function BookingContent({
           <div className="absolute bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
             <div 
               ref={pillRef}
-              style={{ filter: 'url(#pill-goo)', width: 'fit-content' }}
-              className="relative flex items-stretch justify-between bg-black/90 backdrop-blur-[40px] border border-white/20 p-1.5 md:p-2 rounded-full pointer-events-auto shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] group/pill overflow-hidden mx-auto transform-gpu will-change-[width,transform]"
+              className="relative flex items-center justify-between bg-black/95 backdrop-blur-[40px] border border-white/20 p-2 rounded-full pointer-events-auto shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] group/pill overflow-hidden mx-auto transform-gpu will-change-[width,transform] w-fit transition-[border-color] duration-300"
+              style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
+              onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
+              onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
+              onMouseLeave={handleGlowLeave}
+              onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+              onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+              onTouchEnd={handleGlowLeave}
             >
-              {/* Refractive Glow Layer */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent -translate-x-full group-hover/pill:translate-x-full transition-transform duration-[1.5s] ease-in-out pointer-events-none" />
-              
+              {/* iOS 26 Pointer-Tracking Glow Overlay */}
+              <div 
+                ref={glowRef}
+                className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
+                style={{ opacity: 0, mixBlendMode: 'screen' }}
+              />
+
               {/* 
-                  DYNAMIC SEGMENT SPAWNING ENGINE 
-                  Segments are 'budded' into existence as data is captured.
-                  No placeholders, just living data.
+                  SOVEREIGN UNIFIED MANIFEST ENGINE
+                  Liquid scaling with horizontal 'Marquee' scroll for extreme narrowness
               */}
-              <div ref={segmentsRef} className="flex items-center justify-center gap-0 md:gap-1 lg:gap-2 overflow-hidden relative z-10 w-fit shrink-0">
+              <div className={cn(
+                "min-w-0 scrollbar-hide scroll-smooth relative z-10 transition-[mask-image]",
+                isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden",
+                isOverflowing && scrollMask === 'right' && "mask-fade-right",
+                isOverflowing && scrollMask === 'left' && "mask-fade-left",
+                isOverflowing && scrollMask === 'both' && "mask-fade-both",
+                (!isOverflowing || scrollMask === 'none') && "mask-none"
+              )}>
+                <div 
+                  ref={segmentsRef} 
+                  className="flex items-center justify-start md:justify-center w-fit"
+                  style={{ gap: 'clamp(4px, 0.5vw, 8px)' }}
+                >
               
-                {/* Segment 1: Terminal Investment (Centered Alignment) */}
+                {/* Segment 1: Terminal Investment */}
                 <div className={cn(
-                  "flex flex-col space-y-1 items-center justify-center px-4 md:px-6 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] min-w-0 shrink-0 will-change-[opacity,transform]",
+                  "flex flex-col items-center justify-center transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 snap-center",
                   (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                )}>
-                  <span className="text-[5px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
-                    Itinerary Cost
+                )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
+                  <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                    {isMobile ? 'Cost' : 'Itinerary Cost'}
                   </span>
-                  <div className="flex items-center justify-center gap-3">
-                    <p className="text-xl md:text-[clamp(1.4rem,3vw,1.8rem)] font-bold tracking-tight text-white leading-none tabular-nums whitespace-nowrap">
+                  <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
+                    <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.8rem)' }}>
                       {totalInvestment}
                     </p>
-                    <div className="px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 hidden sm:flex items-center justify-center">
-                      <span className="text-[6px] md:text-[8px] font-black uppercase tracking-widest text-white/30 leading-none">
-                        {pricing.isFinalInclusive ? "INCL. TAX" : "EXCL. TAX"}
-                      </span>
-                    </div>
+                    <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
+                      {pricing.isFinalInclusive ? "incl. tax" : "excl. tax"}
+                    </span>
                   </div>
                 </div>
 
-                {/* Segment 2: Timeline Spawning (Centered Alignment with Nights/Days Pill) */}
+                {/* Segment 2: Timeline Spawning */}
                 {startDate && endDate && (
                   <div className={cn(
-                    "flex flex-col space-y-1.5 items-center justify-center px-4 md:px-6 border-l border-white/10 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] animate-in zoom-in-95 slide-in-from-left-4 fade-in min-w-fit shrink-0 will-change-[opacity,transform]",
+                    "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center",
                     discoveryPhase === 2 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                  )}>
-                    <span className="text-[6px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
-                      Travel Dates
+                  )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(2px, 0.5vw, 6px)' }}>
+                    <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                      Timeline
                     </span>
-                    <div className="flex items-center justify-center gap-3 md:gap-5 whitespace-nowrap">
-                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight tabular-nums uppercase">
-                        {formatDateForDisplay(startDate)}
+                    <div className="flex items-center justify-center whitespace-nowrap" style={{ gap: 'clamp(3px, 1.2vw, 20px)' }}>
+                      <span className="font-bold text-white/95 tracking-tighter tabular-nums uppercase" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
+                        {formatDateForDisplay(startDate, isMobile)}
                       </span>
-                      <div className="w-4 md:w-8 h-[1px] bg-white/20 shrink-0" />
-                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight tabular-nums uppercase">
-                        {formatDateForDisplay(endDate)}
-                      </span>
-                    </div>
-                    {/* Nights / Days Sub-Pill */}
-                    <div className="px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center animate-in zoom-in-95 duration-1000">
-                      <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40 leading-none">
-                        {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY))} NIGHTS / {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY)) + 1} DAYS
+                      <div className="h-[1px] bg-white/30 shrink-0" style={{ width: 'clamp(4px, 1.5vw, 2rem)' }} />
+                      <span className="font-bold text-white/95 tracking-tighter tabular-nums uppercase" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
+                        {formatDateForDisplay(endDate, isMobile)}
                       </span>
                     </div>
+                    {(() => {
+                      const nights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
+                      return (
+                        <span className="font-bold uppercase tracking-wider text-white/35 whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
+                          {nights}N / {nights + 1}D
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
 
-                {/* Segment 3: Manifest Spawning (Centered Alignment) */}
+                {/* Segment 3: Manifest Spawning */}
                 {discoveryPhase >= 3 && (
                   <div className={cn(
-                    "flex flex-col space-y-1.5 items-center justify-center px-4 md:px-6 border-l border-white/10 transition-all duration-[800ms] ease-[cubic-bezier(0.19,1,0.22,1)] animate-in zoom-in-95 slide-in-from-left-4 fade-in min-w-fit shrink-0 will-change-[opacity,transform]",
+                    "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center",
                     discoveryPhase === 3 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                  )}>
-                    <span className="text-[6px] md:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap text-center">
+                  )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
+                    <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                       Guests
                     </span>
-                    <div className="flex items-center justify-center gap-3 whitespace-nowrap">
-                      <span className="text-[12px] md:text-[14px] font-bold text-white/95 tracking-tight leading-none uppercase text-center">
+                    <div className="flex items-center justify-center whitespace-nowrap" style={{ gap: 'clamp(3px, 1vw, 12px)' }}>
+                      <span className="font-bold text-white/95 tracking-tighter leading-none uppercase text-center" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
                         {adults} {adults <= 1 ? "Adult" : "Adults"}
-                        {kids > 0 && (
+                        {(kids > 0 || infants > 0) && (
                           <>
-                            <span className="mx-1 md:mx-2 text-white/20">|</span>
-                            {kids} {kids === 1 ? "Child" : "Children"}
-                          </>
-                        )}
-                        {infants > 0 && (
-                          <>
-                            <span className="mx-1 md:mx-2 text-white/20">|</span>
-                            {infants} {infants === 1 ? "Infant" : "Infants"}
+                            <span className="mx-1 text-white/20">|</span>
+                            {kids + infants} {kids + infants === 1 ? "Child" : "Children"}
                           </>
                         )}
                       </span>
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Mobile Contextual Readout (Persistence only for Phones) */}
-              <div className="flex md:hidden flex-1 flex-col items-center justify-center gap-1 transition-all duration-700 min-w-0 px-1">
-                <div className="flex flex-col items-center min-w-0 w-full">
-                  <span className="text-[5px] font-black uppercase tracking-[0.3em] text-white/50 mb-0.5 whitespace-nowrap">
-                    Your Selection
-                  </span>
-                  {startDate && endDate && (
-                    <div className="flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1 duration-700 min-w-0 w-full">
-                      <span className="text-[8px] font-bold text-white/90 tracking-tighter tabular-nums uppercase whitespace-nowrap">
-                        {formatDateForDisplay(startDate)}
-                      </span>
-                      <div className="w-1 h-[1px] bg-white/30 shrink-0" />
-                      <span className="text-[8px] font-bold text-white/90 tracking-tighter tabular-nums uppercase whitespace-nowrap">
-                        {formatDateForDisplay(endDate)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-1000">
-                  <div className="flex items-center gap-1 bg-white/[0.08] border border-white/10 px-1.5 py-0.5 rounded-full">
-                    <div className="w-0.5 h-0.5 rounded-full bg-white/50 animate-pulse" />
-                    <span className="text-[6px] font-black uppercase tracking-[0.05em] text-white/70">
-                      {adults} {adults <= 1 ? "Adult" : "Adults"} {kids > 0 ? `• ${kids} ${kids === 1 ? "Child" : "Children"}` : ""}
-                    </span>
-                  </div>
                 </div>
               </div>
 
               {/* Right: Action Button Area (Surgically Merged) */}
-              <div ref={actionRef} className="flex items-center justify-end pl-1 md:pl-2 lg:pl-8 border-l border-white/10 shrink-0 pr-0">
+              <div ref={actionRef} className="flex items-center justify-end border-white/10 shrink-0" style={{ paddingLeft: 'clamp(0px, 1vw, 16px)' }}>
                 {discoveryPhase > 1 && (
                   <Magnetic>
                     <button
@@ -1745,22 +1830,21 @@ export const BookingContent = memo(function BookingContent({
                       }}
                       disabled={isSubmitting || !isPhaseValid}
                       className={cn(
-                        "group/btn relative overflow-hidden h-11 xl:h-14 rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center",
+                        "group/btn relative overflow-hidden h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-auto rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none",
                         isPhaseValid 
                           ? "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100" 
                           : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
-                        discoveryPhase === 2 ? "w-11 xl:w-auto xl:px-8" : 
-                        discoveryPhase === 3 ? "w-11 xl:w-auto xl:px-10" : "w-11 xl:w-auto xl:px-12"
+                        discoveryPhase >= 2 && "xl:px-10"
                       )}
                     >
-                      <div className="relative z-10 flex items-center justify-center gap-2.5">
+                      <div className="relative z-10 flex items-center justify-center gap-0 xl:gap-2.5">
                         <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
                           {step === 2 ? (isSubmitting ? "Sending Request" : "Confirm & Send") : 
                            discoveryPhase === 4 ? "Review Booking" : 
                            discoveryPhase === 3 ? "Continue" : "Next"}
                         </span>
                         <ChevronRight 
-                          size={18} 
+                          size={20} 
                           strokeWidth={3} 
                           className="text-black group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0" 
                         />
@@ -1771,9 +1855,9 @@ export const BookingContent = memo(function BookingContent({
                   </Magnetic>
                 )}
               </div>
-            </div>
           </div>
-        </>
+        </div>
+      </>
       )}
     </div>
   );

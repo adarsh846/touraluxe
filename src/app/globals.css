@@ -120,23 +120,16 @@ html.lenis {
   }
 }
 
-/* ─── SCROLL INDICATOR BOUNCE ─── */
-.scroll-chevron {
-  animation: chevron-bounce 2s ease-in-out infinite;
+@utility halo-ring {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 20px 40px -15px rgba(0,0,0,0.5);
 }
 
-@keyframes chevron-bounce {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, 5px, 0); }
+@utility scroll-snap-x {
+  scroll-snap-type: x mandatory;
 }
 
-@keyframes bounce-horizontal {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(6px, 0, 0); }
-}
-
-@utility animate-bounce-horizontal {
-  animation: bounce-horizontal 2s ease-in-out infinite;
+@utility snap-center {
+  scroll-snap-align: center;
 }
 
 /* ─── DIALOG / MODAL RESET ─── */
@@ -163,7 +156,13 @@ dialog {
   dialog[open] *:hover,
   dialog[open] *:active,
   dialog[open] *:focus,
-  dialog[open] *:focus-within {
+  dialog[open] *:focus-within,
+  [data-modal-portal],
+  [data-modal-portal] *,
+  [data-modal-portal] *:hover,
+  [data-modal-portal] *:active,
+  [data-modal-portal] *:focus,
+  [data-modal-portal] *:focus-within {
     cursor: auto !important;
   }
   dialog[open] input,
@@ -172,14 +171,26 @@ dialog {
   dialog[open] textarea,
   dialog[open] textarea:hover,
   dialog[open] textarea:focus,
-  dialog[open] select {
+  dialog[open] select,
+  [data-modal-portal] input,
+  [data-modal-portal] input:hover,
+  [data-modal-portal] input:focus,
+  [data-modal-portal] textarea,
+  [data-modal-portal] textarea:hover,
+  [data-modal-portal] textarea:focus,
+  [data-modal-portal] select {
     cursor: text !important;
   }
   dialog[open] button,
   dialog[open] button:hover,
   dialog[open] a,
   dialog[open] a:hover,
-  dialog[open] [role="button"] {
+  dialog[open] [role="button"],
+  [data-modal-portal] button,
+  [data-modal-portal] button:hover,
+  [data-modal-portal] a,
+  [data-modal-portal] a:hover,
+  [data-modal-portal] [role="button"] {
     cursor: pointer !important;
   }
 }
@@ -199,6 +210,21 @@ textarea:-webkit-autofill {
   -webkit-mask-image: linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0.4) 80%, transparent 100%);
 }
 
+@utility mask-fade-right {
+  mask-image: linear-gradient(to right, black 20%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 95%);
+  -webkit-mask-image: linear-gradient(to right, black 20%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 95%);
+}
+
+@utility mask-fade-left {
+  mask-image: linear-gradient(to left, black 20%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 95%);
+  -webkit-mask-image: linear-gradient(to left, black 20%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.3) 70%, transparent 95%);
+}
+
+@utility mask-fade-both {
+  mask-image: linear-gradient(to right, transparent 5%, rgba(0,0,0,0.3) 25%, black 45%, black 55%, rgba(0,0,0,0.3) 75%, transparent 95%);
+  -webkit-mask-image: linear-gradient(to right, transparent 5%, rgba(0,0,0,0.3) 25%, black 45%, black 55%, rgba(0,0,0,0.3) 75%, transparent 95%);
+}
+
 /* ─── ANIMATION SYSTEM ─── */
 @keyframes enter {
   from {
@@ -212,8 +238,24 @@ textarea:-webkit-autofill {
   }
 }
 
+/* Apple Dynamic Island: Segment content entrance */
+@keyframes island-segment-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @utility animate-in {
   animation: enter 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@utility island-enter {
+  animation: island-segment-enter 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @utility fade-in {
