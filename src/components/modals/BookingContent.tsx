@@ -392,6 +392,7 @@ export const BookingContent = memo(function BookingContent({
   const segmentsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const jellyRef = useRef<HTMLDivElement>(null);
 
   // iOS 26 Pointer-Tracking Glow (zero re-renders, direct DOM)
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -399,10 +400,16 @@ export const BookingContent = memo(function BookingContent({
     const rect = pillRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    // iOS 26: Single soft warm glow blob — large, diffused, slightly warm tint
-    glowRef.current.style.background = `radial-gradient(ellipse 200px 120px at ${x}px ${y}px, rgba(255,251,240,0.12), rgba(255,255,255,0.04) 50%, transparent 80%)`;
+    
+    // iOS 26: Multi-layered elliptical bloom — large, diffused, warm-tinted
+    // Layer 1: Core warmth. Layer 2: Mid diffusion. Layer 3: Ambient spread.
+    glowRef.current.style.background = `
+      radial-gradient(ellipse 300px 180px at ${x}px ${y}px, rgba(255,251,240,0.15), rgba(255,255,255,0.02) 60%, transparent 100%),
+      radial-gradient(ellipse 500px 300px at ${x}px ${y}px, rgba(255,255,255,0.03), transparent 70%),
+      radial-gradient(ellipse 800px 500px at ${x}px ${y}px, rgba(255,255,255,0.01), transparent 80%)
+    `;
     glowRef.current.style.opacity = '1';
-    pillRef.current.style.borderColor = 'rgba(255,255,255,0.32)';
+    pillRef.current.style.borderColor = 'rgba(255,255,255,0.35)';
   }, []);
 
   const handleGlowLeave = useCallback(() => {
@@ -428,6 +435,39 @@ export const BookingContent = memo(function BookingContent({
       window.removeEventListener('orientationchange', checkMobile);
     };
   }, []);
+
+  // ═══ JELLY INTERACTION ENGINE ═══
+  // Triggers a tactile vertical "squash & stretch" pulse when data updates.
+  // Targeted at the background shell (jellyRef) to prevent content stretching.
+  const hasMounted = useRef(false);
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+    if (!jellyRef.current || !isActive) return;
+
+    // Kill any existing jelly tweens on the background
+    gsap.killTweensOf(jellyRef.current, "scaleX,scaleY");
+
+    // Phase 1: Rapid Compression (Reaction)
+    gsap.to(jellyRef.current, {
+      scaleY: 0.82,
+      scaleX: 1.08,
+      duration: 0.1,
+      ease: "power2.out",
+      onComplete: () => {
+        // Phase 2: Elastic Settle (Resolution)
+        gsap.to(jellyRef.current, {
+          scaleY: 1,
+          scaleX: 1,
+          duration: 0.8,
+          ease: "elastic.out(1, 0.3)",
+          clearProps: "scaleX,scaleY"
+        });
+      }
+    });
+  }, [totalInvestment, startDate, endDate, adults, kids, infants, discoveryPhase, step, isActive]);
 
   // Dynamic Kinetic Mask Engine (Bidirectional Scroll Hints)
   useEffect(() => {
@@ -1707,7 +1747,7 @@ export const BookingContent = memo(function BookingContent({
           <div className="absolute bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
             <div 
               ref={pillRef}
-              className="relative flex items-center justify-between bg-black/95 backdrop-blur-[40px] border border-white/20 p-2 rounded-full pointer-events-auto shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] group/pill overflow-hidden mx-auto transform-gpu will-change-[width,transform] w-fit transition-[border-color] duration-300"
+              className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-hidden"
               style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
               onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
               onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
@@ -1716,6 +1756,12 @@ export const BookingContent = memo(function BookingContent({
               onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
               onTouchEnd={handleGlowLeave}
             >
+              {/* ════ PHYSICAL JELLY SHELL ════ */}
+              <div 
+                ref={jellyRef}
+                className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none"
+              />
+
               {/* iOS 26 Pointer-Tracking Glow Overlay */}
               <div 
                 ref={glowRef}
