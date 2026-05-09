@@ -13,6 +13,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --font-sans: var(--font-inter);
+  --breakpoint-xs: 450px;
 }
 
 html,
@@ -149,51 +150,6 @@ dialog {
   background: transparent;
 }
 
-/* Restore native cursors inside modal dialogs — must override the global suppression */
-@media (hover: hover) and (pointer: fine) {
-  dialog[open],
-  dialog[open] *,
-  dialog[open] *:hover,
-  dialog[open] *:active,
-  dialog[open] *:focus,
-  dialog[open] *:focus-within,
-  [data-modal-portal],
-  [data-modal-portal] *,
-  [data-modal-portal] *:hover,
-  [data-modal-portal] *:active,
-  [data-modal-portal] *:focus,
-  [data-modal-portal] *:focus-within {
-    cursor: auto !important;
-  }
-  dialog[open] input,
-  dialog[open] input:hover,
-  dialog[open] input:focus,
-  dialog[open] textarea,
-  dialog[open] textarea:hover,
-  dialog[open] textarea:focus,
-  dialog[open] select,
-  [data-modal-portal] input,
-  [data-modal-portal] input:hover,
-  [data-modal-portal] input:focus,
-  [data-modal-portal] textarea,
-  [data-modal-portal] textarea:hover,
-  [data-modal-portal] textarea:focus,
-  [data-modal-portal] select {
-    cursor: text !important;
-  }
-  dialog[open] button,
-  dialog[open] button:hover,
-  dialog[open] a,
-  dialog[open] a:hover,
-  dialog[open] [role="button"],
-  [data-modal-portal] button,
-  [data-modal-portal] button:hover,
-  [data-modal-portal] a,
-  [data-modal-portal] a:hover,
-  [data-modal-portal] [role="button"] {
-    cursor: pointer !important;
-  }
-}
 
 /* Form input autofill styling for dark theme */
 input:-webkit-autofill,
