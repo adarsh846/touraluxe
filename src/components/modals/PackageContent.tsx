@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, memo, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, memo, useMemo, useCallback, useLayoutEffect } from "react";
 import Image from "next/image";
 import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar } from "lucide-react";
 import { Magnetic } from "../Magnetic";
@@ -31,6 +31,41 @@ export const PackageContent = memo(({
 
   const pillRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const jellyRef = useRef<HTMLDivElement>(null);
+  const segmentsRef = useRef<HTMLDivElement>(null);
+  const actionRef = useRef<HTMLDivElement>(null);
+
+  // ═══ SOVEREIGN FISCAL ENGINE ═══
+  const pricing = useMemo(() => {
+    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0 };
+
+    const taxRate = parseFloat(settings.tax_percentage || "0");
+    const symbol = settings.currency_symbol || experience.currency || "₹";
+    
+    // Parse raw numeric value from price string
+    const base = parseInt(String(experience.price).replace(/[^0-9]/g, "")) || 0;
+    
+    const isInclusive = experience.tax_status === TAX_INCLUSIVE_LABEL;
+    const isExclusive = experience.tax_status === TAX_EXCLUSIVE_LABEL;
+
+    // Calculate Gross Rate
+    // If Inclusive -> We add tax to the base to show the total price to the user.
+    // If Exclusive -> We show the base price and add the "+ Tax" label.
+    const grossPrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
+    const shouldAddTaxLabel = isExclusive && taxRate > 0;
+    
+    return {
+      finalTotal: grossPrice,
+      symbol,
+      taxRate,
+      shouldAddTaxLabel,
+      isInclusive
+    };
+  }, [experience, settings]);
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [scrollMask, setScrollMask] = useState<'right' | 'left' | 'both' | 'none'>('none');
 
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
     if (!pillRef.current || !glowRef.current) return;
@@ -50,6 +85,89 @@ export const PackageContent = memo(({
   const handleGlowLeave = useCallback(() => {
     if (glowRef.current) glowRef.current.style.opacity = '0';
     if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.2)';
+  }, []);
+
+  // ═══ JELLY INTERACTION ENGINE ═══
+  const hasMounted = useRef(false);
+  useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+    if (!jellyRef.current) return;
+
+    gsap.killTweensOf(jellyRef.current, "scaleX,scaleY");
+    gsap.to(jellyRef.current, {
+      scaleY: 0.82, scaleX: 1.08, duration: 0.1, ease: "power2.out",
+      onComplete: () => {
+        gsap.to(jellyRef.current, {
+          scaleY: 1, scaleX: 1, duration: 0.8, ease: "elastic.out(1, 0.3)",
+          clearProps: "scaleX,scaleY"
+        });
+      }
+    });
+  }, [pricing.finalTotal, activeSection]);
+
+  // ═══ KINETIC MASK ENGINE ═══
+  useEffect(() => {
+    const el = segmentsRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      if (scrollWidth <= clientWidth + 4) {
+        setScrollMask('none');
+        return;
+      }
+      const isAtStart = scrollLeft <= 5;
+      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 20;
+      if (isAtStart) setScrollMask('right');
+      else if (isAtEnd) setScrollMask('left');
+      else setScrollMask('both');
+    };
+
+    el.addEventListener('scroll', handleScroll);
+    handleScroll();
+    const ro = new ResizeObserver(handleScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      ro.disconnect();
+    };
+  }, [pricing.finalTotal, isMobile]);
+
+  // ═══ ADAPTIVE GEOMETRY ENGINE ═══
+  useLayoutEffect(() => {
+    if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+    const updateGeometry = () => {
+      if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+      const vw = window.innerWidth;
+      const sw = segmentsRef.current.scrollWidth;
+      const aw = actionRef.current.scrollWidth;
+      const gap = Math.min(Math.max(vw * 0.02, 4), 32);
+      const padding = 16;
+      const naturalWidth = sw + aw + gap + padding;
+      const safeMargin = Math.min(Math.max(vw * 0.04, 24), 80);
+      const targetWidth = Math.min(naturalWidth, vw - safeMargin);
+      
+      setIsOverflowing(naturalWidth > vw - safeMargin);
+      gsap.to(pillRef.current, {
+        width: targetWidth,
+        duration: 1.5,
+        ease: "elastic.out(1, 0.35)",
+        force3D: true
+      });
+    };
+    updateGeometry();
+    window.addEventListener('resize', updateGeometry);
+    return () => window.removeEventListener('resize', updateGeometry);
+  }, [pricing.finalTotal, activeSection]);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -88,33 +206,7 @@ export const PackageContent = memo(({
       .catch(err => console.error(err));
   }, []);
 
-  // ═══ SOVEREIGN FISCAL ENGINE ═══
-  const pricing = useMemo(() => {
-    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0 };
 
-    const taxRate = parseFloat(settings.tax_percentage || "0");
-    const symbol = settings.currency_symbol || experience.currency || "₹";
-    
-    // Parse raw numeric value from price string
-    const base = parseInt(String(experience.price).replace(/[^0-9]/g, "")) || 0;
-    
-    const isInclusive = experience.tax_status === TAX_INCLUSIVE_LABEL;
-    const isExclusive = experience.tax_status === TAX_EXCLUSIVE_LABEL;
-
-    // Calculate Gross Rate
-    // If Inclusive -> We add tax to the base to show the total price to the user.
-    // If Exclusive -> We show the base price and add the "+ Tax" label.
-    const grossPrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
-    const shouldAddTaxLabel = isExclusive && taxRate > 0;
-    
-    return {
-      finalTotal: grossPrice,
-      symbol,
-      taxRate,
-      shouldAddTaxLabel,
-      isInclusive
-    };
-  }, [experience, settings]);
 
   if (!experience) return null;
 
@@ -316,8 +408,15 @@ export const PackageContent = memo(({
           onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchEnd={handleGlowLeave}
-          className="relative pointer-events-auto flex items-center gap-8 p-1.5 pl-8 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all duration-700 group overflow-hidden"
+          className="relative pointer-events-auto flex items-center justify-between p-1.5 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-all duration-700 group overflow-hidden"
+          style={{ width: 'auto' }}
         >
+          {/* ════ PHYSICAL JELLY SHELL ════ */}
+          <div 
+            ref={jellyRef}
+            className="absolute inset-0 bg-black/5 pointer-events-none rounded-full"
+          />
+
           {/* iOS 26 Pointer-Tracking Glow Overlay */}
           <div 
             ref={glowRef}
@@ -325,31 +424,43 @@ export const PackageContent = memo(({
             style={{ opacity: 0, mixBlendMode: 'screen' }}
           />
 
-          <div className="relative z-10 flex flex-col pr-8 border-r border-white/10">
-            <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-white/40 mb-1">Investment</span>
-            <div className="text-sm lg:text-lg font-bold text-white/80 tabular-nums tracking-tighter flex items-center gap-2 whitespace-nowrap">
-              <span>{pricing.symbol}{pricing.finalTotal.toLocaleString()}</span>
-              <span className="text-[7px] lg:text-[9px] font-medium text-white/40 uppercase tracking-wider">/ Person</span>
-              
-              {(pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) && (
-                <div className="flex items-center px-2 lg:px-3 py-0.5 lg:py-1 rounded-full bg-white/[0.03] border border-white/10 shadow-inner">
-                  <span className="text-[6px] lg:text-[7px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
-                    {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% GST` : "Incl. Taxes"}
-                  </span>
+          <div className={cn(
+            "relative z-10 flex items-center min-w-0 transition-[mask-image] scrollbar-hide",
+            isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden",
+            scrollMask === 'right' && "mask-fade-right",
+            scrollMask === 'left' && "mask-fade-left",
+            scrollMask === 'both' && "mask-fade-both"
+          )} ref={segmentsRef}>
+            <div className="flex items-center pl-8 pr-8 border-r border-white/10 shrink-0">
+              <div className="flex flex-col">
+                <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-white/40 mb-1">Investment</span>
+                <div className="text-sm lg:text-lg font-bold text-white/80 tabular-nums tracking-tighter flex items-center gap-2 whitespace-nowrap">
+                  <span>{pricing.symbol}{pricing.finalTotal.toLocaleString()}</span>
+                  <span className="text-[7px] lg:text-[9px] font-medium text-white/40 uppercase tracking-wider">/ Person</span>
+                  
+                  {(pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) && (
+                    <div className="flex items-center px-2 lg:px-3 py-0.5 lg:py-1 rounded-full bg-white/[0.03] border border-white/10 shadow-inner">
+                      <span className="text-[6px] lg:text-[7px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
+                        {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% GST` : "Incl. Taxes"}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
           
-          <Magnetic intensity={0.3}>
-            <button 
-              onClick={() => openModal('BOOKING', experience)}
-              className="relative overflow-hidden bg-white text-black px-12 py-4.5 rounded-full text-[10px] font-bold uppercase tracking-[0.25em] transition-all duration-500 group-hover:bg-[#f0f0f0] active:scale-95 flex items-center gap-2"
-            >
-              <span>Reserve</span>
-              <ChevronRight size={14} className="transition-transform duration-500 group-hover:translate-x-1" />
-            </button>
-          </Magnetic>
+          <div ref={actionRef} className="relative z-10 pl-2 pr-1.5 shrink-0">
+            <Magnetic intensity={0.3}>
+              <button 
+                onClick={() => openModal('BOOKING', experience)}
+                className="relative overflow-hidden bg-white text-black px-12 py-4.5 rounded-full text-[10px] font-bold uppercase tracking-[0.25em] transition-all duration-500 group-hover:bg-[#f0f0f0] active:scale-95 flex items-center gap-2"
+              >
+                <span>Reserve</span>
+                <ChevronRight size={14} className="transition-transform duration-500 group-hover:translate-x-1" />
+              </button>
+            </Magnetic>
+          </div>
         </div>
       </div>
 
