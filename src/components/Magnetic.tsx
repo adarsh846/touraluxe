@@ -4,7 +4,15 @@ import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { cn } from "@/lib/utils";
 
-export function Magnetic({ children, className }: { children: React.ReactElement; className?: string }) {
+export function Magnetic({ 
+  children, 
+  className, 
+  intensity = 0.6 
+}: { 
+  children: React.ReactElement; 
+  className?: string;
+  intensity?: number;
+}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -49,8 +57,8 @@ export function Magnetic({ children, className }: { children: React.ReactElement
       const rect = cachedRect!;
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      xToLive((clientX - cx) * 0.6);
-      yToLive((clientY - cy) * 0.6);
+      xToLive((clientX - cx) * intensity);
+      yToLive((clientY - cy) * intensity);
     };
 
     const onMouseMove = (e: MouseEvent) => moveWithLive(e.clientX, e.clientY);

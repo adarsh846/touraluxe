@@ -280,3 +280,25 @@ textarea:-webkit-autofill {
 @utility animate-shake {
   animation: shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
+
+@keyframes shine {
+  from { transform: translateX(-100%) skewX(-15deg); }
+  to { transform: translateX(200%) skewX(-15deg); }
+}
+
+@utility animate-shine {
+  animation: shine 3s infinite;
+}
+
+@utility mask-v-bottom {
+  mask-image: linear-gradient(to top, transparent 0%, black 10%, black 100%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 10%, black 100%);
+}
+@utility mask-v-top {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 100%);
+}
+@utility mask-v-both {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+}

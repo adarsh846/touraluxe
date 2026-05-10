@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, memo } from "react";
+import { useEffect, useRef, useState, memo, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
+
+const TAX_INCLUSIVE_LABEL = "Inclusive of Taxes";
+const TAX_EXCLUSIVE_LABEL = "Exclusive of Taxes";
 
 export const PackageContent = memo(({ 
   data: experience, 
@@ -22,241 +25,334 @@ export const PackageContent = memo(({
   openModal: any 
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'itinerary' | 'highlights' | 'inclusions'>('overview');
-  const tabContentRef = useRef<HTMLDivElement>(null);
-  const [globalTaxRate, setGlobalTaxRate] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [settings, setSettings] = useState<any>({});
+  const [activeSection, setActiveSection] = useState(0);
+
+  const pillRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  const handleGlowMove = useCallback((clientX: number, clientY: number) => {
+    if (!pillRef.current || !glowRef.current) return;
+    const rect = pillRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    glowRef.current.style.background = `
+      radial-gradient(ellipse 300px 180px at ${x}px ${y}px, rgba(255,251,240,0.15), rgba(255,255,255,0.02) 60%, transparent 100%),
+      radial-gradient(ellipse 500px 300px at ${x}px ${y}px, rgba(255,255,255,0.03), transparent 70%),
+      radial-gradient(ellipse 800px 500px at ${x}px ${y}px, rgba(255,255,255,0.01), transparent 80%)
+    `;
+    glowRef.current.style.opacity = '1';
+    pillRef.current.style.borderColor = 'rgba(255,255,255,0.35)';
+  }, []);
+
+  const handleGlowLeave = useCallback(() => {
+    if (glowRef.current) glowRef.current.style.opacity = '0';
+    if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.2)';
+  }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            const index = parseInt(id.split('-')[1]);
+            if (!isNaN(index)) setActiveSection(index);
+          }
+        });
+      },
+      {
+        root: scrollRef.current,
+        threshold: 0.5,
+      }
+    );
+
+    const sections = scrollRef.current?.querySelectorAll('[id^="section-"]');
+    sections?.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [experience?.itinerary, settings]);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      setScrollTop(scrollRef.current.scrollTop);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" })
       .then(res => res.json())
-      .then(data => {
-        if (data.tax_percentage) setGlobalTaxRate(parseFloat(data.tax_percentage));
-      })
-      .catch(() => {});
-
-    const channel = supabase
-      .channel('site_settings_package_content')
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'key=eq.tax_percentage' }, 
-        (payload: any) => {
-          if (payload.new && payload.new.value) {
-            setGlobalTaxRate(parseFloat(payload.new.value));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      .then(data => setSettings(data))
+      .catch(err => console.error(err));
   }, []);
 
-  // Kinetic Tab Transition Logic
-  useEffect(() => {
-    if (tabContentRef.current) {
-      gsap.fromTo(tabContentRef.current, 
-        { opacity: 0, y: 15, filter: "blur(8px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power4.out" }
-      );
-    }
-  }, [activeTab]);
+  // ═══ SOVEREIGN FISCAL ENGINE ═══
+  const pricing = useMemo(() => {
+    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0 };
+
+    const taxRate = parseFloat(settings.tax_percentage || "0");
+    const symbol = settings.currency_symbol || experience.currency || "₹";
+    
+    // Parse raw numeric value from price string
+    const base = parseInt(String(experience.price).replace(/[^0-9]/g, "")) || 0;
+    
+    const isInclusive = experience.tax_status === TAX_INCLUSIVE_LABEL;
+    const isExclusive = experience.tax_status === TAX_EXCLUSIVE_LABEL;
+
+    // Calculate Gross Rate
+    // If Inclusive -> We add tax to the base to show the total price to the user.
+    // If Exclusive -> We show the base price and add the "+ Tax" label.
+    const grossPrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
+    const shouldAddTaxLabel = isExclusive && taxRate > 0;
+    
+    return {
+      finalTotal: grossPrice,
+      symbol,
+      taxRate,
+      shouldAddTaxLabel,
+      isInclusive
+    };
+  }, [experience, settings]);
 
   if (!experience) return null;
-  const isTaxApplied = globalTaxRate > 0 && experience?.tax_status === "Inclusive of Taxes";
 
   return (
-    <div className="relative w-full h-full overflow-hidden selection:bg-white selection:text-black flex flex-col lg:block">
-      {/* THE STAGE: Global Cinematic Background */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src={experience.image}
-          alt={experience.title}
-          fill
-          className="object-cover scale-110"
-          quality={100}
-          priority
-        />
-        {/* Global Atmosphere: Unified shadow and light for maximum legibility */}
-        <div className="absolute inset-0 bg-gradient-to-b lg:bg-gradient-to-r from-black/90 lg:from-black/80 via-transparent to-black/90 lg:to-black/80" />
-        <div className="absolute inset-0 bg-black/10 backdrop-brightness-[0.7] backdrop-blur-[1px]" />
+    <div 
+      ref={scrollRef}
+      className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-[#020202] selection:bg-white/20 selection:text-white scroll-smooth snap-y snap-mandatory"
+    >
+      
+      {/* ═══ STABLE ATMOSPHERE ENGINE ═══ */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute inset-0 transition-transform duration-[1s] ease-out will-change-transform"
+          style={{ 
+            transform: `translate3d(0, ${scrollTop * 0.2}px, 0) scale(${1 + (scrollTop * 0.0002)})`,
+            transformOrigin: 'center center'
+          }}
+        >
+          <Image
+            src={experience.image}
+            alt={experience.title}
+            fill
+            className="object-cover opacity-75 grayscale-[0.05] brightness-[0.85]"
+            quality={100}
+            priority
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020202] via-[#020202]/10 to-[#020202]" />
       </div>
 
-      {/* THE HERO: Narrative Layer */}
-      <div className="relative lg:absolute lg:inset-y-0 lg:left-0 w-full lg:w-1/2 h-[45vh] lg:h-full z-10 p-6 lg:p-24 flex flex-col justify-end lg:justify-center pointer-events-none">
-        <div className="max-w-2xl animate-in fade-in slide-in-from-left-12 duration-1000 pointer-events-auto">
-          <div className="flex flex-col gap-2 lg:gap-4 mb-4 lg:mb-8">
-            <div className="flex items-center gap-2 pl-1">
-              <MapPin size={10} className="text-white/60" />
-              <span className="text-[clamp(7px,1.5vw,10px)] font-black uppercase tracking-[0.4em] text-white/80">{experience.location}</span>
+      {/* ═══ THE SYMMETRICAL NARRATIVE ═══ */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-8 lg:px-12">
+        
+        {/* CHAPTER I: THE ENTRANCE */}
+        <section 
+          id="section-0"
+          className="h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
+        >
+          <div className="space-y-10">
+            <div className="flex flex-col items-center gap-6">
+              <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white">{experience.location}</span>
+              <div className="w-12 h-[1px] bg-white/60" />
             </div>
+            <h1 className="text-[clamp(2.5rem,8vw,8rem)] font-bold tracking-tight text-white leading-[0.9] drop-shadow-2xl">
+              {experience.title}
+            </h1>
+            <p className="text-[clamp(1.1rem,1.8vw,2.2rem)] text-white font-medium tracking-tight italic max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
+              {experience.tagline}
+            </p>
+          </div>
+        </section>
+
+        {/* CHAPTER II: THE VISION (Fully Centered Stack) */}
+        <section 
+          id="section-1"
+          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-6 animate-in fade-in duration-1000 delay-300 snap-center snap-always"
+        >
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/60">Aperture</span>
+            <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none">The Story</h2>
           </div>
           
-          <h1 className="text-[clamp(2.2rem,8vw,6rem)] lg:text-[clamp(4rem,10vw,8.5rem)] font-bold tracking-tight text-white leading-[0.9] lg:leading-[0.82] mb-4 lg:mb-8 drop-shadow-[0_10px_50px_rgba(0,0,0,0.5)]">
-            {experience.title.split(' ').map((word: string, i: number) => (
-              <span key={i} className="block">{word}</span>
-            ))}
-          </h1>
-          
-          <p className="text-[clamp(0.8rem,2vw,1.2rem)] lg:text-[clamp(1.2rem,2.5vw,2.2rem)] text-white/80 font-medium tracking-tight italic max-w-xl drop-shadow-md">
-            {experience.tagline}
-          </p>
+          <div className="w-full max-w-3xl space-y-8">
+            <p className="text-base lg:text-xl text-white leading-relaxed font-medium tracking-normal drop-shadow-md">
+              {experience.description}
+            </p>
 
-          {/* Price Anchor */}
-          <div className="mt-[clamp(1.5rem,5vh,3rem)] lg:mt-12 flex flex-col gap-2 lg:gap-4 drop-shadow-lg">
-            <div className="flex items-baseline gap-3">
-              <span className="text-[clamp(1.5rem,4vw,2.5rem)] lg:text-[clamp(2.5rem,5vw,5rem)] font-bold tracking-tighter text-white tabular-nums">
-                {(() => {
-                  const base = parseInt(experience.price.toString().replace(/[^0-9]/g, "")) || 0;
-                  const finalPrice = isTaxApplied ? base + (base * globalTaxRate / 100) : base;
-                  return `${experience.currency || "₹"}${finalPrice.toLocaleString('en-IN')}`;
-                })()}
-              </span>
-              <div className="flex flex-col">
-                <span className="text-[8px] lg:text-sm text-white/60 font-black uppercase tracking-widest">Investment</span>
-                <span className="text-[6px] lg:text-[9px] text-white/30 font-bold uppercase tracking-widest">/ Individual</span>
-              </div>
-            </div>
-            
-            {experience.tax_status && (
-              <div className="flex items-center gap-2 px-2.5 lg:px-3 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 w-fit">
-                <ShieldCheck size={8} className="text-white/40" />
-                <span className="text-[6px] lg:text-[8px] font-black uppercase tracking-[0.2em] text-white/40">{experience.tax_status}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* THE DISCOVERY: HUD Panel */}
-      <div className={cn(
-        "relative lg:absolute lg:inset-y-0 lg:right-0 w-full lg:w-[600px] h-[55vh] lg:h-full z-20 flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu overflow-hidden backdrop-blur-[2px]",
-        isActive ? 'opacity-100 translate-y-0 lg:translate-x-0' : 'opacity-0 translate-y-12 lg:translate-x-full'
-      )}>
-        {/* Navigation Bridge */}
-        <div className="px-6 lg:px-12 pt-8 lg:pt-32 pb-4 lg:pb-8 shrink-0 flex justify-center lg:justify-start">
-          <div className="inline-flex items-center gap-1 lg:gap-2 p-1.5 lg:p-2 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-full overflow-x-auto scrollbar-hide max-w-full">
-            {[
-              { id: 'overview', label: 'Brief', icon: Compass },
-              { id: 'itinerary', label: 'Journey', icon: MapPin },
-              { id: 'highlights', label: 'Vibe', icon: Sparkles },
-              { id: 'inclusions', label: 'Access', icon: ShieldCheck }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={cn(
-                  "flex items-center gap-2 px-3 lg:px-6 py-2 lg:py-3 rounded-full transition-all duration-500 whitespace-nowrap",
-                  activeTab === tab.id ? "bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.3)] scale-105" : "text-white/60 hover:text-white/90 hover:bg-white/5"
-                )}
-              >
-                <tab.icon size={12} className={cn("transition-transform duration-500", activeTab === tab.id ? "scale-100" : "scale-90 opacity-50")} />
-                <span className="text-[8px] lg:text-[10px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Content Flow */}
-        <div className="flex-1 p-6 lg:p-12 overflow-y-auto relative scrollbar-hide">
-          <div ref={tabContentRef} className="h-full flex flex-col">
-            {activeTab === 'overview' && (
-              <div className="space-y-6 lg:space-y-12 animate-in fade-in slide-in-from-right-8 duration-1000">
-                <p className="text-base lg:text-2xl leading-relaxed lg:leading-[1.6] text-white/90 font-medium tracking-tight drop-shadow-lg">
-                  {experience.description}
-                </p>
-                
-                {/* HUD Stat Bridge */}
-                <div className="grid grid-cols-2 gap-3 lg:gap-6">
-                  <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] group/card hover:bg-white/10 transition-all duration-500">
-                    <Clock size={16} className="text-white/40 mb-2 lg:mb-3 group-hover/card:text-white transition-colors" />
-                    <span className="block text-[7px] lg:text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Duration</span>
-                    <span className="text-sm lg:text-xl font-bold text-white tracking-tight">{experience.duration}</span>
+            <div className="grid grid-cols-2 gap-3 w-full max-w-2xl mx-auto">
+              {[
+                { label: 'Journey', val: experience.duration, icon: Clock },
+                { label: 'Ideal For', val: experience.guests, icon: Users },
+                { label: 'Optimum', val: experience.season, icon: Calendar }
+              ].map((stat, i) => (
+                <div key={i} className={cn(
+                  "p-5 rounded-[2rem] bg-white/[0.06] border border-white/20 flex flex-col items-center justify-center text-center gap-3 hover:bg-white/[0.1] hover:border-white/40 transition-all duration-700",
+                  i === 2 && "col-span-2"
+                )}>
+                  <stat.icon size={16} className="text-white/80" />
+                  <div>
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.4em] text-white/60 mb-1">{stat.label}</span>
+                    <span className="text-[10px] lg:text-xs font-bold text-white uppercase tracking-[0.2em] leading-relaxed break-words">{stat.val}</span>
                   </div>
-                  {experience.guests && (
-                    <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] group/card hover:bg-white/10 transition-all duration-500">
-                      <Users size={16} className="text-white/40 mb-2 lg:mb-3 group-hover/card:text-white transition-colors" />
-                      <span className="block text-[7px] lg:text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Ideal For</span>
-                      <span className="text-sm lg:text-xl font-bold text-white tracking-tight">{experience.guests}</span>
-                    </div>
-                  )}
-                  {experience.season && (
-                    <div className="col-span-2 bg-white/5 backdrop-blur-md border border-white/10 p-4 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] group/card hover:bg-white/10 transition-all duration-500">
-                      <Calendar size={16} className="text-white/40 mb-2 lg:mb-3 group-hover/card:text-white transition-colors" />
-                      <span className="block text-[7px] lg:text-[9px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">Travel Season</span>
-                      <span className="text-sm lg:text-xl font-bold text-white tracking-tight">{experience.season}</span>
-                    </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CHAPTER III: THE CHRONICLE (Minimalist Timeline) */}
+        {experience.itinerary && (
+          <section className="py-48 flex flex-col items-center text-center space-y-32 relative">
+            <div 
+              id="section-2"
+              className="space-y-4 h-[60vh] flex flex-col items-center justify-center snap-center snap-always"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/40">Chronicle</span>
+              <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">The Path</h2>
+            </div>
+
+            <div className="relative w-full max-w-2xl space-y-40 mb-40">
+              {experience.itinerary.map((item: any, i: number) => (
+                <div 
+                  key={i}
+                  id={`section-${3 + i}`}
+                  className="relative group flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-1000 snap-center snap-always"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                >
+                  {/* DAY ANCHOR */}
+                  <div className="relative z-10 px-8 py-3 rounded-full border border-white/20 bg-black/40 backdrop-blur-xl text-white/90 flex items-center justify-center font-bold text-[9px] uppercase tracking-[0.4em] mb-12">
+                    Day {item.day < 10 ? `0${item.day}` : item.day}
+                  </div>
+
+                  {/* NARRATIVE */}
+                  <div className="space-y-6 max-w-xl mb-20">
+                    <h4 className="text-3xl lg:text-5xl font-bold text-white tracking-tight leading-none">{item.title}</h4>
+                    <p className="text-lg lg:text-2xl text-white/80 leading-relaxed font-medium">{item.description}</p>
+                  </div>
+
+                  {/* CONNECTIVE SEGMENT (only if not last) */}
+                  {i < experience.itinerary.length - 1 && (
+                    <div className="absolute top-[calc(100%-20px)] w-[1.5px] h-32 bg-white/20" />
                   )}
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+          </section>
+        )}
 
-            {activeTab === 'itinerary' && experience.itinerary && experience.itinerary.length > 0 && (
-              <div className="space-y-6 lg:space-y-12 animate-in fade-in slide-in-from-right-8 duration-1000 pb-24">
-                {experience.itinerary.map((item: any, i: number) => (
-                  <div key={i} className="relative pl-10 lg:pl-16 group/day">
-                    {i !== experience.itinerary.length - 1 && (
-                      <div className="absolute left-[19px] lg:left-[27px] top-10 lg:top-14 bottom-0 w-[1px] bg-white/5 group-hover/day:bg-white/20 transition-colors duration-500" />
-                    )}
-                    <div className="absolute left-0 top-0 w-10 h-10 lg:w-14 lg:h-14 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover/day:bg-white group-hover/day:scale-110 transition-all duration-500 z-10">
-                      <span className="text-[8px] lg:text-xs font-black text-white/40 group-hover/day:text-black">D{item.day}</span>
-                    </div>
-                    <div className="flex flex-col gap-1 lg:gap-3 pt-2 lg:pt-4">
-                      <h4 className="text-base lg:text-2xl font-bold text-white tracking-tight leading-tight">{item.title}</h4>
-                      <p className="text-xs lg:text-base text-white/60 leading-relaxed font-medium max-w-lg">{item.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'highlights' && (
-              <div className="space-y-3 lg:space-y-6 animate-in fade-in slide-in-from-right-8 duration-1000 pb-24">
-                {experience.highlights?.map((item: string, i: number) => (
-                  <div key={i} className="group/item flex items-center gap-4 lg:gap-8 p-4 lg:p-8 rounded-[1.5rem] lg:rounded-[2.5rem] bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-500">
-                    <Sparkles size={16} className="text-white/20 group-hover/item:text-white group-hover/item:scale-110 transition-all duration-500" />
-                    <span className="text-sm lg:text-2xl text-white font-medium tracking-tight leading-tight">{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'inclusions' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 animate-in fade-in slide-in-from-right-8 duration-1000 pb-24">
-                {experience.inclusions?.map((item: string, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-4 lg:p-6 rounded-xl lg:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-500">
-                    <ShieldCheck size={16} className="text-white/20" />
-                    <span className="text-xs lg:text-base font-bold text-white/70 tracking-tight">{item}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* CHAPTER IV: SIGNATURES (Centered Highlights) */}
+        <section 
+          id={`section-${3 + (experience.itinerary?.length || 0)}`}
+          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+        >
+          <div className="space-y-4">
+            <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/40">Distinction</span>
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Essence</h2>
+            <p className="text-xl lg:text-2xl text-white/60 italic font-medium max-w-2xl mx-auto">
+              "Hallmarks of a journey meticulously redefined."
+            </p>
           </div>
-        </div>
+          
+          <div className="w-full max-w-3xl grid gap-4">
+            {experience.highlights?.map((item: string, i: number) => (
+              <div key={i} className="flex flex-col items-center justify-center p-6 lg:p-10 rounded-[3rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-700 group gap-2">
+                <Sparkles size={20} className="text-white/20 group-hover:text-white/40 transition-all duration-700" />
+                <span className="text-xl lg:text-3xl text-white/90 font-bold tracking-tight transition-all duration-700">{item}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Action Hub */}
-        <div className="p-6 lg:p-12 pt-4 lg:pt-0 shrink-0 flex justify-center lg:justify-end">
-          <Magnetic>
+        {/* FINAL CTA */}
+        <section 
+          id={`section-${4 + (experience.itinerary?.length || 0)}`}
+          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 snap-center snap-always"
+        >
+          <div className="w-24 h-[1px] bg-white/20" />
+          <h3 className="text-2xl lg:text-5xl font-light text-white/70 italic tracking-widest uppercase">The Journey Begins.</h3>
+        </section>
+
+      </div>
+
+      {/* ═══ CELESTIAL NAVIGATION TRACK ═══ */}
+      <div className="fixed right-4 lg:right-10 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-4 pointer-events-none">
+        {[
+          'Entrance',
+          'Story',
+          'Chronicle',
+          ...(experience.itinerary?.map((_: any, i: number) => `Day ${i + 1}`) || []),
+          'Essence',
+          'Legacy'
+        ].map((label, idx) => {
+          const isActive = activeSection === idx;
+
+          return (
+            <div key={idx} className="group relative flex items-center justify-center">
+              <div className={cn(
+                "w-[2px] transition-all duration-700 rounded-full",
+                isActive ? "h-6 bg-white/60 shadow-[0_0_15px_rgba(255,255,255,0.4)]" : "h-2 bg-white/10"
+              )} />
+              <span className={cn(
+                "absolute right-6 text-[7px] font-bold uppercase tracking-[0.3em] text-white/0 transition-all duration-500 whitespace-nowrap hidden lg:block",
+                isActive && "text-white/40"
+              )}>
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ═══ THE SYMMETRICAL DOCK ═══ */}
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-fit flex justify-center pointer-events-none px-6">
+        <div 
+          ref={pillRef}
+          onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
+          onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
+          onMouseLeave={handleGlowLeave}
+          onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+          onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+          onTouchEnd={handleGlowLeave}
+          className="relative pointer-events-auto flex items-center gap-8 p-1.5 pl-8 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all duration-700 group overflow-hidden"
+        >
+          {/* iOS 26 Pointer-Tracking Glow Overlay */}
+          <div 
+            ref={glowRef}
+            className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
+            style={{ opacity: 0, mixBlendMode: 'screen' }}
+          />
+
+          <div className="relative z-10 flex flex-col pr-8 border-r border-white/10">
+            <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-white/40 mb-1">Investment</span>
+            <div className="text-sm lg:text-lg font-bold text-white/80 tabular-nums tracking-tighter flex items-center gap-2 whitespace-nowrap">
+              <span>{pricing.symbol}{pricing.finalTotal.toLocaleString()}</span>
+              <span className="text-[7px] lg:text-[9px] font-medium text-white/40 uppercase tracking-wider">/ Person</span>
+              
+              {(pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) && (
+                <div className="flex items-center px-2 lg:px-3 py-0.5 lg:py-1 rounded-full bg-white/[0.03] border border-white/10 shadow-inner">
+                  <span className="text-[6px] lg:text-[7px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
+                    {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% GST` : "Incl. Taxes"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <Magnetic intensity={0.3}>
             <button 
-              onClick={() => {
-                const finalSource = source ? `${source}_EXPERIENCE_${experience.title.toUpperCase().replace(/\s+/g, '_')}` : `EXPERIENCE_${experience.title.toUpperCase().replace(/\s+/g, '_')}`;
-                openModal('BOOKING', experience, finalSource);
-              }}
-              className="group/btn inline-flex items-center gap-4 lg:gap-8 bg-white/10 backdrop-blur-3xl border border-white/20 px-6 lg:px-10 py-3 lg:py-5 rounded-full transition-all duration-700 hover:bg-white/20 hover:shadow-[0_0_50px_rgba(255,255,255,0.15)] active:scale-95"
+              onClick={() => openModal('BOOKING', experience)}
+              className="relative overflow-hidden bg-white text-black px-12 py-4.5 rounded-full text-[10px] font-bold uppercase tracking-[0.25em] transition-all duration-500 group-hover:bg-[#f0f0f0] active:scale-95 flex items-center gap-2"
             >
-              <div className="flex flex-col items-start">
-                <span className="text-[6px] lg:text-[8px] font-black uppercase tracking-[0.4em] text-white/40 mb-0.5">Proceed to</span>
-                <span className="text-[8px] lg:text-xs font-black uppercase tracking-[0.3em] text-white max-w-[120px] lg:max-w-none truncate lg:overflow-visible">
-                  Reserve {experience.title}
-                </span>
-              </div>
-              <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-white text-black flex items-center justify-center group-hover/btn:translate-x-2 transition-transform duration-500 shadow-lg">
-                <ChevronRight size={16} strokeWidth={3} />
-              </div>
+              <span>Reserve</span>
+              <ChevronRight size={14} className="transition-transform duration-500 group-hover:translate-x-1" />
             </button>
           </Magnetic>
         </div>
       </div>
+
     </div>
   );
 });
