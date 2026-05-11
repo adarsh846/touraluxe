@@ -10,27 +10,7 @@ import { PackageCard } from "@/components/PackageCard";
 import { FAQAccordion } from "@/components/FAQAccordion";
 import { useBooking } from "@/components/BookingProvider";
 import { usePricing } from "@/hooks/usePricing";
-
-interface Destination {
-  id: string;
-  title: string;
-  slug: string;
-  image: string;
-  description?: string;
-  region?: string;
-  highlights?: string[];
-  faq?: { question: string; answer: string }[];
-}
-
-interface Package {
-  id: string;
-  title: string;
-  location: string;
-  image: string;
-  price: any;
-  duration: string;
-  is_featured?: boolean;
-}
+import type { Package, Destination } from "@/lib/supabase";
 
 export function DestinationDetailContent({ slug }: { slug: string }) {
   const { openModal } = useBooking();
@@ -207,7 +187,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6"><MapPin size={24} className="text-white/20" /></div>
               <h3 className="text-xl font-semibold text-white mb-2">No Journeys Match</h3>
               <p className="text-white/40 text-sm">Try adjusting your filters.</p>
-              <button onClick={() => setFilters({ duration: "", budget: "", tripType: "", difficulty: "", sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
+              <button onClick={() => setFilters({ duration: "", budget: "", tripType: "", difficulty: "", region: "", theme: "", sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
             </div>
           )}
         </div>
