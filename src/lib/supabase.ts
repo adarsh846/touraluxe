@@ -33,4 +33,53 @@ export type Package = {
   infant_price?: string;
   created_at: string;
   updated_at: string;
+
+  // ── Operational Fields (Sprint 1) ──
+  original_price?: string;
+  badge?: string;
+  is_featured?: boolean;
+  exclusions?: string[];
+  route_start?: string;
+  route_end?: string;
+  difficulty_level?: string;
+  min_group_size?: number;
+  max_group_size?: number;
+  gallery?: string[];
+  faq?: { question: string; answer: string }[];
+  tags?: string[];
+  destination?: string;
+  region?: string;
+  trip_type?: string;
+};
+
+export type Destination = {
+  id: string;
+  name: string;
+  slug: string;
+  region?: string;
+  country?: string;
+  cover_image?: string;
+  description?: string;
+  meta_title?: string;
+  meta_description?: string;
+  faq?: { question: string; answer: string }[];
+  stats?: { packages?: number; starting_price?: number };
+  is_international: boolean;
+  sort_order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BatchDate = {
+  id: string;
+  package_id: string;
+  start_date: string;
+  end_date: string;
+  status: 'available' | 'filling_fast' | 'sold_out' | 'completed';
+  slots_total: number;
+  slots_booked: number;
+  price_override?: string;
+  notes?: string;
+  created_at: string;
 };

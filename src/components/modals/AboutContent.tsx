@@ -3,9 +3,18 @@
 import { useEffect, useRef, useState, memo } from "react";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
+import { useSettings } from "@/hooks/useSettings";
 
 export const AboutContent = memo(function AboutContent({ isActive, onScroll, startClosing }: { isActive: boolean, onScroll: (scrolled: boolean) => void, startClosing: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { settings } = useSettings();
+
+  const stats = settings.about_stats ? JSON.parse(settings.about_stats) : [
+    { label: "Founded", value: "2026" },
+    { label: "Global Reach", value: "120+ Cities" },
+    { label: "Excellence", value: "Premium" },
+    { label: "Execution", value: "Seamless" }
+  ];
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
@@ -56,8 +65,8 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] text-white/40">Our Vision</span>
               </div>
               <h3 className="text-[clamp(1.25rem,4vw,1.875rem)] font-medium text-white leading-tight">Setting new benchmarks in global travel.</h3>
-              <p className="text-[#86868b] leading-relaxed text-sm md:text-base">
-                To become a globally trusted travel and lifestyle brand delivering exceptional luxury experiences, innovative travel solutions, and personalized services. We aspire to redefine journeys through excellence, reliability, and customer satisfaction, creating memorable experiences while building lasting relationships and setting new benchmarks in travel, tourism, and corporate event management worldwide.
+              <p className="text-[#86868b] leading-relaxed text-sm md:text-base whitespace-pre-wrap">
+                {settings.about_vision_text || "To become a globally trusted travel and lifestyle brand delivering exceptional luxury experiences, innovative travel solutions, and personalized services. We aspire to redefine journeys through excellence, reliability, and customer satisfaction, creating memorable experiences while building lasting relationships and setting new benchmarks in travel, tourism, and corporate event management worldwide."}
               </p>
             </div>
 
@@ -68,20 +77,14 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
                 <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] text-white/40">Our Mission</span>
               </div>
               <h3 className="text-2xl md:text-3xl font-medium text-white leading-tight">Exceptional services, seamless execution.</h3>
-              <p className="text-[#86868b] leading-relaxed text-sm md:text-base">
-                To deliver exceptional travel and lifestyle services through personalized solutions, seamless execution, and innovative experiences. We are committed to quality, reliability, and customer satisfaction, providing luxury tours, corporate travel, and event management while building lasting relationships, exceeding expectations, and creating memorable journeys with professionalism, integrity, and global service excellence.
+              <p className="text-[#86868b] leading-relaxed text-sm md:text-base whitespace-pre-wrap">
+                {settings.about_mission_text || "To deliver exceptional travel and lifestyle services through personalized solutions, seamless execution, and innovative experiences. We are committed to quality, reliability, and customer satisfaction, providing luxury tours, corporate travel, and event management while building lasting relationships, exceeding expectations, and creating memorable journeys with professionalism, integrity, and global service excellence."}
               </p>
             </div>
           </div>
 
-          {/* Core Values / Stats */}
           <div className="mt-24 pt-12 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { label: "Founded", value: "2026" },
-              { label: "Global Reach", value: "120+ Cities" },
-              { label: "Excellence", value: "Premium" },
-              { label: "Execution", value: "Seamless" }
-            ].map((stat, i) => (
+            {stats.map((stat: any, i: number) => (
               <div key={i} className="flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-widest text-[#86868b]">{stat.label}</span>
                 <span className="text-xl md:text-2xl font-semibold text-white">{stat.value}</span>

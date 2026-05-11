@@ -3,9 +3,12 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Magnetic } from "../Magnetic";
+import { useSettings } from "@/hooks/useSettings";
 
 export function Marquee() {
   const sectionRef = useRef<HTMLElement>(null);
+  const { settings } = useSettings();
+  
   const row1Ref = useRef<HTMLDivElement>(null);
   const row2Ref = useRef<HTMLDivElement>(null);
   const row3Ref = useRef<HTMLDivElement>(null);
@@ -14,6 +17,12 @@ export function Marquee() {
   const row6Ref = useRef<HTMLDivElement>(null);
   const row7Ref = useRef<HTMLDivElement>(null);
   const row8Ref = useRef<HTMLDivElement>(null);
+
+  const marqueeWords = settings.marquee_words ? settings.marquee_words.split(',') : [
+    "Explore", "Discover", "Journey", "Wander", "Roam", "Venture", "Navigate", "FUN", "Excellence", "Adventure",
+    "Mountains", "Oceans", "Cities", "Islands", "Horizons", "Landscapes", "Destinations", "Worlds", "Bespoke",
+    "Curated", "Elite", "Luxury", "Sanctuary", "Unseen", "Boundless", "Transcendent", "Sovereign", "Unrivaled", "Grandeur"
+  ];
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -80,7 +89,9 @@ export function Marquee() {
       <div ref={row1Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-50 select-none whitespace-nowrap gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span>Explore</span><span className="text-outline-white">Discover</span><span>Journey</span><span className="text-outline-white">Wander</span><span>Roam</span><span className="text-outline-white">Venture</span><span>Navigate</span><span className="text-outline-white">FUN</span><span>Excellence</span><span className="text-outline-white">Adventure</span>
+            {marqueeWords.slice(0, 10).map((word, idx) => (
+              <span key={idx} className={idx % 2 !== 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -89,7 +100,9 @@ export function Marquee() {
       <div ref={row2Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-45 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span className="text-outline-white">Mountains</span><span>Oceans</span><span className="text-outline-white">Cities</span><span>Islands</span><span className="text-outline-white">Horizons</span><span>Landscapes</span><span className="text-outline-white">Destinations</span><span>Worlds</span><span className="text-outline-white">Discovery</span><span>Bespoke</span>
+            {marqueeWords.slice(10, 20).map((word, idx) => (
+              <span key={idx} className={idx % 2 === 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -98,7 +111,9 @@ export function Marquee() {
       <div ref={row3Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span>Curated</span><span className="text-outline-white">Elite</span><span>Luxury</span><span className="text-outline-white">Sanctuary</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Unrivaled</span><span className="text-outline-white">Grandeur</span>
+            {marqueeWords.slice(20, 30).map((word, idx) => (
+              <span key={idx} className={idx % 2 !== 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -107,7 +122,9 @@ export function Marquee() {
       <div ref={row4Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-40 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span className="text-outline-white">Navigate</span><span>FUN</span><span className="text-outline-white">Journey</span><span>Worlds</span><span className="text-outline-white">Explore</span><span>Discover</span><span className="text-outline-white">Venture</span><span>Islands</span><span className="text-outline-white">Legacy</span><span>Zenith</span>
+            {marqueeWords.slice(0, 10).reverse().map((word, idx) => (
+              <span key={idx} className={idx % 2 === 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -116,7 +133,9 @@ export function Marquee() {
       <div ref={row5Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-35 select-none whitespace-nowrap gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span>Mountains</span><span className="text-outline-white">Oceans</span><span>Landscapes</span><span className="text-outline-white">Horizons</span><span>Roaming</span><span className="text-outline-white">Wandering</span><span>Destinations</span><span className="text-outline-white">Cities</span><span>Global</span><span className="text-outline-white">Apex</span>
+            {marqueeWords.slice(10, 20).reverse().map((word, idx) => (
+              <span key={idx} className={idx % 2 !== 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>
@@ -125,7 +144,9 @@ export function Marquee() {
       <div ref={row6Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-30 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span className="text-outline-white">Beyond</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Elite</span><span className="text-outline-white">Luxury</span><span>Excellence</span><span className="text-outline-white">Heritage</span><span>Sanctuary</span>
+            {marqueeWords.slice(20, 30).reverse().map((word, idx) => (
+              <span key={idx} className={idx % 2 === 0 ? "text-outline-white" : ""}>{word}</span>
+            ))}
           </div>
         ))}
       </div>

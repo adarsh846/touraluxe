@@ -58,6 +58,24 @@ export async function PUT(
       infant_price: body.infant_price,
       inclusions: body.inclusions,
       itinerary: body.itinerary,
+
+      // ── New Operational Fields ──
+      original_price: body.original_price ?? null,
+      badge: body.badge ?? null,
+      is_featured: body.is_featured ?? false,
+      exclusions: body.exclusions ?? [],
+      route_start: body.route_start ?? null,
+      route_end: body.route_end ?? null,
+      difficulty_level: body.difficulty_level ?? "Easy",
+      min_group_size: body.min_group_size ?? 1,
+      max_group_size: body.max_group_size ?? 20,
+      gallery: body.gallery ?? [],
+      faq: body.faq ?? [],
+      tags: body.tags ?? [],
+      destination: body.destination ?? null,
+      region: body.region ?? null,
+      trip_type: body.trip_type ?? "group",
+
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

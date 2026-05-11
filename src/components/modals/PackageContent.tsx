@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, memo, useMemo, useCallback, useLayoutEffect } from "react";
 import Image from "next/image";
-import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane } from "lucide-react";
+import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane, ArrowRight } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -28,17 +28,30 @@ export const PackageContent = memo(({
   const [scrollTop, setScrollTop] = useState(0);
   const [settings, setSettings] = useState<any>({});
   const [activeSection, setActiveSection] = useState(0);
+  const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
 
   // ═══ DYNAMIC CHAPTER MANIFEST (Source of Truth) ═══
   const navChapters = useMemo(() => [
     { id: 'entrance', label: 'Introduction', type: 'core' },
+    ...(experience?.gallery?.length > 0 ? [{ id: 'gallery', label: 'Gallery', type: 'optional' }] : []),
     { id: 'story', label: 'The Vision', type: 'core' },
     { id: 'chronicle', label: 'Itinerary', type: 'core' },
     ...(experience?.itinerary?.map((_: any, i: number) => ({ id: `day-${i + 1}`, label: `Day ${i + 1}`, type: 'day' })) || []),
     ...(experience?.inclusions?.length > 0 ? [{ id: 'hallmarks', label: 'Inclusions', type: 'optional' }] : []),
+    ...(experience?.exclusions?.length > 0 ? [{ id: 'exclusions', label: 'Exclusions', type: 'optional' }] : []),
     ...(experience?.highlights?.length > 0 ? [{ id: 'essence', label: 'Highlights', type: 'optional' }] : []),
+    ...(experience?.faq?.length > 0 ? [{ id: 'faq', label: 'FAQ', type: 'optional' }] : []),
+    ...(relatedPackages.length > 0 ? [{ id: 'related', label: 'Similar', type: 'optional' }] : []),
     { id: 'legacy', label: 'Next Steps', type: 'core' }
-  ], [experience?.itinerary, experience?.inclusions, experience?.highlights]);
+  ], [
+    experience?.itinerary, 
+    experience?.inclusions, 
+    experience?.exclusions, 
+    experience?.highlights,
+    experience?.gallery,
+    experience?.faq,
+    relatedPackages
+  ]);
 
   const scrollToSection = (idx: number) => {
     const section = scrollRef.current?.querySelector(`#section-${idx}`);
@@ -56,7 +69,7 @@ export const PackageContent = memo(({
 
   // ═══ SOVEREIGN FISCAL ENGINE ═══
   const pricing = useMemo(() => {
-    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0 };
+    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0, originalTotal: 0, discountPercent: 0, hasSavings: false };
 
     const taxRate = parseFloat(settings.tax_percentage || "0");
     const symbol = settings.currency_symbol || experience.currency || "₹";
@@ -68,13 +81,20 @@ export const PackageContent = memo(({
     const isExclusive = experience.tax_status === TAX_EXCLUSIVE_LABEL;
 
     // Calculate Gross Rate
-    // If Inclusive -> We add tax to the base to show the total price to the user.
-    // If Exclusive -> We show the base price and add the "+ Tax" label.
     const grossPrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
     const shouldAddTaxLabel = isExclusive && taxRate > 0;
+
+    // Original price (strikethrough) calculation
+    const originalRaw = parseInt(String(experience.original_price || "").replace(/[^0-9]/g, "")) || 0;
+    const originalTotal = originalRaw > 0 && isInclusive && taxRate > 0 ? originalRaw + (originalRaw * taxRate / 100) : originalRaw;
+    const hasSavings = originalTotal > 0 && originalTotal > grossPrice;
+    const discountPercent = hasSavings ? Math.round(((originalTotal - grossPrice) / originalTotal) * 100) : 0;
     
     return {
       finalTotal: grossPrice,
+      originalTotal,
+      hasSavings,
+      discountPercent,
       symbol,
       taxRate,
       shouldAddTaxLabel,
@@ -225,6 +245,21 @@ export const PackageContent = memo(({
       .catch(err => console.error(err));
   }, []);
 
+  // ═══ RELATED PACKAGES ENGINE ═══
+  useEffect(() => {
+    if (!experience?.id) return;
+    const dest = experience.destination || experience.location;
+    if (!dest) return;
+
+    fetch(`/api/packages?destination=${encodeURIComponent(dest)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        const filtered = (data || []).filter((p: any) => p.id !== experience.id);
+        setRelatedPackages(filtered);
+      })
+      .catch(() => setRelatedPackages([]));
+  }, [experience?.id, experience?.destination, experience?.location]);
+
   if (!experience) return null;
 
   return (
@@ -327,6 +362,31 @@ export const PackageContent = memo(({
           </div>
         </section>
 
+        {/* CHAPTER: GALLERY */}
+        {experience.gallery && experience.gallery.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'gallery')}`}
+            className="min-h-screen flex items-center justify-center snap-center snap-always"
+          >
+            <div className="w-full h-full p-4 md:p-8 pt-24 pb-24 md:pb-32">
+              <div className="w-full h-full rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-white/5 relative border border-white/10 flex items-center justify-center">
+                {/* We can build a proper carousel here, for now it shows the first image full bleed */}
+                <Image
+                  src={experience.gallery[0]}
+                  alt="Gallery"
+                  fill
+                  className="object-cover transition-transform duration-[2s] hover:scale-105"
+                  quality={85}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute bottom-8 right-8 px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+                  1 / {experience.gallery.length} Images
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* CHAPTER III: THE ITINERARY (Ground-Up Reconstruction) */}
         {experience.itinerary && experience.itinerary.length > 0 && (
           <section className="relative w-full max-w-4xl mx-auto px-8 lg:px-0">
@@ -389,9 +449,30 @@ export const PackageContent = memo(({
               {experience.inclusions.map((item: string, i: number) => (
                 <div key={i} className="flex items-center gap-4 p-6 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition-all duration-700 group">
                   <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                    <ShieldCheck size={18} className="text-white/40 group-hover:text-white/80 transition-colors" />
+                    <ShieldCheck size={18} className="text-white/40 group-hover:text-emerald-400 transition-colors" />
                   </div>
                   <span className="text-lg lg:text-xl text-white/90 font-bold tracking-tight text-left">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* CHAPTER: EXCLUSIONS */}
+        {experience.exclusions && experience.exclusions.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'exclusions')}`}
+            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+          >
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none opacity-80">Exclusions</h2>
+            
+            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
+              {experience.exclusions.map((item: string, i: number) => (
+                <div key={i} className="flex items-center gap-4 p-6 rounded-[2rem] bg-red-500/[0.02] border border-red-500/10 hover:bg-red-500/[0.05] hover:border-red-500/20 transition-all duration-700 group">
+                  <div className="w-10 h-10 rounded-full bg-red-500/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <span className="text-red-500/40 group-hover:text-red-400 font-black text-xl transition-colors">×</span>
+                  </div>
+                  <span className="text-lg lg:text-xl text-white/70 font-bold tracking-tight text-left">{item}</span>
                 </div>
               ))}
             </div>
@@ -413,6 +494,64 @@ export const PackageContent = memo(({
                   <span className="text-xl lg:text-3xl text-white/90 font-bold tracking-tight transition-all duration-700">{item}</span>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* CHAPTER: FAQ */}
+        {experience.faq && experience.faq.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'faq')}`}
+            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
+          >
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">F.A.Q.</h2>
+            <div className="w-full max-w-3xl space-y-4">
+              {experience.faq.map((item: { question: string; answer: string }, i: number) => (
+                <div key={i} className="text-left p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors">
+                  <h4 className="text-xl font-bold text-white/90 mb-3">{item.question}</h4>
+                  <p className="text-white/50 leading-relaxed text-sm">{item.answer}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* CHAPTER: RELATED PACKAGES */}
+        {relatedPackages.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'related')}`}
+            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
+          >
+            <h2 className="text-5xl lg:text-[6rem] font-bold text-white tracking-tight leading-none">Similar<br/><span className="text-white/30">Journeys</span></h2>
+            <div className="w-full max-w-5xl overflow-x-auto scrollbar-hide">
+              <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
+                {relatedPackages.slice(0, 6).map((pkg: any) => (
+                  <button 
+                    key={pkg.id}
+                    onClick={() => openModal('PACKAGE', pkg, source)}
+                    className="group flex-shrink-0 w-[280px] text-left rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-500"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden bg-white/5">
+                      {pkg.image && (
+                        <Image src={pkg.image} alt={pkg.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" quality={60} sizes="280px" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    </div>
+                    <div className="p-5 space-y-2">
+                      <h4 className="text-[15px] font-bold text-white tracking-tight truncate">{pkg.title}</h4>
+                      <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
+                        <span>{pkg.duration}</span>
+                        <span className="w-[3px] h-[3px] rounded-full bg-white/20" />
+                        <span>{pkg.location}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-sm font-bold text-white/70">{pkg.currency || '₹'}{parseInt(String(pkg.price).replace(/[^0-9]/g, '')).toLocaleString()}</span>
+                        <ArrowRight size={14} className="text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
         )}
@@ -513,18 +652,29 @@ export const PackageContent = memo(({
                 Investment
               </span>
               <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
-                <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.6rem)' }}>
-                  {pricing.symbol}{pricing.finalTotal.toLocaleString()}
-                </p>
+                <div className="flex items-baseline" style={{ gap: 'clamp(3px, 0.5vw, 8px)' }}>
+                  <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.6rem)' }}>
+                    {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                  </p>
+                  {pricing.hasSavings && (
+                    <span className="font-medium tracking-tight text-white/25 line-through whitespace-nowrap" style={{ fontSize: 'clamp(7px, 1.2vw, 0.85rem)' }}>
+                      {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-col items-start">
                   <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
                     / Person
                   </span>
-                  {(pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) && (
+                  {pricing.hasSavings ? (
+                    <span className="font-black uppercase tracking-wider text-emerald-400/80 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
+                      Save {pricing.discountPercent}%
+                    </span>
+                  ) : (pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) ? (
                     <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
                       {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% Tax` : "Incl. Tax"}
                     </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

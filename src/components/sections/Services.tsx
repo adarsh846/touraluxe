@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
+import { useSettings } from "@/hooks/useSettings";
 
 export const SERVICES = [
   {
@@ -124,6 +125,7 @@ export function Services() {
   const containerRef = useRef<HTMLElement>(null);
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const { openModal } = useBooking();
+  const { settings } = useSettings();
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -153,8 +155,8 @@ export function Services() {
     <section ref={containerRef} id="services" className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden">
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-20 max-w-2xl">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0">Beyond First Class.</h2>
-          <p className="text-lg md:text-xl text-[#86868b] tracking-wide opacity-0">Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence.</p>
+          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
+          <p className="text-lg md:text-xl text-[#86868b] tracking-wide opacity-0 whitespace-pre-wrap">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">

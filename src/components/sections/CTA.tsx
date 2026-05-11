@@ -5,11 +5,17 @@ import gsap from "gsap";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { useBooking } from "../BookingProvider";
+import { useSettings } from "@/hooks/useSettings";
 
 export function CTA() {
   const containerRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const { openModal } = useBooking();
+  const { settings } = useSettings();
+
+  const title = settings.cta_title || "Ready to transcend the ordinary?";
+  const description = settings.cta_description || "Connect with our travel curators to design your next unparalleled experience.";
+  const buttonText = settings.cta_button_text || "Begin Your Journey";
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -48,7 +54,7 @@ export function CTA() {
         className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8"
       >
         <h2 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] flex flex-wrap justify-center gap-x-[0.3em]">
-          {"Ready to transcend the ordinary?".split(" ").map((word, i) => (
+          {title.split(" ").map((word, i) => (
             <span key={i} className="overflow-hidden inline-flex pt-2 pb-1 -my-2">
               <span className="cta-word inline-block translate-y-[110%] will-change-transform text-[#1d1d1f]">
                 {word}
@@ -57,8 +63,8 @@ export function CTA() {
           ))}
         </h2>
         
-        <p className="cta-content opacity-0 text-lg md:text-xl text-[#1d1d1f]/60 max-w-xl font-normal tracking-wide will-change-transform">
-          Connect with our travel curators to design your next unparalleled experience.
+        <p className="cta-content opacity-0 text-lg md:text-xl text-[#1d1d1f]/60 max-w-xl font-normal tracking-wide will-change-transform whitespace-pre-wrap">
+          {description}
         </p>
 
         <div className="cta-content opacity-0 will-change-transform">
@@ -67,7 +73,7 @@ export function CTA() {
               onClick={() => openModal('CTA')}
               className="mt-4 inline-block rounded-full bg-[#1d1d1f] px-8 py-4 text-sm font-semibold text-white transition-transform hover:scale-105 active:scale-95 shadow-lg"
             >
-              Begin Your Journey
+              {buttonText}
             </button>
           </Magnetic>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -9,8 +9,20 @@ gsap.registerPlugin(ScrollTrigger);
 
 import { BookingProvider } from "./BookingProvider";
 import { ModalShell } from "./modals/ModalShell";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+
+  useEffect(() => {
+    fetch("/api/settings", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     // ... (lenis setup)
     const lenis = new Lenis({
@@ -52,7 +64,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <BookingProvider>
       {children}
       <ModalShell />
+      {whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
     </BookingProvider>
   );
 }
-

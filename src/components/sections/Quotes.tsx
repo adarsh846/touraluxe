@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Magnetic } from "../Magnetic";
+import { useSettings } from "@/hooks/useSettings";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const QUOTES = [
+const DEFAULT_QUOTES = [
   {
     quote: <>We don&apos;t sell trips.<br />We craft experiences.</>,
     author: "Elena R.",
@@ -30,6 +31,11 @@ export function Quotes() {
   const containerRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { settings } = useSettings();
+
+  const QUOTES = (settings.editorial_quotes && JSON.parse(settings.editorial_quotes).length > 0) 
+    ? JSON.parse(settings.editorial_quotes) 
+    : DEFAULT_QUOTES;
 
   // Chips animations — run ONCE on mount only
   useEffect(() => {
@@ -173,14 +179,14 @@ export function Quotes() {
         <p 
           key={`quote-${currentIndex}`}
           ref={textRef}
-          className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] will-change-transform text-[#1d1d1f]"
+          className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] will-change-transform text-[#1d1d1f] whitespace-pre-wrap"
         >
-          {QUOTES[currentIndex].quote}
+          {QUOTES[currentIndex]?.quote}
         </p>
 
         {/* Minimal Progress Indicators */}
         <div className="absolute left-0 right-0 -bottom-16 flex justify-center gap-3">
-          {QUOTES.map((_, idx) => (
+          {QUOTES.map((_: any, idx: number) => (
             <Magnetic key={idx}>
               <button
                 onClick={() => setCurrentIndex(idx)}

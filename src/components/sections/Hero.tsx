@@ -3,11 +3,18 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import Image from "next/image";
+import { useSettings } from "@/hooks/useSettings";
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const { settings } = useSettings();
+
+  const title = settings.hero_title || "We don't sell trips. \nWe craft experiences.";
+  const subtitle = settings.hero_subtitle || "A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.";
+
+  const titleLines = title.split('\n');
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -100,21 +107,22 @@ export function Hero() {
         <h1
           className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
         >
-          <span className="word inline-block opacity-0">We</span>
-          <span className="word inline-block opacity-0">don't</span>
-          <span className="word inline-block opacity-0">sell</span>
-          <span className="word inline-block opacity-0">trips.</span>
-          <div className="basis-full h-0" />
-          <span className="word inline-block opacity-0 text-white/80">We</span>
-          <span className="word inline-block opacity-0 text-white/80">craft</span>
-          <span className="word inline-block opacity-0 text-white/80">experiences.</span>
+          {titleLines.map((line, lineIdx) => (
+            <div key={lineIdx} className="flex flex-wrap justify-center gap-x-[0.3em] w-full">
+              {line.split(' ').map((word, wordIdx) => (
+                <span key={`${lineIdx}-${wordIdx}`} className="word inline-block opacity-0">
+                  {word}
+                </span>
+              ))}
+            </div>
+          ))}
         </h1>
 
         <p
           ref={subheadRef}
           className="text-lg md:text-xl text-white/70 max-w-2xl font-normal tracking-wide opacity-0 will-change-transform"
         >
-          A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
+          {subtitle}
         </p>
       </div>
 

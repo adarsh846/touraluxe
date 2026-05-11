@@ -9,6 +9,7 @@ import { useBooking } from "./BookingProvider";
 
 const NAV_LINKS = [
   { name: "New Journey", href: "featured", offset: 0 },
+  { name: "Destinations", href: "/destinations", offset: 0 },
   { name: "Services", href: "services", offset: -80 },
   { name: "About Us", href: "about", offset: 0 },
 ];
@@ -33,6 +34,12 @@ export function Navbar() {
   const scrollToSection = (id: string, offset: number = 0) => {
     if (!id) return;
     
+    // Handle full URL paths (e.g. /destinations)
+    if (id.startsWith("/")) {
+      window.location.href = id;
+      return;
+    }
+
     if (id === "about") {
       openModal('ABOUT');
       return;

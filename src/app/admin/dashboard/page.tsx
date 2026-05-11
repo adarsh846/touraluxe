@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import type { Package } from "@/lib/supabase";
+import { EditorialManager } from "../components/EditorialManager";
 
 interface Booking {
   id: string;
@@ -206,7 +207,7 @@ export default function AdminDashboard() {
   const [packages, setPackages] = useState<Package[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [view, setView] = useState<"catalog" | "bookings">("catalog");
+  const [view, setView] = useState<"catalog" | "bookings" | "content">("catalog");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -411,7 +412,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-4 md:gap-8 min-w-0">
             <nav className="flex items-center bg-[#1c1c1e] p-1 rounded-full border border-white/[0.05] shadow-inner shrink-0">
-              {["catalog", "bookings"].map((v) => (
+              {["catalog", "bookings", "content"].map((v) => (
                 <button 
                   key={v} 
                   onClick={() => setView(v as any)} 
@@ -490,7 +491,11 @@ export default function AdminDashboard() {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight italic">Experience Catalog</h2>
-              <button onClick={() => router.push("/admin/packages/new")} className="px-5 py-2.5 rounded-full bg-white text-black text-[12px] md:text-[13px] font-bold">+ New Package</button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => router.push("/admin/destinations")} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[12px] md:text-[13px] font-bold hover:bg-white/10 transition-all">Destinations</button>
+                <button onClick={() => router.push("/admin/batch-dates")} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[12px] md:text-[13px] font-bold hover:bg-white/10 transition-all">Batch Dates</button>
+                <button onClick={() => router.push("/admin/packages/new")} className="px-5 py-2.5 rounded-full bg-white text-black text-[12px] md:text-[13px] font-bold">+ New Package</button>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4">
               {packages.map((pkg) => (
@@ -531,7 +536,7 @@ export default function AdminDashboard() {
               ))}
             </div>
           </div>
-        ) : (
+        ) : view === "bookings" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight italic uppercase mb-8">Flight Manifests</h2>
             
@@ -613,6 +618,32 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
+        ) : (
+          <EditorialManager 
+            settings={settings} 
+            isUpdating={isUpdatingSettings} 
+            onUpdate={async (key, value) => {
+              const token = getToken();
+              if (!token) return;
+              setIsUpdatingSettings(true);
+              try {
+                const res = await fetch("/api/settings", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json", "x-admin-token": token },
+                  body: JSON.stringify({ key, value })
+                });
+                if (res.ok) {
+                  setSettings(prev => ({ ...prev, [key]: value }));
+                  addNotification(`${key.replace(/_/g, ' ')} updated successfully.`, "success");
+                } else {
+                  addNotification("Failed to update setting.", "error");
+                }
+              } catch (err) {
+                addNotification("Network error occurred.", "error");
+              }
+              setIsUpdatingSettings(false);
+            }}
+          />
         )}
       </main>
 

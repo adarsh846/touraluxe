@@ -36,7 +36,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     description: initialData?.description || "",
     highlights: initialData?.highlights || [""],
     inclusions: initialData?.inclusions || [""],
+    exclusions: initialData?.exclusions || [""],
     itinerary: initialData?.itinerary || [{ day: "1", title: "", description: "" }],
+    faq: (initialData as any)?.faq || [{ question: "", answer: "" }],
     category: Array.isArray(initialData?.category) 
       ? initialData.category.filter(cat => ALLOWED_CATEGORIES.includes(cat)) 
       : (initialData?.category && ALLOWED_CATEGORIES.includes(initialData.category as string) ? [initialData.category as string] : []),
@@ -45,6 +47,19 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     tax_status: initialData?.tax_status || "Inclusive of Taxes",
     currency: initialData?.currency || "₹",
     season: initialData?.season || "",
+    // ── Operational Fields ──
+    original_price: (initialData as any)?.original_price || "",
+    badge: (initialData as any)?.badge || "",
+    is_featured: (initialData as any)?.is_featured ?? false,
+    route_start: (initialData as any)?.route_start || "",
+    route_end: (initialData as any)?.route_end || "",
+    difficulty_level: (initialData as any)?.difficulty_level || "Easy",
+    min_group_size: (initialData as any)?.min_group_size ?? 1,
+    max_group_size: (initialData as any)?.max_group_size ?? 20,
+    tags: (initialData as any)?.tags || [],
+    destination: (initialData as any)?.destination || "",
+    region: (initialData as any)?.region || "",
+    trip_type: (initialData as any)?.trip_type || "group",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -156,6 +171,39 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     }));
   };
 
+  // ── Exclusions Handlers ──
+  const handleExclusionChange = (index: number, value: string) => {
+    setForm((prev) => {
+      const exclusions = [...prev.exclusions];
+      exclusions[index] = value;
+      return { ...prev, exclusions };
+    });
+  };
+  const addExclusion = () => setForm((prev) => ({ ...prev, exclusions: [...prev.exclusions, ""] }));
+  const removeExclusion = (index: number) => setForm((prev) => ({ ...prev, exclusions: prev.exclusions.filter((_, i) => i !== index) }));
+
+  // ── FAQ Handlers ──
+  const handleFaqChange = (index: number, field: string, value: string) => {
+    setForm((prev) => {
+      const faq = [...prev.faq];
+      faq[index] = { ...faq[index], [field]: value };
+      return { ...prev, faq };
+    });
+  };
+  const addFaq = () => setForm((prev) => ({ ...prev, faq: [...prev.faq, { question: "", answer: "" }] }));
+  const removeFaq = (index: number) => setForm((prev) => ({ ...prev, faq: prev.faq.filter((_: any, i: number) => i !== index) }));
+
+  // ── Tags Handler ──
+  const [tagInput, setTagInput] = useState("");
+  const addTag = () => {
+    const tag = tagInput.trim();
+    if (tag && !form.tags.includes(tag)) {
+      setForm((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
+      setTagInput("");
+    }
+  };
+  const removeTag = (tag: string) => setForm((prev) => ({ ...prev, tags: prev.tags.filter((t: string) => t !== tag) }));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -170,7 +218,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       duration,
       highlights: form.highlights.filter((h) => h.trim() !== ""),
       inclusions: form.inclusions.filter((h) => h.trim() !== ""),
+      exclusions: form.exclusions.filter((h) => h.trim() !== ""),
       itinerary: form.itinerary.filter((item) => item.title.trim() !== ""),
+      faq: form.faq.filter((f: { question: string; answer: string }) => f.question.trim() !== ""),
     };
 
     const url = isEditing
@@ -340,6 +390,23 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">What&apos;s NOT Included (Exclusions)</label>
+              <div className="space-y-3">
+                {form.exclusions.map((h, i) => (
+                  <div key={i} className="flex gap-3">
+                    <input value={h} onChange={(e) => handleExclusionChange(i, e.target.value)} placeholder={`Exclusion ${i + 1}`} className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-red-500/[0.08] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-red-500/20 transition-all" />
+                    {form.exclusions.length > 1 && (
+                      <button type="button" onClick={() => removeExclusion(i)} className="w-14 h-[56px] shrink-0 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90">×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addExclusion} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+                + Add Exclusion
+              </button>
+            </div>
+
+            <div className="space-y-5 pt-8 border-t border-white/[0.02]">
               <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Journey Itinerary (Day-by-Day)</label>
               <div className="space-y-6">
                 {form.itinerary.map((item, i) => (
@@ -419,6 +486,141 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 </button>
               </div>
             </div>
+          </section>
+
+          {/* ── SECTION: PROMOTIONS & BADGES ── */}
+          <section className="space-y-8">
+            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
+              Promotions &amp; Badges
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+              <Field label="Original Price (Strikethrough)" value={form.original_price} onChange={(v) => setForm((p) => ({ ...p, original_price: v }))} placeholder="e.g. 95,000 (leave empty if no discount)" />
+              <div className="space-y-3">
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Package Badge</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {["", "Trending", "Bestseller", "New", "Recommended", "Super Saver"].map((b) => {
+                    const isActive = form.badge === b;
+                    const label = b || "None";
+                    return (
+                      <button key={label} type="button" onClick={() => setForm(prev => ({ ...prev, badge: b }))} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10"}`}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
+              <div className="flex-1 space-y-1">
+                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Featured Package</label>
+                <span className="block text-[13px] font-bold text-white uppercase tracking-wider">
+                  {form.is_featured ? "Highlighted on Homepage" : "Standard Listing"}
+                </span>
+                <p className="text-[11px] text-[#86868b] mt-1 leading-relaxed max-w-md">
+                  Featured packages appear prominently in the homepage showcase.
+                </p>
+              </div>
+              <button type="button" onClick={() => setForm((p) => ({ ...p, is_featured: !p.is_featured }))} className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.is_featured ? "bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-[#3a3a3c]"}`}>
+                <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.is_featured ? "left-[34px]" : "left-1"}`} />
+              </button>
+            </div>
+          </section>
+
+          {/* ── SECTION: ROUTE & LOGISTICS ── */}
+          <section className="space-y-8">
+            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
+              Route &amp; Logistics
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+              <Field label="Route Start" value={form.route_start} onChange={(v) => setForm((p) => ({ ...p, route_start: v }))} placeholder="e.g. Delhi Airport (DEL)" />
+              <Field label="Route End" value={form.route_end} onChange={(v) => setForm((p) => ({ ...p, route_end: v }))} placeholder="e.g. Leh Airport (IXL)" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
+              <SegmentedControl label="Difficulty Level" value={form.difficulty_level} onChange={(v) => setForm(p => ({ ...p, difficulty_level: v }))} options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} />
+              <div className="space-y-3">
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Min Group Size</label>
+                <input type="number" value={form.min_group_size} onChange={(e) => setForm((p) => ({ ...p, min_group_size: parseInt(e.target.value) || 1 }))} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+              </div>
+              <div className="space-y-3">
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Max Group Size</label>
+                <input type="number" value={form.max_group_size} onChange={(e) => setForm((p) => ({ ...p, max_group_size: parseInt(e.target.value) || 20 }))} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+              </div>
+            </div>
+          </section>
+
+          {/* ── SECTION: TAXONOMY & DISCOVERY ── */}
+          <section className="space-y-8">
+            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
+              Taxonomy &amp; Discovery
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              <Field label="Destination Slug" value={form.destination} onChange={(v) => setForm((p) => ({ ...p, destination: v }))} placeholder="e.g. vietnam, ladakh" />
+              <Field label="Region" value={form.region} onChange={(v) => setForm((p) => ({ ...p, region: v }))} placeholder="e.g. Southeast Asia, Himalayas" />
+              <SegmentedControl label="Trip Type" value={form.trip_type} onChange={(v) => setForm(p => ({ ...p, trip_type: v }))} options={[{ label: "Group", value: "group" }, { label: "Private", value: "private" }, { label: "Custom", value: "custom" }]} />
+            </div>
+
+            <div className="space-y-4 pt-8 border-t border-white/[0.02]">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Search Tags</label>
+              <div className="flex gap-3">
+                <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }} placeholder="Type a tag and press Enter..." className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all" />
+                <button type="button" onClick={addTag} className="px-6 h-[56px] shrink-0 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 text-white/60 text-[12px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">Add</button>
+              </div>
+              {form.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {form.tags.map((tag: string) => (
+                    <span key={tag} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-wider text-white/60">
+                      {tag}
+                      <button type="button" onClick={() => removeTag(tag)} className="text-white/30 hover:text-red-400 transition-colors">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ── SECTION: FAQ ── */}
+          <section className="space-y-8">
+            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
+              Frequently Asked Questions
+            </h3>
+
+            <div className="space-y-6">
+              {form.faq.map((item: { question: string; answer: string }, i: number) => (
+                <div key={i} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] space-y-4 relative">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-white/40 shrink-0 mt-1">
+                      Q{i + 1}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <input
+                        value={item.question}
+                        onChange={(e) => handleFaqChange(i, "question", e.target.value)}
+                        placeholder="Question..."
+                        className="w-full h-[52px] px-5 rounded-xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all"
+                      />
+                      <textarea
+                        value={item.answer}
+                        onChange={(e) => handleFaqChange(i, "answer", e.target.value)}
+                        placeholder="Answer..."
+                        rows={2}
+                        className="w-full px-5 py-3 rounded-xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all resize-none"
+                      />
+                    </div>
+                    {form.faq.length > 1 && (
+                      <button type="button" onClick={() => removeFaq(i)} className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-red-500/[0.05] border border-red-500/10 text-red-400 hover:bg-red-500/10 transition-all active:scale-90 mt-1">×</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={addFaq} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+              + Add FAQ
+            </button>
           </section>
 
           {/* ── SECTION 4: PUBLICATION SETTINGS ── */}

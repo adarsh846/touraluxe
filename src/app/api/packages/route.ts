@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 // GET all published packages (public) or all packages (admin)
+// Supports filtering via query params for destination listing pages
 export async function GET(req: NextRequest) {
   console.log("DEBUG: Admin password loaded?", !!process.env.ADMIN_PASSWORD);
   const token = req.headers.get("x-admin-token");
@@ -22,6 +23,49 @@ export async function GET(req: NextRequest) {
   if (!isAdmin) {
     query = query.eq("is_published", true);
   }
+
+  // ── Filter Parameters ──
+  const { searchParams } = new URL(req.url);
+
+  const destination = searchParams.get("destination");
+  if (destination) {
+    query = query.eq("destination", destination);
+  }
+
+  const region = searchParams.get("region");
+  if (region) {
+    query = query.eq("region", region);
+  }
+
+  const tripType = searchParams.get("trip_type");
+  if (tripType) {
+    query = query.eq("trip_type", tripType);
+  }
+
+  const category = searchParams.get("category");
+  if (category) {
+    query = query.contains("category", [category]);
+  }
+
+  const badge = searchParams.get("badge");
+  if (badge) {
+    query = query.eq("badge", badge);
+  }
+
+  const featured = searchParams.get("featured");
+  if (featured === "true") {
+    query = query.eq("is_featured", true);
+  }
+
+  const difficulty = searchParams.get("difficulty");
+  if (difficulty) {
+    query = query.eq("difficulty_level", difficulty);
+  }
+
+  // Pagination support
+  const limit = parseInt(searchParams.get("limit") || "50");
+  const offset = parseInt(searchParams.get("offset") || "0");
+  query = query.range(offset, offset + limit - 1);
 
   const { data, error } = await query;
 
@@ -64,6 +108,23 @@ export async function POST(req: NextRequest) {
         infant_price: body.infant_price,
         inclusions: body.inclusions || [],
         itinerary: body.itinerary || [],
+
+        // ── New Operational Fields ──
+        original_price: body.original_price || null,
+        badge: body.badge || null,
+        is_featured: body.is_featured ?? false,
+        exclusions: body.exclusions || [],
+        route_start: body.route_start || null,
+        route_end: body.route_end || null,
+        difficulty_level: body.difficulty_level || "Easy",
+        min_group_size: body.min_group_size ?? 1,
+        max_group_size: body.max_group_size ?? 20,
+        gallery: body.gallery || [],
+        faq: body.faq || [],
+        tags: body.tags || [],
+        destination: body.destination || null,
+        region: body.region || null,
+        trip_type: body.trip_type || "group",
       },
     ])
     .select()
