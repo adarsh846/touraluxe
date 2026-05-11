@@ -637,7 +637,7 @@ export const PackageContent = memo(({
                     </span>
                   ) : (pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? (
                     <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
-                      {(pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
+                      {pricing.taxLabel}
                     </span>
                   ) : null}
                 </div>

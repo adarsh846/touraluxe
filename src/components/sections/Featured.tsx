@@ -160,7 +160,7 @@ export function Featured() {
                         )}
                       </div>
                       <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">
-                        {pricing.isInclusive || exp.location?.toLowerCase().includes('maldives') || exp.location?.toLowerCase().includes('bali') ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
+                        {pricing.taxLabel}
                       </span>
                     </div>
                     <Magnetic>
@@ -168,7 +168,7 @@ export function Featured() {
                         onClick={() => openModal('PACKAGE', exp)}
                         className="mt-6 border-b border-white/20 pb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 hover:text-white hover:border-white transition-all duration-700"
                       >
-                        View Narrative
+                        View Trip
                       </button>
                     </Magnetic>
                   </div>

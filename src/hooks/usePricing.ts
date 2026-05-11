@@ -80,7 +80,7 @@ export function useGlobalSettings() {
     
     // Sovereign Fallback: Certain destinations are ALWAYS inclusive by business rule
     const isSovereignInclusive = destination.includes("maldives") || destination.includes("bali");
-    const isInclusive = taxStatus.includes("inclusive") || isSovereignInclusive || (!isExclusive && taxStatus !== "");
+    const isInclusive = taxStatus.includes("inclusive") || isSovereignInclusive || !isExclusive;
 
     // ── MASTER FISCAL RULE ──
     // If Exclusive: The system ADDS the global tax percentage to the entered base.
@@ -97,7 +97,7 @@ export function useGlobalSettings() {
       const discountPercent = hasSavings ? Math.round(((perOriginalFinal - perAdultFinal) / perOriginalFinal) * 100) : 0;
 
       // In this unified model, the customer always sees a price that includes tax
-      const taxLabel = "incl. tax";
+      const taxLabel = "Incl. Tax";
 
       return {
         finalTotal,
