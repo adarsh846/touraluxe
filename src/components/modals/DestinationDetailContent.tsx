@@ -11,6 +11,27 @@ import { FAQAccordion } from "@/components/FAQAccordion";
 import { useBooking } from "@/components/BookingProvider";
 import { usePricing } from "@/hooks/usePricing";
 
+interface Destination {
+  id: string;
+  title: string;
+  slug: string;
+  image: string;
+  description?: string;
+  region?: string;
+  highlights?: string[];
+  faq?: { question: string; answer: string }[];
+}
+
+interface Package {
+  id: string;
+  title: string;
+  location: string;
+  image: string;
+  price: any;
+  duration: string;
+  is_featured?: boolean;
+}
+
 export function DestinationDetailContent({ slug }: { slug: string }) {
   const { openModal } = useBooking();
 
