@@ -635,9 +635,9 @@ export const PackageContent = memo(({
                     <span className="font-black uppercase tracking-wider text-emerald-400/80 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
                       Save {pricing.discountPercent}%
                     </span>
-                  ) : (pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) ? (
+                  ) : (pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? (
                     <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
-                      {pricing.isInclusive ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
+                      {(pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
                     </span>
                   ) : null}
                 </div>

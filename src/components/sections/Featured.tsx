@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
@@ -11,92 +11,40 @@ import { usePricing } from "@/hooks/usePricing";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const EXPERIENCES = [
-  {
-    id: 1,
-    title: "Alpine Chalet Retreat",
-    location: "Swiss Alps",
-    image: "/assets/chalet.webp",
-    price: "€12,500",
-    duration: "7 Nights",
-    guests: "Up to 8",
-    season: "Dec — Mar",
-    tagline: "Where silence meets grandeur.",
-    description:
-      "Perched above the clouds in a hand-built timber chalet, this retreat is a masterclass in alpine luxury. Floor-to-ceiling windows frame the Matterhorn as a private chef prepares farm-to-table cuisine. Heli-ski pristine powder by day, unwind in a cedar-lined infinity spa by night.",
-    highlights: [
-      "Private helicopter transfers from Zürich",
-      "Dedicated Michelin-trained private chef",
-      "Exclusive heli-skiing with certified guides",
-      "Cedar wood infinity spa with panoramic views",
-      "Curated wine cellar with 200+ Swiss vintages",
-      "Personal concierge available 24/7",
-    ],
-  },
-  {
-    id: 2,
-    title: "Coastal Villa Mastery",
-    location: "Amalfi Coast, Italy",
-    image: "/assets/villa.webp",
-    price: "€18,900",
-    duration: "10 Nights",
-    guests: "Up to 12",
-    season: "May — Oct",
-    tagline: "La dolce vita, redefined.",
-    description:
-      "A 17th-century cliffside villa restored to perfection, cascading down toward the Tyrrhenian Sea. Private terraces draped in bougainvillea, a salt-water infinity pool that dissolves into the horizon, and a personal yacht anchored below for spontaneous coastal exploration.",
-    highlights: [
-      "Restored 17th-century heritage architecture",
-      "Private 65ft yacht with captain and crew",
-      "Cliffside infinity pool with sea-level access",
-      "Exclusive Pompeii after-hours private tour",
-      "Amalfi lemon grove cooking masterclass",
-      "Sunset sommelier sessions on the terrace",
-    ],
-  },
-  {
-    id: 3,
-    title: "Private Island Sanctuary",
-    location: "Baa Atoll, Maldives",
-    image: "/assets/island.webp",
-    price: "€32,000",
-    duration: "14 Nights",
-    guests: "Up to 6",
-    season: "Year-round",
-    tagline: "Your own coordinates on Earth.",
-    description:
-      "An entire island, exclusively yours. Crystal lagoons, untouched coral reefs, and a single overwater villa designed by Kengo Kuma. A marine biologist guides private reef explorations, while a wellness practitioner tailors daily rituals to the rhythm of the tides.",
-    highlights: [
-      "Entire private island — zero other guests",
-      "Overwater villa designed by Kengo Kuma",
-      "Personal marine biologist for reef expeditions",
-      "Seaplane transfers from Malé",
-      "Tailored Ayurvedic wellness program",
-      "Underwater dining experience at 16ft depth",
-    ],
-  },
-];
-
-/* ── APPLE-STYLE MODAL ── */
 export function Featured() {
   const containerRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const [experiences, setExperiences] = useState(EXPERIENCES);
+  const [experiences, setExperiences] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { openModal } = useBooking();
   const { computePrice } = usePricing();
 
-  // Fetch only featured packages for the Spotlight section
   useEffect(() => {
-    fetch("/api/packages?featured=true")
-      .then((res) => res.ok ? res.json() : Promise.reject())
-      .then((data) => {
-        if (data && data.length > 0) setExperiences(data);
-      })
-      .catch(() => {/* DB not available — use hardcoded fallback */});
+    async function fetchFeatured() {
+      try {
+        const { data, error } = await supabase
+          .from("packages")
+          .select("*")
+          .eq("is_featured", true)
+          .eq("is_published", true)
+          .order("sort_order", { ascending: true })
+          .limit(5);
+
+        if (error) throw error;
+        setExperiences(data || []);
+      } catch (err) {
+        console.error("Failed to fetch featured journeys:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchFeatured();
   }, []);
 
   useEffect(() => {
+    if (isLoading || experiences.length === 0) return;
+
     const ctx = gsap.context(() => {
       // Title reveal
       gsap.fromTo(titleRef.current,
@@ -110,31 +58,18 @@ export function Featured() {
         }
       );
 
-      // Restore individual reveals to match original visual feel
+      // Card reveals
       itemsRef.current.forEach((item, index) => {
         if (!item) return;
 
-        gsap.fromTo(
-          item,
+        gsap.fromTo(item,
+          { y: 100, x: index % 2 === 0 ? -60 : 60, opacity: 0 },
           {
-            y: 100,
-            x: index % 2 === 0 ? -60 : 60,
-            opacity: 0,
-          },
-          {
-            y: 0,
-            x: 0,
-            opacity: 1,
-            duration: 1.8,
-            ease: "expo.out",
-            scrollTrigger: {
-              trigger: item,
-              start: "top 90%",
-            },
+            y: 0, x: 0, opacity: 1, duration: 1.8, ease: "expo.out",
+            scrollTrigger: { trigger: item, start: "top 90%" }
           }
         );
 
-        // Optimized Parallax
         const img = item.querySelector("img");
         if (img) {
           gsap.set(img, { scale: 1.15, transformGpu: true });
@@ -155,7 +90,9 @@ export function Featured() {
     }, containerRef);
 
     return () => ctx.revert();
-  }, [experiences]);
+  }, [isLoading, experiences]);
+
+  if (!isLoading && experiences.length === 0) return null;
 
   return (
     <section
@@ -166,72 +103,81 @@ export function Featured() {
       <div className="max-w-[1200px] w-full mx-auto relative z-20">
         <h2
           ref={titleRef}
-          className="text-4xl md:text-5xl font-semibold tracking-tight text-foreground mb-16 opacity-0"
+          className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-16 opacity-0"
         >
           Craft New Journey.
         </h2>
 
         <div className="flex flex-col gap-12 md:gap-24">
-          {experiences.map((exp, index) => (
-            <div
-              key={exp.id}
-              ref={(el) => { itemsRef.current[index] = el; }}
-              className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu will-change-transform"
-            >
-              {/* Image Container with strict hover constraints */}
-              <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu will-change-transform">
-                <Image
-                  src={exp.image}
-                  alt={exp.title}
-                  fill
-                  className="object-cover will-change-transform transform-gpu"
-                  quality={75}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
-                />
-              </div>
-
-              {/* Text Content */}
-              <div className="w-full md:w-1/3 flex flex-col items-start gap-4 p-4 md:p-8">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  {exp.location}
-                </span>
-                <h3 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground">
-                  {exp.title}
-                </h3>
-                <div className="flex flex-col gap-1">
-                  {(() => {
-                    const pricing = computePrice(exp);
-                    return (
-                      <>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-sm text-[#86868b] font-medium">
-                            {pricing.formattedFinal} / Person
-                          </span>
-                          {pricing.hasSavings && (
-                            <span className="text-xs text-white/25 line-through">{pricing.formattedOriginal}</span>
-                          )}
-                        </div>
-                        <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20">
-                          {pricing.taxLabel || "Excluding Taxes"}
-                        </span>
-                      </>
-                    );
-                  })()}
+          {isLoading ? (
+            // Shimmering Skeletons
+            [1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col md:flex-row gap-8 items-center animate-pulse">
+                <div className="w-full md:w-2/3 aspect-[4/3] rounded-2xl bg-white/5" />
+                <div className="w-full md:w-1/3 space-y-4 p-4 md:p-8">
+                  <div className="w-24 h-2 bg-white/10 rounded" />
+                  <div className="w-48 h-8 bg-white/10 rounded" />
+                  <div className="w-32 h-4 bg-white/10 rounded" />
                 </div>
-                <Magnetic>
-                  <button
-                    onClick={() => openModal('PACKAGE', exp)}
-                    className="mt-4 border-b border-foreground/30 pb-1 text-sm font-medium transition-colors hover:border-foreground uppercase tracking-wider text-muted hover:text-foreground"
-                  >
-                    View Details
-                  </button>
-                </Magnetic>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            experiences.map((exp, index) => {
+              const pricing = computePrice(exp);
+              return (
+                <div
+                  key={exp.id}
+                  ref={(el) => { itemsRef.current[index] = el; }}
+                  className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu will-change-transform"
+                >
+                  {/* Image Container */}
+                  <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu will-change-transform">
+                    <Image
+                      src={exp.image}
+                      alt={exp.title}
+                      fill
+                      className="object-cover will-change-transform transform-gpu"
+                      quality={85}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
+                    />
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="w-full md:w-1/3 flex flex-col items-start gap-4 p-4 md:p-8">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">
+                      {exp.location}
+                    </span>
+                    <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+                      {exp.title}
+                    </h3>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-base text-white/70 font-medium">
+                          {pricing.formattedFinal} <span className="text-[10px] opacity-60 uppercase tracking-widest ml-1">/ Person</span>
+                        </span>
+                        {pricing.hasSavings && (
+                          <span className="text-xs text-white/20 line-through">{pricing.formattedOriginal}</span>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/20">
+                        {pricing.isInclusive || exp.location?.toLowerCase().includes('maldives') || exp.location?.toLowerCase().includes('bali') ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
+                      </span>
+                    </div>
+                    <Magnetic>
+                      <button
+                        onClick={() => openModal('PACKAGE', exp)}
+                        className="mt-6 border-b border-white/20 pb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 hover:text-white hover:border-white transition-all duration-700"
+                      >
+                        View Narrative
+                      </button>
+                    </Magnetic>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </section>
   );
 }
-

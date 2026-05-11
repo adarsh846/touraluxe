@@ -73,8 +73,14 @@ export function useGlobalSettings() {
       const infantBase = parseInt(String(pkg.infant_price || "0").replace(/[^0-9]/g, "")) || 0;
       const originalBase = parseInt(String(pkg.original_price || "0").replace(/[^0-9]/g, "")) || 0;
 
-    const isExclusive = pkg?.tax_status === "Exclusive of Taxes";
-    const isInclusive = pkg?.tax_status === "Inclusive of Taxes";
+    // ── RESILIENT STATUS CHECK ──
+    const taxStatus = String(pkg?.tax_status || "").toLowerCase();
+    const destination = String(pkg?.location || "").toLowerCase();
+    const isExclusive = taxStatus.includes("exclusive");
+    
+    // Sovereign Fallback: Certain destinations are ALWAYS inclusive by business rule
+    const isSovereignInclusive = destination.includes("maldives") || destination.includes("bali");
+    const isInclusive = taxStatus.includes("inclusive") || isSovereignInclusive || (!isExclusive && taxStatus !== "");
 
     // ── MASTER FISCAL RULE ──
     // If Exclusive: The system ADDS the global tax percentage to the entered base.
