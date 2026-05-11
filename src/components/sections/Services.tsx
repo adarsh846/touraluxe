@@ -7,7 +7,7 @@ import { Magnetic } from "../Magnetic";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 
-const SERVICES = [
+export const SERVICES = [
   {
     id: 1,
     title: "Luxury Tours",

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, memo, useMemo, useCallback, useLayoutEffect } from "react";
 import Image from "next/image";
-import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar } from "lucide-react";
+import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,25 @@ export const PackageContent = memo(({
   const [scrollTop, setScrollTop] = useState(0);
   const [settings, setSettings] = useState<any>({});
   const [activeSection, setActiveSection] = useState(0);
+
+  // ═══ DYNAMIC CHAPTER MANIFEST (Source of Truth) ═══
+  const navChapters = useMemo(() => [
+    { id: 'entrance', label: 'Introduction', type: 'core' },
+    { id: 'story', label: 'The Vision', type: 'core' },
+    { id: 'chronicle', label: 'Itinerary', type: 'core' },
+    ...(experience?.itinerary?.map((_: any, i: number) => ({ id: `day-${i + 1}`, label: `Day ${i + 1}`, type: 'day' })) || []),
+    ...(experience?.inclusions?.length > 0 ? [{ id: 'hallmarks', label: 'Inclusions', type: 'optional' }] : []),
+    ...(experience?.highlights?.length > 0 ? [{ id: 'essence', label: 'Highlights', type: 'optional' }] : []),
+    { id: 'legacy', label: 'Next Steps', type: 'core' }
+  ], [experience?.itinerary, experience?.inclusions, experience?.highlights]);
+
+  const scrollToSection = (idx: number) => {
+    const section = scrollRef.current?.querySelector(`#section-${idx}`);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setActiveSection(idx);
+    }
+  };
 
   const pillRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -175,15 +194,15 @@ export const PackageContent = memo(({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const id = entry.target.id;
-            const index = parseInt(id.split('-')[1]);
+            const index = parseInt(entry.target.id.split('-')[1]);
             if (!isNaN(index)) setActiveSection(index);
           }
         });
       },
-      {
+      { 
         root: scrollRef.current,
-        threshold: 0.5,
+        threshold: 0.3, // Slightly higher for more intentional detection
+        rootMargin: "-10% 0px -10% 0px"
       }
     );
 
@@ -206,22 +225,20 @@ export const PackageContent = memo(({
       .catch(err => console.error(err));
   }, []);
 
-
-
   if (!experience) return null;
 
   return (
     <div 
       ref={scrollRef}
-      className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide bg-[#020202] selection:bg-white/20 selection:text-white scroll-smooth snap-y snap-mandatory"
+      onScroll={handleScroll}
+      className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide selection:bg-white/20 selection:text-white scroll-smooth snap-y snap-mandatory"
     >
       
-      {/* ═══ STABLE ATMOSPHERE ENGINE ═══ */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020202]">
         <div 
           className="absolute inset-0 transition-transform duration-[1s] ease-out will-change-transform"
           style={{ 
-            transform: `translate3d(0, ${scrollTop * 0.2}px, 0) scale(${1 + (scrollTop * 0.0002)})`,
+            transform: `scale(${1.05 + (scrollTop * 0.00005)})`,
             transformOrigin: 'center center'
           }}
         >
@@ -237,13 +254,11 @@ export const PackageContent = memo(({
         <div className="absolute inset-0 bg-gradient-to-b from-[#020202] via-[#020202]/10 to-[#020202]" />
       </div>
 
-      {/* ═══ THE SYMMETRICAL NARRATIVE ═══ */}
       <div className="relative z-10 w-full max-w-5xl mx-auto px-8 lg:px-12">
         
-        {/* CHAPTER I: THE ENTRANCE */}
         <section 
           id="section-0"
-          className="h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
           <div className="space-y-10">
             <div className="flex flex-col items-center gap-6">
@@ -253,41 +268,58 @@ export const PackageContent = memo(({
             <h1 className="text-[clamp(2.5rem,8vw,8rem)] font-bold tracking-tight text-white leading-[0.9] drop-shadow-2xl">
               {experience.title}
             </h1>
-            <p className="text-[clamp(1.1rem,1.8vw,2.2rem)] text-white font-medium tracking-tight italic max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
-              {experience.tagline}
-            </p>
+            <div className="flex flex-col items-center gap-6 md:gap-10 pt-10 md:pt-16">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
+                <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-white/30 whitespace-nowrap">Best For</span>
+                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
+              </div>
+              
+              <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-5xl px-6">
+                {experience.category?.map((cat: string, i: number) => (
+                  <Magnetic key={i} intensity={0.2}>
+                    <button 
+                      onClick={() => {
+                        const { SERVICES } = require('../sections/Services');
+                        const matchingService = SERVICES.find((s: any) => s.title === cat);
+                        if (matchingService) openModal('SERVICES', matchingService);
+                      }}
+                      className="group/badge relative text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/70 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"
+                    >
+                      <span className="relative z-10">{cat}</span>
+                    </button>
+                  </Magnetic>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* CHAPTER II: THE VISION (Fully Centered Stack) */}
         <section 
           id="section-1"
-          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-6 animate-in fade-in duration-1000 delay-300 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/60">Aperture</span>
-            <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none">The Story</h2>
-          </div>
+          <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none mb-12">The Vision</h2>
           
-          <div className="w-full max-w-3xl space-y-8">
+          <div className="w-full max-w-3xl space-y-12">
             <p className="text-base lg:text-xl text-white leading-relaxed font-medium tracking-normal drop-shadow-md">
               {experience.description}
             </p>
 
-            <div className="grid grid-cols-2 gap-3 w-full max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 w-full max-w-4xl mx-auto">
               {[
-                { label: 'Journey', val: experience.duration, icon: Clock },
-                { label: 'Ideal For', val: experience.guests, icon: Users },
-                { label: 'Optimum', val: experience.season, icon: Calendar }
-              ].map((stat, i) => (
+                { label: 'Journey', val: experience.duration, icon: Clock, show: !!experience.duration },
+                { label: 'Season', val: experience.season, icon: Compass, show: !!experience.season },
+                { label: 'Ideal For', val: experience.guests, icon: Users, show: !!experience.guests },
+              ].filter(p => p.show).map((pill, i) => (
                 <div key={i} className={cn(
-                  "p-5 rounded-[2rem] bg-white/[0.06] border border-white/20 flex flex-col items-center justify-center text-center gap-3 hover:bg-white/[0.1] hover:border-white/40 transition-all duration-700",
-                  i === 2 && "col-span-2"
+                  "flex items-center gap-4 px-6 py-4 rounded-3xl bg-white/[0.03] border border-white/10 group hover:bg-white/[0.06] transition-all duration-700",
+                  experience.guests && experience.season && experience.duration && i === 2 && "md:col-span-2 lg:col-span-1"
                 )}>
-                  <stat.icon size={16} className="text-white/80" />
-                  <div>
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.4em] text-white/60 mb-1">{stat.label}</span>
-                    <span className="text-[10px] lg:text-xs font-bold text-white uppercase tracking-[0.2em] leading-relaxed break-words">{stat.val}</span>
+                  <pill.icon size={16} className="text-white/20 group-hover:text-white/60" />
+                  <div className="flex flex-col items-start text-left">
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-white/30">{pill.label}</span>
+                    <span className="text-xs font-bold text-white tracking-wide">{pill.val}</span>
                   </div>
                 </div>
               ))}
@@ -295,111 +327,161 @@ export const PackageContent = memo(({
           </div>
         </section>
 
-        {/* CHAPTER III: THE CHRONICLE (Minimalist Timeline) */}
-        {experience.itinerary && (
-          <section className="py-48 flex flex-col items-center text-center space-y-32 relative">
-            <div 
-              id="section-2"
-              className="space-y-4 h-[60vh] flex flex-col items-center justify-center snap-center snap-always"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/40">Chronicle</span>
-              <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">The Path</h2>
+        {/* CHAPTER III: THE ITINERARY (Ground-Up Reconstruction) */}
+        {experience.itinerary && experience.itinerary.length > 0 && (
+          <section className="relative w-full max-w-4xl mx-auto px-8 lg:px-0">
+            <div className="absolute left-8 lg:left-0 top-[50vh] bottom-[50vh] w-[1.5px] bg-white/10 z-0 -translate-x-1/2">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-white/20 blur-[1px]" />
             </div>
 
-            <div className="relative w-full max-w-2xl space-y-40 mb-40">
+            <div className="space-y-0">
+              <div 
+                id="section-2"
+                className="relative min-h-screen flex flex-col justify-center snap-center snap-always"
+              >
+                <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-0.5">
+                  <MapPin size={24} className="text-white fill-white/10" strokeWidth={2.5} />
+                </div>
+
+                <div className="pl-12 lg:pl-16">
+                  <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Itinerary</h2>
+                </div>
+              </div>
+
               {experience.itinerary.map((item: any, i: number) => (
                 <div 
                   key={i}
                   id={`section-${3 + i}`}
-                  className="relative group flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in duration-1000 snap-center snap-always"
+                  className="relative min-h-screen flex flex-col justify-center snap-center snap-always animate-in fade-in duration-1000"
                   style={{ animationDelay: `${i * 150}ms` }}
                 >
-                  {/* DAY ANCHOR */}
-                  <div className="relative z-10 px-8 py-3 rounded-full border border-white/20 bg-black/40 backdrop-blur-xl text-white/90 flex items-center justify-center font-bold text-[9px] uppercase tracking-[0.4em] mb-12">
-                    Day {item.day < 10 ? `0${item.day}` : item.day}
+                  <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-0.5">
+                    <MapPin size={18} className="text-white fill-white/10" strokeWidth={2.5} />
                   </div>
 
-                  {/* NARRATIVE */}
-                  <div className="space-y-6 max-w-xl mb-20">
-                    <h4 className="text-3xl lg:text-5xl font-bold text-white tracking-tight leading-none">{item.title}</h4>
-                    <p className="text-lg lg:text-2xl text-white/80 leading-relaxed font-medium">{item.description}</p>
-                  </div>
+                  <div className="pl-12 lg:pl-16 flex flex-col lg:flex-row items-start lg:items-center gap-12 lg:gap-24">
+                    <div className="px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-xl text-white font-bold text-[8px] uppercase tracking-[0.4em] shrink-0">
+                      Day {item.day < 10 ? `0${item.day}` : item.day}
+                    </div>
 
-                  {/* CONNECTIVE SEGMENT (only if not last) */}
-                  {i < experience.itinerary.length - 1 && (
-                    <div className="absolute top-[calc(100%-20px)] w-[1.5px] h-32 bg-white/20" />
-                  )}
+                    <div className="space-y-6 max-w-2xl">
+                      <h4 className="text-3xl lg:text-6xl font-bold text-white tracking-tight leading-none">{item.title}</h4>
+                      <p className="text-lg lg:text-2xl text-white/80 leading-relaxed font-medium tracking-tight">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* CHAPTER IV: SIGNATURES (Centered Highlights) */}
-        <section 
-          id={`section-${3 + (experience.itinerary?.length || 0)}`}
-          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
-        >
-          <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white/40">Distinction</span>
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Essence</h2>
-            <p className="text-xl lg:text-2xl text-white/60 italic font-medium max-w-2xl mx-auto">
-              "Hallmarks of a journey meticulously redefined."
-            </p>
-          </div>
-          
-          <div className="w-full max-w-3xl grid gap-4">
-            {experience.highlights?.map((item: string, i: number) => (
-              <div key={i} className="flex flex-col items-center justify-center p-6 lg:p-10 rounded-[3rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-700 group gap-2">
-                <Sparkles size={20} className="text-white/20 group-hover:text-white/40 transition-all duration-700" />
-                <span className="text-xl lg:text-3xl text-white/90 font-bold tracking-tight transition-all duration-700">{item}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* CHAPTER IV: INCLUSIONS */}
+        {experience.inclusions && experience.inclusions.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'hallmarks')}`}
+            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+          >
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Inclusions</h2>
+            
+            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
+              {experience.inclusions.map((item: string, i: number) => (
+                <div key={i} className="flex items-center gap-4 p-6 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition-all duration-700 group">
+                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <ShieldCheck size={18} className="text-white/40 group-hover:text-white/80 transition-colors" />
+                  </div>
+                  <span className="text-lg lg:text-xl text-white/90 font-bold tracking-tight text-left">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* FINAL CTA */}
+        {/* CHAPTER V: HIGHLIGHTS */}
+        {experience.highlights && experience.highlights.length > 0 && (
+          <section 
+            id={`section-${navChapters.findIndex(c => c.id === 'essence')}`}
+            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+          >
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Highlights</h2>
+            
+            <div className="w-full max-w-3xl grid gap-4">
+              {experience.highlights?.map((item: string, i: number) => (
+                <div key={i} className="flex flex-col items-center justify-center p-6 lg:p-10 rounded-[3rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-700 group gap-2">
+                  <Sparkles size={20} className="text-white/20 group-hover:text-white/40 transition-all duration-700" />
+                  <span className="text-xl lg:text-3xl text-white/90 font-bold tracking-tight transition-all duration-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section 
-          id={`section-${4 + (experience.itinerary?.length || 0)}`}
-          className="h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 snap-center snap-always"
+          id={`section-${navChapters.findIndex(c => c.id === 'legacy')}`}
+          className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 snap-center snap-always"
         >
           <div className="w-24 h-[1px] bg-white/20" />
-          <h3 className="text-2xl lg:text-5xl font-light text-white/70 italic tracking-widest uppercase">The Journey Begins.</h3>
+          <h3 className="text-2xl lg:text-5xl font-light text-white/70 italic tracking-widest uppercase">Begin Your Journey.</h3>
         </section>
 
       </div>
 
-      {/* ═══ CELESTIAL NAVIGATION TRACK ═══ */}
-      <div className="fixed right-4 lg:right-10 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-4 pointer-events-none">
-        {[
-          'Entrance',
-          'Story',
-          'Chronicle',
-          ...(experience.itinerary?.map((_: any, i: number) => `Day ${i + 1}`) || []),
-          'Essence',
-          'Legacy'
-        ].map((label, idx) => {
-          const isActive = activeSection === idx;
+      {/* ═══ MINIMALIST CELESTIAL NAVIGATION TRACK (Laser-Straight Alignment) ═══ */}
+      <div className="fixed right-6 lg:right-12 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center pointer-events-none w-1">
+        <div className={cn("relative flex flex-col items-center w-full", navChapters.length > 12 ? "gap-3" : "gap-5")}>
+          {/* The Static Axis Thread */}
+          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1.5px] bg-white/10" />
+          
+          {/* The Dynamic Progress Highlight */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1.5px] overflow-hidden" style={{ height: '100%' }}>
+            <div 
+              className="w-full bg-white transition-all duration-700 ease-out shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+              style={{ height: `${(activeSection / (navChapters.length - 1)) * 100}%` }}
+            />
+          </div>
 
-          return (
-            <div key={idx} className="group relative flex items-center justify-center">
-              <div className={cn(
-                "w-[2px] transition-all duration-700 rounded-full",
-                isActive ? "h-6 bg-white/60 shadow-[0_0_15px_rgba(255,255,255,0.4)]" : "h-2 bg-white/10"
-              )} />
-              <span className={cn(
-                "absolute right-6 text-[7px] font-bold uppercase tracking-[0.3em] text-white/0 transition-all duration-500 whitespace-nowrap hidden lg:block",
-                isActive && "text-white/40"
-              )}>
-                {label}
-              </span>
-            </div>
-          );
-        })}
+          {navChapters.map((chapter, idx) => {
+            const isActive = activeSection === idx;
+
+            return (
+              <button 
+                key={idx} 
+                onClick={() => scrollToSection(idx)}
+                className="group relative flex items-center justify-center pointer-events-auto cursor-pointer w-full h-4"
+              >
+                {/* The Integrated Ghost Node */}
+                <div className={cn(
+                  "absolute left-1/2 -translate-x-1/2 w-[1.5px] transition-all duration-500 rounded-full",
+                  isActive ? "h-6 bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)] z-10" : "h-1.5 bg-white/20 group-hover:bg-white/60 z-0"
+                )} />
+
+                {/* The Reveal Label */}
+                <span className={cn(
+                  "absolute right-6 text-[8px] font-bold uppercase tracking-[0.4em] transition-all duration-500 whitespace-nowrap hidden lg:block opacity-0 translate-x-2",
+                  isActive ? "opacity-100 translate-x-0 text-white" : "group-hover:opacity-60 group-hover:translate-x-0 text-white/40"
+                )}>
+                  {chapter.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ═══ THE SYMMETRICAL DOCK ═══ */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-fit flex justify-center pointer-events-none px-6">
+      {isActive && (
+        <>
+          <svg className="hidden">
+            <defs>
+              <filter id="pill-goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+              </filter>
+            </defs>
+          </svg>
+
+          <div className="fixed bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
         <div 
           ref={pillRef}
           onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
@@ -408,13 +490,13 @@ export const PackageContent = memo(({
           onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchEnd={handleGlowLeave}
-          className="relative pointer-events-auto flex items-center justify-between p-1.5 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-all duration-700 group overflow-hidden"
-          style={{ width: 'auto' }}
+          className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-hidden"
+          style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
         >
           {/* ════ PHYSICAL JELLY SHELL ════ */}
           <div 
             ref={jellyRef}
-            className="absolute inset-0 bg-black/5 pointer-events-none rounded-full"
+            className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none"
           />
 
           {/* iOS 26 Pointer-Tracking Glow Overlay */}
@@ -424,46 +506,50 @@ export const PackageContent = memo(({
             style={{ opacity: 0, mixBlendMode: 'screen' }}
           />
 
-          <div className={cn(
-            "relative z-10 flex items-center min-w-0 transition-[mask-image] scrollbar-hide",
-            isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden",
-            scrollMask === 'right' && "mask-fade-right",
-            scrollMask === 'left' && "mask-fade-left",
-            scrollMask === 'both' && "mask-fade-both"
-          )} ref={segmentsRef}>
-            <div className="flex items-center pl-8 pr-8 border-r border-white/10 shrink-0">
-              <div className="flex flex-col">
-                <span className="text-[7px] font-bold uppercase tracking-[0.4em] text-white/40 mb-1">Investment</span>
-                <div className="text-sm lg:text-lg font-bold text-white/80 tabular-nums tracking-tighter flex items-center gap-2 whitespace-nowrap">
-                  <span>{pricing.symbol}{pricing.finalTotal.toLocaleString()}</span>
-                  <span className="text-[7px] lg:text-[9px] font-medium text-white/40 uppercase tracking-wider">/ Person</span>
-                  
+          {/* Metadata Segments Area */}
+          <div className="relative z-10 flex items-center min-w-0" ref={segmentsRef}>
+            <div className="flex flex-col items-center justify-center" style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
+              <span className="font-black uppercase text-white/70 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                Investment
+              </span>
+              <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
+                <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.6rem)' }}>
+                  {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                </p>
+                <div className="flex flex-col items-start">
+                  <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
+                    / Person
+                  </span>
                   {(pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) && (
-                    <div className="flex items-center px-2 lg:px-3 py-0.5 lg:py-1 rounded-full bg-white/[0.03] border border-white/10 shadow-inner">
-                      <span className="text-[6px] lg:text-[7px] font-bold text-white/40 uppercase tracking-widest whitespace-nowrap">
-                        {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% GST` : "Incl. Taxes"}
-                      </span>
-                    </div>
+                    <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
+                      {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% Tax` : "Incl. Tax"}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
           </div>
           
-          <div ref={actionRef} className="relative z-10 pl-2 pr-1.5 shrink-0">
+          {/* Action Button Area */}
+          <div ref={actionRef} className="relative z-10 flex items-center justify-end shrink-0" style={{ paddingLeft: 'clamp(0px, 1vw, 16px)' }}>
             <Magnetic intensity={0.3}>
               <button 
                 onClick={() => openModal('BOOKING', experience)}
-                className="relative overflow-hidden bg-white text-black px-12 py-4.5 rounded-full text-[10px] font-bold uppercase tracking-[0.25em] transition-all duration-500 group-hover:bg-[#f0f0f0] active:scale-95 flex items-center gap-2"
+                className="group/btn relative overflow-hidden h-10 md:h-12 xl:h-14 px-8 md:px-12 rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center gap-2"
               >
-                <span>Reserve</span>
-                <ChevronRight size={14} className="transition-transform duration-500 group-hover:translate-x-1" />
+                <div className="relative z-10 flex items-center justify-center gap-2">
+                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
+                    Reserve
+                  </span>
+                  <ChevronRight size={18} strokeWidth={3} className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
               </button>
             </Magnetic>
           </div>
         </div>
       </div>
-
+    </>)}
     </div>
   );
 });
