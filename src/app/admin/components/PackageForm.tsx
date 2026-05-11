@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { Package } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { usePricing } from "@/hooks/usePricing";
 
 type PackageFormProps = {
   initialData?: Package;
@@ -12,6 +16,7 @@ type PackageFormProps = {
 export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { computePrice, settings } = usePricing();
 
   const parseDuration = (d: string) => {
     const nights = d.match(/(\d+)\s*Night/i)?.[1] || "";
@@ -64,14 +69,54 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" as "success" | "error" });
   const [imagePreview, setImagePreview] = useState(initialData?.image || "");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [availableDestinations, setAvailableDestinations] = useState<{name: string; slug: string}[]>([]);
+  const dynamicOptions = {
+    tripTypes: settings.available_trip_types.split(",").map(s => s.trim()),
+    difficulties: settings.available_difficulties.split(",").map(s => s.trim())
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    fetch("/api/destinations")
+      .then(r => r.ok ? r.json() : [])
+      .then((data: {name: string; slug: string; is_published: boolean}[]) => {
+        setAvailableDestinations(data.filter(d => d.is_published).map(d => ({ name: d.name, slug: d.slug })));
+      })
+      .catch(() => {});
+
+  }, []);
+
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  const safeBack = useCallback(() => {
+    if (isDirty) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/admin/dashboard");
+    }
+  }, [isDirty, router]);
+
+  const confirmDiscard = () => {
+    setShowDiscardConfirm(false);
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/admin/dashboard");
+    }
+  };
 
   const getToken = useCallback(() => {
     return sessionStorage.getItem("admin_token") || "";
@@ -83,6 +128,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
     setUploading(true);
     setImagePreview(URL.createObjectURL(file));
+    setIsDirty(true);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -96,7 +142,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
       if (res.ok) {
         const { url } = await res.json();
-        setForm((prev) => ({ ...prev, image: url }));
+        setForm((prev) => {
+          setIsDirty(true);
+          return { ...prev, image: url };
+        });
         setImagePreview(url);
       } else {
         alert("Upload failed. Please try again.");
@@ -237,10 +286,12 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     });
 
     if (res.ok) {
-      router.push("/admin/dashboard");
+      setIsDirty(false);
+      setToast({ show: true, message: isEditing ? "Journey refined successfully." : "New journey forged successfully.", type: "success" });
+      setTimeout(() => router.push("/admin/dashboard"), 1500);
     } else {
       const err = await res.json();
-      alert(`Error: ${err.error}`);
+      setToast({ show: true, message: `Fiscal Failure: ${err.error}`, type: "error" });
     }
 
     setSaving(false);
@@ -250,7 +301,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
       {/* Top Bar */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed top-0 left-0 right-0 z-[60] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] px-4 md:px-8 ${
           isScrolled 
             ? "py-3" 
             : "py-4 md:py-6"
@@ -267,28 +318,39 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
           }}
         />
 
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 h-16 md:h-12 flex items-center justify-between relative z-10">
-          <button
-            onClick={() => router.push("/admin/dashboard")}
-            className="text-[13px] md:text-[14px] font-medium text-[#86868b] hover:text-white transition-colors flex items-center gap-1.5 py-2"
-          >
-            <span className="text-lg">←</span> <span className="hidden xs:inline">Back</span>
-          </button>
-          <h1 className="text-[14px] md:text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
-            {isEditing ? "Edit Journey" : "New Experience"}
-            <span className="hidden sm:inline-block text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/50 bg-white/5 px-1.5 py-0.5 rounded-full border border-white/5">
-              Admin
-            </span>
-          </h1>
-          <div className="w-12" /> {/* Spacer */}
+        <div className="max-w-[1200px] mx-auto w-full flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3 md:gap-5">
+            <button type="button" onClick={safeBack} className="relative block group shrink-0">
+              <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
+              <div className={`relative flex items-center justify-center bg-[#f5f5f7] rounded-full overflow-hidden border border-white/10 transition-all duration-700 ${isScrolled ? "w-[4.5rem] md:w-[5.5rem] h-7 md:h-8" : "w-20 md:w-28 h-8 md:h-10"}`}>
+                <Image src="/assets/logo-transparent.webp" alt="TouraLuxe" fill priority className="object-contain scale-[2.1] translate-y-[4px] brightness-[0.05]" />
+              </div>
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/5 leading-none">Admin</span>
+              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 px-3 py-1 rounded-full border border-white/10 leading-none">Catalog</span>
+              <div className="flex items-center justify-center px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.05] leading-none">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
+                  {isEditing ? "Edit" : "New"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            <button type="button" onClick={safeBack} className="hidden md:block px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] hover:text-white transition-colors">Discard</button>
+            <button type="submit" disabled={saving} form="package-form" className="hidden md:block px-8 py-2.5 rounded-full bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50 shadow-2xl">
+              {saving ? "..." : isEditing ? "Update Journey" : "Publish"}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-[1000px] mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-12 md:pb-24">
-        <form onSubmit={handleSubmit} className="space-y-16 md:space-y-20">
+      <main className="max-w-[1000px] mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-40 md:pb-24">
+        <form onSubmit={handleSubmit} id="package-form" className="space-y-12 md:space-y-20">
           
           {/* ── HERO: CINEMATIC COVER ── */}
-          <section className="space-y-8">
+          <section className="space-y-6 md:space-y-8">
             <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5 flex items-center justify-between">
               <span>Cinematic Cover</span>
               {imagePreview && <span className="text-[10px] font-bold tracking-[0.2em] text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">Asset Loaded</span>}
@@ -320,8 +382,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              <Field label="Package Title" value={form.title} onChange={(v) => setForm((p) => ({ ...p, title: v }))} placeholder="e.g. Alpine Chalet Retreat" required />
-              <Field label="Location" value={form.location} onChange={(v) => setForm((p) => ({ ...p, location: v }))} placeholder="e.g. Swiss Alps" required />
+              <Field label="Package Title" value={form.title} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, title: v }})} placeholder="e.g. Alpine Chalet Retreat" required />
+              <Field label="Location" value={form.location} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, location: v }})} placeholder="e.g. Swiss Alps" required />
             </div>
 
             <div className="space-y-4 pt-4">
@@ -332,7 +394,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 {["Luxury Tours", "Group Trips", "Adventure Tours", "Luxury Honeymoons", "MICE Events", "Custom Journeys"].map((cat) => {
                   const isActive = form.category.includes(cat);
                   return (
-                    <button key={cat} type="button" onClick={() => setForm(prev => ({ ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }))} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10 hover:text-[#86868b]"}`}>
+                    <button key={cat} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }})} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10 hover:text-[#86868b]"}`}>
                       <span className="pr-2">{cat}</span>
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${isActive ? "bg-white scale-100" : "bg-white/10 scale-50"}`} />
                     </button>
@@ -348,11 +410,11 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               Description
             </h3>
 
-            <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => ({ ...p, tagline: v }))} placeholder="e.g. Witness the infinite from the wild" />
+            <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, tagline: v }})} placeholder="e.g. Witness the infinite from the wild" />
 
             <div className="space-y-4">
               <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Experience Narrative</label>
-              <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Craft the story of this journey..." rows={6} required className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" />
+              <textarea value={form.description} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, description: e.target.value }})} placeholder="Craft the story of this journey..." rows={6} required className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" />
             </div>
 
             <div className="space-y-5">
@@ -442,88 +504,203 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
           </section>
 
           {/* ── SECTION 3: LOGISTICS & FINANCIALS ── */}
-          <section className="space-y-8">
-            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
+          <section className="space-y-6 pt-12 border-t border-white/[0.03]">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
               Pricing & Itinerary
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              <Field label="Ideal For" value={form.guests} onChange={(v) => setForm((p) => ({ ...p, guests: v }))} placeholder="e.g. Couples, Families, Solo" />
-              <Field label="Travel Season" value={form.season} onChange={(v) => setForm((p) => ({ ...p, season: v }))} placeholder="e.g. Oct — Mar" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
+              <Field label="Ideal For" value={form.guests} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, guests: v }})} placeholder="e.g. Couples, Families, Solo" />
+              <Field label="Travel Season" value={form.season} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, season: v }})} placeholder="e.g. Oct — Mar" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
+              <Field label="Duration (Nights)" value={form.nights} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, nights: v }})} placeholder="e.g. 3" required />
+              <Field label="Duration (Days)" value={form.days} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, days: v }})} placeholder="e.g. 4" required />
+            </div>
+          </section>
+
+          {/* ── SECTION: FINANCIAL ARCHITECTURE ── */}
+          <section className="space-y-6 pt-12 border-t border-white/[0.03]">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
+              Financial Architecture
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+              <div className="space-y-6 md:space-y-8">
+                <SegmentedControl 
+                  label="Currency" 
+                  value={form.currency} 
+                  onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, currency: v }})} 
+                  options={[{ label: "₹ INR", value: "₹" }, { label: "$ USD", value: "$" }, { label: "€ EUR", value: "€" }]} 
+                  description="Global currency for this specific journey."
+                />
+                <Field 
+                  label="Strikethrough Price (Old)" 
+                  value={form.original_price} 
+                  onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, original_price: v }})} 
+                  placeholder="e.g. 95,000" 
+                  description="Add a higher old price here to show a 'Discount' tag."
+                />
+              </div>
+
+              <div className="space-y-6 md:space-y-8 h-full">
+                <Field 
+                  label="Customer Price (Actual)" 
+                  value={form.price} 
+                  onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, price: v }})} 
+                  placeholder="e.g. 79,000" 
+                  description="The final price travelers will see and pay."
+                  required 
+                />
+              </div>
+              
+              {/* Fiscal Intelligence Preview */}
+              <div className="p-6 md:p-8 rounded-[2rem] bg-white/[0.02] border border-white/[0.03] flex flex-col justify-between h-full min-h-[140px] relative overflow-hidden group">
+                <div className={cn(
+                  "absolute inset-0 transition-opacity duration-1000 opacity-[0.03]",
+                  form.tax_status === "Exclusive of Taxes" ? "bg-emerald-500" : "bg-blue-500"
+                )} />
+                <div className="relative z-10 flex flex-col gap-4 h-full justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em]">Customer Pays (All-In)</p>
+                    <p className="text-2xl md:text-3xl font-black text-white/90 tracking-tighter">
+                      {(() => {
+                        const pricing = computePrice(form, 1, 0, 0);
+                        return pricing.formattedFinal;
+                      })()}
+                    </p>
+                  </div>
+                  <div className="pt-4 border-t border-white/[0.05]">
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Fiscal Breakdown</p>
+                    {(() => {
+                      const pricing = computePrice(form, 1, 0, 0);
+                      const taxAmt = pricing.breakdown.taxAmount;
+                      const baseAmt = pricing.breakdown.baseAmount;
+                      return (
+                        <p className="text-[10px] font-bold text-white/40 italic leading-none">
+                          {form.tax_status === "Exclusive of Taxes" 
+                            ? `${form.currency}${baseAmt.toLocaleString()} + ${form.currency}${taxAmt.toLocaleString()} GST`
+                            : `${form.currency}${baseAmt.toLocaleString()} (Base) + ${form.currency}${taxAmt.toLocaleString()} (GST)`
+                          }
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
-              <Field label="Duration (Nights)" value={form.nights} onChange={(v) => setForm((p) => ({ ...p, nights: v }))} placeholder="e.g. 3" required />
-              <Field label="Duration (Days)" value={form.days} onChange={(v) => setForm((p) => ({ ...p, days: v }))} placeholder="e.g. 4" required />
+              <Field label="Child Price" value={form.child_price} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, child_price: v }})} placeholder="Optional" />
+              <Field label="Infant Price" value={form.infant_price} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, infant_price: v }})} placeholder="Optional" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
-              <SegmentedControl label="Currency" value={form.currency} onChange={(v) => setForm(p => ({ ...p, currency: v }))} options={[{ label: "₹", value: "₹" }, { label: "$", value: "$" }, { label: "€", value: "€" }]} />
-              <Field label="Adult Price" value={form.price} onChange={(v) => setForm((p) => ({ ...p, price: v }))} placeholder="e.g. 79,000" required />
-              <Field label="Child Price" value={form.child_price} onChange={(v) => setForm((p) => ({ ...p, child_price: v }))} placeholder="Optional" />
-              <Field label="Infant Price" value={form.infant_price} onChange={(v) => setForm((p) => ({ ...p, infant_price: v }))} placeholder="Optional" />
-            </div>
-
+            {/* Unified Tax Policy Selector */}
             <div className="pt-8 border-t border-white/[0.02]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
-                <div className="flex-1 space-y-1">
-                  <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Tax Policy</label>
-                  <span className="block text-[13px] font-bold text-white uppercase tracking-wider">
-                    {form.tax_status === "Inclusive of Taxes" ? "Global Tax Enabled" : "Global Tax Disabled"}
-                  </span>
-                  <p className="text-[11px] text-[#86868b] mt-1 leading-relaxed max-w-md">
+              <div className="p-6 md:p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-6 group relative overflow-hidden">
+                <div className={cn(
+                  "absolute inset-0 opacity-[0.03] transition-colors duration-1000",
+                  form.tax_status === "Exclusive of Taxes" ? "bg-emerald-500" : "bg-blue-500"
+                )} />
+                
+                <div className="relative z-10 flex-1 space-y-2">
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Tax Strategy</label>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm md:text-base font-bold text-white/90 tracking-tight italic">
+                      {form.tax_status === "Exclusive of Taxes" ? "Strategy: Add Tax (+ TAX)" : "Strategy: Built-In (INCL. TAX)"}
+                    </span>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border transition-colors duration-700",
+                      form.tax_status === "Exclusive of Taxes" 
+                        ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500/60" 
+                        : "bg-blue-500/5 border-blue-500/10 text-blue-500/60"
+                    )}>
+                      {form.tax_status === "Exclusive of Taxes" ? `+ ${settings.tax_percentage}% GST` : "FINAL PRICE"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-white/80 leading-relaxed max-w-sm font-medium italic">
                     {form.tax_status === "Inclusive of Taxes" 
-                      ? "The administrative tax percentage will be calculated and added to the final total." 
-                      : "This journey will ignore global tax settings and display as tax-exclusive."}
+                      ? "Tax is already included in this price." 
+                      : "We'll add GST on top of this price."}
                   </p>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => setForm((p) => ({ ...p, tax_status: p.tax_status === "Inclusive of Taxes" ? "Excluding of Taxes" : "Inclusive of Taxes" }))} 
-                  className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.tax_status === "Inclusive of Taxes" ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "bg-[#3a3a3c]"}`}
-                >
-                  <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.tax_status === "Inclusive of Taxes" ? "left-[34px]" : "left-1"}`} />
-                </button>
+
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className="text-right hidden md:block">
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Fiscal Mode</p>
+                    <p className={cn(
+                      "text-[10px] font-bold uppercase tracking-wider",
+                      form.tax_status === "Exclusive of Taxes" ? "text-emerald-400" : "text-blue-400"
+                    )}>
+                      {form.tax_status === "Exclusive of Taxes" ? "+ TAX Mode" : "INCL. TAX Mode"}
+                    </p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setForm((p) => { setIsDirty(true); return { ...p, tax_status: p.tax_status === "Inclusive of Taxes" ? "Exclusive of Taxes" : "Inclusive of Taxes" }})} 
+                    className={`relative w-16 h-9 rounded-full transition-all duration-1000 shrink-0 ${form.tax_status === "Exclusive of Taxes" ? "bg-emerald-500/20 border border-emerald-500/20" : "bg-blue-500/20 border border-blue-500/20"}`}
+                  >
+                    <div className={`absolute top-1 w-6 h-6 rounded-full bg-white/80 shadow-2xl transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.tax_status === "Exclusive of Taxes" ? "left-[33px]" : "left-1"}`} />
+                  </button>
+                </div>
               </div>
             </div>
           </section>
 
           {/* ── SECTION: PROMOTIONS & BADGES ── */}
-          <section className="space-y-8">
-            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
-              Promotions &amp; Badges
+          <section className="space-y-6 pt-12 border-t border-white/[0.03]">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase">
+              Badges & Status
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              <Field label="Original Price (Strikethrough)" value={form.original_price} onChange={(v) => setForm((p) => ({ ...p, original_price: v }))} placeholder="e.g. 95,000 (leave empty if no discount)" />
               <div className="space-y-3">
                 <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Package Badge</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {["", "Trending", "Bestseller", "New", "Recommended", "Super Saver"].map((b) => {
+                    const pricing = computePrice(form, 1, 0, 0);
+                    const hasSavings = pricing.hasSavings;
                     const isActive = form.badge === b;
                     const label = b || "None";
                     return (
-                      <button key={label} type="button" onClick={() => setForm(prev => ({ ...prev, badge: b }))} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10"}`}>
+                      <button key={label} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, badge: b }})} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10"}`}>
                         {label}
                       </button>
                     );
                   })}
                 </div>
               </div>
+              <div className="flex flex-col justify-end">
+                <div className="p-6 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] space-y-2">
+                  <p className="text-[10px] font-black text-amber-500/70 uppercase tracking-[0.2em]">Marketing Insight</p>
+                  <p className="text-[11px] text-white/70 leading-relaxed font-medium italic">
+                    Travelers love seeing a discount! Add a higher "Old Price" to show them exactly how much they're saving.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
-              <div className="flex-1 space-y-1">
-                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Featured Package</label>
-                <span className="block text-[13px] font-bold text-white uppercase tracking-wider">
-                  {form.is_featured ? "Highlighted on Homepage" : "Standard Listing"}
+            <div className="p-6 md:p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden group">
+              <div className={cn(
+                "absolute inset-0 opacity-[0.03] transition-colors duration-1000",
+                form.is_featured ? "bg-amber-500" : "bg-white/5"
+              )} />
+              <div className="relative z-10 flex-1 space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Homepage Spotlight?</label>
+                <span className="block text-[14px] font-bold text-white/90 italic tracking-tight">
+                  {form.is_featured ? "Yes, Highlight on Homepage" : "No, Standard Collection"}
                 </span>
-                <p className="text-[11px] text-[#86868b] mt-1 leading-relaxed max-w-md">
-                  Featured packages appear prominently in the homepage showcase.
+                <p className="text-[11px] text-white/70 mt-1 leading-relaxed max-w-md italic">
+                  Feature this journey in the main showcase section of your homepage. Best for trending or seasonal trips.
                 </p>
               </div>
-              <button type="button" onClick={() => setForm((p) => ({ ...p, is_featured: !p.is_featured }))} className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.is_featured ? "bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-[#3a3a3c]"}`}>
-                <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.is_featured ? "left-[34px]" : "left-1"}`} />
+              <button 
+                type="button" 
+                onClick={() => setForm((p) => { setIsDirty(true); return { ...p, is_featured: !p.is_featured }})} 
+                className={`relative w-16 h-9 rounded-full transition-all duration-1000 shrink-0 ${form.is_featured ? "bg-amber-500/20 border border-amber-500/20" : "bg-white/5 border border-white/10"}`}
+              >
+                <div className={`absolute top-1 w-6 h-6 rounded-full bg-white/80 shadow-2xl transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.is_featured ? "left-[33px]" : "left-1"}`} />
               </button>
             </div>
           </section>
@@ -535,19 +712,19 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              <Field label="Route Start" value={form.route_start} onChange={(v) => setForm((p) => ({ ...p, route_start: v }))} placeholder="e.g. Delhi Airport (DEL)" />
-              <Field label="Route End" value={form.route_end} onChange={(v) => setForm((p) => ({ ...p, route_end: v }))} placeholder="e.g. Leh Airport (IXL)" />
+              <Field label="Route Start" value={form.route_start} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, route_start: v }})} placeholder="e.g. Delhi Airport (DEL)" />
+              <Field label="Route End" value={form.route_end} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, route_end: v }})} placeholder="e.g. Leh Airport (IXL)" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
-              <SegmentedControl label="Difficulty Level" value={form.difficulty_level} onChange={(v) => setForm(p => ({ ...p, difficulty_level: v }))} options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} />
+              <SegmentedControl label="Difficulty Level" value={form.difficulty_level} onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} />
               <div className="space-y-3">
                 <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Min Group Size</label>
-                <input type="number" value={form.min_group_size} onChange={(e) => setForm((p) => ({ ...p, min_group_size: parseInt(e.target.value) || 1 }))} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                <input type="number" value={form.min_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, min_group_size: parseInt(e.target.value) || 1 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="space-y-3">
                 <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Max Group Size</label>
-                <input type="number" value={form.max_group_size} onChange={(e) => setForm((p) => ({ ...p, max_group_size: parseInt(e.target.value) || 20 }))} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                <input type="number" value={form.max_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, max_group_size: parseInt(e.target.value) || 20 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
             </div>
           </section>
@@ -558,28 +735,109 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               Taxonomy &amp; Discovery
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-              <Field label="Destination Slug" value={form.destination} onChange={(v) => setForm((p) => ({ ...p, destination: v }))} placeholder="e.g. vietnam, ladakh" />
-              <Field label="Region" value={form.region} onChange={(v) => setForm((p) => ({ ...p, region: v }))} placeholder="e.g. Southeast Asia, Himalayas" />
-              <SegmentedControl label="Trip Type" value={form.trip_type} onChange={(v) => setForm(p => ({ ...p, trip_type: v }))} options={[{ label: "Group", value: "group" }, { label: "Private", value: "private" }, { label: "Custom", value: "custom" }]} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+              {/* Destination Picker */}
+              <div className="space-y-3">
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Destination Card</label>
+                <select
+                  value={form.destination}
+                  onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, destination: e.target.value }; })}
+                  className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">— None —</option>
+                  {availableDestinations.map(d => (
+                    <option key={d.slug} value={d.slug}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Region */}
+              <Field 
+                label="Region / Circuit" 
+                value={form.region} 
+                onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, region: v }})} 
+                placeholder="e.g. North Vietnam, Sapa Highlands" 
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
+              {/* Trip Type */}
+              <SegmentedControl 
+                label="Trip Architecture" 
+                value={form.trip_type} 
+                onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, trip_type: v }})} 
+                options={dynamicOptions.tripTypes.map(t => ({ label: t, value: t.toLowerCase() }))} 
+              />
+
+              {/* Difficulty */}
+              <SegmentedControl 
+                label="Intensity Level" 
+                value={form.difficulty_level} 
+                onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} 
+                options={dynamicOptions.difficulties.map(d => ({ label: d, value: d }))} 
+              />
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Search Tags</label>
-              <div className="flex gap-3">
-                <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }} placeholder="Type a tag and press Enter..." className="flex-1 h-[56px] px-6 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all" />
-                <button type="button" onClick={addTag} className="px-6 h-[56px] shrink-0 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 text-white/60 text-[12px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">Add</button>
+              <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Discovery Themes & Tags</label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {form.tags.map((tag: string) => (
+                  <span key={tag} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-white/70">
+                    {tag}
+                    <button 
+                      onClick={() => setForm(p => ({ ...p, tags: p.tags.filter((t: string) => t !== tag) }))}
+                      className="hover:text-red-400 transition-colors"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </button>
+                  </span>
+                ))}
               </div>
-              {form.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {form.tags.map((tag: string) => (
-                    <span key={tag} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-wider text-white/60">
-                      {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="text-white/30 hover:text-red-400 transition-colors">×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  id="new-tag-input"
+                  placeholder="Add a theme (e.g. Honeymoon, Adventure)..." 
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = (e.target as HTMLInputElement).value.trim();
+                      if (val && !form.tags.includes(val)) {
+                        setForm(p => ({ ...p, tags: [...p.tags, val] }));
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }
+                  }}
+                  className="flex-1 h-[52px] px-5 rounded-xl bg-black/40 border border-white/10 text-white text-[13px] focus:outline-none focus:border-white/30 transition-all"
+                />
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById('new-tag-input') as HTMLInputElement;
+                    const val = input.value.trim();
+                    if (val && !form.tags.includes(val)) {
+                      setForm(p => ({ ...p, tags: [...p.tags, val] }));
+                      input.value = '';
+                    }
+                  }}
+                  className="px-6 rounded-xl bg-white text-black text-[11px] font-bold uppercase tracking-wider"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <p className="w-full text-[9px] text-[#48484a] font-bold uppercase tracking-widest mb-1">Common Suggestions:</p>
+                {["Honeymoon", "Adventure", "Cultural", "Wildlife", "Wellness", "Solo Friendly", "Family"].map(s => (
+                  <button 
+                    key={s}
+                    type="button"
+                    onClick={() => !form.tags.includes(s) && setForm(p => ({ ...p, tags: [...p.tags, s] }))}
+                    className="px-3 py-1 rounded-full bg-white/[0.02] border border-white/5 text-[10px] text-white/30 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -632,20 +890,20 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
               <div className="flex-1 space-y-3">
                 <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Display Position (1 = Top)</label>
-                <input type="number" value={form.sort_order} onChange={(e) => setForm((p) => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="w-full sm:w-32 h-[56px] px-4 rounded-xl md:rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                <input type="number" value={form.sort_order} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, sort_order: parseInt(e.target.value) || 0 }})} className="w-full sm:w-32 h-[56px] px-4 rounded-xl md:rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-white/[0.05] pt-6 sm:pt-0">
                 <div className="text-right">
                   <span className="block text-[13px] font-bold text-white uppercase tracking-wider">{form.is_published ? "Published to Website" : "Saved as Draft"}</span>
                   <span className="block text-[11px] text-[#86868b] mt-1">{form.is_published ? "Live and visible to all guests" : "Hidden from public view"}</span>
                 </div>
-                <button type="button" onClick={() => setForm((p) => ({ ...p, is_published: !p.is_published }))} className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.is_published ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]" : "bg-[#3a3a3c]"}`}>
+                <button type="button" onClick={() => setForm((p) => { setIsDirty(true); return { ...p, is_published: !p.is_published }})} className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.is_published ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]" : "bg-[#3a3a3c]"}`}>
                   <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.is_published ? "left-[34px]" : "left-1"}`} />
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row gap-4 pt-4">
+            <div className="hidden sm:flex flex-col-reverse sm:flex-row gap-4 pt-4">
               <button type="button" onClick={() => router.push("/admin/dashboard")} className="w-full sm:w-auto px-12 h-[60px] rounded-2xl bg-red-500/[0.02] border border-red-500/30 text-[#86868b] font-bold text-[14px] tracking-wider uppercase hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all active:scale-[0.98]">
                 Discard
               </button>
@@ -658,6 +916,123 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
         </form>
       </main>
 
+      {/* Floating Action Bar (Mobile only) */}
+      <div className="md:hidden fixed bottom-6 left-4 right-4 z-[70] animate-in slide-in-from-bottom-8 duration-700">
+        <div className="flex items-center gap-3 p-2 rounded-[24px] bg-black/80 backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <button 
+            type="button" 
+            onClick={safeBack} 
+            className="flex-1 h-12 rounded-[18px] bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-[#86868b] active:scale-95 transition-all"
+          >
+            Discard
+          </button>
+          <button 
+            type="submit" 
+            form="package-form" 
+            disabled={saving} 
+            className="flex-[2] h-12 rounded-[18px] bg-white text-black text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40"
+          >
+            {saving ? "Saving..." : isEditing ? "Update" : "Publish"}
+          </button>
+        </div>
+      </div>
+
+      {/* ═══ MOBILE FIXED ACTION BAR ═══ */}
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[85%] max-w-[340px]">
+        <div className="flex items-center gap-2 p-1.5 bg-[#1c1c1e]/60 backdrop-blur-3xl border border-white/[0.05] rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
+          <button 
+            type="button" 
+            onClick={safeBack}
+            className="flex-1 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-white/20 hover:text-white transition-all"
+          >
+            Discard
+          </button>
+          <button 
+            type="submit" 
+            form="package-form"
+            disabled={saving}
+            className="flex-[1.8] py-2.5 rounded-[1.25rem] bg-white/[0.9] text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all disabled:opacity-50"
+          >
+            {saving ? "..." : isEditing ? "Update" : "Publish"}
+          </button>
+        </div>
+      </div>
+
+      {/* ═══ CINEMATIC ALERT SYSTEM ═══ */}
+      <AnimatePresence>
+        {showDiscardConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            {/* Backdrop with Progressive Blur */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDiscardConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+            />
+
+            {/* Alert Card */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-[400px] bg-[#1c1c1e] border border-white/[0.08] rounded-[32px] overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.5)] p-8 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M12 9v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 17c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              
+              <h2 className="text-xl font-bold text-white mb-3">Unsaved Changes</h2>
+              <p className="text-[14px] text-[#86868b] leading-relaxed mb-8">
+                Your journey's configuration has been modified. Discarding will purge these edits forever.
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={confirmDiscard}
+                  className="w-full py-4 rounded-2xl bg-white text-black text-[13px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] transition-all active:scale-95"
+                >
+                  Discard Edits
+                </button>
+                <button 
+                  onClick={() => setShowDiscardConfirm(false)}
+                  className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                >
+                  Keep Editing
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ═══ TOAST SYSTEM ═══ */}
+        {toast.show && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] min-w-[300px]"
+          >
+            <div className={`px-6 py-4 rounded-[2rem] backdrop-blur-xl border flex items-center gap-4 shadow-2xl ${
+              toast.type === "success" 
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                : "bg-red-500/10 border-red-500/20 text-red-400"
+            }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                toast.type === "success" ? "bg-emerald-500/20" : "bg-red-500/20"
+              }`}>
+                {toast.type === "success" ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                )}
+              </div>
+              <span className="text-[13px] font-bold tracking-tight">{toast.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -669,15 +1044,17 @@ function Field({
   onChange,
   placeholder,
   required,
+  description,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   required?: boolean;
+  description?: string;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
         {label}
       </label>
@@ -689,6 +1066,9 @@ function Field({
         required={required}
         className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all"
       />
+      {description && (
+        <p className="text-[10px] text-white/30 italic font-medium leading-tight px-1">{description}</p>
+      )}
     </div>
   );
 }
@@ -699,14 +1079,16 @@ function SegmentedControl({
   options,
   value,
   onChange,
+  description,
 }: {
   label: string;
   options: { label: string; value: string }[];
   value: string;
   onChange: (v: string) => void;
+  description?: string;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
         {label}
       </label>
@@ -726,6 +1108,9 @@ function SegmentedControl({
           </button>
         ))}
       </div>
+      {description && (
+        <p className="text-[10px] text-white/30 italic font-medium leading-tight px-1">{description}</p>
+      )}
     </div>
   );
 }

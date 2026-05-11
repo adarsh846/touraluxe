@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import type { Package, BatchDate } from "@/lib/supabase";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -21,6 +22,13 @@ export default function BatchDateManager() {
   const [batches, setBatches] = useState<BatchDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // New batch form
   const [newBatch, setNewBatch] = useState({
@@ -120,6 +128,14 @@ export default function BatchDateManager() {
     } catch (err) { console.error(err); }
   };
 
+  const safeBack = useCallback(() => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/admin/dashboard");
+    }
+  }, [router]);
+
   const selectedPkg = packages.find(p => p.id === selectedPackage);
 
   if (loading) return (
@@ -130,11 +146,58 @@ export default function BatchDateManager() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
-      <header className="fixed top-0 left-0 right-0 z-50 px-4 md:px-8 py-4 bg-black/80 backdrop-blur-xl border-b border-white/[0.04]">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="/admin/dashboard" className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">← Dashboard</a>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">Batch Dates</span>
+      <header 
+        className={`fixed top-0 left-0 right-0 z-[60] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] px-4 md:px-8 ${
+          isScrolled 
+            ? "py-3" 
+            : "py-4 md:py-6"
+        }`}
+      >
+        {/* iOS 26-style Hyper-Smooth Progressive Mask */}
+        <div 
+          className="pointer-events-none absolute inset-0 transition-all duration-1000 backdrop-blur-[5px]" 
+          style={{ 
+            opacity: isScrolled ? 0.95 : 0.85,
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
+            maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+          }}
+        />
+
+        <div className="max-w-[1200px] mx-auto w-full flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3 md:gap-5">
+            <button onClick={safeBack} className="relative block group shrink-0">
+              {/* iOS Deep Shadow & Glow */}
+              <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
+              <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
+              
+              <div className={`relative flex items-center justify-center bg-[#f5f5f7] rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-700 ${isScrolled ? "w-[4.5rem] md:w-[5.5rem] h-7 md:h-8" : "w-24 md:w-28 h-9 md:h-10"}`}>
+                <div className={`relative flex items-center justify-center transition-all duration-500 ${isScrolled ? "w-[4.5rem] md:w-[5.5rem] h-7 md:h-8" : "w-24 md:w-28 h-9 md:h-10"}`}>
+                  <Image 
+                    src="/assets/logo-transparent.webp" 
+                    alt="TouraLuxe" 
+                    fill 
+                    priority
+                    className="object-contain scale-[2.1] translate-y-[4px] brightness-[0.05]" 
+                  />
+                </div>
+              </div>
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="hidden md:inline-block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 translate-y-[1px]">
+                Admin
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 px-2.5 py-1 rounded-full border border-white/10 translate-y-[1px]">
+                Departure Batches
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:gap-4">
+            <button onClick={safeBack} className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] hover:text-white transition-colors">
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden text-[10px]">Back</span>
+            </button>
           </div>
         </div>
       </header>

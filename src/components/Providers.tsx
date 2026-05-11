@@ -7,11 +7,14 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+import { usePathname } from "next/navigation";
 import { BookingProvider } from "./BookingProvider";
 import { ModalShell } from "./modals/ModalShell";
 import { WhatsAppButton } from "./WhatsAppButton";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAdmin = pathname.startsWith("/admin");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
   useEffect(() => {
@@ -24,6 +27,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isAdmin) return;
+
     // ... (lenis setup)
     const lenis = new Lenis({
       syncTouch: true,
@@ -64,7 +69,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <BookingProvider>
       {children}
       <ModalShell />
-      {whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
+      {!isAdmin && whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
     </BookingProvider>
   );
 }

@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 import { useBooking } from "./BookingProvider";
+
+import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
   { name: "New Journey", href: "featured", offset: 0 },
@@ -15,6 +18,7 @@ const NAV_LINKS = [
 ];
 
 export function Navbar() {
+  const router = useRouter();
   const { openBooking, openModal } = useBooking();
   const [blurOpacity, setBlurOpacity] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -36,7 +40,7 @@ export function Navbar() {
     
     // Handle full URL paths (e.g. /destinations)
     if (id.startsWith("/")) {
-      window.location.href = id;
+      router.push(id);
       return;
     }
 
@@ -79,7 +83,7 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Magnetic>
-              <a
+              <Link
                 href="/"
                 className="relative group block"
               >
@@ -106,7 +110,7 @@ export function Navbar() {
                     />
                   </div>
                 </div>
-              </a>
+              </Link>
             </Magnetic>
           </div>
 
@@ -114,12 +118,21 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-9">
             {NAV_LINKS.map((link) => (
               <Magnetic key={link.name}>
-                <button
-                  onClick={() => scrollToSection(link.href, link.offset)}
-                  className="text-[11px] font-semibold tracking-[0.15em] uppercase transition-all hover:text-white bg-transparent border-none outline-none cursor-none opacity-60 hover:opacity-100"
-                >
-                  {link.name}
-                </button>
+                {link.href.startsWith("/") ? (
+                  <Link
+                    href={link.href}
+                    className="text-[11px] font-semibold tracking-[0.15em] uppercase transition-all hover:text-white bg-transparent border-none outline-none cursor-none opacity-60 hover:opacity-100"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => scrollToSection(link.href, link.offset)}
+                    className="text-[11px] font-semibold tracking-[0.15em] uppercase transition-all hover:text-white bg-transparent border-none outline-none cursor-none opacity-60 hover:opacity-100"
+                  >
+                    {link.name}
+                  </button>
+                )}
               </Magnetic>
             ))}
           </nav>
@@ -171,18 +184,34 @@ export function Navbar() {
           <nav className="flex flex-col gap-6">
             {NAV_LINKS.map((link, i) => (
               <Magnetic key={link.name}>
-                <button
-                  className={cn(
-                    "text-5xl font-semibold tracking-tight text-white transition-all duration-500 bg-transparent border-none outline-none text-left",
-                    isMobileMenuOpen
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-6"
-                  )}
-                  style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
-                  onClick={() => { scrollToSection(link.href, link.offset); setIsMobileMenuOpen(false); }}
-                >
-                  {link.name}
-                </button>
+                {link.href.startsWith("/") ? (
+                  <Link
+                    href={link.href}
+                    className={cn(
+                      "text-5xl font-semibold tracking-tight text-white transition-all duration-500 bg-transparent border-none outline-none text-left",
+                      isMobileMenuOpen
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-6"
+                    )}
+                    style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <button
+                    className={cn(
+                      "text-5xl font-semibold tracking-tight text-white transition-all duration-500 bg-transparent border-none outline-none text-left",
+                      isMobileMenuOpen
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-6"
+                    )}
+                    style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
+                    onClick={() => { scrollToSection(link.href, link.offset); setIsMobileMenuOpen(false); }}
+                  >
+                    {link.name}
+                  </button>
+                )}
               </Magnetic>
             ))}
 

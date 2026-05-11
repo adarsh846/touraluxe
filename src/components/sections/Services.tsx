@@ -162,13 +162,49 @@ export function Services() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {SERVICES.map((service, index) => (
             <div key={service.title} ref={(el) => { cardsRef.current[index] = el; }} className="opacity-0 h-full" onClick={() => openModal('SERVICES', service)}>
-              <Magnetic className="block w-full h-full">
-                <div className="group relative h-full p-8 pt-10 border border-white/10 rounded-2xl bg-zinc-900 transition-all duration-500 hover:bg-zinc-800 hover:border-white/20 cursor-pointer overflow-hidden">
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-2xl" style={{ background: "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06) 0%, transparent 60%)" }} />
-                  <div className="mb-6 text-white/30 group-hover:text-white/70 transition-all duration-500 group-hover:translate-y-[-2px]">{service.icon}</div>
-                  <h3 className="text-xl font-medium tracking-tight mb-4">{service.title}</h3>
-                  <p className="text-sm text-[#86868b] leading-relaxed">{service.desc}</p>
-                  <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/20 transition-all duration-700" />
+              <Magnetic intensity={0.08} className="block w-full h-full">
+                <div className="group relative h-full aspect-[4/5] rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]">
+                  {/* Background Image Container */}
+                  <div className="absolute inset-0 z-0">
+                    <Image 
+                      src={service.image} 
+                      alt={service.title} 
+                      fill 
+                      className="object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-[1.1]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity duration-700" />
+                  </div>
+
+                  {/* Content Overlay */}
+                  <div className="absolute inset-0 z-10 p-8 flex flex-col justify-between">
+                    <div className="text-white/40 group-hover:text-white/90 transition-all duration-500 transform group-hover:translate-y-[-4px] scale-110 origin-top-left">
+                      {service.icon}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-end justify-between">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 group-hover:text-white/60 transition-colors">
+                            Service Division
+                          </p>
+                          <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-white leading-none italic drop-shadow-lg">
+                            {service.title}
+                          </h3>
+                        </div>
+                        
+                        {/* Interaction Indicator */}
+                        <div className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 shadow-2xl">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-[#86868b] leading-relaxed line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        {service.desc}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Kinetic Bottom Line */}
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/30 transition-all duration-1000" />
                 </div>
               </Magnetic>
             </div>

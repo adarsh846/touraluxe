@@ -2,9 +2,11 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { Clock, MapPin, Users, TrendingUp, Star, Sparkles, Zap, Tag } from "lucide-react";
+import { MapPin, TrendingUp, Star, Sparkles, Zap, Tag, ArrowRight } from "lucide-react";
 import { Magnetic } from "./Magnetic";
 import type { Package } from "@/lib/supabase";
+import { usePricing } from "@/hooks/usePricing";
+import { cn } from "@/lib/utils";
 
 const BADGE_CONFIG: Record<string, { icon: typeof TrendingUp; color: string; bg: string }> = {
   Trending: { icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
@@ -22,116 +24,97 @@ interface PackageCardProps {
 
 export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const { computePrice } = usePricing();
+  const pricing = computePrice(pkg);
+
   const badge = (pkg as any).badge ? BADGE_CONFIG[(pkg as any).badge] : null;
   const BadgeIcon = badge?.icon;
-  const originalPrice = (pkg as any).original_price;
-  const hasDiscount = originalPrice && parseInt(String(originalPrice).replace(/[^0-9]/g, "")) > 0;
-  const currency = pkg.currency || "₹";
-  const routeStart = (pkg as any).route_start;
-  const routeEnd = (pkg as any).route_end;
   const difficulty = (pkg as any).difficulty_level;
+  const routeStart = (pkg as any).route_start;
 
   return (
-    <div
-      ref={cardRef}
-      className="group relative flex flex-col rounded-2xl md:rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
-      onClick={() => onClick(pkg)}
-    >
-      {/* Image Container */}
-      <div className="relative w-full aspect-[16/10] overflow-hidden bg-white/5">
-        <Image
-          src={pkg.image}
-          alt={pkg.title}
-          fill
-          className="object-cover transition-transform duration-1000 ease-out group-hover:scale-[1.06]"
-          quality={75}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+    <Magnetic intensity={0.08} className="block w-full">
+      <div
+        ref={cardRef}
+        className="group relative flex flex-col rounded-2xl md:rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+        onClick={() => onClick(pkg)}
+      >
+        {/* Cinematic Image Container */}
+        <div className="relative w-full aspect-[4/3] overflow-hidden bg-white/5">
+          <Image
+            src={pkg.image}
+            alt={pkg.title}
+            fill
+            className="object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-[1.08]"
+            quality={85}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+          
+          {/* Enhanced Cinematic Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent transition-opacity duration-700" />
+          
+          {/* Status Badges Layer */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+            {badge && BadgeIcon ? (
+              <div className={cn("px-3 py-1 rounded-full border flex items-center gap-1.5 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-700", badge.bg)}>
+                <BadgeIcon size={10} className={badge.color} />
+                <span className={cn("text-[9px] font-black uppercase tracking-widest", badge.color)}>{(pkg as any).badge}</span>
+              </div>
+            ) : <div />}
 
-        {/* Badge */}
-        {badge && BadgeIcon && (
-          <div className={`absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-xl text-[9px] font-bold uppercase tracking-[0.15em] ${badge.bg} ${badge.color}`}>
-            <BadgeIcon size={11} strokeWidth={2.5} />
-            {(pkg as any).badge}
+            {pricing.hasSavings && (
+              <div className="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md animate-in fade-in slide-in-from-right-4 duration-700 delay-150">
+                <span className="text-[9px] font-black text-emerald-400">-{pricing.discountPercent}%</span>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Difficulty Badge */}
-        {difficulty && difficulty !== "Easy" && (
-          <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-[8px] font-bold uppercase tracking-[0.2em] text-white/60">
-            {difficulty}
-          </div>
-        )}
-      </div>
+          {/* Core Content Overlay */}
+          <div className="absolute inset-0 p-5 md:p-6 pb-6 md:pb-8 flex flex-col justify-end">
+            <div className="flex items-end justify-between gap-4">
+              <div className="space-y-3 flex-1 min-w-0">
+                <div className="space-y-1">
+                  <h3 className="text-xl md:text-2xl font-bold tracking-tight text-white leading-tight truncate drop-shadow-lg">
+                    {pkg.title}
+                  </h3>
+                  <div className="flex items-center gap-3 text-white/50">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <MapPin size={10} className="shrink-0" />
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] truncate">
+                        {routeStart || pkg.location}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
+                      {pkg.duration}
+                    </span>
+                  </div>
+                </div>
 
-      {/* Content */}
-      <div className="flex flex-col flex-1 p-5 md:p-6 gap-3">
-        {/* Location + Duration */}
-        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
-          <span className="flex items-center gap-1">
-            <MapPin size={10} strokeWidth={2.5} />
-            {pkg.location}
-          </span>
-          <span className="w-[3px] h-[3px] rounded-full bg-white/20" />
-          <span className="flex items-center gap-1">
-            <Clock size={10} strokeWidth={2.5} />
-            {pkg.duration}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="text-base md:text-lg font-semibold tracking-tight text-white/90 leading-snug line-clamp-2 group-hover:text-white transition-colors">
-          {pkg.title}
-        </h3>
-
-        {/* Route */}
-        {routeStart && routeEnd && (
-          <div className="flex items-center gap-2 text-[10px] text-white/25 font-medium">
-            <span>{routeStart}</span>
-            <span className="text-white/15">→</span>
-            <span>{routeEnd}</span>
-          </div>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Pricing */}
-        <div className="flex items-end justify-between pt-3 border-t border-white/[0.04]">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg md:text-xl font-bold tracking-tight text-white">
-                {currency}{parseInt(String(pkg.price).replace(/[^0-9]/g, "")).toLocaleString("en-IN")}
-              </span>
-              {hasDiscount && (
-                <span className="text-xs text-white/25 line-through font-medium">
-                  {currency}{parseInt(String(originalPrice).replace(/[^0-9]/g, "")).toLocaleString("en-IN")}
-                </span>
-              )}
+                <div className="space-y-0.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl md:text-2xl font-black text-white tracking-tighter">
+                      {pricing.formattedFinal}
+                    </span>
+                    {pricing.hasSavings && (
+                      <span className="text-xs font-bold text-white/20 line-through italic">
+                        {pricing.formattedOriginal}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">
+                    Per person · {pricing.taxLabel}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Interaction Indicator */}
+              <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 shadow-2xl">
+                <ArrowRight size={18} strokeWidth={2.5} className="text-white" />
+              </div>
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20">
-              per person · {pkg.tax_status === "Inclusive of Taxes" ? "incl. tax" : "excl. tax"}
-            </span>
           </div>
-
-          {/* Guests indicator */}
-          {pkg.guests && (
-            <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-white/20">
-              <Users size={10} strokeWidth={2.5} />
-              {pkg.guests}
-            </div>
-          )}
         </div>
-
-        {/* CTA */}
-        <Magnetic intensity={0.15}>
-          <button className="w-full mt-2 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.25em] text-white/50 hover:bg-white hover:text-black hover:border-white transition-all duration-500 group-hover:bg-white/[0.08]">
-            View Details
-          </button>
-        </Magnetic>
       </div>
-    </div>
+    </Magnetic>
   );
 }

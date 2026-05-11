@@ -127,6 +127,8 @@ export function Magnetic({
     }
 
     return () => {
+      gsap.killTweensOf(inner);
+      gsap.killTweensOf(wrapper);
       wrapper.removeEventListener("mouseenter", onMouseEnter);
       wrapper.removeEventListener("mousemove", onMouseMove);
       wrapper.removeEventListener("mouseleave", onMouseLeave);

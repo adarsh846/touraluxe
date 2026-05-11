@@ -75,8 +75,6 @@ export async function PUT(
       destination: body.destination ?? null,
       region: body.region ?? null,
       trip_type: body.trip_type ?? "group",
-
-      updated_at: new Date().toISOString(),
     })
     .eq("id", id)
     .select()

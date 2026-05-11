@@ -52,7 +52,6 @@ export async function PUT(
       is_international: body.is_international,
       sort_order: body.sort_order,
       is_published: body.is_published,
-      updated_at: new Date().toISOString(),
     })
     .eq("slug", slug)
     .select()

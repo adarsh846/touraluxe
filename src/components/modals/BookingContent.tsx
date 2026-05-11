@@ -21,7 +21,7 @@ import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { Magnetic } from "@/components/Magnetic";
 import gsap from "gsap";
-
+import { usePricing } from "@/hooks/usePricing";
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
 const REFERENCE_PREFIX = "TRX-";
@@ -326,64 +326,10 @@ export const BookingContent = memo(function BookingContent({
     }
   }, [startDate, internalPackage, isDurationFixed]);
 
-  // Pricing Logic
+  const { computePrice } = usePricing();
   const pricing = React.useMemo(() => {
-    const pkg = internalPackage || packageData;
-    if (!pkg?.price) return { 
-      packagePrice: 0, 
-      baseTotal: 0, 
-      taxAmount: 0, 
-      finalTotal: 0, 
-      symbol: DEFAULT_CURRENCY, 
-      isBaseInclusive: false,
-      isFinalInclusive: false,
-      activeTaxRate: 0,
-      shouldAddTax: false
-    };
-    
-    const symbol = pkg.currency || DEFAULT_CURRENCY;
-    const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
-    const child = pkg.child_price
-      ? parseInt(String(pkg.child_price).replace(/[^0-9]/g, ""))
-      : 0;
-    const infant = pkg.infant_price
-      ? parseInt(String(pkg.infant_price).replace(/[^0-9]/g, ""))
-      : 0;
-
-    
-    // Unified Fiscal Protocol:
-    // If "Inclusive" -> The price shown to user INCLUDES tax (Price + Tax).
-    // If "Exclusive" -> The price shown to user is NET, tax is added later.
-    const isInclusive = pkg.tax_status === TAX_INCLUSIVE_LABEL;
-    const isExclusive = pkg.tax_status === TAX_EXCLUSIVE_LABEL;
-    
-    // Calculate the Gross Per-Person Rate for Inclusive packages
-    const grossPackagePrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
-    const grossSubtotal = adults * grossPackagePrice + kids * (isInclusive && taxRate > 0 ? child + (child * taxRate / 100) : child) + infants * (isInclusive && taxRate > 0 ? infant + (infant * taxRate / 100) : infant);
-    
-    // Tax Logic Refinement:
-    // If Exclusive -> We add tax to the net subtotal.
-    // If Inclusive -> We extract the embedded tax from the gross subtotal.
-    const shouldAddTax = isExclusive && taxRate > 0;
-    const addedTax = shouldAddTax ? (grossSubtotal * taxRate) / 100 : 0;
-    
-    // For Inclusive packages, we show the NET base rate in the breakdown for transparency
-    const finalInvestment = grossSubtotal + addedTax;
-    const terminalTaxAmount = isInclusive ? finalInvestment - (finalInvestment / (1 + taxRate/100)) : addedTax;
-    const netBaseRate = finalInvestment - terminalTaxAmount;
-    
-    return {
-      packagePrice: grossPackagePrice,
-      baseTotal: netBaseRate,
-      taxAmount: terminalTaxAmount,
-      finalTotal: finalInvestment,
-      symbol,
-      isBaseInclusive: isInclusive,
-      isFinalInclusive: isInclusive || (shouldAddTax && taxRate > 0),
-      activeTaxRate: isInclusive || shouldAddTax ? taxRate : 0,
-      shouldAddTax: shouldAddTax || isInclusive
-    };
-  }, [adults, kids, infants, internalPackage, packageData, taxRate]);
+    return computePrice(internalPackage || packageData, adults, kids, infants);
+  }, [adults, kids, infants, internalPackage, packageData, computePrice]);
 
   const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
@@ -850,41 +796,47 @@ export const BookingContent = memo(function BookingContent({
                         <div className="w-1 md:w-4 flex-shrink-0" />
                         
                         {searchResults.map((pkg) => (
-                          <div
-                            key={pkg.id}
-                            onClick={() => handlePackageSelect(pkg)}
-                            className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full group/card relative z-[10] hover:z-[60] rounded-3xl overflow-hidden cursor-pointer border border-white/[0.05] hover:border-white/20 transition-all duration-700 shadow-2xl"
-                          >
-                            <div className="absolute inset-0">
-                              <img
-                                src={pkg.image}
-                                className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-110"
-                                alt={pkg.title}
-                              />
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover/card:opacity-60 transition-opacity duration-700" />
-                            
-                            <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                              <div className="space-y-4">
-                                <div className="space-y-1">
-                                  <span className="text-[7px] md:text-[8px] font-bold uppercase tracking-[0.4em] text-white/50 block">
-                                    {pkg.location}
-                                  </span>
-                                  <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white/90">
-                                    {pkg.title}
-                                  </h3>
+                          <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full">
+                            <div
+                              onClick={() => handlePackageSelect(pkg)}
+                              className="group/card relative w-full h-full rounded-[2rem] overflow-hidden cursor-pointer border border-white/[0.05] hover:border-white/20 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+                            >
+                              <div className="absolute inset-0">
+                                <img
+                                  src={pkg.image}
+                                  className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-[1.08]"
+                                  alt={pkg.title}
+                                />
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                              
+                              <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                                <div className="flex items-end justify-between gap-4 mb-6">
+                                  <div className="space-y-1.5 flex-1 min-w-0">
+                                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block">
+                                      {pkg.location}
+                                    </span>
+                                    <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white/90">
+                                      {pkg.title}
+                                    </h3>
+                                  </div>
+                                  
+                                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-500 shadow-2xl">
+                                    <ArrowRight size={18} strokeWidth={2.5} className="text-white" />
+                                  </div>
                                 </div>
-                                <div className="flex flex-col md:flex-row md:items-center justify-between pt-4 border-t border-white/10 gap-4">
+
+                                <div className="pt-6 border-t border-white/10 flex items-center justify-between">
                                   <div className="space-y-1">
-                                    <p className="text-lg md:text-xl font-bold text-white/90 italic">
+                                    <p className="text-xl md:text-2xl font-black text-white/90 italic tracking-tighter">
                                       {pkg.duration}
                                     </p>
-                                    <span className="text-[7px] font-bold uppercase tracking-widest text-white/30">
+                                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">
                                       Duration
                                     </span>
                                   </div>
-                                  <div className="space-y-1 md:text-right">
-                                    <p className="text-lg md:text-xl font-bold text-white/90">
+                                  <div className="space-y-1 text-right">
+                                    <p className="text-xl md:text-2xl font-black text-white/90 tracking-tighter">
                                       {(() => {
                                         if (pkg.price == null) return "On Request";
                                         const cleanStr = String(pkg.price).replace(/[^\d.-]/g, "");
@@ -898,14 +850,14 @@ export const BookingContent = memo(function BookingContent({
                                           : "On Request";
                                       })()}
                                     </p>
-                                    <span className="text-[7px] font-bold uppercase tracking-widest text-white/30">
+                                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">
                                       Per Person
                                     </span>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </Magnetic>
                         ))}
                         {/* Visual Spacer for Horizontal End */}
                         <div className="flex-shrink-0 w-8 md:w-32 h-1" />
@@ -1013,23 +965,36 @@ export const BookingContent = memo(function BookingContent({
                           <div className="w-1 md:w-4 flex-shrink-0" />
 
                           {trending.map((pkg) => (
-                            <button
-                              key={pkg.id}
-                              onClick={() => handlePackageSelect(pkg)}
-                              className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full relative z-[10] hover:z-[60] rounded-[32px] overflow-hidden border border-white/[0.08] hover:border-white/30 hover:scale-[1.03] transition-all duration-700 group/mini shadow-2xl"
-                            >
-                              <img
-                                src={pkg.image}
-                                className="absolute inset-0 w-full h-full object-cover grayscale-[0.2] group-hover/mini:grayscale-0 transition-all duration-700"
-                                alt=""
-                              />
-                              <div className="absolute inset-0 bg-black/60 group-hover/mini:bg-black/30 transition-colors" />
-                              <div className="absolute inset-0 flex items-center justify-center p-8">
-                                <span className="text-[clamp(14px,5vw,18px)] font-bold uppercase tracking-[0.4em] text-white text-center opacity-90 group-hover/mini:opacity-100 leading-relaxed drop-shadow-2xl italic">
-                                  {pkg.title}
-                                </span>
-                              </div>
-                            </button>
+                            <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
+                              <button
+                                onClick={() => handlePackageSelect(pkg)}
+                                className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+                              >
+                                <img
+                                  src={pkg.image}
+                                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover/mini:scale-[1.08]"
+                                  alt={pkg.title}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                                
+                                <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                                  <div className="flex items-end justify-between gap-4">
+                                    <div className="text-left space-y-1">
+                                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block">
+                                        Trending Destiny
+                                      </span>
+                                      <h3 className="text-xl md:text-2xl font-black tracking-tight text-white/90 italic">
+                                        {pkg.title}
+                                      </h3>
+                                    </div>
+                                    
+                                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover/mini:translate-y-0 group-hover/mini:opacity-100 transition-all duration-500 shadow-2xl">
+                                      <ArrowRight size={18} strokeWidth={2.5} className="text-white" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            </Magnetic>
                           ))}
                           {/* Visual Spacer for Horizontal End */}
                           <div className="flex-shrink-0 w-8 md:w-32 h-1" />
@@ -1643,22 +1608,22 @@ export const BookingContent = memo(function BookingContent({
                           <div className="flex flex-col items-center md:items-start gap-0.5">
                             <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.PACKAGE_RATE}</span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.packagePrice.toLocaleString()}</span>
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.perAdultFinal.toLocaleString()}</span>
                               <span className="inline-flex items-center justify-center text-center text-[6px] font-black uppercase tracking-wider text-white/30 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 min-w-[50px]">
-                                {pricing.isBaseInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
+                                {pricing.isInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
                               </span>
                             </div>
                           </div>
                           <div className="flex flex-col items-center md:items-start gap-0.5">
                             <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.BASE_RATE}</span>
-                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.baseTotal.toLocaleString()}</span>
+                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.baseAmount.toLocaleString()}</span>
                           </div>
                           <div className="flex flex-col items-center md:items-start gap-0.5">
                             <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
-                              {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.activeTaxRate)}
+                              {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.taxRate)}
                             </span>
                             <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
-                              {pricing.symbol}{pricing.taxAmount.toLocaleString()}
+                              {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -1673,7 +1638,7 @@ export const BookingContent = memo(function BookingContent({
                           </span>
                           <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-sm flex items-center justify-center min-w-[120px]">
                             <span className="text-[7px] md:text-[8px] font-black text-white/60 uppercase tracking-[0.3em] text-center leading-none">
-                              {pricing.isFinalInclusive ? DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED : DOSSIER_PROTOCOL.LABELS.TOTAL_PRE_TAX}
+                              {DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED}
                             </span>
                           </div>
                         </div>
@@ -1800,7 +1765,7 @@ export const BookingContent = memo(function BookingContent({
                       {totalInvestment}
                     </p>
                     <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
-                      {pricing.isFinalInclusive ? "incl. tax" : "excl. tax"}
+                      incl. tax
                     </span>
                   </div>
                 </div>

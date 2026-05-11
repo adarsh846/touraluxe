@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { Magnetic } from "./Magnetic";
-import { useSettings } from "@/hooks/useSettings";
 
 function scrollToSection(id: string, offset: number = 0) {
   const lenis = (window as any).__lenis;
@@ -14,8 +13,6 @@ function scrollToSection(id: string, offset: number = 0) {
 }
 
 export function Footer() {
-  const { settings } = useSettings();
-
   return (
     <footer className="w-full bg-black py-16 px-6">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
@@ -35,7 +32,7 @@ export function Footer() {
             </a>
           </Magnetic>
           <p className="max-w-xs text-sm text-muted">
-            {settings.footer_tagline || "We don't sell trips. We craft transcendent experiences for the world's most discerning travelers."}
+            We don&apos;t sell trips. We craft transcendent experiences for the world&apos;s most discerning travelers.
           </p>
         </div>
 

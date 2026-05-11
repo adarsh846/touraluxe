@@ -7,6 +7,7 @@ import { Magnetic } from "../Magnetic";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
+import { usePricing } from "@/hooks/usePricing";
 
 const TAX_INCLUSIVE_LABEL = "Inclusive of Taxes";
 const TAX_EXCLUSIVE_LABEL = "Exclusive of Taxes";
@@ -26,7 +27,7 @@ export const PackageContent = memo(({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
-  const [settings, setSettings] = useState<any>({});
+  const { computePrice, settings } = usePricing();
   const [activeSection, setActiveSection] = useState(0);
   const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
 
@@ -69,38 +70,8 @@ export const PackageContent = memo(({
 
   // ═══ SOVEREIGN FISCAL ENGINE ═══
   const pricing = useMemo(() => {
-    if (!experience?.price) return { finalTotal: 0, symbol: "₹", label: "", taxRate: 0, originalTotal: 0, discountPercent: 0, hasSavings: false };
-
-    const taxRate = parseFloat(settings.tax_percentage || "0");
-    const symbol = settings.currency_symbol || experience.currency || "₹";
-    
-    // Parse raw numeric value from price string
-    const base = parseInt(String(experience.price).replace(/[^0-9]/g, "")) || 0;
-    
-    const isInclusive = experience.tax_status === TAX_INCLUSIVE_LABEL;
-    const isExclusive = experience.tax_status === TAX_EXCLUSIVE_LABEL;
-
-    // Calculate Gross Rate
-    const grossPrice = isInclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
-    const shouldAddTaxLabel = isExclusive && taxRate > 0;
-
-    // Original price (strikethrough) calculation
-    const originalRaw = parseInt(String(experience.original_price || "").replace(/[^0-9]/g, "")) || 0;
-    const originalTotal = originalRaw > 0 && isInclusive && taxRate > 0 ? originalRaw + (originalRaw * taxRate / 100) : originalRaw;
-    const hasSavings = originalTotal > 0 && originalTotal > grossPrice;
-    const discountPercent = hasSavings ? Math.round(((originalTotal - grossPrice) / originalTotal) * 100) : 0;
-    
-    return {
-      finalTotal: grossPrice,
-      originalTotal,
-      hasSavings,
-      discountPercent,
-      symbol,
-      taxRate,
-      shouldAddTaxLabel,
-      isInclusive
-    };
-  }, [experience, settings]);
+    return computePrice(experience);
+  }, [experience, computePrice]);
 
   const [isMobile, setIsMobile] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -238,12 +209,6 @@ export const PackageContent = memo(({
     }
   };
 
-  useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => setSettings(data))
-      .catch(err => console.error(err));
-  }, []);
 
   // ═══ RELATED PACKAGES ENGINE ═══
   useEffect(() => {
@@ -672,7 +637,7 @@ export const PackageContent = memo(({
                     </span>
                   ) : (pricing.shouldAddTaxLabel || (pricing.isInclusive && pricing.taxRate > 0)) ? (
                     <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
-                      {pricing.shouldAddTaxLabel ? `+ ${pricing.taxRate}% Tax` : "Incl. Tax"}
+                      {pricing.isInclusive ? "Incl. Tax" : `+ ${pricing.taxRate}% Tax`}
                     </span>
                   ) : null}
                 </div>

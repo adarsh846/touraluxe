@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
+import { usePricing } from "@/hooks/usePricing";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -83,37 +84,11 @@ export function Featured() {
   const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [experiences, setExperiences] = useState(EXPERIENCES);
   const { openModal } = useBooking();
-  const [globalTaxRate, setGlobalTaxRate] = useState(0);
+  const { computePrice } = usePricing();
 
-  // Fetch packages from DB, fall back to hardcoded data
+  // Fetch only featured packages for the Spotlight section
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.tax_percentage) setGlobalTaxRate(parseFloat(data.tax_percentage));
-      })
-      .catch(() => {});
-
-    // Real-time subscription for hyper-dynamic updates
-    const channel = supabase
-      .channel('site_settings_featured')
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'key=eq.tax_percentage' }, 
-        (payload: any) => {
-          if (payload.new && payload.new.value) {
-            setGlobalTaxRate(parseFloat(payload.new.value));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/packages")
+    fetch("/api/packages?featured=true")
       .then((res) => res.ok ? res.json() : Promise.reject())
       .then((data) => {
         if (data && data.length > 0) setExperiences(data);
@@ -224,17 +199,24 @@ export function Featured() {
                   {exp.title}
                 </h3>
                 <div className="flex flex-col gap-1">
-                  <span className="text-sm text-[#86868b] font-medium">
-                    {(() => {
-                      const base = parseInt(exp.price.toString().replace(/[^0-9]/g, "")) || 0;
-                      const isTaxApplied = globalTaxRate > 0 && (exp as any).tax_status === "Inclusive of Taxes";
-                      const finalPrice = isTaxApplied ? base + (base * globalTaxRate / 100) : base;
-                      return `${(exp as any).currency || "₹"}${finalPrice.toLocaleString('en-IN')}`;
-                    })()} / Person · {exp.duration}
-                  </span>
-                  <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20">
-                    {globalTaxRate > 0 && (exp as any).tax_status === "Inclusive of Taxes" ? "Inclusive of Taxes" : "Excluding Taxes"}
-                  </span>
+                  {(() => {
+                    const pricing = computePrice(exp);
+                    return (
+                      <>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm text-[#86868b] font-medium">
+                            {pricing.formattedFinal} / Person
+                          </span>
+                          {pricing.hasSavings && (
+                            <span className="text-xs text-white/25 line-through">{pricing.formattedOriginal}</span>
+                          )}
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/20">
+                          {pricing.taxLabel || "Excluding Taxes"}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
                 <Magnetic>
                   <button

@@ -43,7 +43,7 @@ const formatSource = (source: string) => {
 
 const StatCard = ({ label, value }: { label: string; value: string | number }) => (
   <div className="p-5 md:p-8 rounded-[24px] md:rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] shadow-sm hover:border-white/[0.1] transition-all">
-    <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] mb-2">{label}</p>
+    <p className="text-[8px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] mb-2">{label}</p>
     <p className="text-2xl md:text-3xl font-bold text-white tabular-nums tracking-tighter">{value}</p>
   </div>
 );
@@ -214,6 +214,8 @@ export default function AdminDashboard() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [localTax, setLocalTax] = useState("");
+  const [localTripTypes, setLocalTripTypes] = useState("");
+  const [localDifficulties, setLocalDifficulties] = useState("");
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
@@ -255,6 +257,8 @@ export default function AdminDashboard() {
         // Initialize localTax from DB only if it's currently empty
         if (!localTax) {
           setLocalTax(data.tax_percentage || "0");
+          setLocalTripTypes(data.available_trip_types || "Group, Private, Custom");
+          setLocalDifficulties(data.available_difficulties || "Easy, Moderate, Challenging");
         }
       }
     } catch (err) { console.error("Fetch error:", err); }
@@ -304,6 +308,28 @@ export default function AdminDashboard() {
       }
     } catch (err) { console.error("Update error:", err); }
     setIsUpdating(false);
+  };
+
+  const handleUpdateDiscovery = async () => {
+    const token = getToken();
+    if (!token) return;
+    setIsUpdatingSettings(true);
+    try {
+      await Promise.all([
+        fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-token": token },
+          body: JSON.stringify({ key: "available_trip_types", value: localTripTypes })
+        }),
+        fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-token": token },
+          body: JSON.stringify({ key: "available_difficulties", value: localDifficulties })
+        })
+      ]);
+      await fetchData();
+    } catch (err) { console.error("Discovery update error:", err); }
+    setIsUpdatingSettings(false);
   };
 
   const handleUpdateTax = async () => {
@@ -385,38 +411,36 @@ export default function AdminDashboard() {
             maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
             WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
           }}
-        />
-
-        <div className="max-w-[1200px] mx-auto w-full flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3 md:gap-5">
-            <div className="relative block">
+        />        <div className="max-w-[1200px] mx-auto w-full flex items-center justify-between relative z-10 gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-5 min-w-0">
+            <div className="relative block shrink-0">
               {/* iOS Deep Shadow & Glow (Static) */}
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
               
-              <div className={`relative flex items-center justify-center bg-[#f5f5f7] rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-700 ${isScrolled ? "w-[5.5rem] h-8" : "w-28 h-10"}`}>
-                <div className={`relative flex items-center justify-center transition-all duration-500 ${isScrolled ? "w-[5.5rem] h-8" : "w-28 h-10"}`}>
+              <div className={`relative flex items-center justify-center bg-[#f5f5f7] rounded-full overflow-hidden border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-700 ${isScrolled ? "w-[4.2rem] md:w-[5.5rem] h-6 md:h-8" : "w-[4.8rem] md:w-28 h-7.5 md:h-10"}`}>
+                <div className={`relative flex items-center justify-center transition-all duration-500 ${isScrolled ? "w-[4.2rem] md:w-[5.5rem] h-6 md:h-8" : "w-[4.8rem] md:w-28 h-7.5 md:h-10"}`}>
                   <Image 
                     src="/assets/logo-transparent.webp" 
                     alt="TouraLuxe" 
                     fill 
                     priority
-                    className="object-contain scale-[2.1] translate-y-[4px] brightness-[0.05]" 
+                    className="object-contain scale-[2.1] translate-y-[3px] md:translate-y-[4px] brightness-[0.05]" 
                   />
                 </div>
               </div>
             </div>
-            <span className="hidden sm:inline-block text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 translate-y-[1px]">
+            <span className="hidden lg:inline-block text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 translate-y-[1px]">
               Admin
             </span>
           </div>
-          <div className="flex items-center gap-4 md:gap-8 min-w-0">
-            <nav className="flex items-center bg-[#1c1c1e] p-1 rounded-full border border-white/[0.05] shadow-inner shrink-0">
+          <div className="flex items-center gap-2 md:gap-8 min-w-0">
+            <nav className="flex items-center bg-[#1c1c1e] p-0.5 rounded-full border border-white/[0.05] shadow-inner sm:max-w-none">
               {["catalog", "bookings", "content"].map((v) => (
                 <button 
                   key={v} 
                   onClick={() => setView(v as any)} 
-                  className={`px-3 md:px-6 py-1.5 md:py-2 rounded-full text-[10px] md:text-[13px] font-black uppercase tracking-widest transition-all ${view === v ? "bg-white text-black shadow-2xl scale-[1.02]" : "text-[#86868b] hover:text-white"}`}
+                  className={`px-2.5 md:px-6 py-1 md:py-2 rounded-full text-[8.5px] md:text-[13px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${view === v ? "bg-white text-black shadow-2xl scale-[1.02]" : "text-[#86868b] hover:text-white"}`}
                 >
                   {v}
                 </button>
@@ -424,64 +448,64 @@ export default function AdminDashboard() {
             </nav>
             <button 
               onClick={() => { sessionStorage.removeItem("admin_token"); router.push("/admin"); }} 
-              className="text-[10px] md:text-[13px] font-bold uppercase tracking-widest text-[#86868b] hover:text-red-400 transition-all shrink-0"
+              className="px-2 md:px-0 text-[8.5px] md:text-[13px] font-bold uppercase tracking-widest text-[#86868b] hover:text-red-400 transition-all shrink-0 flex items-center gap-1.5"
             >
-              Logout
+              <span className="hidden sm:inline">Logout</span>
+              <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 md:mb-16 animate-in fade-in duration-700">
+      <main className="max-w-[1200px] mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-16">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-16 animate-in fade-in duration-700">
           {view === "catalog" ? (
             <>
-              <StatCard label="Total" value={packages.length} />
-              <StatCard label="Live" value={packages.filter(p => p.is_published).length} />
-              <StatCard label="Drafts" value={packages.filter(p => !p.is_published).length} />
+              <StatCard label="Total Journeys" value={packages.length} />
+              <StatCard label="Live on Site" value={packages.filter(p => p.is_published).length} />
+              <StatCard label="Draft Items" value={packages.filter(p => !p.is_published).length} />
               <StatCard label="Destinations" value={new Set(packages.map(p => p.location)).size} />
             </>
           ) : (
             <>
-              <StatCard label="Bookings" value={bookings.length} />
+              <StatCard label="Total Bookings" value={bookings.length} />
               <StatCard label="Confirmed" value={bookings.filter(b => b.status === 'confirmed').length} />
-              <StatCard label="Revenue" value={`₹${bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0).toLocaleString()}`} />
-              <StatCard label="Travelers" value={bookings.reduce((sum, b) => sum + (b.traveler_count || 0), 0)} />
+              <StatCard label="Gross Revenue" value={`₹${bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0).toLocaleString()}`} />
+              <StatCard label="Total Travelers" value={bookings.reduce((sum, b) => sum + (b.traveler_count || 0), 0)} />
             </>
           )}
         </div>
 
         {/* Global Configuration Segment */}
-        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          <div className="p-6 md:p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          <div className="p-4 md:p-8 rounded-[20px] md:rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-bold text-white tracking-tight italic">Global Tax Control</h3>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
-                  Live: {isUpdatingSettings ? localTax : (settings.tax_percentage || "0")}%
+                <h3 className="text-[15px] md:text-lg font-bold text-white tracking-tight italic">Global Tax Control</h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] md:text-[9px] font-black uppercase tracking-widest">
+                  Live: {settings.tax_percentage || "0"}%
                 </span>
               </div>
-              <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold">Governs tax-enabled packages</p>
+              <p className="text-[9px] md:text-[11px] uppercase tracking-widest text-[#86868b] font-bold">Governs tax-enabled journeys</p>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/20 uppercase tracking-widest">Percentage</span>
+            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+              <div className="relative group flex-1 md:flex-none">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/20 uppercase tracking-widest">GST</span>
                 <input 
                   type="number" 
                   value={localTax} 
                   onChange={(e) => setLocalTax(e.target.value)}
-                  placeholder="0"
-                  className="bg-black/40 border border-white/10 rounded-2xl py-3 pl-20 pr-10 text-sm font-bold text-white w-40 focus:outline-none focus:border-white/30 transition-all text-right tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="bg-black/40 border border-white/10 rounded-xl py-2.5 md:py-4 pl-12 md:pl-20 pr-7 md:pr-10 text-[12px] md:text-sm font-bold text-white w-full md:w-40 focus:outline-none focus:border-white/30 transition-all text-right"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/40 uppercase tracking-widest">%</span>
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-white/40 uppercase tracking-widest">%</span>
               </div>
               <button 
                 onClick={handleUpdateTax}
                 disabled={isUpdatingSettings}
-                className="px-6 py-3 rounded-2xl bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50"
+                className="px-4 md:px-8 py-2.5 md:py-4 rounded-xl md:rounded-2xl bg-white text-black text-[9px] md:text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50"
               >
-                {isUpdatingSettings ? "Syncing..." : "Update Policy"}
+                Sync
               </button>
             </div>
           </div>
@@ -489,12 +513,12 @@ export default function AdminDashboard() {
 
         {view === "catalog" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight italic">Experience Catalog</h2>
-              <div className="flex items-center gap-3">
-                <button onClick={() => router.push("/admin/destinations")} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[12px] md:text-[13px] font-bold hover:bg-white/10 transition-all">Destinations</button>
-                <button onClick={() => router.push("/admin/batch-dates")} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[12px] md:text-[13px] font-bold hover:bg-white/10 transition-all">Batch Dates</button>
-                <button onClick={() => router.push("/admin/packages/new")} className="px-5 py-2.5 rounded-full bg-white text-black text-[12px] md:text-[13px] font-bold">+ New Package</button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight italic">Experience Catalog</h2>
+              <div className="flex items-center gap-1.5 md:gap-3">
+                <button onClick={() => router.push("/admin/destinations")} className="flex-1 sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] md:text-[13px] font-bold hover:bg-white/10 transition-all whitespace-nowrap">Destinations</button>
+                <button onClick={() => router.push("/admin/batch-dates")} className="flex-1 sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] md:text-[13px] font-bold hover:bg-white/10 transition-all whitespace-nowrap">Batches</button>
+                <button onClick={() => router.push("/admin/packages/new")} className="flex-[1.2] sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white text-black text-[10px] md:text-[13px] font-bold whitespace-nowrap">+ New</button>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4">
@@ -510,9 +534,10 @@ export default function AdminDashboard() {
                         {pkg.location} · {(() => {
                           const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
                           const taxRate = parseFloat(settings.tax_percentage || "0");
-                          const isTaxApplied = taxRate > 0 && pkg.tax_status === "Inclusive of Taxes";
-                          const finalPrice = isTaxApplied ? base + (base * taxRate / 100) : base;
-                          return `${pkg.currency || "₹"}${finalPrice.toLocaleString('en-IN')}`;
+                          const isExclusive = pkg.tax_status === "Exclusive of Taxes";
+                          // MASTER REFLECTION: Dashboard must show the SAME price as the live site.
+                          const finalPrice = isExclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
+                          return `${pkg.currency || "₹"}${Math.round(finalPrice).toLocaleString('en-IN')}`;
                         })()}
                       </p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
@@ -521,8 +546,8 @@ export default function AdminDashboard() {
                         )) : (
                           <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{pkg.category || "Uncategorized"}</span>
                         )}
-                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${pkg.tax_status === "Inclusive of Taxes" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-white/5 border-white/10 text-white/20"}`}>
-                          {pkg.tax_status === "Inclusive of Taxes" ? "Tax Active" : "Tax Disabled"}
+                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${pkg.tax_status === "Exclusive of Taxes" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
+                          {pkg.tax_status === "Exclusive of Taxes" ? "+ TAX" : "INCL. TAX"}
                         </span>
                       </div>
                     </div>

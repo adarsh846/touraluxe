@@ -225,7 +225,7 @@ export function ModalShell() {
     <div 
       key="modal-portal" 
       data-modal-portal
-      className={`fixed inset-0 z-[100] flex items-center justify-center p-0 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+      className={`fixed inset-0 z-[300] flex items-center justify-center p-0 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
     >
       {/* Backdrop - Shared across all views */}
       <div 

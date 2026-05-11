@@ -4,6 +4,8 @@ import "./globals.css";
 import { GsapConfig } from "@/components/GsapConfig";
 import { ClientFixes } from "@/components/ClientFixes";
 import { PwaRegister } from "@/components/PwaRegister";
+import { CustomCursor } from "@/components/CustomCursor";
+import Providers from "@/components/Providers";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -49,8 +51,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
     <html lang="en" className="dark">
@@ -59,10 +63,14 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000" />
       </head>
       <body className={`${inter.variable} antialiased`}>
-        <GsapConfig />
-        <PwaRegister />
-        <ClientFixes />
-        {children}
+        <Providers>
+          <GsapConfig />
+          <CustomCursor />
+          <PwaRegister />
+          <ClientFixes />
+          {children}
+          {modal}
+        </Providers>
       </body>
     </html>
   );

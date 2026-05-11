@@ -48,12 +48,12 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar Navigation */}
         <div className="w-full md:w-64 shrink-0">
-          <nav className="flex md:flex-col gap-2 p-1 bg-[#1c1c1e] rounded-3xl border border-white/[0.05]">
+          <nav className="flex flex-wrap md:flex-col gap-2 p-1 bg-[#1c1c1e] rounded-[24px] md:rounded-3xl border border-white/[0.05]">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id as any)}
-                className={`flex-1 md:flex-none px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all text-left ${
+                className={`flex-none px-4 md:px-6 py-2 md:py-3 rounded-[18px] md:rounded-2xl text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all text-center md:text-left whitespace-nowrap ${
                   activeCategory === cat.id 
                     ? "bg-white text-black shadow-xl scale-[1.02]" 
                     : "text-[#86868b] hover:text-white hover:bg-white/5"
