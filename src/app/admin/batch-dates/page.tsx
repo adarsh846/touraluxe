@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import type { Package, BatchDate } from "@/lib/supabase";
@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-white/5 border-white/10 text-white/30",
 };
 
-export default function BatchDateManager() {
+function BatchDateManagerInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const packageIdParam = searchParams.get("package");
@@ -348,5 +348,16 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
       <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] mb-2">{label}</p>
       <p className="text-2xl md:text-3xl font-bold text-white tabular-nums tracking-tighter">{value}</p>
     </div>
+  );
+}
+export default function BatchDateManager() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    }>
+      <BatchDateManagerInner />
+    </Suspense>
   );
 }
