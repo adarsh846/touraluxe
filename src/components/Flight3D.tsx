@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { FLIGHT_PATHS, FlightPathName } from "@/lib/flightPaths";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,7 +18,12 @@ function supportsWebGL() {
   }
 }
 
-export function Flight3D() {
+interface Flight3DProps {
+  containerRef?: React.RefObject<HTMLDivElement | null>;
+  pathName?: FlightPathName;
+}
+
+export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Flight3DProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "unsupported">("loading");
 
@@ -167,7 +173,7 @@ export function Flight3D() {
       planeGroup.add(myPlane);
       setLoadState("ready");
 
-      const flightWrapper = document.getElementById("flight-wrapper");
+      const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
       if (!flightWrapper) return;
 
       const sectionDuration = 1;
@@ -186,104 +192,29 @@ export function Flight3D() {
         defaults: { duration: sectionDuration, ease: "power2.inOut" },
       });
 
-      let delay = 0;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 1: CLOUD-BREAK ENTRANCE
-      // The plane punches through the cloud ceiling from the upper-right,
-      // fading in as it descends — like breaking through an overcast layer.
-      // ══════════════════════════════════════════════════════════
-      gsap.set(planeGroup.position, { x: 350, y: 200, z: -600 });
-      gsap.set(planeGroup.rotation, { x: tau * 0.1, y: tau * -0.25, z: tau * 0.1 });
-
-      // Fade the fuselage in during descent
-      myPlane.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          flightTimeline?.to((child as THREE.Mesh).material, {
-            opacity: 1,
-            duration: sectionDuration * 0.5
-          }, delay);
-        }
+      const pathFunction = FLIGHT_PATHS[pathName] || FLIGHT_PATHS["classic-touraluxe"];
+      pathFunction({
+        timeline: flightTimeline,
+        planeGroup,
+        myPlane,
+        light,
+        rimLight,
+        camera,
+        sectionDuration,
+        xScale,
+        tau
       });
 
-      // Sweep down and left into frame — long, elegant approach
-      flightTimeline.to(planeGroup.position, { x: 0, y: 10, z: -100, ease: "power2.out" }, delay);
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.2, y: tau * -0.1, z: 0, ease: "power2.out" }, delay);
-      // Key light tracks the plane's descent
-      flightTimeline.to(light.position, { x: 50, y: 10, z: 120, ease: "power2.out" }, delay);
-      delay += sectionDuration;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 2: GRACEFUL LEFT BANK
-      // Coordinated turn — the plane rolls into a banked left curve
-      // with nose tracking and the fuselage catching light on the turn.
-      // ══════════════════════════════════════════════════════════
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: -tau * 0.04, ease: "power2.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: -25 * xScale, y: 3, z: -70, ease: "power2.inOut" }, delay);
-      // Rim light shifts to catch the banked wing edge
-      flightTimeline.to(rimLight.position, { x: -60, y: 30, z: -50, ease: "power2.inOut" }, delay);
-      delay += sectionDuration;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 3: RIGHT CORRECTION WITH BREATHING ALTITUDE
-      // Recovery from the bank — a natural S-curve correction
-      // with a gentle altitude breath that feels organic.
-      // ══════════════════════════════════════════════════════════
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: tau * 0.035, ease: "power3.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: 20 * xScale, y: -3, z: -60, ease: "sine.inOut" }, delay);
-      // Key light follows to the right, warming the fuselage
-      flightTimeline.to(light.position, { x: 60, y: 5, z: 100, ease: "sine.inOut" }, delay);
-      delay += sectionDuration;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 4: LEVEL CRUISE — THE HERO MOMENT
-      // Wings level, centered, head-on. This is the money shot
-      // where the plane is perfectly framed for maximum impact.
-      // ══════════════════════════════════════════════════════════
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.25, y: 0, z: 0, ease: "power4.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { x: 0, y: 0, z: -55, ease: "power4.inOut" }, delay);
-      // All lights converge — maximum illumination for the hero frame
-      flightTimeline.to(light.position, { x: 40, y: 0, z: 130, ease: "power4.inOut" }, delay);
-      flightTimeline.to(rimLight.position, { x: -40, y: 20, z: -80, ease: "power4.inOut" }, delay);
-      delay += sectionDuration;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 5: NOSE-UP CLIMB INITIATION
-      // The plane pitches up and begins gaining altitude —
-      // a dramatic shift from level flight to climbing power.
-      // ══════════════════════════════════════════════════════════
-      flightTimeline.to(planeGroup.rotation, { x: tau * 0.17, y: 0, z: tau * 0.02, ease: "power2.inOut" }, delay);
-      flightTimeline.to(planeGroup.position, { z: -90, x: -5 * xScale, y: -8, ease: "power2.inOut" }, delay);
-      // Light shifts below as the plane climbs above it
-      flightTimeline.to(light.position, { x: 30, y: -15, z: 80, ease: "power2.inOut" }, delay);
-      delay += sectionDuration;
-
-      // ══════════════════════════════════════════════════════════
-      // PHASE 6: EXPLOSIVE EXIT — AFTERBURNER CLIMB
-      // Full-power climb toward the viewer. The plane pitches nose-up,
-      // banks slightly, and rockets past the camera with the key light
-      // fading to simulate distance. Exit uses camera-relative Z
-      // to guarantee clearance on every screen size.
-      // ══════════════════════════════════════════════════════════
-      const exitZ = camera.position.z + 170;
-      flightTimeline.to(planeGroup.rotation, { duration: sectionDuration, x: -tau * 0.05, y: 0, z: -tau * 0.1, ease: "none" }, delay);
-      flightTimeline.to(planeGroup.position, { duration: sectionDuration, x: 0, y: 35, z: exitZ, ease: "power2.in" }, delay);
-      // Lights fade as the airliner scorches past
-      flightTimeline.to(light.position, { duration: sectionDuration, x: 0, y: 0, z: 0, ease: "power1.in" }, delay);
-      flightTimeline.to(light, { duration: sectionDuration * 0.7, intensity: 1.8, ease: "power2.in" }, delay);
-      flightTimeline.to(light, { duration: sectionDuration * 0.3, intensity: 0.9, ease: "power2.out" }, delay + sectionDuration * 0.7);
-      flightTimeline.to(rimLight, { duration: sectionDuration, intensity: 0, ease: "power2.in" }, delay);
-
-      const grounds = document.querySelectorAll(".gsap-ground-parallax");
-      const deepClouds = document.querySelectorAll(".gsap-clouds-deep");
-      const foregroundClouds = document.querySelectorAll(".gsap-clouds-foreground");
+      const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
+      const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
+      const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
 
       grounds.forEach((groundNode) => {
         gsap.to(groundNode, {
           y: "30%",
           force3D: true,
           scrollTrigger: {
-            trigger: "#flight-wrapper",
+            trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
             scrub: true,
@@ -296,7 +227,7 @@ export function Flight3D() {
           y: "20%",
           force3D: true,
           scrollTrigger: {
-            trigger: "#flight-wrapper",
+            trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
             scrub: true,
@@ -309,7 +240,7 @@ export function Flight3D() {
           y: "25%",
           force3D: true,
           scrollTrigger: {
-            trigger: "#flight-wrapper",
+            trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
             scrub: true,
@@ -334,7 +265,7 @@ export function Flight3D() {
       }
     );
 
-    const flightWrapperNode = document.getElementById("flight-wrapper");
+    const flightWrapperNode = containerRef?.current || document.getElementById("flight-wrapper");
     let observer: IntersectionObserver | null = null;
 
     if (flightWrapperNode) {
