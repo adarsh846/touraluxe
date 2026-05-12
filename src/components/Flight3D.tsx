@@ -26,6 +26,7 @@ interface Flight3DProps {
 export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Flight3DProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "unsupported">("loading");
+  const isVisible = useRef(false);
 
   useEffect(() => {
     const container = canvasContainerRef.current;
@@ -76,10 +77,13 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     }
 
     renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0); // Guarantee 100% transparency
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Optimization: Cap pixel ratio at 1.5 for mobile to reduce GPU heat
+    const maxPixelRatio = window.innerWidth < 768 ? 1.5 : 2;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+    renderer.setClearColor(0x000000, 0); 
+    
+    // Optimization: Shadows are expensive and not needed for this floating scene
+    renderer.shadowMap.enabled = false;
     container.appendChild(renderer.domElement);
 
     // ─── LIGHTING (original fb37f5e calibration) ───
@@ -109,7 +113,11 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     gsap.set(planeGroup.rotation, { y: tau * -0.25 });
     gsap.set(planeGroup.position, { x: 180, y: -32, z: -60 });
 
-    const render = () => renderer?.render(scene, camera);
+    // Optimization: Skip rendering if the component is off-screen
+    const render = () => {
+      if (!isVisible.current) return;
+      renderer?.render(scene, camera);
+    };
     render();
 
     const onResize = () => {
@@ -271,9 +279,11 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     if (flightWrapperNode) {
       observer = new IntersectionObserver(
         ([entry]) => {
+          isVisible.current = entry.isIntersecting;
           container.style.visibility = entry.isIntersecting ? "visible" : "hidden";
+          if (entry.isIntersecting) render(); // Final render to ensure state is correct
         },
-        { threshold: 0, rootMargin: "100px" }
+        { threshold: 0, rootMargin: "200px" } // Increased margin for smoother entry
       );
       observer.observe(flightWrapperNode);
     }
