@@ -16,6 +16,7 @@ type PackageFormProps = {
 export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const { computePrice, settings } = usePricing();
 
   const parseDuration = (d: string) => {
@@ -65,6 +66,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     destination: (initialData as any)?.destination || "",
     region: (initialData as any)?.region || "",
     trip_type: (initialData as any)?.trip_type || "group",
+    itinerary_url: (initialData as any)?.itinerary_url || "",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -157,6 +159,38 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     }
 
     setUploading(false);
+  };
+  
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPdfUploading(true);
+    setIsDirty(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "x-admin-token": getToken() },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const { url } = await res.json();
+        setForm((prev) => ({ ...prev, itinerary_url: url }));
+        setToast({ show: true, message: "Digital Itinerary synchronized.", type: "success" });
+      } else {
+        setToast({ show: true, message: "PDF Upload failed.", type: "error" });
+      }
+    } catch {
+      setToast({ show: true, message: "Network error during PDF upload.", type: "error" });
+    }
+
+    setPdfUploading(false);
   };
 
   const handleHighlightChange = (index: number, value: string) => {
@@ -776,6 +810,48 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} 
                 options={dynamicOptions.difficulties.map(d => ({ label: d, value: d }))} 
               />
+            </div>
+
+            <div className="space-y-4 pt-8 border-t border-white/[0.02]">
+              <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Digital Assets (Itinerary Flyer)</label>
+              <div className="p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden">
+                <div className="relative z-10 flex-1 space-y-2">
+                  <div className="flex items-center gap-4">
+                    {form.itinerary_url ? (
+                      <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                          {form.itinerary_url.toLowerCase().endsWith('.pdf') ? (
+                            <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v20l10-10L7 2z" /></svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold text-white/60 truncate max-w-[200px]">
+                          {form.itinerary_url.split('/').pop()?.split('-').slice(1).join('-') || "Asset Loaded"}
+                        </span>
+                        <button type="button" onClick={() => setForm(p => ({ ...p, itinerary_url: "" }))} className="text-white/20 hover:text-white transition-colors">×</button>
+                      </div>
+                    ) : (
+                      <p className="text-[14px] font-bold text-white/40 italic tracking-tight">No digital flyer attached yet.</p>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-white/50 leading-relaxed max-w-md italic pt-1">
+                    Upload a high-fidelity PDF or Itinerary Image for users to download.
+                  </p>
+                </div>
+
+                <div className="relative z-10 flex items-center gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => pdfInputRef.current?.click()} 
+                    disabled={pdfUploading}
+                    className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${pdfUploading ? "bg-white/5 text-white/20" : "bg-white/10 text-white hover:bg-white/20 active:scale-95 border border-white/10 shadow-xl"}`}
+                  >
+                    {pdfUploading ? "Uploading..." : form.itinerary_url ? "Replace Asset" : "Upload Asset"}
+                  </button>
+                  <input ref={pdfInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePdfUpload} className="hidden" />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">

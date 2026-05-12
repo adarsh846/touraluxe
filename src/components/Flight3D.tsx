@@ -77,9 +77,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     }
 
     renderer.setSize(w, h);
-    // Optimization: Cap pixel ratio at 1.5 for mobile to reduce GPU heat
-    const maxPixelRatio = window.innerWidth < 768 ? 1.5 : 2;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x000000, 0); 
     
     // Optimization: Shadows are expensive and not needed for this floating scene

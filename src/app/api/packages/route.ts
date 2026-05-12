@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
         destination: body.destination || null,
         region: body.region || null,
         trip_type: body.trip_type || "group",
+        itinerary_url: body.itinerary_url || null,
       },
     ])
     .select()

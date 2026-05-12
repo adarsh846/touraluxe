@@ -76,7 +76,7 @@ export function DestinationNavbar({
         className="z-[100] flex justify-between items-center"
         style={{
           position: onClose ? "absolute" : "fixed",
-          top: "clamp(1.25rem, 5vh, 2.5rem)",
+          top: "calc(env(safe-area-inset-top, 0px) + clamp(1.25rem, 5vh, 2.5rem))",
           left: "clamp(1.25rem, 6vw, 3rem)",
           right: "clamp(1.25rem, 6vw, 3rem)",
         }}

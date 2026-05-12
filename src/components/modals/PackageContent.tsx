@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, memo, useMemo, useCallback, useLayoutEffect } from "react";
 import Image from "next/image";
-import { ChevronRight, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane, ArrowRight } from "lucide-react";
+import { ChevronRight, IndianRupee, CreditCard, Banknote, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane, ArrowRight } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export const PackageContent = memo(({
     ...(experience?.inclusions?.length > 0 ? [{ id: 'hallmarks', label: 'Inclusions', type: 'optional' }] : []),
     ...(experience?.exclusions?.length > 0 ? [{ id: 'exclusions', label: 'Exclusions', type: 'optional' }] : []),
     ...(experience?.highlights?.length > 0 ? [{ id: 'essence', label: 'Highlights', type: 'optional' }] : []),
+    { id: 'investment', label: 'Investment', type: 'core' },
     ...(experience?.faq?.length > 0 ? [{ id: 'faq', label: 'FAQ', type: 'optional' }] : []),
     ...(relatedPackages.length > 0 ? [{ id: 'related', label: 'Similar', type: 'optional' }] : []),
     { id: 'legacy', label: 'Next Steps', type: 'core' }
@@ -146,32 +147,18 @@ export const PackageContent = memo(({
     };
   }, [pricing.finalTotal, isMobile]);
 
-  // ═══ ADAPTIVE GEOMETRY ENGINE ═══
+  // ═══ ADAPTIVE GEOMETRY ENGINE (Simplified for Robustness) ═══
   useLayoutEffect(() => {
-    if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+    if (!pillRef.current) return;
     const updateGeometry = () => {
-      if (!pillRef.current || !segmentsRef.current || !actionRef.current) return;
+      if (!pillRef.current) return;
       const vw = window.innerWidth;
-      const sw = segmentsRef.current.scrollWidth;
-      const aw = actionRef.current.scrollWidth;
-      const gap = Math.min(Math.max(vw * 0.02, 4), 32);
-      const padding = 16;
-      const naturalWidth = sw + aw + gap + padding;
-      const safeMargin = Math.min(Math.max(vw * 0.04, 24), 80);
-      const targetWidth = Math.min(naturalWidth, vw - safeMargin);
-      
-      setIsOverflowing(naturalWidth > vw - safeMargin);
-      gsap.to(pillRef.current, {
-        width: targetWidth,
-        duration: 1.5,
-        ease: "elastic.out(1, 0.35)",
-        force3D: true
-      });
+      setIsMobile(vw < 768);
     };
     updateGeometry();
     window.addEventListener('resize', updateGeometry);
     return () => window.removeEventListener('resize', updateGeometry);
-  }, [pricing.finalTotal, activeSection]);
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -413,8 +400,8 @@ export const PackageContent = memo(({
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
               {experience.inclusions.map((item: string, i: number) => (
                 <div key={i} className="flex items-center gap-4 p-6 rounded-[2rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] transition-all duration-700 group">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                    <ShieldCheck size={18} className="text-white/40 group-hover:text-emerald-400 transition-colors" />
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <ShieldCheck size={18} className="text-white/70 group-hover:text-emerald-400 transition-colors" />
                   </div>
                   <span className="text-lg lg:text-xl text-white/90 font-bold tracking-tight text-left">{item}</span>
                 </div>
@@ -434,8 +421,8 @@ export const PackageContent = memo(({
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
               {experience.exclusions.map((item: string, i: number) => (
                 <div key={i} className="flex items-center gap-4 p-6 rounded-[2rem] bg-red-500/[0.02] border border-red-500/10 hover:bg-red-500/[0.05] hover:border-red-500/20 transition-all duration-700 group">
-                  <div className="w-10 h-10 rounded-full bg-red-500/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                    <span className="text-red-500/40 group-hover:text-red-400 font-black text-xl transition-colors">×</span>
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                    <span className="text-red-500/70 group-hover:text-red-400 font-black text-xl transition-colors">×</span>
                   </div>
                   <span className="text-lg lg:text-xl text-white/70 font-bold tracking-tight text-left">{item}</span>
                 </div>
@@ -450,18 +437,124 @@ export const PackageContent = memo(({
             id={`section-${navChapters.findIndex(c => c.id === 'essence')}`}
             className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
           >
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Highlights</h2>
+            <h2 className="text-3xl lg:text-[5rem] font-bold text-white tracking-tight leading-none">Highlights</h2>
             
             <div className="w-full max-w-3xl grid gap-4">
               {experience.highlights?.map((item: string, i: number) => (
-                <div key={i} className="flex flex-col items-center justify-center p-6 lg:p-10 rounded-[3rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all duration-700 group gap-2">
-                  <Sparkles size={20} className="text-white/20 group-hover:text-white/40 transition-all duration-700" />
-                  <span className="text-xl lg:text-3xl text-white/90 font-bold tracking-tight transition-all duration-700">{item}</span>
+                <div key={i} className="flex flex-col items-center justify-center p-4 lg:p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-700 group gap-1.5">
+                  <Sparkles size={16} className="text-white/40 group-hover:text-white/60 transition-all duration-700" />
+                  <span className="text-lg lg:text-xl text-white/70 font-bold tracking-tight transition-all duration-700">{item}</span>
                 </div>
               ))}
             </div>
           </section>
         )}
+
+        <section 
+          id={`section-${navChapters.findIndex(c => c.id === 'investment')}`}
+          className="min-h-screen flex items-center justify-center px-6 md:px-12 lg:px-20 animate-in fade-in duration-1000 snap-center snap-always overflow-hidden"
+        >
+          <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-10 lg:gap-16 py-16">
+            
+            {/* Left: Branding Narrative (Desktop Highlight) */}
+            <div className="flex-1 text-center lg:text-left space-y-4 md:space-y-6">
+              <div className="inline-flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+                <Sparkles size={14} className="text-white/80" />
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/80">Legacy Investment</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tighter">
+                Curated <span className="text-white/30 italic">Value</span>
+              </h2>
+              <p className="text-[11px] md:text-sm lg:text-[15px] text-white/60 max-w-sm mx-auto lg:mx-0 leading-relaxed font-medium italic">
+                A masterpiece of travel architecture, where every fiscal detail is refined for absolute transparency and unrivaled excellence.
+              </p>
+            </div>
+
+            {/* Right: Pricing Pillar & Metadata Manifest */}
+            <div className="flex-1 w-full max-w-2xl flex flex-col items-center lg:items-end gap-8 lg:gap-12">
+              
+              {/* Main Pricing Cluster */}
+              <div className="flex flex-col items-center lg:items-end gap-2">
+                <div className="flex flex-col items-center lg:items-end gap-2 md:gap-3">
+                  {pricing.hasSavings && (
+                    <div className="flex flex-col items-center lg:items-start self-center lg:self-start gap-1">
+                      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Original Trip Cost</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-white/30 text-base md:text-xl font-bold line-through tracking-tighter decoration-white/30">
+                          {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                        </span>
+                        <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30 shadow-[0_0_20px_rgba(52,211,153,0.1)]">
+                          Save {pricing.discountPercent}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-center lg:items-end gap-2">
+                    <div className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter tabular-nums leading-none flex items-center gap-3">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 px-3 py-1 md:px-4 md:py-1.5 rounded-full border border-white/20 whitespace-nowrap">Per Person</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Self-Healing Metadata Grid (Right Aligned on Desktop) */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-end gap-x-8 gap-y-5 md:gap-x-12 lg:gap-x-14">
+                {(experience.tax_label || pricing.taxLabel) && (
+                  <div className="flex flex-col items-center lg:items-end gap-1.5">
+                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Tax Status</span>
+                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.tax_label || pricing.taxLabel}</span>
+                  </div>
+                )}
+                {experience.duration && (
+                  <div className="flex flex-col items-center lg:items-end gap-1.5">
+                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Duration</span>
+                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.duration}</span>
+                  </div>
+                )}
+                {experience.booking_status && (
+                  <div className="flex flex-col items-center lg:items-end gap-1.5">
+                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Booking</span>
+                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.booking_status}</span>
+                  </div>
+                )}
+                {experience.guests && (
+                  <div className="flex flex-col items-center lg:items-end gap-1.5">
+                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Ideal For</span>
+                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.guests}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Digital Itinerary Asset Button */}
+              {experience.itinerary_url && (
+                <div className="pt-2">
+                  <a 
+                    href={experience.itinerary_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="group relative flex items-center gap-4 px-6 md:px-8 py-3 md:py-4 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500"
+                  >
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
+                      {experience.itinerary_url.toLowerCase().endsWith('.pdf') ? (
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v20l10-10L7 2z" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/50 leading-none mb-1">Digital Itinerary</span>
+                      <span className="text-xs md:text-sm font-bold text-white tracking-tight">Download Full Itinerary</span>
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+
 
         {/* CHAPTER: FAQ */}
         {experience.faq && experience.faq.length > 0 && (
@@ -594,75 +687,85 @@ export const PackageContent = memo(({
           onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchEnd={handleGlowLeave}
-          className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-hidden"
-          style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
+          className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit max-w-[calc(100vw-24px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
         >
           {/* ════ PHYSICAL JELLY SHELL ════ */}
           <div 
             ref={jellyRef}
-            className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none"
-          />
+            className="relative flex items-center justify-between p-2 transform-gpu"
+          >
+            {/* Background Layer */}
+            <div className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
 
-          {/* iOS 26 Pointer-Tracking Glow Overlay */}
-          <div 
-            ref={glowRef}
-            className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
-            style={{ opacity: 0, mixBlendMode: 'screen' }}
-          />
+            {/* iOS 26 Pointer-Tracking Glow Overlay */}
+            <div 
+              ref={glowRef}
+              className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
+              style={{ opacity: 0, mixBlendMode: 'screen' }}
+            />
 
-          {/* Metadata Segments Area */}
-          <div className="relative z-10 flex items-center min-w-0" ref={segmentsRef}>
-            <div className="flex flex-col items-center justify-center" style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
-              <span className="font-black uppercase text-white/70 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
-                Investment
-              </span>
-              <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
-                <div className="flex items-baseline" style={{ gap: 'clamp(3px, 0.5vw, 8px)' }}>
-                  <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.6rem)' }}>
-                    {pricing.symbol}{pricing.finalTotal.toLocaleString()}
-                  </p>
-                  {pricing.hasSavings && (
-                    <span className="font-medium tracking-tight text-white/25 line-through whitespace-nowrap" style={{ fontSize: 'clamp(7px, 1.2vw, 0.85rem)' }}>
-                      {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+            {/* Content Container (Wrapped in Jelly) */}
+            <div className="relative z-10 flex items-center justify-between w-full h-full" style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}>
+            {/* Metadata Segments Area */}
+            <div className="relative z-10 flex items-center min-w-0" ref={segmentsRef}>
+              <div className="flex items-center justify-center" style={{ padding: '0 clamp(0.2rem, 1.5vw, 2rem)', gap: 'clamp(4px, 1.2vw, 16px)' }}>
+                  
+                  {/* Left Column: Primary Price */}
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="font-black uppercase text-white/40 md:text-white/70 whitespace-nowrap text-center mb-0.5" style={{ fontSize: 'clamp(6px, 1vw, 7px)', letterSpacing: '0.4em' }}>
+                      Investment
                     </span>
-                  )}
+                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(20px, 4.5vw, 1.6rem)' }}>
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                    </p>
+                  </div>
+
+                  {/* Right Column: Secondary Metadata Stack */}
+                  <div className="flex flex-col items-start justify-center gap-0.5 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(7px, 1.2vw, 7px)' }}>
+                        / Person
+                      </span>
+                      {pricing.hasSavings && (
+                        <span className="font-medium tracking-tight text-white/40 line-through whitespace-nowrap" style={{ fontSize: 'clamp(8px, 1.4vw, 0.8rem)' }}>
+                          {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {pricing.hasSavings ? (
+                      <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(6px, 1vw, 6px)' }}>
+                        Save {pricing.discountPercent}%
+                      </span>
+                    ) : (pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? (
+                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(4px, 1vw, 6px)' }}>
+                        {pricing.taxLabel}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex flex-col items-start">
-                  <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
-                    / Person
-                  </span>
-                  {pricing.hasSavings ? (
-                    <span className="font-black uppercase tracking-wider text-emerald-400/80 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
-                      Save {pricing.discountPercent}%
-                    </span>
-                  ) : (pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? (
-                    <span className="font-bold uppercase tracking-wider text-white/25 leading-none whitespace-nowrap mt-0.5" style={{ fontSize: 'clamp(4px, 0.7vw, 6px)' }}>
-                      {pricing.taxLabel}
-                    </span>
-                  ) : null}
-                </div>
+              </div>
+              
+              {/* Action Button Area */}
+              <div ref={actionRef} className="flex items-center justify-end shrink-0" style={{ paddingLeft: 'clamp(0px, 1vw, 12px)' }}>
+                <Magnetic intensity={0.3}>
+                  <button 
+                    onClick={() => openModal('BOOKING', experience)}
+                    className="group/btn relative overflow-hidden h-8.5 md:h-12 xl:h-14 px-3 md:px-10 rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center gap-1 md:gap-2"
+                  >
+                    <div className="relative z-10 flex items-center justify-center gap-1 md:gap-2">
+                      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.3em] whitespace-nowrap ml-[0.15em] md:ml-[0.3em]">
+                        Reserve
+                      </span>
+                      <ChevronRight strokeWidth={2.5} className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0 w-3 h-3 md:w-[18px] md:h-[18px]" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                  </button>
+                </Magnetic>
               </div>
             </div>
           </div>
-          
-          {/* Action Button Area */}
-          <div ref={actionRef} className="relative z-10 flex items-center justify-end shrink-0" style={{ paddingLeft: 'clamp(0px, 1vw, 16px)' }}>
-            <Magnetic intensity={0.3}>
-              <button 
-                onClick={() => openModal('BOOKING', experience)}
-                className="group/btn relative overflow-hidden h-10 md:h-12 xl:h-14 px-8 md:px-12 rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <div className="relative z-10 flex items-center justify-center gap-2">
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
-                    Reserve
-                  </span>
-                  <ChevronRight size={18} strokeWidth={3} className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-              </button>
-            </Magnetic>
           </div>
-        </div>
       </div>
     </>)}
     </div>

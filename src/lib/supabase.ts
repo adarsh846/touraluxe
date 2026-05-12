@@ -50,6 +50,7 @@ export type Package = {
   destination?: string;
   region?: string;
   trip_type?: string;
+  itinerary_url?: string;
 };
 
 export type Destination = {

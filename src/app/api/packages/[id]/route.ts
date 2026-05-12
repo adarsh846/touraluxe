@@ -75,6 +75,7 @@ export async function PUT(
       destination: body.destination ?? null,
       region: body.region ?? null,
       trip_type: body.trip_type ?? "group",
+      itinerary_url: body.itinerary_url ?? null,
     })
     .eq("id", id)
     .select()

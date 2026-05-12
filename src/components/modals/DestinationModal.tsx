@@ -62,7 +62,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
       {/* ═══ PANEL — Full Screen to match Page structure ═══ */}
       <div
         ref={panelRef}
-        className="relative w-full h-screen bg-[#0a0a0b] flex flex-col transform-gpu"
+        className="relative w-full h-[100svh] md:h-screen bg-[#0a0a0b] flex flex-col transform-gpu"
         data-lenis-prevent
       >
         {/* Cinematic Grain Overlay */}
@@ -73,6 +73,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
         <div
           className="pointer-events-none absolute top-0 left-0 right-0 h-32 md:h-36 z-[90] transform-gpu transition-opacity duration-1000"
           style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
             opacity: isScrolled ? 0.95 : 0.85,
             background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
             backdropFilter: "blur(5px)",

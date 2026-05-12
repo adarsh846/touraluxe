@@ -237,7 +237,7 @@ export function ModalShell() {
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
+        className="relative w-full h-[100svh] md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
         data-lenis-prevent
       >
         {/* Global Error Alert */}
@@ -268,6 +268,7 @@ export function ModalShell() {
           ref={headerMaskRef}
           className="pointer-events-none absolute top-0 left-0 right-0 h-24 md:h-32 transition-all duration-1000 backdrop-blur-[5px] z-[90] transform-gpu will-change-[opacity,backdrop-filter]" 
           style={{
+            paddingTop: "env(safe-area-inset-top, 0px)",
             opacity: 0.85,
             background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
             maskImage: "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
@@ -276,7 +277,11 @@ export function ModalShell() {
         />
 
         {/* Shared Top Controls */}
-        <div className="absolute top-[clamp(1.25rem,5vh,2.5rem)] left-[clamp(1.25rem,6vw,3rem)] right-[clamp(1.25rem,6vw,3rem)] z-[100] flex justify-between items-center pointer-events-none">
+        <div className="absolute left-[clamp(1.25rem,6vw,3rem)] right-[clamp(1.25rem,6vw,3rem)] z-[100] flex justify-between items-center pointer-events-none"
+          style={{
+            top: "calc(env(safe-area-inset-top, 0px) + clamp(1.25rem, 5vh, 2.5rem))"
+          }}
+        >
           <div className="flex-1 flex items-center justify-start pointer-events-auto">
             <Magnetic>
               <div className="relative group block">
