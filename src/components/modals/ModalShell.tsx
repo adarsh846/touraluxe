@@ -371,7 +371,10 @@ export function ModalShell() {
                         if (activeView === 'BOOKING') {
                           if (activeStep === 2) return "Finalize";
                           if (currentPhase > 1) {
-                            return ["", "Package", "Timeline", "Guests", "Finalize"][currentPhase - 1];
+                            const phaseLabels = bookingData 
+                              ? ["", "Package", "Timeline", "Guests", "Finalize"] 
+                              : ["", "Discovery", "Timeline", "Guests", "Finalize"];
+                            return phaseLabels[currentPhase - 1];
                           }
                           if (history.length > 0) {
                             const prev = history[history.length - 1].view;

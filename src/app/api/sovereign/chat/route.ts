@@ -124,13 +124,11 @@ export async function POST(req: NextRequest) {
           const isPlace = validTypes.includes(type) || category === 'boundary';
           
           if (isPlace) {
-            // Check if it's a Global Landmark (High Importance)
-            if (importance > 0.75) {
+            // Tier 2: Open Horizon Protocol (Liberalized Recognition)
+            // If it's a recognized place with reasonable authority (>0.4), we trust it.
+            if (importance > 0.4 || hasTravelIntent(message)) {
               validLoc = result.display_name.split(',')[0];
-              isGlobalLandmark = true;
-            } else if (hasTravelIntent(message)) {
-              // It's a real place, and the user provided TRAVEL INTENT
-              validLoc = result.display_name.split(',')[0];
+              isGlobalLandmark = true; // Elevate to verified status
             }
           }
         }

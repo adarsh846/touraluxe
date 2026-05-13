@@ -70,6 +70,48 @@ const DOSSIER_PROTOCOL = {
   }
 };
 
+// ════ LUXURY VISUAL MANIFEST ════
+// Hand-picked, high-fidelity Unsplash assets for instant, accurate visual portal
+const LUXURY_VISUAL_MAP: Record<string, string> = {
+  "GOA": "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=1600&q=85&auto=format&fit=crop",
+  "PARIS": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1600&q=85&auto=format&fit=crop",
+  "LONDON": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=1600&q=85&auto=format&fit=crop",
+  "MALDIVES": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1600&q=85&auto=format&fit=crop",
+  "NEW YORK": "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1600&q=85&auto=format&fit=crop",
+  "DUBAI": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1600&q=85&auto=format&fit=crop",
+  "TOKYO": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SANTORINI": "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=1600&q=85&auto=format&fit=crop",
+  "BALI": "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SWITZERLAND": "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=1600&q=85&auto=format&fit=crop",
+  "ICELAND": "https://images.unsplash.com/photo-1476610182048-b716b8518aae?q=80&w=1600&q=85&auto=format&fit=crop",
+  "AMALFI": "https://images.unsplash.com/photo-1533903345306-15d1c30952de?q=80&w=1600&q=85&auto=format&fit=crop",
+  "KASHMIR": "https://images.unsplash.com/photo-1566833925222-792012999b56?q=80&w=1600&q=85&auto=format&fit=crop",
+  "AYODHYA": "https://images.unsplash.com/photo-1627894483216-2138af692e2e?q=80&w=1600&q=85&auto=format&fit=crop",
+  "KEDARNATH": "https://images.unsplash.com/photo-1626640626372-88f6c3104332?q=80&w=1600&q=85&auto=format&fit=crop",
+  "VARANASI": "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?q=80&w=1600&q=85&auto=format&fit=crop",
+  "JAIPUR": "https://images.unsplash.com/photo-1599661046289-e318978b8e41?q=80&w=1600&q=85&auto=format&fit=crop",
+  "UDAIPUR": "https://images.unsplash.com/photo-1590691566710-184518335478?q=80&w=1600&q=85&auto=format&fit=crop",
+  "LEH": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?q=80&w=1600&q=85&auto=format&fit=crop",
+  "LADAKH": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?q=80&w=1600&q=85&auto=format&fit=crop",
+  "AGRA": "https://images.unsplash.com/photo-1564507592333-c60657451dd6?q=80&w=1600&q=85&auto=format&fit=crop",
+  "TAJ MAHAL": "https://images.unsplash.com/photo-1564507592333-c60657451dd6?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SHIMLA": "https://images.unsplash.com/photo-1597033711377-99a3347575df?q=80&w=1600&q=85&auto=format&fit=crop",
+  "MANALI": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1600&q=85&auto=format&fit=crop",
+  "MUNNAR": "https://images.unsplash.com/photo-1516690561799-46d8f74f90f6?q=80&w=1600&q=85&auto=format&fit=crop",
+  "KERALA": "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?q=80&w=1600&q=85&auto=format&fit=crop",
+  "RAJASTHAN": "https://images.unsplash.com/photo-1599661046289-e318978b8e41?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SRINAGAR": "https://images.unsplash.com/photo-1566833925222-792012999b56?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SINGAPORE": "https://images.unsplash.com/photo-1525625239514-75b4b17b9979?q=80&w=1600&q=85&auto=format&fit=crop",
+  "MALAYSIA": "https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?q=80&w=1600&q=85&auto=format&fit=crop",
+  "VIETNAM": "https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=1600&q=85&auto=format&fit=crop",
+  "HONG KONG": "https://images.unsplash.com/photo-1506351466446-9748074542ae?q=80&w=1600&q=85&auto=format&fit=crop",
+  "KYOTO": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1600&q=85&auto=format&fit=crop",
+  "ROME": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1600&q=85&auto=format&fit=crop",
+  "AMSTERDAM": "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?q=80&w=1600&q=85&auto=format&fit=crop",
+  "SPAIN": "https://images.unsplash.com/photo-1509840144324-47e44b5abd73?q=80&w=1600&q=85&auto=format&fit=crop",
+  "GREECE": "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=2000&auto=format&fit=crop"
+};
+
 const UI_CONFIG = {
   THRESHOLDS: {
     SCROLL_MIN: 30,
@@ -124,7 +166,9 @@ export const BookingContent = memo(function BookingContent({
   const [endDate, setEndDate] = useState("");
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
+  const [dynamicImage, setDynamicImage] = useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
+  const [isImgLoaded, setIsImgLoaded] = useState(false);
   const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age: string; type: 'adult' | 'child' | 'infant' }[]>([]);
 
   // Synchronize additionalGuests when traveler counts change
@@ -298,6 +342,30 @@ export const BookingContent = memo(function BookingContent({
     // Skip the simulated validation delay and go straight to Phase 2
     setDiscoveryPhase(2);
   };
+
+  // ════ DYNAMIC VISUAL ENGINE ════
+  // Fetches high-fidelity cinematic backgrounds based on destination intent
+  useEffect(() => {
+    // Use destination or the finalized package title (e.g. "Paris")
+    const rawQuery = (destination || internalPackage?.title || "").trim();
+    const query = rawQuery.toUpperCase();
+    
+    if (query.length >= 2) {
+      setIsImgLoaded(false); // Reset loading state for new destination
+      // 1. Check our Elite Manifest first for instant, verified accuracy
+      if (LUXURY_VISUAL_MAP[query]) {
+        setDynamicImage(LUXURY_VISUAL_MAP[query]);
+        return;
+      }
+
+      // Use Unsplash Featured Search for elite-tier travel imagery
+      // Optimized for 1600px Retina-clarity and fast-loading
+      const imageUrl = `https://images.unsplash.com/featured/1600x900?${encodeURIComponent(rawQuery)}&q=85&auto=format&fit=crop`;
+      setDynamicImage(imageUrl);
+    } else {
+      setDynamicImage(null);
+    }
+  }, [destination, internalPackage?.title]);
 
   const handlePackageSelect = (pkg: any) => {
     // Open the full package details view
@@ -680,45 +748,52 @@ export const BookingContent = memo(function BookingContent({
       </div>
 
       {/* 2. SOVEREIGN BLACK FOUNDATION (IMMERSIVE CONTEXT) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 bg-[#0a0a0b]">
-        <div
-          className={cn(
-            "absolute inset-0 transition-opacity duration-[3000ms] ease-in-out",
-            internalPackage?.image ? "opacity-100" : "opacity-0",
-          )}
-        >
-          {internalPackage?.image && (
-            <img
-              src={internalPackage.image}
-              className="absolute inset-0 w-full h-full object-cover opacity-[0.15] blur-[80px] scale-110 saturate-[1.5]"
-              alt="Atmosphere"
-            />
-          )}
-        </div>
-        {/* Subtle Vignette for Depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0b]/60 to-[#0a0a0b]" />
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-[140px] opacity-20" />
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#0a0a0b]">
+        {/* Layer 1: Universal Fallback (Always present, lowest) */}
+        <img
+          src="/assets/discovery-fallback.png"
+          className="absolute inset-0 w-full h-full object-cover brightness-[0.4] opacity-40 blur-[15px] scale-110"
+          alt="Foundation"
+        />
+        
+        {/* Layer 2: Secondary Location Fallback (LoremFlickr - high speed) */}
+        {(dynamicImage || internalPackage?.image) && (
+          <img
+            src={`https://loremflickr.com/1200/800/${encodeURIComponent((destination || internalPackage?.title || "").trim())},travel/all`}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 brightness-[0.6]",
+              discoveryPhase === 1 ? "opacity-50 blur-[20px]" : "opacity-80 blur-0"
+            )}
+            alt="Secondary Fallback"
+          />
+        )}
+
+        {/* Layer 3: Primary Luxury Asset (Unsplash - Gold Standard) */}
+        {(dynamicImage || internalPackage?.image) && (
+          <img
+            key={dynamicImage || internalPackage?.image}
+            src={dynamicImage || internalPackage?.image}
+            loading="eager"
+            onLoad={() => setIsImgLoaded(true)}
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-all duration-[2000ms] will-change-transform brightness-[0.8]",
+              !isImgLoaded ? "opacity-0" : (discoveryPhase === 1 ? "opacity-70 blur-[10px] scale-110" : "opacity-100 scale-[1.01] blur-0")
+            )}
+            alt={internalPackage?.title || destination}
+          />
+        )}
+
+        {/* Luxury Vignette */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0a0a0b] opacity-90" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.03] to-transparent rounded-full blur-[140px] opacity-20" />
       </div>
 
       {/* 3. VIEWPORT-LOCKED WORKSPACE */}
       <div className="flex-1 w-full relative z-10 flex flex-col overflow-hidden">
         <div className="flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden">
-          {/* Unified Background Hero for Phases 02-04 */}
-          {discoveryPhase > 1 && (
-            <div className="absolute inset-0 w-full h-full animate-in fade-in duration-1000 z-0 overflow-hidden bg-[#0a0a0b]">
-              <div className="absolute inset-0 w-full h-full overflow-hidden">
-                {internalPackage?.image && (
-                  <img
-                    src={internalPackage.image}
-                    className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-60"
-                    alt={internalPackage.title}
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#0a0a0b]" />
-                <div className="absolute inset-0 bg-black/20" />
-              </div>
-            </div>
-          )}
+          {/* Background Hero was here - moved to root foundation */}
           {step === 1 && (
             <div className="w-full h-full flex flex-col items-center justify-center px-6 md:px-12 relative">
               {/* PHASE 01: DESTINY (PAN-HORIZON) */}
