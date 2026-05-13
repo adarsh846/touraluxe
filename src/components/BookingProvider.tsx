@@ -22,6 +22,7 @@ interface ModalState {
   view: ModalView;
   data?: any;
   source?: string;
+  intent?: string;
 }
 
 interface BookingContextType {
@@ -30,16 +31,17 @@ interface BookingContextType {
   data: any;
   source: string;
   isClosing: boolean;
-  openModal: (view: ModalView, data?: any, source?: string) => void;
+  openModal: (view: ModalView, data?: any, source?: string, intent?: string) => void;
   closeModal: () => void;
   // Legacy support for openBooking
-  openBooking: (data?: PackageData, source?: string) => void;
+  openBooking: (data?: PackageData, source?: string, intent?: string) => void;
   startClosing: () => void;
   goBack: () => void;
   canGoBack: boolean;
   history: ModalState[];
   packageData?: PackageData;
   bookingSource?: string;
+  intent?: string;
   error: string | null;
   errorTrigger: number;
   setError: (err: string | null) => void;
@@ -81,7 +83,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
-  const openModal = useCallback((view: ModalView, data?: any, source: string = "GENERAL_INQUIRY") => {
+  const openModal = useCallback((view: ModalView, data?: any, source: string = "GENERAL_INQUIRY", intent?: string) => {
     setErrorState(null); // Clear errors on view change
     if (isOpenRef.current && stateRef.current.view && stateRef.current.view !== view) {
       const currentState = stateRef.current;
@@ -90,7 +92,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setHistory([]);
     }
     
-    setModalState({ view, data, source });
+    setModalState({ view, data, source, intent });
     setIsClosing(false);
     setIsOpen(true);
   }, []);
@@ -107,8 +109,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   }, []);
 
-  const openBooking = useCallback((data?: PackageData, source: string = "GENERAL_INQUIRY") => {
-    openModal('BOOKING', data, source);
+  const openBooking = useCallback((data?: PackageData, source: string = "GENERAL_INQUIRY", intent?: string) => {
+    openModal('BOOKING', data, source, intent);
   }, [openModal]);
 
   const startClosing = useCallback(() => {
@@ -141,6 +143,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     history,
     packageData: modalState.view === 'BOOKING' ? modalState.data : undefined,
     bookingSource: modalState.source,
+    intent: modalState.intent,
     error,
     errorTrigger,
     setError

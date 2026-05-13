@@ -14,14 +14,19 @@ import {
   X,
   ArrowRight,
   LockKeyhole,
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
+import { useSovereign } from "@/hooks/useSovereign";
 import { Magnetic } from "@/components/Magnetic";
+import { PackageBadges } from "@/components/ui/PackageBadges";
 import gsap from "gsap";
 import { usePricing } from "@/hooks/usePricing";
+
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
 const REFERENCE_PREFIX = "TRX-";
@@ -100,9 +105,10 @@ export const BookingContent = memo(function BookingContent({
   onPhaseChange?: (phase: number) => void;
   onStepChange?: (step: number) => void;
 }) {
-  const { setError } = useBooking();
+  const { setError, intent } = useBooking();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const hasPrefilled = useRef(false);
 
   // Flow State
   const [step, setStep] = useState(1);
@@ -243,8 +249,35 @@ export const BookingContent = memo(function BookingContent({
     isSearching,
     trending,
     manifest,
-    clearSearch,
+    clearSearch: clearDiscovery,
   } = useDiscovery<any>();
+  
+  const {
+    askSovereign,
+    clearSovereign,
+    isThinking,
+    sovereignResponse,
+    state: sovereignState
+  } = useSovereign();
+
+  // Sovereign Portal Intent Synchronization
+  useEffect(() => {
+    if (intent && discoveryPhase === 1 && step === 1 && !hasPrefilled.current) {
+      setDestination(intent);
+      hasPrefilled.current = true;
+      if (manifest.length > 0) {
+        askSovereign(intent, manifest);
+      }
+    }
+  }, [intent, manifest, discoveryPhase, step, askSovereign]);
+
+  const [isValidating, setIsValidating] = useState(false);
+  const [requestId, setRequestId] = useState<string>("");
+
+  const clearSearch = useCallback(() => {
+    clearDiscovery();
+    clearSovereign();
+  }, [clearDiscovery, clearSovereign]);
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Navigation Logic
@@ -254,16 +287,29 @@ export const BookingContent = memo(function BookingContent({
     if (phase < discoveryPhase) setDiscoveryPhase(phase);
   };
 
+  const initiateSovereignBooking = (pkg: any) => {
+    setInternalPackage(pkg);
+    
+    // Generate TRX ID (Prompt Section III.2 - Idempotency)
+    // We do this instantly now to keep the flow snappy
+    const newRequestId = `${REFERENCE_PREFIX}${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+    setRequestId(newRequestId);
+
+    // Skip the simulated validation delay and go straight to Phase 2
+    setDiscoveryPhase(2);
+  };
+
   const handlePackageSelect = (pkg: any) => {
-    // Open the full package details view instead of advancing phases
+    // Open the full package details view
     openModal?.("PACKAGE", pkg, bookingSource);
   };
 
   // Sync state with props (Essential for seamless flow between Discovery and Details)
   useEffect(() => {
     if (packageData) {
-      setInternalPackage(packageData);
-      setDiscoveryPhase(2);
+      // If we have packageData, initiate the Sovereign Volatility Protocol
+      // instead of jumping straight to Phase 2.
+      initiateSovereignBooking(packageData);
     } else {
       setDiscoveryPhase(1);
     }
@@ -300,10 +346,14 @@ export const BookingContent = memo(function BookingContent({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      search(destination);
+      if (destination.trim().length >= 2) {
+        askSovereign(destination, manifest);
+      } else {
+        clearSovereign();
+      }
     }, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
     return () => clearTimeout(timer);
-  }, [destination, search]);
+  }, [destination, manifest, askSovereign, clearSovereign]);
 
   const startInputRef = React.useRef<HTMLInputElement>(null);
   const endInputRef = React.useRef<HTMLInputElement>(null);
@@ -535,15 +585,22 @@ export const BookingContent = memo(function BookingContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          requestId: requestId || "LEGACY-INQUIRY",
           packageId: internalPackage?.id || packageData?.id || "GENERAL_INQUIRY",
           packageName:
             internalPackage?.title || packageData?.title || destination || DOSSIER_PROTOCOL.FALLBACKS.LOCATION,
           travelerCount: adults + kids + infants,
+          travelers: {
+            adults,
+            kids,
+            infants,
+            guests: additionalGuests
+          },
           customerName,
           customerEmail,
-          customerPhone,
+          customerPhone: `${selectedCountry.code}${customerPhone}`,
           specialRequests: `Dates: ${startDate} to ${endDate} | Notes: ${notes}`,
-          bookingSource: bookingSource || "WEB_DOSSIER",
+          bookingSource: bookingSource || "SOVEREIGN_ENGINE",
           totalAmount: Math.round(pricing.finalTotal),
         }),
       });
@@ -680,16 +737,16 @@ export const BookingContent = memo(function BookingContent({
                         : "opacity-100 scale-100 mb-[clamp(1rem,3vh,2rem)]",
                     )}
                   >
-                    <h2 className="text-[clamp(1.2rem,6.5vw,7rem)] font-bold tracking-[-0.06em] text-white/90 leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center whitespace-nowrap">
-                      Explore{" "}
-                      <span className="text-white/50 font-medium italic tracking-tight">
+                    <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center whitespace-nowrap">
+                      <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
+                      <span className="text-white/20 font-light italic tracking-tight">
                         new horizons.
                       </span>
                     </h2>
                     <p
                       className={cn(
                         "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 whitespace-nowrap",
-                        searchResults.length > 0 && destination.length > 0
+                        (sovereignResponse || isThinking) && destination.length > 0
                           ? "opacity-0 h-0 overflow-hidden"
                           : "opacity-100 mb-[clamp(1.5rem,4vh,2.5rem)]",
                       )}
@@ -700,7 +757,7 @@ export const BookingContent = memo(function BookingContent({
                     <div
                       className={cn(
                         "transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) mx-auto",
-                        searchResults.length > 0 && destination.length > 0
+                        (sovereignResponse || isThinking) && destination.length > 0
                           ? "max-w-md"
                           : "max-w-2xl",
                       )}
@@ -721,9 +778,9 @@ export const BookingContent = memo(function BookingContent({
                           onBlur={() =>
                             setTimeout(() => setSearchFocused(false), 200)
                           }
-                          placeholder="Type a Destiny..."
+                          placeholder="Where should your journey begin?"
                           autoComplete="off"
-                          className="w-full py-4 pl-14 pr-12 text-lg font-medium focus:outline-none transition-all duration-700 bg-white/[0.03] border border-white/[0.06] focus:border-white/20 rounded-2xl md:rounded-[32px] text-white placeholder:text-white/10 backdrop-blur-3xl shadow-sm"
+                          className="w-full py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-2xl md:rounded-[40px] text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                           autoFocus
                         />
                         {destination.length > 0 && (
@@ -744,203 +801,180 @@ export const BookingContent = memo(function BookingContent({
                   {/* SEARCH MANIFEST & STATUS BAR */}
                   <div
                     className={cn(
-                      "w-full px-[clamp(1rem,6vw,3rem)] mb-6 md:mb-8 flex items-center justify-between transition-opacity duration-700",
-                      searchResults.length > 0 && destination.length > 0
+                      "w-full px-[clamp(1rem,6vw,3rem)] mb-6 md:mb-8 flex items-center justify-center transition-opacity duration-700",
+                      (sovereignResponse || isThinking) && destination.length > 0
                         ? "opacity-100"
                         : "opacity-0 pointer-events-none",
                     )}
                   >
-                    <div className="flex items-center gap-6">
-                      {searchResults.length > 0 && !isSearching && (
-                        <div className="flex items-center gap-3 animate-in fade-in duration-700">
-                          <div className="w-1 h-1 rounded-full bg-white/40" />
-                          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/60">
-                            {searchResults.length}{" "}
-                            {searchResults.length === 1
-                              ? "Manifest"
-                              : "Manifests"}{" "}
-                            Found
-                          </span>
+                    <div className="flex items-center justify-center gap-6 w-full">
+                      {sovereignResponse && !isThinking && (
+                        <div className="flex flex-col items-center gap-6 animate-in fade-in duration-700 w-full justify-center text-center">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-1.5 h-1.5 rounded-full animate-pulse shrink-0",
+                              sovereignState === 'ESCALATING' ? "bg-amber-400" : 
+                              sovereignState === 'CLARIFYING' ? "bg-rose-400" : "bg-emerald-400"
+                            )} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] md:text-xs font-medium tracking-wide text-white/50 md:text-white/90 leading-relaxed block max-w-[280px] md:max-w-none">
+                                {sovereignResponse.ui_message}
+                              </span>
+                            </div>
+                          </div>
+                          {sovereignState === 'ESCALATING' && (
+                            <Magnetic>
+                              <button
+                                onClick={() => {
+                                  const customPkg = {
+                                    id: `custom-${Date.now()}`,
+                                    title: destination.charAt(0).toUpperCase() + destination.slice(1),
+                                    location: "Tailored Experience",
+                                    duration: "Custom Duration",
+                                    price: 0,
+                                    image: "https://images.unsplash.com/photo-1578922746465-3a805228b223?auto=format&fit=crop&q=80&w=2000",
+                                  };
+                                  setInternalPackage(customPkg);
+                                  setDiscoveryPhase(2);
+                                }}
+                                className="w-fit md:w-auto px-6 py-2.5 md:px-8 md:py-3.5 bg-white text-black rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] whitespace-nowrap"
+                              >
+                                Let's Craft Your Journey
+                              </button>
+                            </Magnetic>
+                          )}
                         </div>
                       )}
-                      {destination.length > 0 && (
-                        <div className="hidden md:flex items-center gap-3 text-white/40 animate-in fade-in duration-1000">
-                          <span className="text-[9px] font-medium tracking-widest uppercase italic">
-                            Filtering for "{destination}"
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 text-[8px] font-bold uppercase tracking-[0.4em] text-white/40">
-                      <span className="hidden sm:inline">
-                        Encrypted Terminal
-                      </span>
-                      <div className="w-1 h-1 rounded-full bg-white/40" />
-                      <span>Phase 01</span>
                     </div>
                   </div>
 
                   {/* ADAPTIVE KINETIC COLLECTION (HORIZONTAL) */}
-                  <div className="w-full flex-1 flex flex-col overflow-y-hidden overflow-x-hidden scrollbar-hide min-h-0">
-                    {isSearching ? (
-                      <div className="w-full h-40 flex items-center justify-center gap-3 text-white/20">
-                        <div className="w-4 h-4 border-t-2 border-white rounded-full animate-spin" />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.4em]">
-                          Consulting Archives
-                        </span>
+                  <div className="w-full flex-1 flex flex-col overflow-y-hidden overflow-x-hidden scrollbar-hide min-h-0 relative">
+                    {isThinking ? (
+                      <div className="w-full h-40 flex flex-col items-center justify-center gap-4 text-white/20">
+                        <div className="relative">
+                          <div className="w-10 h-10 border border-white/5 rounded-full" />
+                          <div className="absolute inset-0 w-10 h-10 border-t-2 border-white/40 rounded-full animate-spin" />
+                        </div>
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white animate-pulse">
+                            {sovereignResponse?.state === 'CURATING' ? "Curating Excellence" : 
+                             sovereignResponse?.state === 'ESCALATING' ? "Designing Bespoke" : 
+                             "Consulting Sovereign Intelligence"}
+                          </span>
+                          
+                          {/* Reasoning Stream (The Intelligence) */}
+                          <div className="flex flex-col items-center gap-2 max-w-md text-center">
+                            <p className="text-[9px] font-medium leading-relaxed text-white/40 italic animate-in fade-in slide-in-from-bottom-2 duration-1000">
+                              {isThinking ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:-0.3s]" />
+                                  <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:-0.15s]" />
+                                  <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce" />
+                                  Orchestrating Narrative...
+                                </span>
+                              ) : sovereignResponse?.thought_process}
+                            </p>
+                            
+                            {/* Tool Call Indicator (The Agency) */}
+                            {sovereignResponse?.tool_call && !isThinking && (
+                              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 animate-in zoom-in duration-500">
+                                <Command size={10} className="text-white/40" />
+                                <span className="text-[7px] font-black uppercase tracking-widest text-white/60">
+                                  Applied Tool: {sovereignResponse.tool_call.name}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    ) : searchResults.length > 0 && destination.length > 0 ? (
+                    ) : sovereignResponse && sovereignResponse.results?.length > 0 && destination.length > 0 ? (
                       <div className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 min-h-0">
                         {/* Anti-Clip Spacer (Replaces padding to prevent scale clipping) */}
                         <div className="w-1 md:w-4 flex-shrink-0" />
                         
-                        {searchResults.map((pkg) => (
-                          <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full">
-                            <div
-                              onClick={() => handlePackageSelect(pkg)}
-                              className="group/card relative w-full h-full rounded-[2rem] overflow-hidden cursor-pointer border border-white/[0.05] hover:border-white/20 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
-                            >
-                              <div className="absolute inset-0">
-                                <img
-                                  src={pkg.image}
-                                  className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-[1.08]"
-                                  alt={pkg.title}
+                        {sovereignResponse.results.map((pkg) => {
+                          const pkgPricing = computePrice(pkg, 1, 0, 0); // Base price for display
+                          return (
+                            <div key={pkg.id} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full">
+                              <Magnetic intensity={0.04} className="w-full h-full block">
+                                <div
+                                  onClick={() => handlePackageSelect(pkg)}
+                                  className={cn(
+                                    "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-8px]",
+                                    (pkg as any).authority_type === 'gold' ? "border-amber-400/30 hover:border-amber-400/60 shadow-[0_40px_100px_-20px_rgba(251,191,36,0.2)]" :
+                                    (pkg as any).authority_type === 'silver' ? "border-white/20 hover:border-white/40 shadow-[0_40px_100px_-20px_rgba(255,255,255,0.15)]" :
+                                    "border-white/[0.03] hover:border-white/20 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]"
+                                  )}
+                                >
+                                <div className="absolute inset-0">
+                                  <img
+                                    src={pkg.image}
+                                    className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-[1.08]"
+                                    alt={pkg.title}
+                                  />
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
+                                
+                                {/* Status Badges Layer */}
+                                <PackageBadges 
+                                  pkg={pkg} 
+                                  pricing={pkgPricing} 
+                                  className="top-5 left-5 right-5" 
+                                  matchData={{
+                                    label: (pkg as any).match_label,
+                                    authority: (pkg as any).authority_type
+                                  }}
                                 />
-                              </div>
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
-                              
-                              <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                                <div className="flex items-end justify-between gap-4 mb-6">
-                                  <div className="space-y-1.5 flex-1 min-w-0">
-                                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block">
-                                      {pkg.location}
-                                    </span>
-                                    <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white/90">
-                                      {pkg.title}
-                                    </h3>
-                                  </div>
-                                  
-                                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-500 shadow-2xl">
-                                    <ArrowRight size={18} strokeWidth={2.5} className="text-white" />
-                                  </div>
-                                </div>
+                                
+                                <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
+                                  <div className="space-y-4 w-full">
+                                    {/* Top Row: Title & Action */}
+                                    <div className="flex items-end justify-between gap-4">
+                                      <div className="space-y-1 flex-1 min-w-0">
+                                        <h3 className="text-2xl md:text-4xl font-black tracking-tight text-white/90 drop-shadow-2xl">
+                                          {pkg.title}
+                                        </h3>
+                                      </div>
+                                      <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-500 flex-shrink-0 hover:bg-white hover:text-black">
+                                        <ArrowRight size={18} strokeWidth={2.5} className="text-current transition-colors" />
+                                      </div>
+                                    </div>
 
-                                <div className="pt-6 border-t border-white/10 flex items-center justify-between">
-                                  <div className="space-y-1">
-                                    <p className="text-xl md:text-2xl font-black text-white/90 italic tracking-tighter">
-                                      {pkg.duration}
-                                    </p>
-                                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">
-                                      Duration
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1 text-right">
-                                    <p className="text-xl md:text-2xl font-black text-white/90 tracking-tighter">
-                                      {(() => {
-                                        if (pkg.price == null) return "On Request";
-                                        const cleanStr = String(pkg.price).replace(/[^\d.-]/g, "");
-                                        const num = Number(cleanStr);
-                                        return !isNaN(num) && cleanStr !== ""
-                                          ? new Intl.NumberFormat("en-IN", {
-                                              style: "currency",
-                                              currency: "INR",
-                                              maximumFractionDigits: 0,
-                                            }).format(num)
-                                          : "On Request";
-                                      })()}
-                                    </p>
-                                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">
-                                      Per Person
-                                    </span>
+                                    {/* Bottom Row: Duration & Price */}
+                                    <div className="pt-4 border-t border-white/10 flex items-end justify-between gap-4">
+                                      <div className="space-y-1">
+                                        <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg">
+                                          {pkg.duration}
+                                        </p>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block drop-shadow-md">
+                                          Duration
+                                        </span>
+                                      </div>
+
+                                      <div className="space-y-0.5 text-right">
+                                        {pkgPricing.hasSavings && (
+                                          <span className="text-[10px] font-bold line-through text-white/50 block mb-1 drop-shadow-md">
+                                            {pkgPricing.symbol}{pkgPricing.originalTotal.toLocaleString()}
+                                          </span>
+                                        )}
+                                        <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-xl">
+                                          {pkgPricing.symbol}{pkgPricing.finalTotal.toLocaleString()}
+                                        </p>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
+                                          Per Person
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </Magnetic>
-                        ))}
+                            </Magnetic>
+                          </div>
+                        );
+                        })}
                         {/* Visual Spacer for Horizontal End */}
                         <div className="flex-shrink-0 w-8 md:w-32 h-1" />
-                      </div>
-                    ) : destination.length > 0 &&
-                      !isSearching &&
-                      searchResults.length === 0 &&
-                      destination
-                        .split(/\s+/)
-                        .some(
-                          (w) =>
-                            w.length >= 3 &&
-                            ![
-                              "i",
-                              "want",
-                              "to",
-                              "go",
-                              "find",
-                              "show",
-                              "me",
-                              "a",
-                              "the",
-                              "for",
-                              "my",
-                              "trip",
-                              "travel",
-                              "holiday",
-                              "vacation",
-                              "wan",
-                              "look",
-                              "looking",
-                              "need",
-                              "needs",
-                              "place",
-                              "places",
-                            ].includes(w.toLowerCase()),
-                        ) ? (
-                      <div className="w-full h-[40vh] flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-1000">
-                        <div className="w-12 h-[1px] bg-white/20 mb-10" />
-                        <div className="space-y-4 max-w-sm">
-                          <p className="text-white/60 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] leading-relaxed">
-                            Destiny Not Found
-                          </p>
-                          <p className="text-white/30 text-[9px] md:text-[10px] font-medium tracking-widest leading-relaxed">
-                            We couldn't find a record for "
-                            <span className="text-white/60">{destination}</span>
-                            ". Our inventory is vast, but your destiny might
-                            require custom orchestration.
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-6 mt-12">
-                          <button
-                            onClick={() => {
-                              const customPkg = {
-                                id: `custom-${Date.now()}`,
-                                title:
-                                  destination.charAt(0).toUpperCase() +
-                                  destination.slice(1),
-                                location: "Tailored Experience",
-                                duration: "Custom Duration",
-                                price: 0, // Indicate that price is on request
-                                image:
-                                  "https://images.unsplash.com/photo-1578922746465-3a805228b223?auto=format&fit=crop&q=80&w=2000",
-                              };
-                              setInternalPackage(customPkg);
-                              setDiscoveryPhase(2);
-                            }}
-                            className="px-8 py-3 bg-white/5 border border-white/10 hover:border-white/30 rounded-full text-[9px] font-bold uppercase tracking-[0.3em] text-white/80 hover:text-white transition-all duration-500 shadow-2xl backdrop-blur-xl"
-                          >
-                            Craft Your Own Journey
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setDestination("");
-                              clearSearch();
-                            }}
-                            className="text-[8px] font-bold uppercase tracking-[0.3em] text-white/20 hover:text-white transition-colors border-b border-white/10 pb-1"
-                          >
-                            Explore Alternative Destinations
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
@@ -964,18 +998,22 @@ export const BookingContent = memo(function BookingContent({
                           {/* Anti-Clip Spacer */}
                           <div className="w-1 md:w-4 flex-shrink-0" />
 
-                          {trending.map((pkg) => (
-                            <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
-                              <button
-                                onClick={() => handlePackageSelect(pkg)}
-                                className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
-                              >
-                                <img
+                          {trending.map((pkg) => {
+                            return (
+                              <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
+                                <button
+                                  onClick={() => handlePackageSelect(pkg)}
+                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+                                >
+                                  <img
                                   src={pkg.image}
                                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover/mini:scale-[1.08]"
                                   alt={pkg.title}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                                
+                                {/* Status Badges Layer */}
+                                <PackageBadges pkg={pkg} className="top-5 left-5 right-5" />
                                 
                                 <div className="absolute inset-0 p-8 flex flex-col justify-end">
                                   <div className="flex items-end justify-between gap-4">
@@ -995,7 +1033,8 @@ export const BookingContent = memo(function BookingContent({
                                 </div>
                               </button>
                             </Magnetic>
-                          ))}
+                          );
+                        })}
                           {/* Visual Spacer for Horizontal End */}
                           <div className="flex-shrink-0 w-8 md:w-32 h-1" />
                         </div>
@@ -1013,19 +1052,25 @@ export const BookingContent = memo(function BookingContent({
                       "max-w-4xl space-y-3 px-4 md:px-0 transition-all duration-1000",
                       discoveryPhase === 4 ? "opacity-0 -translate-y-8 pointer-events-none h-0" : "mt-20 md:mt-24"
                     )}>
-                      <h3 className="text-[clamp(2.5rem,10vw,6rem)] font-bold tracking-tighter text-white drop-shadow-2xl leading-[0.9] max-w-[90vw] md:max-w-full animate-in fade-in slide-in-from-top-4 duration-700">
-                        {internalPackage?.title || "Journey"}
-                      </h3>
-                      <div className="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.6em] text-white/40 drop-shadow-lg leading-relaxed">
-                          {internalPackage?.location || "Bespoke"}
-                        </span>
+                    {/* Top Section: Title (Unified Phase 2-4 Header) */}
+                    <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)] shrink-0">
+                      <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
+                        <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
+                          {internalPackage?.title || "Journey"}
+                        </h2>
+                        <div className="flex items-center justify-center gap-4 pt-1">
+                          <div className="w-8 md:w-12 h-[1px] bg-white/10" />
+                          <span className="text-[6px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
+                            {internalPackage?.location || "Bespoke"}
+                          </span>
+                          <div className="w-8 md:w-12 h-[1px] bg-white/10" />
+                        </div>
                       </div>
                     </div>
+                    </div>
 
-                    {/* Middle Section: Discovery Hub (Centered) */}
-                    <div className="flex-1 flex flex-col justify-center items-center">
+                    {/* Bottom Section: Discovery Hub (Bottom-Anchored for Uniformity) */}
+                    <div className="flex-1 flex flex-col justify-end items-center pb-[clamp(2rem,8vh,6rem)]">
                       <div className="w-full max-w-5xl min-h-[160px] h-auto relative flex items-center justify-center">
                         
                         <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 2 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none")}>
@@ -1190,22 +1235,9 @@ export const BookingContent = memo(function BookingContent({
                       </div>
 
                         {/* Phase 04: Curation (Intrinsic Architectural Model) */}
-                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
-                            <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(3rem,8vh,8rem)]">
+                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-end pb-[clamp(1.5rem,5vh,4rem)]", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                            <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)]">
                             
-                            {/* Phase 04 Destination Title & Location (Sovereign Style - Synchronized with Global Color) */}
-                            <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000 shrink-0">
-                              <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
-                                {internalPackage?.title || "Journey"}
-                              </h2>
-                              <div className="flex items-center justify-center gap-4 pt-1">
-                                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-                                <span className="text-[6px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
-                                  {internalPackage?.location || "Bespoke"}
-                                </span>
-                                <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-                              </div>
-                            </div>
 
                             <div className="relative w-full max-w-[min(850px,94vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
                             
@@ -1663,9 +1695,13 @@ export const BookingContent = memo(function BookingContent({
                 </h3>
                 <div className="flex flex-col items-center gap-3">
                   <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80 pl-[0.4em]">
-                    Reference ID: {DOSSIER_PROTOCOL.FALLBACKS.REFERENCE_PREFIX}{bookingId?.split("-")[0].toUpperCase()}
+                    Reference ID: {requestId || `${DOSSIER_PROTOCOL.FALLBACKS.REFERENCE_PREFIX}${bookingId?.split("-")[0].toUpperCase()}`}
                   </p>
                   <div className="h-[1px] w-12 bg-white/20" />
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">Inventory Secured</span>
+                  </div>
                 </div>
               </div>
               <button
@@ -1850,9 +1886,9 @@ export const BookingContent = memo(function BookingContent({
                     >
                       <div className="relative z-10 flex items-center justify-center gap-0 xl:gap-2.5">
                         <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
-                          {step === 2 ? (isSubmitting ? "Sending Request" : "Confirm & Send") : 
-                           discoveryPhase === 4 ? "Review Booking" : 
-                           discoveryPhase === 3 ? "Continue" : "Next"}
+                          {step === 2 ? (isSubmitting ? "Orchestrating..." : (discoveryPhase >= 2 ? "Secure My Journey" : "Confirm & Send")) : 
+                           discoveryPhase === 4 ? "Review Selection" : 
+                           discoveryPhase === 3 ? "Define Manifest" : "Next"}
                         </span>
                         <ChevronRight 
                           size={20} 

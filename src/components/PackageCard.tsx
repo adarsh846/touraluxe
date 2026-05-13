@@ -7,14 +7,9 @@ import { Magnetic } from "./Magnetic";
 import type { Package } from "@/lib/supabase";
 import { usePricing } from "@/hooks/usePricing";
 import { cn } from "@/lib/utils";
+import { PackageBadges } from "@/components/ui/PackageBadges";
 
-const BADGE_CONFIG: Record<string, { icon: typeof TrendingUp; color: string; bg: string }> = {
-  Trending: { icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
-  Bestseller: { icon: Star, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-  New: { icon: Sparkles, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-  Recommended: { icon: Zap, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
-  "Super Saver": { icon: Tag, color: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" },
-};
+import { BADGE_CONFIG } from "@/lib/badges";
 
 interface PackageCardProps {
   pkg: Package;
@@ -26,9 +21,6 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { computePrice } = usePricing();
   const pricing = computePrice(pkg);
-
-  const badge = (pkg as any).badge ? BADGE_CONFIG[(pkg as any).badge] : null;
-  const BadgeIcon = badge?.icon;
   const difficulty = (pkg as any).difficulty_level;
   const routeStart = (pkg as any).route_start;
 
@@ -54,20 +46,7 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent transition-opacity duration-700" />
           
           {/* Status Badges Layer */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-            {badge && BadgeIcon ? (
-              <div className={cn("px-3 py-1 rounded-full border flex items-center gap-1.5 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-700", badge.bg)}>
-                <BadgeIcon size={10} className={badge.color} />
-                <span className={cn("text-[9px] font-black uppercase tracking-widest", badge.color)}>{(pkg as any).badge}</span>
-              </div>
-            ) : <div />}
-
-            {pricing.hasSavings && (
-              <div className="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md animate-in fade-in slide-in-from-right-4 duration-700 delay-150">
-                <span className="text-[9px] font-black text-emerald-400">-{pricing.discountPercent}%</span>
-              </div>
-            )}
-          </div>
+          <PackageBadges pkg={pkg} pricing={pricing} size="sm" />
 
           {/* Core Content Overlay */}
           <div className="absolute inset-0 p-5 md:p-6 pb-6 md:pb-8 flex flex-col justify-end">

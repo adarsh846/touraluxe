@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
 import { usePricing } from "@/hooks/usePricing";
+import { PackageBadges } from "@/components/ui/PackageBadges";
 
 const TAX_INCLUSIVE_LABEL = "Inclusive of Taxes";
 const TAX_EXCLUSIVE_LABEL = "Exclusive of Taxes";
@@ -583,18 +584,23 @@ export const PackageContent = memo(({
             <h2 className="text-5xl lg:text-[6rem] font-bold text-white tracking-tight leading-none">Similar<br/><span className="text-white/30">Journeys</span></h2>
             <div className="w-full max-w-5xl overflow-x-auto scrollbar-hide">
               <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
-                {relatedPackages.slice(0, 6).map((pkg: any) => (
-                  <button 
-                    key={pkg.id}
-                    onClick={() => openModal('PACKAGE', pkg, source)}
-                    className="group flex-shrink-0 w-[280px] text-left rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-500"
-                  >
-                    <div className="relative aspect-[16/10] overflow-hidden bg-white/5">
-                      {pkg.image && (
-                        <Image src={pkg.image} alt={pkg.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" quality={60} sizes="280px" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    </div>
+                {relatedPackages.slice(0, 6).map((pkg: any) => {
+                  const pricing = computePrice(pkg);
+                  return (
+                    <button 
+                      key={pkg.id}
+                      onClick={() => openModal('PACKAGE', pkg, source)}
+                      className="group flex-shrink-0 w-[280px] text-left rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-500"
+                    >
+                      <div className="relative aspect-[16/10] overflow-hidden bg-white/5">
+                        {pkg.image && (
+                          <Image src={pkg.image} alt={pkg.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700" quality={60} sizes="280px" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        
+                        {/* Status Badges Layer */}
+                        <PackageBadges pkg={pkg} pricing={pricing} size="sm" className="top-4 left-4 right-4" />
+                      </div>
                     <div className="p-5 space-y-2">
                       <h4 className="text-[15px] font-bold text-white tracking-tight truncate">{pkg.title}</h4>
                       <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">
@@ -608,7 +614,8 @@ export const PackageContent = memo(({
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>

@@ -6,6 +6,8 @@ import gsap from "gsap";
 import { supabase } from "@/lib/supabase";
 import { Magnetic } from "../Magnetic";
 import { usePricing } from "@/hooks/usePricing";
+import { cn } from "@/lib/utils";
+import { PackageBadges } from "@/components/ui/PackageBadges";
 
 export const ServiceContent = memo(function ServiceContent({ data: service, isActive, onScroll, openModal }: { data: any, isActive: boolean, onScroll: (scrolled: boolean) => void, openModal: any }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -239,6 +241,9 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                             >
                               <Image src={pkg.image} alt={pkg.title} fill className="object-cover transition-transform duration-[1.5s] group-hover:scale-110" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                              
+                              {/* Status Badges Layer */}
+                              <PackageBadges pkg={pkg} pricing={pricing} className="top-5 left-5 right-5" />
                               
                               {/* Overlay Content */}
                               <div className="absolute inset-0 p-6 flex flex-col justify-end">
