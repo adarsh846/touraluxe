@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DiscoveryService } from '@/services/DiscoveryService';
 import { Package } from '@/lib/supabase';
+import { MAJOR_DESTINATIONS, validateLocation, getSuggestion } from "@/lib/geography";
 
 /**
  * TOURALUXE SOVEREIGN AGENT API (V1 - SCALING ENGINE)
@@ -31,27 +32,63 @@ export async function POST(req: NextRequest) {
 
     const query = message.toLowerCase();
     
-    // --- GIBBERISH/VALIDATION LAYER (HARDENED) ---
+    // --- SOVEREIGN GEOGRAPHY VALIDATION LAYER ---
     const isGibberish = (text: string) => {
       const clean = text.trim().toLowerCase();
       if (clean.length < 2) return true;
       
-      // Vowel Density Check
-      const vowels = clean.match(/[aeiouy]/gi) || [];
-      const vowelRatio = vowels.length / clean.length;
-      if (vowelRatio < 0.15 || vowelRatio > 0.8) return true; // Too few or too many vowels
+      // Check against Global Geography Manifest
+      const validGeography = validateLocation(clean);
+      if (validGeography) return false;
 
-      // Consonant Streak Check (e.g., "ndsc" in "Lomdondscko")
-      if (/[bcdfghjklmnpqrstvwxz]{4,}/i.test(clean)) return true; // 4+ consonants in a row
+      // Check for Suggestion (Did you mean?)
+      const suggestion = getSuggestion(clean);
+      if (suggestion) return false;
 
-      // Repeated Character Check
-      if (/(.)\1{3,}/.test(clean)) return true;
+      // Check for Generic Travel Intents
+      const genericIntents = ["warm", "cold", "beach", "mountain", "adventure", "luxury", "honeymoon", "family", "budget", "exclusive"];
+      if (genericIntents.some(intent => clean.includes(intent))) return false;
 
-      // Entropy Check (Simplified)
-      const uniqueChars = new Set(clean).size;
-      if (clean.length > 8 && uniqueChars / clean.length < 0.3) return true; // Too many repeating chars in long string
+      // --- DYNAMIC LINGUISTIC HEURISTICS (No Blacklists) ---
+      
+      // 1. Lexical Entropy: Real words have a healthy variety of characters
+      const uniqueChars = new Set(clean.replace(/\s/g, "")).size;
+      const entropyRatio = uniqueChars / clean.replace(/\s/g, "").length;
+      if (clean.length > 4 && entropyRatio < 0.4) return true; // Catch "aaaaa", "ababab", etc.
+
+      // 2. Pattern Repetition (3+ identical chars in a row)
+      if (/(.)\1{2,}/.test(clean)) return true;
+
+      // 3. Phonetic Flow: Catching "Wall of Consonants" or "Wall of Vowels"
+      if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(clean)) return true; 
+      if (/[aeiouy]{5,}/i.test(clean)) return true;
+
+      // 4. Token-Level Intelligence
+      const tokens = clean.split(/\s+/);
+      const isNonsense = tokens.some(t => {
+        if (t.length < 3) return false;
+        const tVowels = t.match(/[aeiouy]/gi) || [];
+        const tRatio = tVowels.length / t.length;
+        // Words without a single vowel are extremely rare (unless very short like "sky")
+        if (t.length >= 3 && tVowels.length === 0) return true;
+        // Catch extreme ratios in individual tokens
+        if (tRatio < 0.1 || tRatio > 0.9) return true;
+        return false;
+      });
+      
+      if (isNonsense) return true;
 
       return false;
+    };
+
+    // --- SOVEREIGN TRAVEL INTENT ANALYZER (Pass 2) ---
+    const hasTravelIntent = (text: string) => {
+      const travelKeywords = [
+        "trip", "travel", "visit", "stay", "luxury", "vacation", "holiday", 
+        "explore", "tour", "flight", "hotel", "resort", "booking", "package",
+        "itinerary", "adventure", "honeymoon", "family", "getaway"
+      ];
+      return travelKeywords.some(keyword => text.toLowerCase().includes(keyword));
     };
 
     if (isGibberish(query)) {
@@ -63,33 +100,96 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // --- TWO-PASS SOVEREIGN VERIFICATION ENGINE ---
+    
+    // Pass 1: Authority Check
+    let validLoc = validateLocation(query); // Tier 1: Local Atlas
+    let isGlobalLandmark = false;
+    
+    if (!validLoc && query.length >= 3) {
+      // Tier 2: Global Search Engine Sync
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`, {
+          headers: { 'User-Agent': 'TouraLuxe-Sovereign-Agent/1.0' }
+        });
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          const result = data[0];
+          const importance = parseFloat(result.importance || "0");
+          const type = result.type || "";
+          const category = result.class || "";
+
+          const validTypes = ['city', 'town', 'village', 'state', 'country', 'continent', 'administrative', 'region', 'island', 'archipelago'];
+          const isPlace = validTypes.includes(type) || category === 'boundary';
+          
+          if (isPlace) {
+            // Check if it's a Global Landmark (High Importance)
+            if (importance > 0.75) {
+              validLoc = result.display_name.split(',')[0];
+              isGlobalLandmark = true;
+            } else if (hasTravelIntent(message)) {
+              // It's a real place, and the user provided TRAVEL INTENT
+              validLoc = result.display_name.split(',')[0];
+            }
+          }
+        }
+      } catch (err) {
+        console.error("OSM Sync Error:", err);
+      }
+    }
+
+    // Pass 2: Decision Logic
+    const isVerifiedIntent = 
+      results.length > 0 || 
+      !!validateLocation(query) || 
+      isGlobalLandmark || 
+      (validLoc && hasTravelIntent(message) && validLoc.toLowerCase() !== query.trim().toLowerCase());
+
+    if (!isVerifiedIntent) {
+      // Before we clarify, check if we can suggest a correction from our Atlas
+      const suggestion = getSuggestion(query);
+      if (suggestion && !results.length) {
+        return NextResponse.json({
+          thoughtProcess: `Input "${message}" not verified, but found close Atlas match: "${suggestion}". Suggesting correction.`,
+          ui_message: `I couldn't find an exact match for "${message}". Did you mean ${suggestion}?`,
+          results: [],
+          state: 'SUGGESTING',
+          suggestion: suggestion
+        });
+      }
+
+      return NextResponse.json({
+        thoughtProcess: `Input "${message}" lacks sufficient geographic authority or separate travel intent correlation. Staying in CLARIFYING state.`,
+        ui_message: `I couldn't quite identify a destination in your message. Could you clarify where your heart is leading you?`,
+        results: [],
+        state: 'CLARIFYING'
+      });
+    }
+
     if (results.length > 0) {
       const topMatch = results[0];
       thoughtProcess = `User intent identified: ${message}. Searching manifest for elite matches. Found ${results.length} relevant experiences. Prioritizing ${topMatch.title}.`;
       uiMessage = `I have curated ${results.length} elite experiences for you. Our ${topMatch.title} journey seems particularly suited for your intent.`;
-      // Enrich results with Sovereign Intelligence Metadata (Phase 2)
+      
       const enrichedResults = results.map((r, idx) => {
-        // Calculate a more "Accurate" match score based on keyword overlap
         const packageTerms = `${r.title} ${r.location} ${r.destination || ""}`.toLowerCase();
         const searchTerms = query.split(' ').filter((t: string) => t.length > 2);
         
         let matchCount = 0;
         searchTerms.forEach((term: string) => {
           if (packageTerms.includes(term)) {
-            // Check if it's an exact word match for a 10% boost per word
             const regex = new RegExp(`\\b${term}\\b`, 'i');
             if (regex.test(packageTerms)) {
-              matchCount += 2; // Double weight for exact word matches
+              matchCount += 2;
             } else {
               matchCount += 1;
             }
           }
         });
 
-        // Base score calculation (internal only now)
         const relevanceScore = Math.min(99, 79 + (matchCount * 10) - (idx * 2));
         
-        // Narrative Label Logic
         let matchLabel = "Discovery Match";
         let authorityType = "standard";
         
@@ -106,7 +206,7 @@ export async function POST(req: NextRequest) {
 
         return {
           ...r,
-          match_score: relevanceScore, // Keep for sorting/logic
+          match_score: relevanceScore,
           match_label: matchLabel,
           authority_type: authorityType,
           sovereign_reason: idx === 0 
@@ -121,16 +221,25 @@ export async function POST(req: NextRequest) {
         result: enrichedResults.slice(0, 3)
       };
       
-      // Update results with enriched data
       results = enrichedResults;
-    } else {
-      thoughtProcess = `Intent "${message}" identified. No direct manifest match found. Initiating Custom Design phase.`;
-      uiMessage = `Your vision is unique. Let’s design your perfect journey together.`;
+    } else if (validLoc) {
+      // If we found a valid location via Atlas or Search Engine but NO packages match
+      const formattedDest = validLoc.charAt(0).toUpperCase() + validLoc.slice(1);
+      thoughtProcess = `Intent "${message}" verified as ${formattedDest}. No direct manifest match found. Initiating Custom Design.`;
+      uiMessage = `A journey to ${formattedDest} should be as unique as your vision. Let’s design it together.`;
       state = "ESCALATING";
       toolCall = {
         name: "create_custom_inquiry",
-        parameters: { destination: message }
+        parameters: { destination: validLoc }
       };
+    } else {
+      // No packages, no valid location found anywhere
+      return NextResponse.json({
+        thoughtProcess: `Input "${message}" not identified as a valid destination or intent. Requesting clarification.`,
+        ui_message: `I couldn't quite identify a destination in your message. Could you clarify where your heart is leading you?`,
+        results: [],
+        state: 'CLARIFYING'
+      });
     }
 
     // Standardized Sovereign Response Format (Prompt V2 Section VI)

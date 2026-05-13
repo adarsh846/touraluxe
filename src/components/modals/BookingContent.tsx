@@ -312,6 +312,8 @@ export const BookingContent = memo(function BookingContent({
       initiateSovereignBooking(packageData);
     } else {
       setDiscoveryPhase(1);
+      setStep(1);
+      setBookingId(null);
     }
   }, [packageData]);
 
@@ -814,11 +816,42 @@ export const BookingContent = memo(function BookingContent({
                             <div className={cn(
                               "w-1.5 h-1.5 rounded-full animate-pulse shrink-0",
                               sovereignState === 'ESCALATING' ? "bg-amber-400" : 
-                              sovereignState === 'CLARIFYING' ? "bg-rose-400" : "bg-emerald-400"
+                              sovereignState === 'CLARIFYING' ? "bg-rose-400" : 
+                              sovereignState === 'SUGGESTING' ? "bg-blue-400" : "bg-emerald-400"
                             )} />
                             <div className="flex-1 min-w-0">
                               <span className="text-[10px] md:text-xs font-medium tracking-wide text-white/50 md:text-white/90 leading-relaxed block max-w-[280px] md:max-w-none">
-                                {sovereignResponse.ui_message}
+                                {sovereignState === 'SUGGESTING' && (sovereignResponse as any).suggestion ? (
+                                  <>
+                                    I couldn't find an exact match for "{destination}". Did you mean{" "}
+                                    <button 
+                                      onClick={() => {
+                                        const sugg = (sovereignResponse as any).suggestion;
+                                        setDestination(sugg);
+                                        askSovereign(sugg, manifest);
+                                      }}
+                                      className="text-white underline underline-offset-4 hover:text-amber-400 transition-colors font-bold cursor-pointer"
+                                    >
+                                      {(sovereignResponse as any).suggestion}
+                                    </button>?
+                                  </>
+                                ) : (
+                                  (() => {
+                                    const msg = (sovereignResponse as any).ui_message || "";
+                                    const dest = (sovereignResponse as any).tool_call?.parameters?.destination;
+                                    if (sovereignState === 'ESCALATING' && dest) {
+                                      const parts = msg.split(new RegExp(`(${dest})`, 'gi'));
+                                      return parts.map((part: string, i: number) => 
+                                        part.toLowerCase() === dest.toLowerCase() ? (
+                                          <span key={i} className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 font-black">
+                                            {part}
+                                          </span>
+                                        ) : part
+                                      );
+                                    }
+                                    return msg;
+                                  })()
+                                )}
                               </span>
                             </div>
                           </div>
@@ -833,13 +866,14 @@ export const BookingContent = memo(function BookingContent({
                                     duration: "Custom Duration",
                                     price: 0,
                                     image: "https://images.unsplash.com/photo-1578922746465-3a805228b223?auto=format&fit=crop&q=80&w=2000",
+                                    isCustom: true,
                                   };
                                   setInternalPackage(customPkg);
                                   setDiscoveryPhase(2);
                                 }}
                                 className="w-fit md:w-auto px-6 py-2.5 md:px-8 md:py-3.5 bg-white text-black rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] whitespace-nowrap"
                               >
-                                Let's Craft Your Journey
+                                 Let's Craft Your {(sovereignResponse as any).tool_call?.parameters?.destination || "Unique"} Journey
                               </button>
                             </Magnetic>
                           )}
@@ -980,9 +1014,16 @@ export const BookingContent = memo(function BookingContent({
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
                         <div className="flex items-center gap-4 px-5 md:px-[clamp(2rem,6vw,4rem)] mb-6 md:mb-10 flex-shrink-0">
                           <span className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/70 whitespace-nowrap">
-                            {destination.length > 0
-                              ? "Awaiting your intent..."
-                              : "Suggested Destinies"}
+                            {isThinking 
+                              ? "Seeking the extraordinary..."
+                              : sovereignState === 'ESCALATING' 
+                                ? "Crafting your bespoke escape"
+                                : (sovereignResponse?.results?.length ?? 0) > 0
+                                  ? "Curated for your vision"
+                                  : destination.length > 0
+                                    ? "Exploring possibilities..."
+                                    : "Suggested Destinies"
+                            }
                           </span>
                           <div className="h-[1px] w-full bg-white/[0.08]" />
                         </div>
@@ -1538,7 +1579,7 @@ export const BookingContent = memo(function BookingContent({
                         </h4>
                         <div className="flex items-center justify-center md:justify-start gap-2 text-white/80">
                           <span className="text-[9px] md:text-[11px] font-medium uppercase tracking-[0.2em]">
-                            {internalPackage?.location || "Bespoke Journey"}
+                            {internalPackage?.location || "Personalized for you"}
                           </span>
                         </div>
                         </div>
@@ -1634,31 +1675,38 @@ export const BookingContent = memo(function BookingContent({
 
                     {/* Dossier Footer: Fiscal Summary */}
                     <div className="p-8 md:p-10 bg-white/[0.08] border-t border-white/15 flex flex-col md:flex-row items-center justify-between gap-8">
-                      {/* Left Column: Tax Breakdown */}
+                      {/* Left Column: Tax Breakdown or Custom Message */}
                       <div className="w-full flex flex-col items-center md:items-start gap-3">
-                        <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
-                          <div className="flex flex-col items-center md:items-start gap-0.5">
-                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.PACKAGE_RATE}</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.perAdultFinal.toLocaleString()}</span>
-                              <span className="inline-flex items-center justify-center text-center text-[6px] font-black uppercase tracking-wider text-white/30 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 min-w-[50px]">
-                                {pricing.isInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
+                        {internalPackage?.isCustom ? (
+                          <div className="flex flex-col items-center md:items-start gap-1">
+                            <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">Investment Profile</span>
+                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">Handcrafted just for you</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
+                            <div className="flex flex-col items-center md:items-start gap-0.5">
+                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.PACKAGE_RATE}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.perAdultFinal.toLocaleString()}</span>
+                                <span className="inline-flex items-center justify-center text-center text-[6px] font-black uppercase tracking-wider text-white/30 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 min-w-[50px]">
+                                  {pricing.isInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-center md:items-start gap-0.5">
+                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.BASE_RATE}</span>
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.baseAmount.toLocaleString()}</span>
+                            </div>
+                            <div className="flex flex-col items-center md:items-start gap-0.5">
+                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
+                                {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.taxRate)}
+                              </span>
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
+                                {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-col items-center md:items-start gap-0.5">
-                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.BASE_RATE}</span>
-                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.baseAmount.toLocaleString()}</span>
-                          </div>
-                          <div className="flex flex-col items-center md:items-start gap-0.5">
-                            <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
-                              {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.taxRate)}
-                            </span>
-                            <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
-                              {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Right Column: Itinerary Investment */}
@@ -1666,11 +1714,11 @@ export const BookingContent = memo(function BookingContent({
                         <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">{DOSSIER_PROTOCOL.LABELS.INVESTMENT_HEADER}</span>
                         <div className="flex flex-col items-center md:items-end gap-3">
                           <span className="text-3xl md:text-5xl font-black text-white tracking-tighter tabular-nums leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                            {totalInvestment}
+                            {internalPackage?.isCustom ? "Personalized" : totalInvestment}
                           </span>
                           <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-sm flex items-center justify-center min-w-[120px]">
                             <span className="text-[7px] md:text-[8px] font-black text-white/60 uppercase tracking-[0.3em] text-center leading-none">
-                              {DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED}
+                              {internalPackage?.isCustom ? "PRICING ON REQUEST" : DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED}
                             </span>
                           </div>
                         </div>
@@ -1691,7 +1739,7 @@ export const BookingContent = memo(function BookingContent({
               </div>
               <div className="space-y-4">
                 <h3 className="text-5xl font-bold tracking-tight text-white/90 uppercase">
-                  {DOSSIER_PROTOCOL.FALLBACKS.ESTABLISHED_TITLE}
+                  {internalPackage?.isCustom ? "Inquiry Received" : DOSSIER_PROTOCOL.FALLBACKS.ESTABLISHED_TITLE}
                 </h3>
                 <div className="flex flex-col items-center gap-3">
                   <p className="text-[11px] font-black uppercase tracking-[0.4em] text-white/80 pl-[0.4em]">
@@ -1700,12 +1748,24 @@ export const BookingContent = memo(function BookingContent({
                   <div className="h-[1px] w-12 bg-white/20" />
                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">Inventory Secured</span>
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">
+                      {internalPackage?.isCustom ? "Handcrafting Your Journey" : "Your Journey Begins Here"}
+                    </span>
                   </div>
                 </div>
               </div>
               <button
-                onClick={startClosing}
+                onClick={() => {
+                  startClosing();
+                  // Reset state for next time
+                  setTimeout(() => {
+                    setStep(1);
+                    setDiscoveryPhase(packageData ? 2 : 1);
+                    setBookingId(null);
+                    setInternalPackage(packageData);
+                    setDestination("");
+                  }, 500);
+                }}
                 className="px-20 py-5 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white/90 hover:bg-[#f5f5f7] hover:text-black transition-all shadow-lg"
               >
                 {DOSSIER_PROTOCOL.FALLBACKS.CLOSE_ACTION}
@@ -1794,15 +1854,17 @@ export const BookingContent = memo(function BookingContent({
                   (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
                 )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
                   <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
-                    {isMobile ? 'Cost' : 'Itinerary Cost'}
+                    {isMobile ? (internalPackage?.isCustom ? 'Quote' : 'Cost') : (internalPackage?.isCustom ? 'Personalized Pricing' : 'Itinerary Cost')}
                   </span>
                   <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
                     <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.8rem)' }}>
-                      {totalInvestment}
+                      {internalPackage?.isCustom ? "Upon Request" : totalInvestment}
                     </p>
-                    <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
-                      incl. tax
-                    </span>
+                    {!internalPackage?.isCustom && (
+                      <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
+                        incl. tax
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1886,9 +1948,9 @@ export const BookingContent = memo(function BookingContent({
                     >
                       <div className="relative z-10 flex items-center justify-center gap-0 xl:gap-2.5">
                         <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
-                          {step === 2 ? (isSubmitting ? "Orchestrating..." : (discoveryPhase >= 2 ? "Secure My Journey" : "Confirm & Send")) : 
-                           discoveryPhase === 4 ? "Review Selection" : 
-                           discoveryPhase === 3 ? "Define Manifest" : "Next"}
+                          {step === 2 ? (isSubmitting ? "Orchestrating..." : (internalPackage?.isCustom ? "Submit Inquiry" : "Secure My Journey")) : 
+                           discoveryPhase === 4 ? (internalPackage?.isCustom ? "Review Details" : "Review Selection") : 
+                           discoveryPhase === 3 ? (internalPackage?.isCustom ? "Preferences" : "Define Manifest") : "Next"}
                         </span>
                         <ChevronRight 
                           size={20} 
