@@ -71,46 +71,8 @@ const DOSSIER_PROTOCOL = {
 };
 
 // ════ LUXURY VISUAL MANIFEST ════
-// Hand-picked, high-fidelity Unsplash assets for instant, accurate visual portal
-const LUXURY_VISUAL_MAP: Record<string, string> = {
-  "GOA": "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?q=80&w=1600&q=85&auto=format&fit=crop",
-  "PARIS": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1600&q=85&auto=format&fit=crop",
-  "LONDON": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?q=80&w=1600&q=85&auto=format&fit=crop",
-  "MALDIVES": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?q=80&w=1600&q=85&auto=format&fit=crop",
-  "NEW YORK": "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=1600&q=85&auto=format&fit=crop",
-  "DUBAI": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1600&q=85&auto=format&fit=crop",
-  "TOKYO": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SANTORINI": "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=1600&q=85&auto=format&fit=crop",
-  "BALI": "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SWITZERLAND": "https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=1600&q=85&auto=format&fit=crop",
-  "ICELAND": "https://images.unsplash.com/photo-1476610182048-b716b8518aae?q=80&w=1600&q=85&auto=format&fit=crop",
-  "AMALFI": "https://images.unsplash.com/photo-1533903345306-15d1c30952de?q=80&w=1600&q=85&auto=format&fit=crop",
-  "KASHMIR": "https://images.unsplash.com/photo-1566833925222-792012999b56?q=80&w=1600&q=85&auto=format&fit=crop",
-  "AYODHYA": "https://images.unsplash.com/photo-1627894483216-2138af692e2e?q=80&w=1600&q=85&auto=format&fit=crop",
-  "KEDARNATH": "https://images.unsplash.com/photo-1626640626372-88f6c3104332?q=80&w=1600&q=85&auto=format&fit=crop",
-  "VARANASI": "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?q=80&w=1600&q=85&auto=format&fit=crop",
-  "JAIPUR": "https://images.unsplash.com/photo-1599661046289-e318978b8e41?q=80&w=1600&q=85&auto=format&fit=crop",
-  "UDAIPUR": "https://images.unsplash.com/photo-1590691566710-184518335478?q=80&w=1600&q=85&auto=format&fit=crop",
-  "LEH": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?q=80&w=1600&q=85&auto=format&fit=crop",
-  "LADAKH": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?q=80&w=1600&q=85&auto=format&fit=crop",
-  "AGRA": "https://images.unsplash.com/photo-1564507592333-c60657451dd6?q=80&w=1600&q=85&auto=format&fit=crop",
-  "TAJ MAHAL": "https://images.unsplash.com/photo-1564507592333-c60657451dd6?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SHIMLA": "https://images.unsplash.com/photo-1597033711377-99a3347575df?q=80&w=1600&q=85&auto=format&fit=crop",
-  "MANALI": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?q=80&w=1600&q=85&auto=format&fit=crop",
-  "MUNNAR": "https://images.unsplash.com/photo-1516690561799-46d8f74f90f6?q=80&w=1600&q=85&auto=format&fit=crop",
-  "KERALA": "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?q=80&w=1600&q=85&auto=format&fit=crop",
-  "RAJASTHAN": "https://images.unsplash.com/photo-1599661046289-e318978b8e41?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SRINAGAR": "https://images.unsplash.com/photo-1566833925222-792012999b56?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SINGAPORE": "https://images.unsplash.com/photo-1525625239514-75b4b17b9979?q=80&w=1600&q=85&auto=format&fit=crop",
-  "MALAYSIA": "https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?q=80&w=1600&q=85&auto=format&fit=crop",
-  "VIETNAM": "https://images.unsplash.com/photo-1528127269322-539801943592?q=80&w=1600&q=85&auto=format&fit=crop",
-  "HONG KONG": "https://images.unsplash.com/photo-1506351466446-9748074542ae?q=80&w=1600&q=85&auto=format&fit=crop",
-  "KYOTO": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1600&q=85&auto=format&fit=crop",
-  "ROME": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1600&q=85&auto=format&fit=crop",
-  "AMSTERDAM": "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?q=80&w=1600&q=85&auto=format&fit=crop",
-  "SPAIN": "https://images.unsplash.com/photo-1509840144324-47e44b5abd73?q=80&w=1600&q=85&auto=format&fit=crop",
-  "GREECE": "https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=2000&auto=format&fit=crop"
-};
+// DECOMMISSIONED: Relying 100% on Sovereign Visual Intelligence for Universal Magic
+const LUXURY_VISUAL_MAP: Record<string, string> = {};
 
 const UI_CONFIG = {
   THRESHOLDS: {
@@ -345,27 +307,67 @@ export const BookingContent = memo(function BookingContent({
 
   // ════ DYNAMIC VISUAL ENGINE ════
   // Fetches high-fidelity cinematic backgrounds based on destination intent
+  const lastImgRef = useRef<string | null>(null);
+
+  // Sync loading state with image URL changes to prevent flicker/blur traps
+  useEffect(() => {
+    const currentUrl = dynamicImage || internalPackage?.image;
+    if (currentUrl && currentUrl !== lastImgRef.current) {
+      setIsImgLoaded(false);
+      lastImgRef.current = currentUrl;
+    }
+  }, [dynamicImage, internalPackage?.image]);
+
   useEffect(() => {
     // Use destination or the finalized package title (e.g. "Paris")
     const rawQuery = (destination || internalPackage?.title || "").trim();
-    const query = rawQuery.toUpperCase();
+    const query = rawQuery.toUpperCase().trim();
     
     if (query.length >= 2) {
-      setIsImgLoaded(false); // Reset loading state for new destination
-      // 1. Check our Elite Manifest first for instant, verified accuracy
-      if (LUXURY_VISUAL_MAP[query]) {
-        setDynamicImage(LUXURY_VISUAL_MAP[query]);
+      // Tier 1: Gold Standard Manifest (Hand-Picked Exact Matches)
+      // Robust check against casing and whitespace
+      const manifestMatch = LUXURY_VISUAL_MAP[query];
+      if (manifestMatch) {
+        setDynamicImage(manifestMatch);
         return;
       }
 
-      // Use Unsplash Featured Search for elite-tier travel imagery
-      // Optimized for 1600px Retina-clarity and fast-loading
-      const imageUrl = `https://images.unsplash.com/featured/1600x900?${encodeURIComponent(rawQuery)}&q=85&auto=format&fit=crop`;
-      setDynamicImage(imageUrl);
-    } else {
+      // Tier 2: Sovereign Visual Engine (Pexels Editorial Feed)
+      // We fetch from our secure server-side route to ensure cinematic quality
+      const fetchEliteVisual = async () => {
+        try {
+          const response = await fetch(`/api/visuals/search?query=${encodeURIComponent(rawQuery)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.url) {
+              setDynamicImage(data.url);
+              return;
+            }
+          }
+          
+          // Tier 3: Atmosphere Fallback (Elite Editorial Assets)
+          const getAtmosphereAsset = (q: string) => {
+            const lower = q.toLowerCase();
+            if (lower.match(/beach|island|sea|ocean|coast|tropical|maldives|andaman|goa/)) 
+              return "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Tropical Horizon
+            if (lower.match(/mountain|snow|hill|alpine|trek|himachal|kashmir|leh|ladakh|switzerland|alps/))
+              return "https://images.pexels.com/photos/1367192/pexels-photo-1367192.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Alpine Peak
+            if (lower.match(/city|skylin|urban|metro|york|dubai|tokyo|london|paris/))
+              return "https://images.pexels.com/photos/1519014/pexels-photo-1519014.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Cinematic Cityscape
+            return "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Default Sovereign Landscape
+          };
+          setDynamicImage(getAtmosphereAsset(rawQuery));
+        } catch (err) {
+          console.error("Visual Engine Fallback:", err);
+        }
+      };
+
+      fetchEliteVisual();
+    } else if (discoveryPhase === 1) {
+      // Only clear images in Phase 1 (Search) to prevent flicker during transitions
       setDynamicImage(null);
     }
-  }, [destination, internalPackage?.title]);
+  }, [destination, internalPackage?.title]); // Isolated from discoveryPhase to prevent reset on transition
 
   const handlePackageSelect = (pkg: any) => {
     // Open the full package details view
@@ -373,6 +375,14 @@ export const BookingContent = memo(function BookingContent({
   };
 
   // Sync state with props (Essential for seamless flow between Discovery and Details)
+  // Phase Authority: Force clarity when entering Timeline or later
+  useEffect(() => {
+    if (discoveryPhase > 1 && (dynamicImage || internalPackage?.image)) {
+      const timer = setTimeout(() => setIsImgLoaded(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [discoveryPhase, dynamicImage, internalPackage?.image]);
+
   useEffect(() => {
     if (packageData) {
       // If we have packageData, initiate the Sovereign Volatility Protocol
@@ -749,45 +759,51 @@ export const BookingContent = memo(function BookingContent({
 
       {/* 2. SOVEREIGN BLACK FOUNDATION (IMMERSIVE CONTEXT) */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#0a0a0b]">
-        {/* Layer 1: Universal Fallback (Always present, lowest) */}
+        {/* Layer 1: Universal Foundation (Fixed High-Performance Backdrop) */}
         <img
           src="/assets/discovery-fallback.png"
           className="absolute inset-0 w-full h-full object-cover brightness-[0.4] opacity-40 blur-[15px] scale-110"
           alt="Foundation"
         />
         
-        {/* Layer 2: Secondary Location Fallback (LoremFlickr - high speed) */}
-        {(dynamicImage || internalPackage?.image) && (
-          <img
-            src={`https://loremflickr.com/1200/800/${encodeURIComponent((destination || internalPackage?.title || "").trim())},travel/all`}
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 brightness-[0.6]",
-              discoveryPhase === 1 ? "opacity-50 blur-[20px]" : "opacity-80 blur-0"
-            )}
-            alt="Secondary Fallback"
-          />
-        )}
-
-        {/* Layer 3: Primary Luxury Asset (Unsplash - Gold Standard) */}
+        {/* Layer 2: PRIMARY VISUAL AUTHORITY (Pexels / Manifest) */}
+        {/* We use a key-based re-mount strategy to ensure smooth cross-fades */}
         {(dynamicImage || internalPackage?.image) && (
           <img
             key={dynamicImage || internalPackage?.image}
             src={dynamicImage || internalPackage?.image}
             loading="eager"
-            onLoad={() => setIsImgLoaded(true)}
+            onLoad={(e) => {
+              setIsImgLoaded(true);
+              // Cinematic "Ken Burns" Horizon Effect
+              gsap.fromTo(e.currentTarget, 
+                { scale: 1.15, xPercent: -2, yPercent: -2 }, 
+                { 
+                  scale: 1, 
+                  xPercent: 0, 
+                  yPercent: 0, 
+                  duration: 20, 
+                  ease: "power1.inOut",
+                  repeat: -1,
+                  yoyo: true
+                }
+              );
+            }}
             crossOrigin="anonymous"
             referrerPolicy="no-referrer"
             className={cn(
               "absolute inset-0 w-full h-full object-cover transition-all duration-[2000ms] will-change-transform brightness-[0.8]",
-              !isImgLoaded ? "opacity-0" : (discoveryPhase === 1 ? "opacity-70 blur-[10px] scale-110" : "opacity-100 scale-[1.01] blur-0")
+              !isImgLoaded 
+                ? (discoveryPhase === 1 ? "opacity-0" : "opacity-40 blur-[20px] scale-105") 
+                : (discoveryPhase === 1 ? "opacity-70 blur-[10px]" : "opacity-100 blur-0 scale-[1.01]")
             )}
             alt={internalPackage?.title || destination}
           />
         )}
 
-        {/* Luxury Vignette */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0a0a0b] opacity-90" />
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.03] to-transparent rounded-full blur-[140px] opacity-20" />
+        {/* Luxury Vignette & Depth Mask */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b] opacity-90" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-[140px] opacity-20" />
       </div>
 
       {/* 3. VIEWPORT-LOCKED WORKSPACE */}
@@ -940,7 +956,7 @@ export const BookingContent = memo(function BookingContent({
                                     location: "Tailored Experience",
                                     duration: "Custom Duration",
                                     price: 0,
-                                    image: "https://images.unsplash.com/photo-1578922746465-3a805228b223?auto=format&fit=crop&q=80&w=2000",
+                                    image: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600",
                                     isCustom: true,
                                   };
                                   setInternalPackage(customPkg);
@@ -998,19 +1014,23 @@ export const BookingContent = memo(function BookingContent({
                         </div>
                       </div>
                     ) : sovereignResponse && sovereignResponse.results?.length > 0 && destination.length > 0 ? (
-                      <div className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 min-h-0">
+                      <div className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 animate-in fade-in zoom-in duration-1000 slide-in-from-bottom-12 blur-in-md min-h-0">
                         {/* Anti-Clip Spacer (Replaces padding to prevent scale clipping) */}
                         <div className="w-1 md:w-4 flex-shrink-0" />
                         
-                        {sovereignResponse.results.map((pkg) => {
+                        {sovereignResponse.results.map((pkg, idx) => {
                           const pkgPricing = computePrice(pkg, 1, 0, 0); // Base price for display
                           return (
-                            <div key={pkg.id} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full">
+                            <div 
+                              key={pkg.id} 
+                              className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full animate-in fade-in slide-in-from-right-8 duration-1000"
+                              style={{ animationDelay: `${idx * 150}ms` }}
+                            >
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
                                   onClick={() => handlePackageSelect(pkg)}
                                   className={cn(
-                                    "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-8px]",
+                                    "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02]",
                                     (pkg as any).authority_type === 'gold' ? "border-amber-400/30 hover:border-amber-400/60 shadow-[0_40px_100px_-20px_rgba(251,191,36,0.2)]" :
                                     (pkg as any).authority_type === 'silver' ? "border-white/20 hover:border-white/40 shadow-[0_40px_100px_-20px_rgba(255,255,255,0.15)]" :
                                     "border-white/[0.03] hover:border-white/20 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]"
@@ -1171,8 +1191,19 @@ export const BookingContent = memo(function BookingContent({
                     {/* Top Section: Title (Unified Phase 2-4 Header) */}
                     <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)] shrink-0">
                       <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
-                        <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em]">
-                          {internalPackage?.title || "Journey"}
+                        <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em] flex items-center justify-center">
+                          {(internalPackage?.title || "Journey").split('').map((char, index) => (
+                            <span 
+                              key={`${char}-${index}`}
+                              className="animate-in fade-in zoom-in duration-1000"
+                              style={{ 
+                                animationDelay: `${index * 100}ms`,
+                                display: 'inline-block'
+                              }}
+                            >
+                              {char === ' ' ? '\u00A0' : char}
+                            </span>
+                          ))}
                         </h2>
                         <div className="flex items-center justify-center gap-4 pt-1">
                           <div className="w-8 md:w-12 h-[1px] bg-white/10" />

@@ -126,7 +126,10 @@ export function getSuggestion(input: string): string | null {
   if (query.length < 3) return null;
 
   let bestMatch: string | null = null;
-  let maxScore = 0.85; // Minimum similarity threshold (0 to 1)
+  
+  // Dynamic threshold: shorter words need slightly more leeway (0.80) 
+  // while longer words can be stricter (0.85).
+  let maxScore = query.length <= 6 ? 0.78 : 0.83; 
 
   // Tokenize query for multi-word matching
   const queryTokens = query.split(/\s+/);
@@ -134,19 +137,30 @@ export function getSuggestion(input: string): string | null {
   for (const dest of MAJOR_DESTINATIONS) {
     const d = dest.toLowerCase();
     
-    // 1. Check for Prefix/Substring Boost
-    if (d.startsWith(query) || query.startsWith(d)) {
-      return dest; // Immediate high-confidence match
+    // 1. Exact Substring/Prefix Match (High Confidence)
+    if (d.includes(query) || query.includes(d)) {
+      return dest; 
     }
 
-    // 2. Tokenized Sub-match (e.g., "Valley Spiti" -> "Spiti Valley")
-    const destTokens = d.split(/\s+/);
-    const hasTokenOverlap = queryTokens.some(qt => destTokens.some(dt => dt.includes(qt) || qt.includes(dt)));
-    
+    // 2. Phonetic Heuristics (Common swaps like m/n, t/d, p/b)
+    const phoneticMatch = (s1: string, s2: string) => {
+      const p1 = s1.replace(/m/g, 'n').replace(/t/g, 'd').replace(/p/g, 'b');
+      const p2 = s2.replace(/m/g, 'n').replace(/t/g, 'd').replace(/p/g, 'b');
+      return p1 === p2;
+    };
+
+    if (query.length > 4 && phoneticMatch(query, d)) {
+      return dest;
+    }
+
     // 3. Jaro-Winkler Similarity
     const score = getJaroWinklerSimilarity(query, d);
     
-    // Boost score if there's token overlap
+    // 4. Tokenized Sub-match (e.g., "Valley Spiti" -> "Spiti Valley")
+    const destTokens = d.split(/\s+/);
+    const hasTokenOverlap = queryTokens.some(qt => destTokens.some(dt => dt.includes(qt) || qt.includes(dt)));
+    
+    // Boost score if there's token overlap or prefix match
     const finalScore = hasTokenOverlap ? score + 0.05 : score;
 
     if (finalScore > maxScore) {

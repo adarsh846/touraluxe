@@ -12,6 +12,10 @@ import { MAJOR_DESTINATIONS, validateLocation, getSuggestion } from "@/lib/geogr
 
 export async function POST(req: NextRequest) {
   try {
+    // Safety Guard: Ensure request body exists to prevent JSON parse errors
+    if (!req.body) {
+      return NextResponse.json({ error: 'Body is required' }, { status: 400 });
+    }
     const { message, manifest } = await req.json();
 
     if (!message) {
@@ -137,6 +141,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // --- SOVEREIGN SUGGESTION ENGINE ---
+    // If we haven't found a match yet, check for close Atlas alignments
+    const suggestion = getSuggestion(query);
+
     // Pass 2: Decision Logic
     const isVerifiedIntent = 
       results.length > 0 || 
@@ -145,8 +153,7 @@ export async function POST(req: NextRequest) {
       (validLoc && hasTravelIntent(message) && validLoc.toLowerCase() !== query.trim().toLowerCase());
 
     if (!isVerifiedIntent) {
-      // Before we clarify, check if we can suggest a correction from our Atlas
-      const suggestion = getSuggestion(query);
+      // Suggesting instead of auto-correcting to respect user agency
       if (suggestion && !results.length) {
         return NextResponse.json({
           thoughtProcess: `Input "${message}" not verified, but found close Atlas match: "${suggestion}". Suggesting correction.`,

@@ -12,16 +12,21 @@ export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { settings } = useSettings();
   const { openBooking } = useBooking();
   const [searchValue, setSearchValue] = useState("");
 
   const title = settings.hero_title || "We don't sell trips. \nWe craft experiences.";
-  const subtitle = settings.hero_subtitle || "A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.";
+  const subtitle = settings.hero_subtitle || "Immersive, exclusive, and tailored entirely to your desires.";
 
   const titleLines = title.split('\n');
 
   useEffect(() => {
+    setIsMobile(window.innerWidth < 640);
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handleResize);
+    
     const ctx = gsap.context(() => {
       // Premium Apple-style Intro Animation
       // Use only transform + opacity (translate3d for performance)
@@ -131,15 +136,15 @@ export function Hero() {
         </p>
 
         {/* Sovereign Portal Input (Phase 3 Entry) */}
-        <div className="relative w-full max-w-xl group/portal animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700 mt-4">
+        <div className="relative w-full max-w-xl group/portal animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700 mt-4 px-1 md:px-0">
           <div className="absolute inset-0 bg-white/[0.06] backdrop-blur-3xl rounded-full border border-white/20 group-hover/portal:border-white/40 transition-all duration-700 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] group-hover/portal:shadow-[0_20px_60px_-10px_rgba(255,255,255,0.1)]" />
-          <div className="relative flex items-center px-8 py-5">
-            <Search size={22} className="text-white/40 group-hover/portal:text-white/80 transition-colors" />
+          <div className="relative flex items-center px-4 py-3.5 md:px-8 md:py-5">
+            <Search size={18} className="text-white/40 group-hover/portal:text-white/80 transition-colors shrink-0" />
             <input
               type="text"
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Where shall we take you?"
+              placeholder={isMobile ? "Find Your Destination..." : "Where shall we take you?"}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   if (searchValue.trim()) {
@@ -147,16 +152,12 @@ export function Hero() {
                   }
                 }
               }}
-              className="w-full bg-transparent border-none outline-none pl-5 text-base md:text-lg font-light text-white placeholder:text-white/50 focus:placeholder:text-white/30 transition-all"
+              className="w-full bg-transparent border-none outline-none pl-3 md:pl-5 text-sm md:text-lg font-light text-white placeholder:text-white/50 focus:placeholder:text-white/30 transition-all"
             />
             <Magnetic>
               <button
-                onClick={() => {
-                  if (searchValue.trim()) {
-                    openBooking(undefined, "HERO_PORTAL", searchValue);
-                  }
-                }}
-                className="ml-4 px-6 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl whitespace-nowrap"
+                onClick={() => searchValue.trim() && openBooking(undefined, "HERO_PORTAL", searchValue)}
+                className="bg-white text-black text-[10px] md:text-xs tracking-[0.2em] font-bold uppercase px-4 py-2 md:px-8 md:py-3 rounded-full hover:bg-black hover:text-white transition-all duration-500 shadow-xl"
               >
                 Explore
               </button>
