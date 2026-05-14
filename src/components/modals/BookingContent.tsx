@@ -1192,7 +1192,7 @@ export const BookingContent = memo(function BookingContent({
                     <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)] shrink-0">
                       <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
                         <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em] flex items-center justify-center">
-                          {(internalPackage?.title || "Journey").split('').map((char, index) => (
+                          {(internalPackage?.title || "Journey").split('').map((char: string, index: number) => (
                             <span 
                               key={`${char}-${index}`}
                               className="animate-in fade-in zoom-in duration-1000"
