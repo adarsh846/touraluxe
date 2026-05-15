@@ -340,24 +340,25 @@ export const PackageContent = memo(({
           </section>
         )}
 
-        {/* CHAPTER III: THE ITINERARY (Ground-Up Reconstruction) */}
+        {/* CHAPTER III: THE ITINERARY (Cinematic Narrative Edition) */}
         {experience.itinerary && experience.itinerary.length > 0 && (
-          <section className="relative w-full max-w-4xl mx-auto px-8 lg:px-0">
-            <div className="absolute left-8 lg:left-0 top-[50vh] bottom-[50vh] w-[1.5px] bg-white/10 z-0 -translate-x-1/2">
-              <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-white/20 blur-[1px]" />
+          <section className="relative w-full max-w-4xl mx-auto px-8 lg:px-0 py-24">
+            <div className="absolute left-8 lg:left-0 top-0 bottom-0 w-[1.5px] bg-white/10 z-0 -translate-x-1/2">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-transparent blur-[1px]" />
             </div>
 
-            <div className="space-y-0">
+            <div className="space-y-32">
               <div 
                 id="section-2"
-                className="relative min-h-screen flex flex-col justify-center snap-center snap-always"
+                className="relative min-h-[40vh] flex flex-col justify-center snap-center snap-always"
               >
-                <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-0.5">
-                  <MapPin size={24} className="text-white fill-white/10" strokeWidth={2.5} />
+                <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-1 border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                  <Compass size={28} className="text-white animate-pulse" strokeWidth={1.5} />
                 </div>
 
-                <div className="pl-12 lg:pl-16">
-                  <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Itinerary</h2>
+                <div className="pl-10 md:pl-16 lg:pl-24">
+                  <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30 mb-4 block">The Narrative</span>
+                  <h2 className="text-4xl md:text-5xl lg:text-[7rem] font-black text-white tracking-tighter leading-none">Chronicle.</h2>
                 </div>
               </div>
 
@@ -365,23 +366,39 @@ export const PackageContent = memo(({
                 <div 
                   key={i}
                   id={`section-${3 + i}`}
-                  className="relative min-h-screen flex flex-col justify-center snap-center snap-always animate-in fade-in duration-1000"
-                  style={{ animationDelay: `${i * 150}ms` }}
+                  className="relative group/itinerary flex flex-col justify-center snap-center snap-always"
                 >
-                  <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-0.5">
-                    <MapPin size={18} className="text-white fill-white/10" strokeWidth={2.5} />
+                  {/* Visual Connector Node */}
+                  <div className="absolute left-0 -translate-x-1/2 top-0 bottom-0 flex flex-col items-center">
+                    <div className="w-[1.5px] h-full bg-white/5 group-hover/itinerary:bg-white/20 transition-colors duration-700" />
+                    <div className="absolute top-[20%] w-4 h-4 rounded-full bg-black border-2 border-white/20 group-hover/itinerary:border-white group-hover/itinerary:scale-125 transition-all duration-700 shadow-2xl z-20" />
                   </div>
 
-                  <div className="pl-12 lg:pl-16 flex flex-col lg:flex-row items-start lg:items-center gap-12 lg:gap-24">
-                    <div className="px-6 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-xl text-white font-bold text-[8px] uppercase tracking-[0.4em] shrink-0">
-                      Day {item.day < 10 ? `0${item.day}` : item.day}
+                  <div className="pl-10 md:pl-16 lg:pl-24 space-y-10">
+                    <div className="flex items-center gap-6">
+                      <div className="px-6 py-2 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-xl text-white font-black text-[9px] uppercase tracking-[0.4em] shadow-xl group-hover/itinerary:bg-white group-hover/itinerary:text-black transition-all duration-700">
+                        Day {item.day < 10 ? `0${item.day}` : item.day}
+                      </div>
+                      <div className="h-[1px] flex-1 bg-white/[0.05] group-hover/itinerary:bg-white/10 transition-colors duration-700" />
                     </div>
 
-                    <div className="space-y-6 max-w-2xl">
-                      <h4 className="text-3xl lg:text-6xl font-bold text-white tracking-tight leading-none">{item.title}</h4>
-                      <p className="text-lg lg:text-2xl text-white/80 leading-relaxed font-medium tracking-tight">
-                        {item.description}
-                      </p>
+                    <div className="space-y-8">
+                      <h4 className="text-3xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1] transition-transform duration-700 group-hover/itinerary:translate-x-2">
+                        {item.title}
+                      </h4>
+                      
+                      <div className="relative">
+                        <p className="text-lg lg:text-2xl text-white/60 leading-relaxed font-medium tracking-tight max-w-3xl group-hover/itinerary:text-white/90 transition-colors duration-700">
+                          {item.description}
+                        </p>
+                        
+                        {/* Decorative editorial flourish */}
+                        <div className="mt-8 flex items-center gap-4 opacity-0 group-hover/itinerary:opacity-100 transition-opacity duration-1000 delay-300">
+                          <Plane size={14} className="text-white/20" />
+                          <div className="w-12 h-[1px] bg-white/10" />
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/30">Journey Narrative</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

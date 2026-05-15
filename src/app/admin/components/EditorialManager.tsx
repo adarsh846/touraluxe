@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Upload, ImageIcon, Loader2 } from "lucide-react";
 
 interface EditorialManagerProps {
   settings: Record<string, string>;
@@ -11,7 +11,9 @@ interface EditorialManagerProps {
 
 export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialManagerProps) {
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
-  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact">("hero");
+  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery">("hero");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useState<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -25,6 +27,34 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
     await onUpdate(key, customValue ?? (localSettings[key] || ""));
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const token = sessionStorage.getItem("admin_token") || "";
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "x-admin-token": token },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const { url } = await res.json();
+        handleChange("discovery_default_image", url);
+        await onUpdate("discovery_default_image", url);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const categories = [
     { id: "hero", label: "Hero Narrative" },
     { id: "about", label: "Brand Story" },
@@ -32,6 +62,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
     { id: "services", label: "Services Header" },
     { id: "cta", label: "Final CTA" },
     { id: "contact", label: "Contact & Footer" },
+    { id: "discovery", label: "Discovery Atmosphere" },
   ];
 
   // Helper to parse JSON safely
@@ -361,6 +392,67 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
                   onSave={() => handleSave("contact_phone")}
                   isUpdating={isUpdating}
                   placeholder="+1 (555) TOURALUXE"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeCategory === "discovery" && (
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <SectionHeader title="Discovery Atmosphere" description="The visual foundation of the search experience." />
+              <div className="grid grid-cols-1 gap-6 md:gap-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#48484a]">Atmosphere Asset</p>
+                    <p className="hidden md:block text-[8px] uppercase tracking-widest text-[#86868b] font-bold">Ultrawide (21:9) recommended</p>
+                  </div>
+                  <div 
+                    onClick={() => document.getElementById('discovery-upload')?.click()}
+                    className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-[24px] md:rounded-[40px] bg-[#1c1c1e] border-2 border-dashed border-white/[0.04] hover:border-white/10 transition-all cursor-pointer group overflow-hidden flex flex-col items-center justify-center gap-4"
+                  >
+                    {localSettings.discovery_default_image ? (
+                      <>
+                        <img 
+                          src={localSettings.discovery_default_image} 
+                          alt="Default Background" 
+                          className="absolute inset-0 w-full h-full object-cover opacity-30 md:opacity-40 group-hover:opacity-60 transition-opacity duration-700"
+                        />
+                        <div className="relative z-10 flex flex-col items-center gap-3 px-6 text-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                            {isUploading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" /> : <Upload className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                          </div>
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-2xl">Replace Atmosphere Asset</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all duration-500">
+                          {isUploading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-white animate-spin" /> : <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-[#86868b] group-hover:text-white" />}
+                        </div>
+                        <div className="text-center px-6">
+                          <p className="text-xs md:text-sm font-bold text-white tracking-tight">Upload Discovery Background</p>
+                          <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#86868b] font-bold mt-1.5 leading-relaxed">Ultrawide (21:9) recommended for cinematic immersion.</p>
+                        </div>
+                      </>
+                    )}
+                    <input 
+                      id="discovery-upload"
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleFileUpload}
+                      className="hidden" 
+                    />
+                  </div>
+                </div>
+
+                <InputGroup 
+                  label="Asset URL Override" 
+                  value={localSettings.discovery_default_image || ""} 
+                  onChange={(v) => handleChange("discovery_default_image", v)}
+                  onSave={() => handleSave("discovery_default_image")}
+                  isUpdating={isUpdating}
+                  placeholder="URL to high-fidelity background image..."
+                  hint="Direct URL for external asset hosting."
                 />
               </div>
             </div>

@@ -173,9 +173,42 @@ export async function POST(req: NextRequest) {
     }
 
     if (results.length > 0) {
+      const queryClean = query.toLowerCase().trim();
       const topMatch = results[0];
-      thoughtProcess = `User intent identified: ${message}. Searching manifest for elite matches. Found ${results.length} relevant experiences. Prioritizing ${topMatch.title}.`;
-      uiMessage = `I have curated ${results.length} elite experiences for you. Our ${topMatch.title} journey seems particularly suited for your intent.`;
+      
+      const exactMatch = 
+        topMatch.title.toLowerCase() === queryClean || 
+        topMatch.location.toLowerCase() === queryClean ||
+        (topMatch.destination || "").toLowerCase() === queryClean;
+
+      const isPrefixMatch = 
+        topMatch.title.toLowerCase().startsWith(queryClean) || 
+        topMatch.location.toLowerCase().startsWith(queryClean);
+
+      // Tiered Decision:
+      // 1. If it's an exact match or a clear single-candidate prefix, we auto-resolve for speed.
+      // 2. If it's a fuzzy match (typo), we ask "Did you mean?" to respect intent.
+      
+      if (!exactMatch && !isPrefixMatch && queryClean.length > 2) {
+        const suggestion = topMatch.title;
+        return NextResponse.json({
+          thoughtProcess: `Fuzzy match detected for "${message}". Suggesting "${suggestion}" for editorial clarity.`,
+          ui_message: `I couldn't find an exact match for "${message}". Did you mean ${suggestion}?`,
+          results: [],
+          state: 'SUGGESTING',
+          suggestion: suggestion
+        });
+      }
+
+      // Ambiguity Management: If multiple results are found for a short query, we ask for clarification
+      if (results.length > 1 && query.length < 5 && !exactMatch) {
+        const options = results.slice(0, 2).map(r => r.title).join(" or ");
+        uiMessage = `You've caught my interest with "${message}". Are you dreaming of ${options}, or perhaps exploring another horizon?`;
+        thoughtProcess = `Ambiguous intent detected for "${message}". Multiple matches found (${results.length}). Guiding user towards clarification between ${options}.`;
+      } else {
+        thoughtProcess = `User intent identified: ${message}. Searching manifest for elite matches. Found ${results.length} relevant experiences. Prioritizing ${topMatch.title}.`;
+        uiMessage = `I've found ${results.length} journeys for you. I think you'll find your heart in our ${topMatch.title} collection.`;
+      }
       
       const enrichedResults = results.map((r, idx) => {
         const packageTerms = `${r.title} ${r.location} ${r.destination || ""}`.toLowerCase();

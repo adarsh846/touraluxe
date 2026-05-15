@@ -22,12 +22,12 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
   const [relatedDestinations, setRelatedDestinations] = useState<Destination[]>([]);
 
   const [filters, setFilters] = useState<FilterState>({
-    duration: "",
-    budget: "",
-    tripType: "",
-    difficulty: "",
-    region: "",
-    theme: "",
+    duration: [],
+    budget: [],
+    tripType: [],
+    difficulty: [],
+    region: [],
+    theme: [],
     sort: "",
   });
 
@@ -66,35 +66,67 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
 
   const filteredPackages = useMemo(() => {
     let result = [...packages];
-    if (filters.duration) {
+
+    // Duration Filter (OR within category)
+    if (filters.duration.length > 0) {
       result = result.filter(pkg => {
         const nights = parseInt(pkg.duration.match(/(\d+)\s*Night/i)?.[1] || "0");
         const days = nights + 1;
-        if (filters.duration === "1-3") return days >= 1 && days <= 3;
-        if (filters.duration === "4-7") return days >= 4 && days <= 7;
-        if (filters.duration === "8-14") return days >= 8 && days <= 14;
-        if (filters.duration === "14+") return days > 14;
-        return true;
+        return filters.duration.some(range => {
+          if (range === "1-3") return days >= 1 && days <= 3;
+          if (range === "4-7") return days >= 4 && days <= 7;
+          if (range === "8-14") return days >= 8 && days <= 14;
+          if (range === "14+") return days > 14;
+          return false;
+        });
       });
     }
-    if (filters.budget) {
+
+    // Budget Filter (OR within category)
+    if (filters.budget.length > 0) {
       result = result.filter(pkg => {
         const finalPrice = computePrice(pkg).finalTotal;
-        if (filters.budget.includes("-")) {
-          const [min, max] = filters.budget.split("-").map(Number);
-          return finalPrice >= min && finalPrice <= max;
-        }
-        if (filters.budget.endsWith("+")) {
-          const min = parseInt(filters.budget);
-          return finalPrice >= min;
-        }
-        return true;
+        return filters.budget.some(range => {
+          if (range.includes("-")) {
+            const [min, max] = range.split("-").map(Number);
+            return finalPrice >= min && finalPrice <= max;
+          }
+          if (range.endsWith("+")) {
+            const min = parseInt(range);
+            return finalPrice >= min;
+          }
+          return false;
+        });
       });
     }
-    if (filters.tripType) result = result.filter(pkg => pkg.trip_type?.toLowerCase().split(",").includes(filters.tripType.toLowerCase()));
-    if (filters.difficulty) result = result.filter(pkg => pkg.difficulty_level === filters.difficulty);
-    if (filters.region) result = result.filter(pkg => pkg.region === filters.region);
-    if (filters.theme) result = result.filter(pkg => pkg.tags?.includes(filters.theme));
+
+    // Trip Type Filter (OR within category)
+    if (filters.tripType.length > 0) {
+      result = result.filter(pkg => {
+        const pkgTypes = pkg.trip_type?.toLowerCase().split(",") || [];
+        return filters.tripType.some(type => pkgTypes.includes(type.toLowerCase()));
+      });
+    }
+
+    // Difficulty Filter (OR within category)
+    if (filters.difficulty.length > 0) {
+      result = result.filter(pkg => filters.difficulty.includes(pkg.difficulty_level || ""));
+    }
+
+    // Region Filter (OR within category)
+    if (filters.region.length > 0) {
+      result = result.filter(pkg => filters.region.includes(pkg.region || ""));
+    }
+
+    // Theme Filter (OR within category)
+    if (filters.theme.length > 0) {
+      result = result.filter(pkg => {
+        const pkgThemes = pkg.tags || [];
+        return filters.theme.some(theme => pkgThemes.includes(theme));
+      });
+    }
+
+    // Sort Logic
     if (filters.sort) {
       result.sort((a, b) => {
         const priceA = computePrice(a).finalTotal;
@@ -108,8 +140,9 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
         return 0;
       });
     }
+
     return result;
-  }, [packages, filters]);
+  }, [packages, filters, computePrice]);
 
   if (isLoading) {
     return (
@@ -191,7 +224,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6"><MapPin size={24} className="text-white/20" /></div>
               <h3 className="text-xl font-semibold text-white mb-2">No Journeys Match</h3>
               <p className="text-white/40 text-sm">Try adjusting your filters.</p>
-              <button onClick={() => setFilters({ duration: "", budget: "", tripType: "", difficulty: "", region: "", theme: "", sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
+              <button onClick={() => setFilters({ duration: [], budget: [], tripType: [], difficulty: [], region: [], theme: [], sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
             </div>
           )}
         </div>

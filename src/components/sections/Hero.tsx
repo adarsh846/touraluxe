@@ -86,7 +86,10 @@ export function Hero() {
       });
     }, containerRef);
 
-    return () => ctx.revert(); // Cleanup GSAP
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ctx.revert(); // Cleanup GSAP
+    };
   }, []);
 
   return (
@@ -97,7 +100,8 @@ export function Hero() {
       {/* Background Image Container */}
       <div
         ref={imageRef}
-        className="absolute inset-0 w-full h-full will-change-transform z-0 opacity-0"
+        className="absolute inset-0 w-full h-full will-change-transform z-0 opacity-0 transform-gpu"
+        style={{ transform: "translate3d(0,0,0)" }}
       >
         <Image
           src="/assets/hero-bg.webp"
@@ -113,7 +117,7 @@ export function Hero() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto">
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
         <h1
           className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
         >
@@ -136,8 +140,8 @@ export function Hero() {
         </p>
 
         {/* Sovereign Portal Input (Phase 3 Entry) */}
-        <div className="relative w-full max-w-xl group/portal animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700 mt-4 px-1 md:px-0">
-          <div className="absolute inset-0 bg-white/[0.06] backdrop-blur-3xl rounded-full border border-white/20 group-hover/portal:border-white/40 transition-all duration-700 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] group-hover/portal:shadow-[0_20px_60px_-10px_rgba(255,255,255,0.1)]" />
+        <div className="relative w-full max-w-xl group/portal animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-700 mt-4 px-1 md:px-0 transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
+          <div className="absolute inset-0 bg-white/[0.06] backdrop-blur-xl rounded-full border border-white/20 group-hover/portal:border-white/40 transition-all duration-700 shadow-xl group-hover/portal:shadow-[0_20px_60px_-10px_rgba(255,255,255,0.1)]" />
           <div className="relative flex items-center px-4 py-3.5 md:px-8 md:py-5">
             <Search size={18} className="text-white/40 group-hover/portal:text-white/80 transition-colors shrink-0" />
             <input

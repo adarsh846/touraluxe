@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 import type { Package } from "@/lib/supabase";
 
 export interface FilterState {
-  duration: string;
-  budget: string;
-  tripType: string;
-  difficulty: string;
-  region: string;
-  theme: string;
+  duration: string[];
+  budget: string[];
+  tripType: string[];
+  difficulty: string[];
+  region: string[];
+  theme: string[];
   sort: string;
 }
 
@@ -81,24 +81,39 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
     };
   }, [packages]);
 
-  const activeCount = Object.values(filters).filter((v) => v !== "").length;
-
   const setFilter = useCallback(
     (key: keyof FilterState, value: string) => {
-      onChange({ ...filters, [key]: value });
-      setOpenDropdown(null);
+      if (key === 'sort') {
+        onChange({ ...filters, [key]: value });
+        setOpenDropdown(null);
+        return;
+      }
+
+      const current = filters[key] as string[];
+      const next = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value];
+      
+      onChange({ ...filters, [key]: next });
     },
     [filters, onChange]
   );
 
+  const activeCount = useMemo(() => {
+    return Object.entries(filters).reduce((acc, [key, val]) => {
+      if (key === 'sort') return acc + (val ? 1 : 0);
+      return acc + (val as string[]).length;
+    }, 0);
+  }, [filters]);
+
   const clearFilters = useCallback(() => {
     onChange({
-      duration: "",
-      budget: "",
-      tripType: "",
-      difficulty: "",
-      region: "",
-      theme: "",
+      duration: [],
+      budget: [],
+      tripType: [],
+      difficulty: [],
+      region: [],
+      theme: [],
       sort: "",
     });
   }, [onChange]);
@@ -123,9 +138,19 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
           if (options.length <= 1 && key !== 'sort') return null; // Don't show empty categories
 
           const currentValue = filters[key];
-          const currentLabel =
-            options.find((o) => o.value === currentValue)?.label ?? options[0].label;
-          const isActive = currentValue !== "";
+          const isActive = key === 'sort' ? currentValue !== "" : (currentValue as string[]).length > 0;
+          
+          let displayLabel = FILTER_LABELS[key];
+          if (isActive) {
+            if (key === 'sort') {
+              displayLabel = options.find(o => o.value === currentValue)?.label || FILTER_LABELS[key];
+            } else {
+              const selectedCount = (currentValue as string[]).length;
+              displayLabel = selectedCount === 1 
+                ? options.find(o => o.value === currentValue[0])?.label || FILTER_LABELS[key]
+                : `${FILTER_LABELS[key]} (${selectedCount})`;
+            }
+          }
 
           return (
             <div key={key} className="relative shrink-0">
@@ -138,14 +163,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                     : "bg-white/[0.03] text-white/40 border-white/10 hover:border-white/20"
                 )}
               >
-                {isActive ? (
-                  <span className="flex items-center gap-2">
-                    <span className="opacity-40">{FILTER_LABELS[key]}:</span>
-                    <span>{currentLabel}</span>
-                  </span>
-                ) : (
-                  FILTER_LABELS[key]
-                )}
+                <span>{displayLabel}</span>
                 <ChevronDown
                   size={12}
                   className={cn("transition-transform duration-300", openDropdown === key && "rotate-180")}
@@ -164,16 +182,28 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                           onClick={() => setFilter(key, opt.value)}
                           className={cn(
                             "w-full text-left px-5 py-3.5 text-[12px] font-bold transition-all border-b border-white/[0.03] last:border-0 flex items-center justify-between",
-                            currentValue === opt.value
-                              ? "bg-white text-black"
+                            (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value))
+                              ? "bg-white/10 text-white"
                               : "text-white/60 hover:bg-white/5"
                           )}
                         >
-                          <span>{opt.label}</span>
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-3.5 h-3.5 rounded border transition-all flex items-center justify-center",
+                              (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value))
+                                ? "bg-white border-white text-black"
+                                : "border-white/20"
+                            )}>
+                              {(key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value)) && (
+                                <X size={10} strokeWidth={4} />
+                              )}
+                            </div>
+                            <span>{opt.label}</span>
+                          </div>
                           {opt.value !== "" && (
                             <span className={cn(
                               "text-[10px] px-2 py-0.5 rounded-full border",
-                              currentValue === opt.value ? "bg-black/10 border-black/20" : "bg-white/5 border-white/10 opacity-40"
+                              (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value)) ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 opacity-40"
                             )}>
                               {/* Calculate count for this specific option */}
                               {key === 'duration' && packages.filter(p => {
@@ -186,13 +216,13 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                                 return false;
                               }).length}
                               {key === 'budget' && packages.filter(p => {
-                                const price = p.price || 0; // Use base price for quick estimate
+                                const price = parseInt(String(p.price || "0").replace(/[^0-9]/g, "")) || 0;
                                 if (opt.value === "0-30000") return price <= 30000;
                                 if (opt.value === "30000-70000") return price > 30000 && price <= 70000;
                                 if (opt.value === "70000+") return price > 70000;
                                 return false;
                               }).length}
-                              {key === 'tripType' && packages.filter(p => p.trip_type?.toLowerCase() === opt.value).length}
+                              {key === 'tripType' && packages.filter(p => p.trip_type?.toLowerCase().split(",").includes(opt.value)).length}
                               {key === 'difficulty' && packages.filter(p => p.difficulty_level === opt.value).length}
                               {key === 'region' && packages.filter(p => p.region === opt.value).length}
                               {key === 'theme' && packages.filter(p => p.tags?.includes(opt.value)).length}

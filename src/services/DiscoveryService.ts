@@ -98,8 +98,8 @@ export class DiscoveryService<T extends { title: string; location: string }> {
         const title = item.title.toLowerCase();
         const location = item.location.toLowerCase();
         
-        const matchedTitle = tokens.filter(t => title.includes(t)).length;
-        const matchedLocation = tokens.filter(t => location.includes(t)).length;
+        const matchedTitle = tokens.filter(t => t.length < 3 ? title.startsWith(t) : title.includes(t)).length;
+        const matchedLocation = tokens.filter(t => t.length < 3 ? location.startsWith(t) : location.includes(t)).length;
 
         if (matchedTitle > 0 || matchedLocation > 0) {
           rankedResults.push({

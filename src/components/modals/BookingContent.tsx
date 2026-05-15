@@ -7,12 +7,12 @@ import {
   Users,
   Check,
   ArrowLeft,
-  ChevronRight,
-  ChevronDown,
+  ArrowRight,
+  X,
   Plane,
   Command,
-  X,
-  ArrowRight,
+  ChevronRight,
+  ChevronDown,
   LockKeyhole,
   ShieldCheck,
   Sparkles,
@@ -20,6 +20,7 @@ import {
   CloudSun,
   Diamond
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
@@ -83,7 +84,8 @@ const UI_CONFIG = {
     SCROLL_MIN: 30,
     SCROLL_BUFFER: 50,
     ANIM_DELAY_SM: 100,
-    ANIM_DELAY_MD: 150
+    ANIM_DELAY_MD: 250,
+    SEARCH_DEBOUNCE: 400
   },
   COLORS: {
     FOUNDATION: "#0a0a0b"
@@ -132,11 +134,14 @@ export const BookingContent = memo(function BookingContent({
   const [endDate, setEndDate] = useState("");
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
+  const [defaultImage, setDefaultImage] = useState<string | null>(null);
   const [dynamicImage, setDynamicImage] = useState<string | null>(null);
   const [dynamicVideo, setDynamicVideo] = useState<string | null>(null);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
   const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age: string; type: 'adult' | 'child' | 'infant' }[]>([]);
+
+
 
   // Synchronize additionalGuests when traveler counts change
   useEffect(() => {
@@ -168,8 +173,11 @@ export const BookingContent = memo(function BookingContent({
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const [showGuestScroll, setShowGuestScroll] = useState(false);
   const [taxRate, setTaxRate] = useState(0);
+  const [visualManifest, setVisualManifest] = useState<Record<string, string>>({});
   const curationScrollRef = useRef<HTMLDivElement>(null);
   const guestScrollRef = useRef<HTMLDivElement>(null);
+
+
 
   const handleCurationScroll = () => {
     if (curationScrollRef.current) {
@@ -191,22 +199,64 @@ export const BookingContent = memo(function BookingContent({
   };
 
   useEffect(() => {
-    // Initial fetch
-    fetch("/api/settings", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.tax_percentage) setTaxRate(parseFloat(data.tax_percentage));
-      })
-      .catch(err => console.error("Settings fetch error:", err));
+    // ════ SOVEREIGN INTELLIGENCE HYDRATION ════
+    
+    // 1. ATOMSPHERE HYDRATION: Instant local persistence recovery
+    const cachedAtmosphere = localStorage.getItem('tr_discovery_atmosphere');
+    if (cachedAtmosphere) {
+      setDefaultImage(cachedAtmosphere);
+    }
 
-    // Real-time subscription for hyper-dynamic updates
+    // 2. VISUAL MANIFEST HYDRATION: Pre-load curated destination visuals
+    const fetchVisualManifest = async () => {
+      try {
+        const { data } = await supabase
+          .from("destinations")
+          .select("name, cover_image")
+          .eq("is_published", true);
+        
+        if (data) {
+          const manifest = data.reduce((acc: Record<string, string>, curr: any) => {
+            acc[curr.name.toUpperCase().trim()] = curr.cover_image;
+            return acc;
+          }, {});
+          setVisualManifest(manifest);
+        }
+      } catch (err) {
+        console.error("Visual Manifest Hydration Error:", err);
+      }
+    };
+
+    // 3. ADMINISTRATIVE SYNC: Fetch taxes and default imagery
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/settings", { cache: "no-store" });
+        const data = await res.json();
+        if (data.tax_percentage) setTaxRate(parseFloat(data.tax_percentage));
+        if (data.discovery_default_image) {
+          setDefaultImage(data.discovery_default_image);
+          localStorage.setItem('tr_discovery_atmosphere', data.discovery_default_image);
+        }
+      } catch (err) {
+        console.error("Settings fetch error:", err);
+      }
+    };
+
+    fetchVisualManifest();
+    fetchSettings();
+
+    // 4. REAL-TIME AUTHORITY: Synchronize updates from Supabase
     const channel = supabase
-      .channel('site_settings_changes')
+      .channel('site_settings_discovery_changes')
       .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'site_settings', filter: 'key=eq.tax_percentage' }, 
+        { event: 'UPDATE', schema: 'public', table: 'site_settings' }, 
         (payload: any) => {
-          if (payload.new && payload.new.value) {
+          if (payload.new && payload.new.key === 'tax_percentage') {
             setTaxRate(parseFloat(payload.new.value));
+          }
+          if (payload.new && payload.new.key === 'discovery_default_image') {
+            setDefaultImage(payload.new.value);
+            localStorage.setItem('tr_discovery_atmosphere', payload.new.value);
           }
         }
       )
@@ -326,99 +376,44 @@ export const BookingContent = memo(function BookingContent({
   }, [dynamicImage, internalPackage?.image]);
 
   useEffect(() => {
-    // Use destination or the finalized package title (e.g. "Paris")
-    const rawQuery = (destination || internalPackage?.title || "").trim();
-    const query = rawQuery.toUpperCase().trim();
-    
-    if (query.length >= 2) {
-      // Tier 1: Gold Standard Manifest (Hand-Picked Exact Matches)
-      // Robust check against casing and whitespace
-      const manifestMatch = LUXURY_VISUAL_MAP[query];
-      if (manifestMatch) {
-        setDynamicImage(manifestMatch);
-        return;
-      }
-
-      // ════ AUTHORITY LOCK (PREVENT GHOSTING) ════
-      // If we are viewing a curated package, we block the dynamic engine entirely.
-      if (internalPackage && !internalPackage.isCustom && internalPackage.image) {
-        setDynamicImage(null);
-        return;
-      }
-
-      // Tier 1: Database Visual Authority (Sovereign Control)
-      const fetchDatabaseVisual = async () => {
-        try {
-          const { data: destData } = await supabase
-            .from("destinations")
-            .select("cover_image")
-            .ilike("name", `%${rawQuery}%`)
-            .eq("is_published", true)
-            .order("sort_order", { ascending: true })
-            .limit(1)
-            .single();
-
-          if (destData && destData.cover_image) {
-            setDynamicImage(destData.cover_image);
-            setIsVisualLoading(false);
-            return true; // Match found
-          }
-        } catch (e) {
-          console.error("Database Visual Authority error:", e);
-        }
-        return false;
-      };
-
-      const startVisualProcess = async () => {
-        setIsVisualLoading(true);
-        const dbMatchFound = await fetchDatabaseVisual();
-        
-        if (dbMatchFound) return;
-
-        // Tier 2: Verified Tourism Search (Smart Discovery)
-        const res = window.innerWidth < 768 ? 'mobile' : 'desktop';
-        
-        try {
-          const refinedQuery = `${rawQuery} tourism landmark landscape scenic high-fidelity`;
-          const response = await fetch(`/api/visuals/search?query=${encodeURIComponent(refinedQuery)}&resolution=${res}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.url) {
-              setDynamicImage(data.url);
-              setIsVisualLoading(false);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error("Search Engine error:", err);
-        }
-        
-        // Tier 3: Atmosphere Fallback (Elite Editorial Assets)
-        const getAtmosphereAsset = (q: string) => {
-          const lower = q.toLowerCase();
-          const w = window.innerWidth < 768 ? 940 : 1600;
-          const base = "https://images.pexels.com/photos/";
-          const suffix = `?auto=compress&cs=tinysrgb&w=${w}`;
-          
-          if (lower.match(/beach|island|sea|ocean|coast|tropical|maldives|andaman|goa/)) 
-            return `${base}1078983/pexels-photo-1078983.jpeg${suffix}`; 
-          if (lower.match(/mountain|snow|hill|alpine|trek|himachal|kashmir|leh|ladakh|switzerland|alps/))
-            return `${base}1367192/pexels-photo-1367192.jpeg${suffix}`;
-          if (lower.match(/city|skylin|urban|metro|york|dubai|tokyo|london|paris/))
-            return `${base}1519014/pexels-photo-1519014.jpeg${suffix}`;
-          return `${base}1078983/pexels-photo-1078983.jpeg${suffix}`;
-        };
-        setDynamicImage(getAtmosphereAsset(rawQuery));
-        setIsVisualLoading(false);
-      };
-
-      startVisualProcess();
-    } else if (discoveryPhase === 1) {
-      // Only clear images in Phase 1 (Search) to prevent flicker during transitions
-      setDynamicImage(null);
-      setDynamicVideo(null);
+    // ════ SOVEREIGN VISUAL ENGINE ════
+    // Clear previous visual buffer instantly to prevent "Atmospheric Ghosting"
+    // If we have an internal package, we keep its visual authority
+    if (!internalPackage) {
+      setDynamicImage(defaultImage);
     }
-  }, [destination, internalPackage?.title]); // Isolated from discoveryPhase to prevent reset on transition
+    setDynamicVideo(null);
+    setIsImgLoaded(false);
+
+    // 1. ATMOSPHERE SYNC: If search is empty or too short, adopt administrative atmosphere
+    const rawQuery = (destination || "").trim();
+    if (rawQuery.length < 2) {
+      if (!internalPackage && defaultImage) setDynamicImage(defaultImage);
+      return;
+    }
+    
+    // 2. INSTANT MANIFEST MATCH: Check the high-speed local cache for destination visual
+    const queryKey = rawQuery.toUpperCase().trim();
+    const manifestMatch = visualManifest[queryKey];
+
+    if (manifestMatch) {
+      setDynamicImage(manifestMatch);
+      setIsVisualLoading(false);
+      return; // Absolute zero-latency match found
+    }
+
+    // 3. FUZZY MANIFEST MATCH: Check for partial name matches in local cache
+    const fuzzyMatch = Object.keys(visualManifest).find(key => key.includes(queryKey));
+    if (fuzzyMatch) {
+      setDynamicImage(visualManifest[fuzzyMatch]);
+      setIsVisualLoading(false);
+      return;
+    }
+
+    // 4. FALLBACK: Revert to the administrative atmosphere instantly
+    setDynamicImage(defaultImage);
+    setIsVisualLoading(false);
+  }, [destination, internalPackage?.title, defaultImage, internalPackage, visualManifest]);
 
   const handlePackageSelect = (pkg: any) => {
     // Open the full package details view
@@ -479,7 +474,7 @@ export const BookingContent = memo(function BookingContent({
       } else {
         clearSovereign();
       }
-    }, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
+    }, UI_CONFIG.THRESHOLDS.SEARCH_DEBOUNCE);
     return () => clearTimeout(timer);
   }, [destination, manifest, askSovereign, clearSovereign]);
 
@@ -836,32 +831,34 @@ export const BookingContent = memo(function BookingContent({
             playsInline
             onLoadedData={() => setIsVisualLoading(false)}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out brightness-[0.7]",
+              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity,filter] duration-[1200ms] ease-out brightness-[0.7] transform-gpu",
               isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
             )}
+            style={{ transform: "translate3d(0,0,0)" }}
           >
             <source src={dynamicVideo} type="video/mp4" />
           </video>
-        ) : (dynamicImage || internalPackage?.image) && (
+        ) : (internalPackage?.image || dynamicImage) && (
           <img
-            src={dynamicImage || internalPackage?.image}
+            src={internalPackage?.image || dynamicImage}
             onLoad={() => setIsVisualLoading(false)}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out brightness-[0.7]",
+              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity,filter] duration-[1200ms] ease-out brightness-[0.7] transform-gpu",
               isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
             )}
             alt={internalPackage?.title || destination}
+            style={{ transform: "translate3d(0,0,0)" }}
           />
         )}
 
         {/* Luxury Vignette & Depth Mask */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b] opacity-90" />
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-[140px] opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b] opacity-90 transform-gpu" style={{ transform: "translate3d(0,0,0)" }} />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[140%] aspect-square bg-gradient-to-b from-white/[0.02] to-transparent rounded-full blur-[140px] opacity-20 transform-gpu" style={{ transform: "translate3d(0,0,0)" }} />
       </div>
 
       {/* 3. VIEWPORT-LOCKED WORKSPACE */}
-      <div className="flex-1 w-full relative z-10 flex flex-col overflow-hidden">
-        <div className="flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="flex-1 w-full relative z-10 flex flex-col overflow-hidden transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
+        <div className="flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
           {/* Background Hero was here - moved to root foundation */}
           {step === 1 && (
             <div className="w-full h-full flex flex-col items-center justify-center px-6 md:px-12 relative">
@@ -974,7 +971,7 @@ export const BookingContent = memo(function BookingContent({
                                         setDestination(sugg);
                                         askSovereign(sugg, manifest);
                                       }}
-                                      className="text-white underline underline-offset-4 hover:text-amber-400 transition-colors font-bold cursor-pointer"
+                                      className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 font-black cursor-pointer hover:opacity-80 transition-opacity"
                                     >
                                       {(sovereignResponse as any).suggestion}
                                     </button>?
@@ -982,16 +979,28 @@ export const BookingContent = memo(function BookingContent({
                                 ) : (
                                   (() => {
                                     const msg = (sovereignResponse as any).ui_message || "";
-                                    const dest = (sovereignResponse as any).tool_call?.parameters?.destination;
-                                    if (sovereignState === 'ESCALATING' && dest) {
-                                      const parts = msg.split(new RegExp(`(${dest})`, 'gi'));
-                                      return parts.map((part: string, i: number) => 
-                                        part.toLowerCase() === dest.toLowerCase() ? (
+                                    const results = (sovereignResponse as any).results || [];
+                                    const queryDest = (sovereignResponse as any).tool_call?.parameters?.destination;
+                                    
+                                    // Collect all terms to highlight
+                                    const terms = new Set<string>();
+                                    if (queryDest) terms.add(queryDest);
+                                    results.forEach((r: any) => terms.add(r.title));
+                                    
+                                    if (terms.size > 0) {
+                                      // Create a combined regex for all terms
+                                      const sortedTerms = Array.from(terms).sort((a, b) => b.length - a.length);
+                                      const regex = new RegExp(`(${sortedTerms.join('|')})`, 'gi');
+                                      const parts = msg.split(regex);
+                                      
+                                      return parts.map((part: string, i: number) => {
+                                        const isMatch = sortedTerms.some(t => t.toLowerCase() === part.toLowerCase());
+                                        return isMatch ? (
                                           <span key={i} className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 font-black">
                                             {part}
                                           </span>
-                                        ) : part
-                                      );
+                                        ) : part;
+                                      });
                                     }
                                     return msg;
                                   })()
@@ -1009,7 +1018,7 @@ export const BookingContent = memo(function BookingContent({
                                     location: "Tailored Experience",
                                     duration: "Custom Duration",
                                     price: 0,
-                                    image: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600",
+                                    image: dynamicImage || defaultImage || "",
                                     isCustom: true,
                                   };
                                   setInternalPackage(customPkg);
@@ -1068,97 +1077,110 @@ export const BookingContent = memo(function BookingContent({
                         </div>
                       </div>
                     ) : sovereignResponse && sovereignResponse.results?.length > 0 && destination.length > 0 ? (
-                      <div className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 animate-in fade-in zoom-in duration-1000 slide-in-from-bottom-12 blur-in-md min-h-0">
-                        {/* Anti-Clip Spacer (Replaces padding to prevent scale clipping) */}
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0"
+                      >
                         <div className="w-1 md:w-4 flex-shrink-0" />
                         
                         {sovereignResponse.results.map((pkg, idx) => {
-                          const pkgPricing = computePrice(pkg, 1, 0, 0); // Base price for display
+                          const pkgPricing = computePrice(pkg, 1, 0, 0);
                           return (
-                            <div 
+                            <motion.div 
                               key={pkg.id} 
-                              className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full animate-in fade-in slide-in-from-right-8 duration-1000"
-                              style={{ animationDelay: `${idx * 150}ms` }}
+                              initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                              animate={{ 
+                                opacity: 1, 
+                                y: 0, 
+                                scale: 1,
+                                transition: {
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 30,
+                                  delay: idx * 0.08
+                                }
+                              }}
+                              className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full transform-gpu"
                             >
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
                                   onClick={() => handlePackageSelect(pkg)}
-                                  className={cn(
-                                    "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02]",
-                                    (pkg as any).authority_type === 'gold' ? "border-amber-400/30 hover:border-amber-400/60 shadow-[0_40px_100px_-20px_rgba(251,191,36,0.2)]" :
-                                    (pkg as any).authority_type === 'silver' ? "border-white/20 hover:border-white/40 shadow-[0_40px_100px_-20px_rgba(255,255,255,0.15)]" :
-                                    "border-white/[0.03] hover:border-white/20 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)]"
-                                  )}
-                                >
-                                <div className="absolute inset-0">
-                                  <img
-                                    src={pkg.image}
-                                    className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-[1.08]"
-                                    alt={pkg.title}
-                                  />
-                                </div>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
-                                
-                                {/* Status Badges Layer */}
-                                <PackageBadges 
-                                  pkg={pkg} 
-                                  pricing={pkgPricing} 
-                                  className="top-5 left-5 right-5" 
-                                  matchData={{
-                                    label: (pkg as any).match_label,
-                                    authority: (pkg as any).authority_type
-                                  }}
-                                />
-                                
-                                <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
-                                  <div className="space-y-4 w-full">
-                                    {/* Top Row: Title & Action */}
-                                    <div className="flex items-end justify-between gap-4">
-                                      <div className="space-y-1 flex-1 min-w-0">
-                                        <h3 className="text-2xl md:text-4xl font-black tracking-tight text-white/90 drop-shadow-2xl">
-                                          {pkg.title}
-                                        </h3>
-                                      </div>
-                                      <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-500 flex-shrink-0 hover:bg-white hover:text-black">
-                                        <ArrowRight size={18} strokeWidth={2.5} className="text-current transition-colors" />
-                                      </div>
+                                    className={cn(
+                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02]",
+                                      (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_20px_80px_-10px_rgba(251,191,36,0.25)]" :
+                                      (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_20px_60px_-10px_rgba(255,255,255,0.1)]" :
+                                      "border-white/[0.03] hover:border-white/10 hover:shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)]"
+                                    )}
+                                  >
+                                    <div className="absolute inset-0">
+                                      <img
+                                        src={pkg.image}
+                                        className="w-full h-full object-cover transition-transform duration-[2s] group-hover/card:scale-[1.08]"
+                                        alt={pkg.title}
+                                      />
                                     </div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
+                                    
+                                    <PackageBadges 
+                                      pkg={pkg} 
+                                      pricing={pkgPricing} 
+                                      className="top-5 left-5 right-5" 
+                                      matchData={{
+                                        label: (pkg as any).match_label,
+                                        authority: (pkg as any).authority_type
+                                      }}
+                                    />
+                                    
+                                    <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
+                                      <div className="space-y-4 w-full">
+                                        <div className="flex items-end justify-between gap-4">
+                                          <div className="space-y-1 flex-1 min-w-0">
+                                            <h3 className="text-2xl md:text-4xl font-black tracking-tight text-white/90 drop-shadow-2xl">
+                                              {pkg.title}
+                                            </h3>
+                                          </div>
+                                          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-500 flex-shrink-0 hover:bg-white hover:text-black">
+                                            <ArrowRight size={18} strokeWidth={2.5} className="text-current transition-colors" />
+                                          </div>
+                                        </div>
 
-                                    {/* Bottom Row: Duration & Price */}
-                                    <div className="pt-4 border-t border-white/10 flex items-end justify-between gap-4">
-                                      <div className="space-y-1">
-                                        <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg">
-                                          {pkg.duration}
-                                        </p>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block drop-shadow-md">
-                                          Duration
-                                        </span>
-                                      </div>
+                                        <div className="pt-4 border-t border-white/10 flex items-end justify-between gap-4">
+                                          <div className="space-y-1">
+                                            <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg">
+                                              {pkg.duration}
+                                            </p>
+                                            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block drop-shadow-md">
+                                              Duration
+                                            </span>
+                                          </div>
 
-                                      <div className="space-y-0.5 text-right">
-                                        {pkgPricing.hasSavings && (
-                                          <span className="text-[10px] font-bold line-through text-white/50 block mb-1 drop-shadow-md">
-                                            {pkgPricing.symbol}{pkgPricing.originalTotal.toLocaleString()}
-                                          </span>
-                                        )}
-                                        <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-xl">
-                                          {pkgPricing.symbol}{pkgPricing.finalTotal.toLocaleString()}
-                                        </p>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
-                                          Per Person
-                                        </span>
+                                          <div className="space-y-0.5 text-right">
+                                            {pkgPricing.hasSavings && (
+                                              <span className="text-[10px] font-bold line-through text-white/50 block mb-1 drop-shadow-md">
+                                                {pkgPricing.symbol}{pkgPricing.originalTotal.toLocaleString()}
+                                              </span>
+                                            )}
+                                            <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-xl">
+                                              {pkgPricing.symbol}{pkgPricing.finalTotal.toLocaleString()}
+                                            </p>
+                                            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
+                                              Per Person
+                                            </span>
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              </div>
-                            </Magnetic>
-                          </div>
-                        );
-                        })}
+                                </Magnetic>
+                              </motion.div>
+                            );
+                          })}
+
+
                         {/* Visual Spacer for Horizontal End */}
                         <div className="flex-shrink-0 w-8 md:w-32 h-1" />
-                      </div>
+                      </motion.div>
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
                         <div className="flex items-center gap-4 px-5 md:px-[clamp(2rem,6vw,4rem)] mb-6 md:mb-10 flex-shrink-0">

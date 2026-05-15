@@ -112,7 +112,7 @@ export function Featured() {
           {isLoading ? (
             // Shimmering Skeletons
             [1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col md:flex-row gap-8 items-center animate-pulse">
+              <div key={i} className="flex flex-col md:flex-row gap-8 items-center animate-pulse transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
                 <div className="w-full md:w-2/3 aspect-[4/3] rounded-2xl bg-white/5" />
                 <div className="w-full md:w-1/3 space-y-4 p-4 md:p-8">
                   <div className="w-24 h-2 bg-white/10 rounded" />
@@ -127,18 +127,20 @@ export function Featured() {
               return (
                 <div
                   key={exp.id}
-                  ref={(el) => { itemsRef.current[index] = el; }}
-                  className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu will-change-transform"
+                  ref={(el) => { if (el) itemsRef.current[index] = el; }}
+                  className="group relative flex flex-col md:flex-row gap-8 items-center opacity-0 transform-gpu"
+                  style={{ transform: "translate3d(0,0,0)" }}
                 >
                   {/* Image Container */}
-                  <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu will-change-transform">
+                  <div className="relative w-full md:w-2/3 aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 transform-gpu">
                     <Image
                       src={exp.image}
                       alt={exp.title}
                       fill
-                      className="object-cover will-change-transform transform-gpu"
+                      className="object-cover transform-gpu"
                       quality={85}
                       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
+                      style={{ transform: "translate3d(0,0,0)" }}
                     />
                   </div>
 

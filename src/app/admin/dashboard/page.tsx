@@ -496,7 +496,7 @@ export default function AdminDashboard() {
                   type="number" 
                   value={localTax} 
                   onChange={(e) => setLocalTax(e.target.value)}
-                  className="bg-black/40 border border-white/10 rounded-xl py-2.5 md:py-4 pl-12 md:pl-20 pr-7 md:pr-10 text-[12px] md:text-sm font-bold text-white w-full md:w-40 focus:outline-none focus:border-white/30 transition-all text-right"
+                  className="bg-black/40 border border-white/10 rounded-xl py-2.5 md:py-4 pl-12 md:pl-20 pr-7 md:pr-10 text-[12px] md:text-sm font-bold text-white w-full md:w-40 focus:outline-none focus:border-white/30 transition-all text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-white/40 uppercase tracking-widest">%</span>
               </div>
