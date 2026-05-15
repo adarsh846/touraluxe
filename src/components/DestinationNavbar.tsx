@@ -1,27 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { Magnetic } from "@/components/Magnetic";
 
 export function DestinationNavbar({
-  onClose,
+  onBack,
+  onX,
   forceScrolled,
 }: {
-  onClose?: () => void;
+  onBack?: () => void;
+  onX?: () => void;
   forceScrolled?: boolean;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [internalScrolled, setInternalScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setInternalScrolled(window.scrollY > 30);
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onClose) onClose();
+      if (e.key === "Escape") {
+        if (onX) onX();
+        else if (onBack) onBack();
+      }
     };
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("keydown", handleKeyDown);
@@ -29,7 +32,7 @@ export function DestinationNavbar({
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [onBack, onX]);
 
   const isScrolled = forceScrolled ?? internalScrolled;
 
@@ -54,7 +57,7 @@ export function DestinationNavbar({
   return (
     <>
       {/* ═══ iOS 26 Progressive Blur Mask — only on standalone pages (not modal) ═══ */}
-      {!onClose && (
+      {!(onBack || onX) && (
         <div
           className="pointer-events-none fixed top-0 left-0 right-0 h-32 md:h-36 z-[90] transform-gpu transition-opacity duration-1000"
           style={{
@@ -75,7 +78,7 @@ export function DestinationNavbar({
       <div
         className="z-[100] flex justify-between items-center"
         style={{
-          position: onClose ? "absolute" : "fixed",
+          position: (onBack || onX) ? "absolute" : "fixed",
           top: "calc(env(safe-area-inset-top, 0px) + clamp(1.25rem, 5vh, 2.5rem))",
           left: "clamp(1.25rem, 6vw, 3rem)",
           right: "clamp(1.25rem, 6vw, 3rem)",
@@ -114,7 +117,7 @@ export function DestinationNavbar({
           <Magnetic>
             {/* In modal: trigger cinematic exit. On page: hard nav to avoid interception. */}
             <button
-              onClick={onClose ?? handlePageBack}
+              onClick={onBack ?? handlePageBack}
               className="relative group block"
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
@@ -131,7 +134,7 @@ export function DestinationNavbar({
           {/* Close Circle */}
           <Magnetic>
             <button
-              onClick={onClose ?? handlePageClose}
+              onClick={onX ?? handlePageClose}
               className="relative group block"
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />

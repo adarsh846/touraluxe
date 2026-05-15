@@ -19,17 +19,27 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleClose = useCallback(() => {
+  const handleBack = useCallback(() => {
     if (isExiting) return;
     setIsExiting(true);
 
     const tl = gsap.timeline({ onComplete: () => router.back() });
-    tl.to(panelRef.current, { y: "100%", duration: 0.8, ease: "power4.in" })
-      .to(overlayRef.current, { opacity: 0, duration: 0.6, ease: "power3.in" }, "-=0.4");
+    tl.to(panelRef.current, { y: "100%", duration: 0.5, ease: "power3.in" })
+      .to(overlayRef.current, { opacity: 0, duration: 0.4, ease: "power2.in" }, "-=0.3");
   }, [isExiting, router]);
+
+  const handleFullClose = useCallback(() => {
+    if (isExiting) return;
+    setIsExiting(true);
+
+    const tl = gsap.timeline({ onComplete: () => { window.location.href = "/"; } });
+    tl.to(panelRef.current, { y: "100%", duration: 0.5, ease: "power3.in" })
+      .to(overlayRef.current, { opacity: 0, duration: 0.4, ease: "power2.in" }, "-=0.3");
+  }, [isExiting]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__lenis?.stop();
 
     const ctx = gsap.context(() => {
@@ -45,6 +55,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
 
     return () => {
       document.body.style.overflow = "auto";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).__lenis?.start();
       ctx.revert();
     };
@@ -55,7 +66,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
       {/* Backdrop */}
       <div
         ref={overlayRef}
-        onClick={handleClose}
+        onClick={handleFullClose}
         className="absolute inset-0 bg-black/90 backdrop-blur-3xl cursor-zoom-out"
       />
 
@@ -84,7 +95,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
         />
 
         {/* Controls Row */}
-        <DestinationNavbar onClose={handleClose} forceScrolled={isScrolled} />
+        <DestinationNavbar onBack={handleBack} onX={handleFullClose} forceScrolled={isScrolled} />
 
         {/* ═══ SCROLLABLE CONTENT ═══ */}
         <div

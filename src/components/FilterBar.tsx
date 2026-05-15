@@ -38,25 +38,34 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
   // ═══ DYNAMIC CATEGORY INFERENCE ═══
   const optionsMap = useMemo(() => {
     // Extract unique values from actual packages
-    const uniqueTypes = Array.from(new Set(packages.map(p => p.trip_type).filter(Boolean)));
+    const uniqueTypes = Array.from(new Set(packages.flatMap(p => p.trip_type?.split(",") || []).filter(Boolean)));
     const uniqueDifficulties = Array.from(new Set(packages.map(p => p.difficulty_level).filter(Boolean)));
     const uniqueRegions = Array.from(new Set(packages.map(p => p.region).filter(Boolean)));
     const uniqueThemes = Array.from(new Set(packages.flatMap(p => p.tags || []).filter(Boolean)));
 
+    // Dynamic Duration Ranges
+    const allDays = packages.map(p => {
+      const nights = parseInt(p.duration.match(/(\d+)\s*Night/i)?.[1] || "0");
+      return nights + 1;
+    }).filter(d => d > 0);
+    const minDays = Math.min(...allDays, 0);
+    const maxDays = Math.max(...allDays, 0);
+
+    const durationOptions = [{ label: "Any Duration", value: "" }];
+    if (maxDays > 0) {
+      if (minDays <= 3) durationOptions.push({ label: "Short (1–3 Days)", value: "1-3" });
+      if (maxDays >= 4) durationOptions.push({ label: "Medium (4–7 Days)", value: "4-7" });
+      if (maxDays >= 8) durationOptions.push({ label: "Long (8–14 Days)", value: "8-14" });
+      if (maxDays > 14) durationOptions.push({ label: "Extended (14+ Days)", value: "14+" });
+    }
+
     return {
-      duration: [
-        { label: "Any Duration", value: "" },
-        { label: "1–3 Days", value: "1-3" },
-        { label: "4–7 Days", value: "4-7" },
-        { label: "8–14 Days", value: "8-14" },
-        { label: "14+ Days", value: "14+" },
-      ],
+      duration: durationOptions,
       budget: [
         { label: "Any Budget", value: "" },
-        { label: "Under ₹20K", value: "0-20000" },
-        { label: "₹20K – ₹50K", value: "20000-50000" },
-        { label: "₹50K – ₹1L", value: "50000-100000" },
-        { label: "₹1L+", value: "100000+" },
+        { label: "Economy (Under ₹30K)", value: "0-30000" },
+        { label: "Premium (₹30K – ₹70K)", value: "30000-70000" },
+        { label: "Luxury (₹70K+)", value: "70000+" },
       ],
       region: [{ label: "Any Region", value: "" }, ...uniqueRegions.map(r => ({ label: r!, value: r! }))],
       tripType: [{ label: "Any Type", value: "" }, ...uniqueTypes.map(t => ({ label: t!.charAt(0).toUpperCase() + t!.slice(1), value: t!.toLowerCase() }))],
@@ -97,7 +106,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
   return (
     <div className="w-full">
       <div 
-        className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5 touch-pan-x"
+        className="flex items-center gap-2 pb-0.5"
         data-lenis-prevent
       >
         {/* Filter icon label */}
@@ -154,13 +163,41 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                           key={opt.value}
                           onClick={() => setFilter(key, opt.value)}
                           className={cn(
-                            "w-full text-left px-5 py-3.5 text-[12px] font-bold transition-all border-b border-white/[0.03] last:border-0",
+                            "w-full text-left px-5 py-3.5 text-[12px] font-bold transition-all border-b border-white/[0.03] last:border-0 flex items-center justify-between",
                             currentValue === opt.value
                               ? "bg-white text-black"
                               : "text-white/60 hover:bg-white/5"
                           )}
                         >
-                          {opt.label}
+                          <span>{opt.label}</span>
+                          {opt.value !== "" && (
+                            <span className={cn(
+                              "text-[10px] px-2 py-0.5 rounded-full border",
+                              currentValue === opt.value ? "bg-black/10 border-black/20" : "bg-white/5 border-white/10 opacity-40"
+                            )}>
+                              {/* Calculate count for this specific option */}
+                              {key === 'duration' && packages.filter(p => {
+                                const nights = parseInt(p.duration.match(/(\d+)\s*Night/i)?.[1] || "0");
+                                const days = nights + 1;
+                                if (opt.value === "1-3") return days >= 1 && days <= 3;
+                                if (opt.value === "4-7") return days >= 4 && days <= 7;
+                                if (opt.value === "8-14") return days >= 8 && days <= 14;
+                                if (opt.value === "14+") return days > 14;
+                                return false;
+                              }).length}
+                              {key === 'budget' && packages.filter(p => {
+                                const price = p.price || 0; // Use base price for quick estimate
+                                if (opt.value === "0-30000") return price <= 30000;
+                                if (opt.value === "30000-70000") return price > 30000 && price <= 70000;
+                                if (opt.value === "70000+") return price > 70000;
+                                return false;
+                              }).length}
+                              {key === 'tripType' && packages.filter(p => p.trip_type?.toLowerCase() === opt.value).length}
+                              {key === 'difficulty' && packages.filter(p => p.difficulty_level === opt.value).length}
+                              {key === 'region' && packages.filter(p => p.region === opt.value).length}
+                              {key === 'theme' && packages.filter(p => p.tags?.includes(opt.value)).length}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>

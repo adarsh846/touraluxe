@@ -14,9 +14,7 @@ export default function DestinationsPage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
       <DestinationNavbar />
-      <div className="pt-20">
-        <DestinationPortalContent />
-      </div>
+      <DestinationPortalContent />
     </div>
   );
 }

@@ -80,14 +80,18 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
     if (filters.budget) {
       result = result.filter(pkg => {
         const finalPrice = computePrice(pkg).finalTotal;
-        if (filters.budget === "0-20000") return finalPrice <= 20000;
-        if (filters.budget === "20000-50000") return finalPrice > 20000 && finalPrice <= 50000;
-        if (filters.budget === "50000-100000") return finalPrice > 50000 && finalPrice <= 100000;
-        if (filters.budget === "100000+") return finalPrice > 100000;
+        if (filters.budget.includes("-")) {
+          const [min, max] = filters.budget.split("-").map(Number);
+          return finalPrice >= min && finalPrice <= max;
+        }
+        if (filters.budget.endsWith("+")) {
+          const min = parseInt(filters.budget);
+          return finalPrice >= min;
+        }
         return true;
       });
     }
-    if (filters.tripType) result = result.filter(pkg => pkg.trip_type?.toLowerCase() === filters.tripType.toLowerCase());
+    if (filters.tripType) result = result.filter(pkg => pkg.trip_type?.toLowerCase().split(",").includes(filters.tripType.toLowerCase()));
     if (filters.difficulty) result = result.filter(pkg => pkg.difficulty_level === filters.difficulty);
     if (filters.region) result = result.filter(pkg => pkg.region === filters.region);
     if (filters.theme) result = result.filter(pkg => pkg.tags?.includes(filters.theme));

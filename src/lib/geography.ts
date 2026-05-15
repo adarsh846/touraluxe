@@ -1,7 +1,46 @@
 /**
- * Sovereign Geography Manifest
- * A curated local atlas of global destinations for offline validation.
+ * Sovereign Visual Atlas
+ * A curated mapping of destinations to definitive, authentic tourism imagery.
+ * These IDs are hand-picked for their "TouraLuxe" quality and accuracy.
  */
+export const VISUAL_ATLAS: Record<string, { image: string }> = {
+  // --- ASIA ---
+  "Vietnam": { 
+    image: "https://images.pexels.com/photos/1632791/pexels-photo-1632791.jpeg"
+  },
+  "Thailand": {
+    image: "https://images.pexels.com/photos/1007657/pexels-photo-1007657.jpeg"
+  },
+  "Japan": {
+    image: "https://images.pexels.com/photos/161401/pexels-photo-161401.jpeg"
+  },
+  "India": {
+    image: "https://images.pexels.com/photos/1603650/pexels-photo-1603650.jpeg"
+  },
+  "Bali": {
+    image: "https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg"
+  },
+  "Dubai": {
+    image: "https://images.pexels.com/photos/3763190/pexels-photo-3763190.jpeg",
+  },
+  "Maldives": {
+    image: "https://images.pexels.com/photos/1450360/pexels-photo-1450360.jpeg",
+  },
+  
+  // --- EUROPE ---
+  "France": {
+    image: "https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg",
+  },
+  "Italy": {
+    image: "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
+  },
+  "Switzerland": {
+    image: "https://images.pexels.com/photos/3722818/pexels-photo-3722818.jpeg",
+  },
+  "Greece": {
+    image: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
+  },
+};
 
 export const MAJOR_DESTINATIONS = [
   // --- COUNTRIES ---

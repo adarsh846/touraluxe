@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Search, Image as ImageIcon, Video, Check, X, Sparkles, Globe, Play, RotateCcw, Upload } from "lucide-react";
 import type { Destination } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 export default function DestinationStudio() {
   const router = useRouter();
@@ -295,32 +297,40 @@ export default function DestinationStudio() {
             </div>
           </section>
 
-          {/* Cover Image */}
+          {/* Visual Authority Manager (The Big Idea) */}
+          <VisualManager 
+            query={form.name} 
+            currentImage={form.cover_image}
+            onSelect={(img) => {
+              setForm(p => ({ ...p, cover_image: img || p.cover_image }));
+              setIsDirty(true);
+            }} 
+          />
+
+          {/* Cover Image Control */}
           <section className="space-y-8">
-            <h3 className="text-[13px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">Cover Image</h3>
-            <div className="space-y-6">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="relative w-full aspect-[16/9] rounded-3xl overflow-hidden bg-[#1c1c1e] border-2 border-dashed border-white/[0.06] hover:border-white/[0.12] transition-all cursor-pointer group shadow-2xl"
-              >
-                {form.cover_image ? (
-                  <>
-                    <Image src={form.cover_image} alt="Cover Preview" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                      <span className="text-sm text-white font-bold uppercase tracking-wider">{uploading ? "Processing..." : "Replace Asset"}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
-                      <svg className="w-6 h-6 text-[#86868b] group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    </div>
-                    <span className="text-sm text-[#48484a] font-medium">{uploading ? "Processing asset..." : "Upload destination cover (16:9)"}</span>
-                  </div>
-                )}
+            <div className="flex items-center justify-between border-b border-white/5 pb-5">
+              <h3 className="text-[13px] font-bold tracking-[0.2em] text-white/80 uppercase">Manual Asset Control</h3>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="img-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                />
+                <label
+                  htmlFor="img-upload"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-bold uppercase tracking-wider text-white/60 hover:text-white cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  <Upload size={14} className="text-blue-400" />
+                  {uploading ? 'Uploading...' : 'Upload Image'}
+                </label>
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              <Field label="Manual Image URL (Fallback)" value={form.cover_image} onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, cover_image: v }})} placeholder="https://..." />
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+              <Field label="Cover Image URL" value={form.cover_image} onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, cover_image: v }})} placeholder="https://..." />
             </div>
           </section>
 
@@ -511,6 +521,194 @@ export default function DestinationStudio() {
         </div>
       </main>
     </div>
+  );
+}
+
+// ── Visual Manager Component (Sovereign Intelligence) ──
+function VisualManager({ query, currentImage, onSelect }: { query: string; currentImage?: string; onSelect: (img: string | null) => void }) {
+  const [results, setResults] = useState<{ images: any[] }>({ images: [] });
+  const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchAssets = async (pageNum = 1) => {
+    if (!query) return;
+    setLoading(true);
+    // If it's the first page OR a non-sequential page (like a random shuffle), reset results
+    if (pageNum === 1 || pageNum !== page + 1) {
+      if (pageNum === 1) setIsOpen(true);
+      setResults({ images: [] });
+    }
+    try {
+      const imgRes = await fetch(`/api/visuals/search?query=${encodeURIComponent(query)}&type=image&per_page=80&page=${pageNum}`);
+      const imgData = imgRes.ok ? await imgRes.json() : { photos: [], total_results: 0 };
+
+      const newPhotos = imgData.photos || [];
+      const totalResults = imgData.total_results || 0;
+      
+      setResults(prev => ({
+        images: pageNum === 1 ? newPhotos : [...prev.images, ...newPhotos]
+      }));
+
+      setHasMore(pageNum * 80 < totalResults);
+      setPage(pageNum);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  const loadMore = () => fetchAssets(page + 1);
+
+  const refresh = () => {
+    // Pick a random page from the first 10 pages to get different results
+    const randomPage = Math.floor(Math.random() * 10) + 1;
+    fetchAssets(randomPage);
+  };
+
+  return (
+    <section className="space-y-6">
+      <div className="flex items-center justify-between border-b border-white/5 pb-5">
+        <h3 className="text-[13px] font-bold tracking-[0.2em] text-white/80 uppercase">Visual Authority</h3>
+        <button 
+          onClick={() => fetchAssets(1)}
+          disabled={!query}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[11px] font-bold uppercase tracking-wider text-white/60 hover:text-white disabled:opacity-30"
+        >
+          <Sparkles size={14} className="text-blue-400" />
+          Discover Assets
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {/* Current Image Preview */}
+        <div className="space-y-3">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Active Poster (Still)</label>
+          <div className="relative aspect-video max-w-xl rounded-2xl overflow-hidden bg-[#1c1c1e] border border-white/5 group">
+            {currentImage ? (
+              <>
+                <Image src={currentImage} alt="Current" fill className="object-cover" />
+                <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-green-500/80 text-[8px] font-black uppercase tracking-widest text-white backdrop-blur-md">Active Authority</div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-[#3a3a3c]">
+                <ImageIcon size={24} className="mb-2 opacity-20" />
+                <span className="text-[10px] uppercase tracking-widest font-bold opacity-40">No Image Assigned</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Discovery Modal/Overlay */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl animate-in fade-in duration-500" onClick={() => setIsOpen(false)} />
+          
+          <div className="relative w-full max-w-5xl h-full max-h-[85vh] bg-[#1c1c1e] rounded-[32px] border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-500">
+            <header className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between shrink-0 bg-black/20">
+              <div className="flex items-center gap-5">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                  <Globe className="text-blue-400" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold tracking-tight">
+                    Visual Discovery: <span className="text-blue-400">{query}</span>
+                  </h2>
+                  <p className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-black mt-1">Sourcing high-fidelity tourism assets...</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={refresh}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all text-[10px] font-bold uppercase tracking-widest disabled:opacity-30 group"
+                >
+                  <RotateCcw size={14} className={loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"} />
+                  Shuffle Assets
+                </button>
+                <button onClick={() => setIsOpen(false)} className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all text-white/40 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+              {loading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-6">
+                  <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="text-center">
+                    <span className="block text-[11px] font-black uppercase tracking-[0.4em] text-white/20 mb-2">Analyzing Global Manifest</span>
+                    <span className="block text-xs text-white/10 italic">Synchronizing with high-fidelity satellite archives...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {results.images.map((img: any) => (
+                      <div 
+                        key={img.id} 
+                        onClick={() => {
+                          onSelect(img.url);
+                          setIsOpen(false);
+                        }}
+                        className="group relative aspect-video rounded-2xl overflow-hidden bg-black border border-white/5 cursor-pointer hover:border-blue-500/50 transition-all"
+                      >
+                        <Image src={img.url} alt="Discovery" fill className="object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-1">By {img.photographer}</span>
+                          <span className="text-xs font-bold text-white flex items-center gap-2">
+                            <Check size={14} strokeWidth={3} />
+                            Assign Authentic Still
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {results.images.length === 0 && (
+                      <div className="col-span-full py-32 text-center flex flex-col items-center justify-center gap-4">
+                        <RotateCcw className="text-white/10 animate-spin-slow" size={48} />
+                        <div>
+                          <p className="text-white/40 font-bold uppercase tracking-widest text-[11px]">No authentic assets found</p>
+                          <p className="text-white/10 text-xs mt-1">Refine your destination name and try again.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Discovery Footer */}
+            {results.images.length > 0 && hasMore && (
+              <footer className="p-6 border-t border-white/5 bg-black/40 backdrop-blur-xl flex justify-center shrink-0">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="flex items-center gap-3 px-8 py-3 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-all group active:scale-95 shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Sparkles size={16} className="text-white animate-pulse" />
+                  )}
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em]">
+                    {loading ? 'Synchronizing Archive...' : 'Discover More Assets'}
+                  </span>
+                </button>
+              </footer>
+            )}
+            
+            <footer className="p-6 md:px-8 md:py-4 border-t border-white/5 bg-black/20 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+              <div className="flex gap-6">
+                <span>API: Pexels Photographic</span>
+                <span>Tier: Sovereign Discovery</span>
+              </div>
+              <span className="text-blue-500/40 italic">TouraLuxe Sovereign Visual Intelligence Engine</span>
+            </footer>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

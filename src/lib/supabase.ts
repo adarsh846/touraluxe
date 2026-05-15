@@ -60,6 +60,7 @@ export type Destination = {
   region?: string;
   country?: string;
   cover_image?: string;
+  video_url?: string;
   description?: string;
   meta_title?: string;
   meta_description?: string;

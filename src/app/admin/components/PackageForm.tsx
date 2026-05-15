@@ -65,7 +65,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     tags: (initialData as any)?.tags || [],
     destination: (initialData as any)?.destination || "",
     region: (initialData as any)?.region || "",
-    trip_type: (initialData as any)?.trip_type || "group",
+    trip_type: Array.isArray((initialData as any)?.trip_type)
+      ? (initialData as any).trip_type
+      : ((initialData as any)?.trip_type || "group").split(",").filter(Boolean),
     itinerary_url: (initialData as any)?.itinerary_url || "",
   });
 
@@ -303,6 +305,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       inclusions: form.inclusions.filter((h) => h.trim() !== ""),
       exclusions: form.exclusions.filter((h) => h.trim() !== ""),
       itinerary: form.itinerary.filter((item) => item.title.trim() !== ""),
+      trip_type: Array.isArray(form.trip_type) ? form.trip_type.join(",") : form.trip_type,
       faq: form.faq.filter((f: { question: string; answer: string }) => f.question.trim() !== ""),
     };
 
@@ -310,25 +313,30 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       ? `/api/packages/${initialData?.id}`
       : "/api/packages";
 
-    const res = await fetch(url, {
-      method: isEditing ? "PUT" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-token": token,
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": token,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      setIsDirty(false);
-      setToast({ show: true, message: isEditing ? "Journey refined successfully." : "New journey forged successfully.", type: "success" });
-      setTimeout(() => router.push("/admin/dashboard"), 1500);
-    } else {
-      const err = await res.json();
-      setToast({ show: true, message: `Fiscal Failure: ${err.error}`, type: "error" });
+      if (res.ok) {
+        setIsDirty(false);
+        setToast({ show: true, message: isEditing ? "Journey refined successfully." : "New journey forged successfully.", type: "success" });
+        setTimeout(() => router.push("/admin/dashboard"), 1500);
+      } else {
+        const err = await res.json();
+        setToast({ show: true, message: `Fiscal Failure: ${err.error || "Unknown Error"}`, type: "error" });
+      }
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setToast({ show: true, message: `Fiscal Failure: ${err.message || "Network Error"}`, type: "error" });
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
   return (
@@ -795,21 +803,114 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
-              {/* Trip Type */}
-              <SegmentedControl 
-                label="Trip Architecture" 
-                value={form.trip_type} 
-                onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, trip_type: v }})} 
-                options={dynamicOptions.tripTypes.map(t => ({ label: t, value: t.toLowerCase() }))} 
-              />
+              <div className="space-y-4 col-span-full">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Trip Architecture (Multi-Select)</label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex items-center gap-2">
+                      <input 
+                        id="custom-trip-type"
+                        type="text" 
+                        placeholder="Add custom type..." 
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-bold text-white focus:outline-none focus:border-white/20 w-32 md:w-40"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.currentTarget;
+                            const val = input.value.trim();
+                            if (val && !dynamicOptions.tripTypes.includes(val)) {
+                              setForm(prev => ({ ...prev, trip_type: [...prev.trip_type, val.toLowerCase()] }));
+                              input.value = "";
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById('custom-trip-type') as HTMLInputElement;
+                          const val = input?.value.trim();
+                          if (val) {
+                            setForm(prev => ({ ...prev, trip_type: [...prev.trip_type, val.toLowerCase()] }));
+                            input.value = "";
+                          }
+                        }}
+                        className="px-4 py-1.5 rounded-lg bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all shadow-xl"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {/* Combine system types with any custom types already in this package */}
+                  {Array.from(new Set([...dynamicOptions.tripTypes, ...form.trip_type.map((t: string) => t.charAt(0).toUpperCase() + t.slice(1))])).map((t: string) => {
+                    const val = t.toLowerCase();
+                    const isActive = form.trip_type.includes(val);
+                    return (
+                      <button 
+                        key={val} 
+                        type="button" 
+                        onClick={() => setForm(prev => {
+                          setIsDirty(true);
+                          const current = Array.isArray(prev.trip_type) ? prev.trip_type : [];
+                          return { 
+                            ...prev, 
+                            trip_type: isActive 
+                              ? current.filter(ct => ct !== val) 
+                              : [...current, val] 
+                          };
+                        })} 
+                        className={`px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center justify-between gap-2 ${
+                          isActive ? "bg-white text-black border-white shadow-xl scale-[1.02]" : "bg-white/5 border-white/5 text-white/40 hover:border-white/10"
+                        }`}
+                      >
+                        <span className="truncate">{t}</span>
+                        {isActive && <div className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-              {/* Difficulty */}
-              <SegmentedControl 
-                label="Intensity Level" 
-                value={form.difficulty_level} 
-                onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} 
-                options={dynamicOptions.difficulties.map(d => ({ label: d, value: d }))} 
-              />
+              <div className={cn("col-span-full pt-8 border-t border-white/[0.02] transition-all duration-500", !form.difficulty_level && "opacity-80")}>
+                {/* Difficulty */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Intensity Level</label>
+                    <p className="text-[10px] text-white/30 italic font-medium leading-tight">Rate the physical demand of this journey.</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setForm(p => {
+                      setIsDirty(true);
+                      return { ...p, difficulty_level: p.difficulty_level ? "" : "Easy" };
+                    })} 
+                    className={`relative w-14 h-7 rounded-full transition-all duration-700 shadow-lg ${
+                      form.difficulty_level 
+                        ? "bg-emerald-500/20 border border-emerald-500/40" 
+                        : "bg-red-500/20 border border-red-500/40"
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 w-5.5 h-5.5 rounded-full shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      form.difficulty_level 
+                        ? "left-[31px] bg-emerald-400" 
+                        : "left-0.5 bg-red-400"
+                    }`} />
+                  </button>
+                </div>
+                
+                {form.difficulty_level && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-500">
+                    <SegmentedControl 
+                      label="" 
+                      value={form.difficulty_level} 
+                      onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} 
+                      options={dynamicOptions.difficulties.map(d => ({ label: d, value: d }))} 
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">

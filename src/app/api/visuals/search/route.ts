@@ -8,8 +8,10 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('query');
-    const orientation = searchParams.get('orientation') || 'landscape';
-    const per_page = searchParams.get('per_page') || '1';
+    const type = searchParams.get('type') || 'image'; // image or video
+    const per_page = searchParams.get('per_page') || '80';
+    const page = searchParams.get('page') || '1';
+    const resolution = searchParams.get('resolution') || 'desktop';
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
@@ -21,16 +23,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Sovereign Visual Intelligence: 
-    // We append a "Positive Power Signature" to force professional landscape work
-    // We use a "Universal Exclusion" to purge non-luxury artifacts globally
-    const positiveSignature = "cinematic aerial landscape landmark panoramic high-fidelity";
-    const negativeSignature = "-people -crowd -busy -street -sign -text -market -interior -trash -bus -truck";
+    const positiveSignature = type === 'video' 
+      ? "travel cinematic" 
+      : "travel tourism photography";
+    
+    const negativeSignature = "-text -trash -advertising";
     
     const refinedQuery = `${query} ${positiveSignature} ${negativeSignature}`;
 
+    const baseUrl = type === 'video' 
+      ? "https://api.pexels.com/videos/search"
+      : "https://api.pexels.com/v1/search";
+
     const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(refinedQuery)}&orientation=${orientation}&size=large&per_page=${per_page}`,
+      `${baseUrl}?query=${encodeURIComponent(refinedQuery)}&page=${page}&per_page=${per_page}${type === 'video' ? '' : '&size=large'}&_t=${Date.now()}`,
       {
+        cache: 'no-store',
         headers: {
           Authorization: apiKey,
         },
@@ -43,13 +51,33 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json();
     
-    if (data.photos && data.photos.length > 0) {
-      // Map to a clean, authoritative response format
-      return NextResponse.json({
-        url: data.photos[0].src.large2x || data.photos[0].src.large,
-        photographer: data.photos[0].photographer,
-        id: data.photos[0].id
+    if (type === 'video' && data.videos && data.videos.length > 0) {
+      const videos = data.videos.map((video: any) => {
+        // Select the best file based on resolution
+        const videoFile = video.video_files.find((f: any) => 
+          resolution === 'mobile' ? f.width <= 1080 : f.width >= 1920
+        ) || video.video_files[0];
+
+        return {
+          url: videoFile.link,
+          image: video.image,
+          id: video.id,
+          duration: video.duration
+        };
       });
+
+      return NextResponse.json(per_page === '1' ? videos[0] : { videos });
+    }
+
+    if (type === 'image' && data.photos && data.photos.length > 0) {
+      const photos = data.photos.map((photo: any) => ({
+        url: resolution === 'mobile' ? photo.src.large : (photo.src.large2x || photo.src.large),
+        photographer: photo.photographer,
+        id: photo.id,
+        avg_color: photo.avg_color
+      }));
+
+      return NextResponse.json(per_page === '1' ? photos[0] : { photos });
     }
 
     return NextResponse.json({ error: 'No iconic matches found' }, { status: 404 });

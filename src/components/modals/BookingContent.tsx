@@ -15,7 +15,10 @@ import {
   ArrowRight,
   LockKeyhole,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Globe,
+  CloudSun,
+  Diamond
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
@@ -26,6 +29,7 @@ import { Magnetic } from "@/components/Magnetic";
 import { PackageBadges } from "@/components/ui/PackageBadges";
 import gsap from "gsap";
 import { usePricing } from "@/hooks/usePricing";
+import { MAJOR_DESTINATIONS, VISUAL_ATLAS } from "@/lib/geography";
 
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
@@ -129,7 +133,8 @@ export const BookingContent = memo(function BookingContent({
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
   const [dynamicImage, setDynamicImage] = useState<string | null>(null);
-  const [notes, setNotes] = React.useState("");
+  const [dynamicVideo, setDynamicVideo] = useState<string | null>(null);
+  const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
   const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age: string; type: 'adult' | 'child' | 'infant' }[]>([]);
 
@@ -157,6 +162,7 @@ export const BookingContent = memo(function BookingContent({
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [notes, setNotes] = useState("");
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
@@ -294,6 +300,8 @@ export const BookingContent = memo(function BookingContent({
   };
 
   const initiateSovereignBooking = (pkg: any) => {
+    setIsImgLoaded(false); 
+    setDynamicImage(null); // CRITICAL: Kill the search visual instantly so the package visual can take over
     setInternalPackage(pkg);
     
     // Generate TRX ID (Prompt Section III.2 - Idempotency)
@@ -305,12 +313,11 @@ export const BookingContent = memo(function BookingContent({
     setDiscoveryPhase(2);
   };
 
-  // ════ DYNAMIC VISUAL ENGINE ════
-  // Fetches high-fidelity cinematic backgrounds based on destination intent
+  // ════ LIQUID VISUAL ENGINE (DIRECT AUTHORITY) ════
   const lastImgRef = useRef<string | null>(null);
 
-  // Sync loading state with image URL changes to prevent flicker/blur traps
-  useEffect(() => {
+  // Sync loading state with image URL changes
+  useLayoutEffect(() => {
     const currentUrl = dynamicImage || internalPackage?.image;
     if (currentUrl && currentUrl !== lastImgRef.current) {
       setIsImgLoaded(false);
@@ -332,56 +339,97 @@ export const BookingContent = memo(function BookingContent({
         return;
       }
 
-      // Tier 2: Sovereign Visual Engine (Pexels Editorial Feed)
-      // We fetch from our secure server-side route to ensure cinematic quality
-      const fetchEliteVisual = async () => {
+      // ════ AUTHORITY LOCK (PREVENT GHOSTING) ════
+      // If we are viewing a curated package, we block the dynamic engine entirely.
+      if (internalPackage && !internalPackage.isCustom && internalPackage.image) {
+        setDynamicImage(null);
+        return;
+      }
+
+      // Tier 1: Database Visual Authority (Sovereign Control)
+      const fetchDatabaseVisual = async () => {
         try {
-          const response = await fetch(`/api/visuals/search?query=${encodeURIComponent(rawQuery)}`);
+          const { data: destData } = await supabase
+            .from("destinations")
+            .select("cover_image")
+            .ilike("name", `%${rawQuery}%`)
+            .eq("is_published", true)
+            .order("sort_order", { ascending: true })
+            .limit(1)
+            .single();
+
+          if (destData && destData.cover_image) {
+            setDynamicImage(destData.cover_image);
+            setIsVisualLoading(false);
+            return true; // Match found
+          }
+        } catch (e) {
+          console.error("Database Visual Authority error:", e);
+        }
+        return false;
+      };
+
+      const startVisualProcess = async () => {
+        setIsVisualLoading(true);
+        const dbMatchFound = await fetchDatabaseVisual();
+        
+        if (dbMatchFound) return;
+
+        // Tier 2: Verified Tourism Search (Smart Discovery)
+        const res = window.innerWidth < 768 ? 'mobile' : 'desktop';
+        
+        try {
+          const refinedQuery = `${rawQuery} tourism landmark landscape scenic high-fidelity`;
+          const response = await fetch(`/api/visuals/search?query=${encodeURIComponent(refinedQuery)}&resolution=${res}`);
           if (response.ok) {
             const data = await response.json();
             if (data.url) {
               setDynamicImage(data.url);
+              setIsVisualLoading(false);
               return;
             }
           }
-          
-          // Tier 3: Atmosphere Fallback (Elite Editorial Assets)
-          const getAtmosphereAsset = (q: string) => {
-            const lower = q.toLowerCase();
-            if (lower.match(/beach|island|sea|ocean|coast|tropical|maldives|andaman|goa/)) 
-              return "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Tropical Horizon
-            if (lower.match(/mountain|snow|hill|alpine|trek|himachal|kashmir|leh|ladakh|switzerland|alps/))
-              return "https://images.pexels.com/photos/1367192/pexels-photo-1367192.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Alpine Peak
-            if (lower.match(/city|skylin|urban|metro|york|dubai|tokyo|london|paris/))
-              return "https://images.pexels.com/photos/1519014/pexels-photo-1519014.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Cinematic Cityscape
-            return "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1600"; // Default Sovereign Landscape
-          };
-          setDynamicImage(getAtmosphereAsset(rawQuery));
         } catch (err) {
-          console.error("Visual Engine Fallback:", err);
+          console.error("Search Engine error:", err);
         }
+        
+        // Tier 3: Atmosphere Fallback (Elite Editorial Assets)
+        const getAtmosphereAsset = (q: string) => {
+          const lower = q.toLowerCase();
+          const w = window.innerWidth < 768 ? 940 : 1600;
+          const base = "https://images.pexels.com/photos/";
+          const suffix = `?auto=compress&cs=tinysrgb&w=${w}`;
+          
+          if (lower.match(/beach|island|sea|ocean|coast|tropical|maldives|andaman|goa/)) 
+            return `${base}1078983/pexels-photo-1078983.jpeg${suffix}`; 
+          if (lower.match(/mountain|snow|hill|alpine|trek|himachal|kashmir|leh|ladakh|switzerland|alps/))
+            return `${base}1367192/pexels-photo-1367192.jpeg${suffix}`;
+          if (lower.match(/city|skylin|urban|metro|york|dubai|tokyo|london|paris/))
+            return `${base}1519014/pexels-photo-1519014.jpeg${suffix}`;
+          return `${base}1078983/pexels-photo-1078983.jpeg${suffix}`;
+        };
+        setDynamicImage(getAtmosphereAsset(rawQuery));
+        setIsVisualLoading(false);
       };
 
-      fetchEliteVisual();
+      startVisualProcess();
     } else if (discoveryPhase === 1) {
       // Only clear images in Phase 1 (Search) to prevent flicker during transitions
       setDynamicImage(null);
+      setDynamicVideo(null);
     }
   }, [destination, internalPackage?.title]); // Isolated from discoveryPhase to prevent reset on transition
 
   const handlePackageSelect = (pkg: any) => {
     // Open the full package details view
+    setIsImgLoaded(false);
+    setDynamicImage(null); // Purge search buffer on selection
     openModal?.("PACKAGE", pkg, bookingSource);
   };
 
   // Sync state with props (Essential for seamless flow between Discovery and Details)
-  // Phase Authority: Force clarity when entering Timeline or later
-  useEffect(() => {
-    if (discoveryPhase > 1 && (dynamicImage || internalPackage?.image)) {
-      const timer = setTimeout(() => setIsImgLoaded(true), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [discoveryPhase, dynamicImage, internalPackage?.image]);
+  // We rely exclusively on the onLoad event of the image for visual authority.
+
 
   useEffect(() => {
     if (packageData) {
@@ -658,24 +706,41 @@ export const BookingContent = memo(function BookingContent({
     };
   }, [discoveryPhase, step, adults, kids, infants, startDate, endDate, isMobile]);
 
+  // Discovery Analytics: Silent Trend Tracking
+  useEffect(() => {
+    if (sovereignResponse && sovereignResponse.results.length > 0 && destination) {
+      const logDiscovery = async () => {
+        try {
+          await supabase
+            .from('discovery_logs')
+            .insert([{ 
+              query: destination, 
+              result_count: sovereignResponse.results.length,
+              timestamp: new Date().toISOString()
+            }]);
+        } catch (err) {
+          // Silent fail for analytics
+        }
+      };
+      logDiscovery();
+    }
+  }, [sovereignResponse]);
+
   const submitBooking = async () => {
+    if (!startDate || !endDate || !isPhaseValid) return;
     setIsSubmitting(true);
+
     try {
+      // ════ DATABASE RECORDING (PURE AUTHORITY MODEL) ════
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           requestId: requestId || "LEGACY-INQUIRY",
           packageId: internalPackage?.id || packageData?.id || "GENERAL_INQUIRY",
-          packageName:
-            internalPackage?.title || packageData?.title || destination || DOSSIER_PROTOCOL.FALLBACKS.LOCATION,
+          packageName: internalPackage?.title || packageData?.title || destination || "Tailored Experience",
           travelerCount: adults + kids + infants,
-          travelers: {
-            adults,
-            kids,
-            infants,
-            guests: additionalGuests
-          },
+          travelers: { adults, kids, infants, guests: additionalGuests },
           customerName,
           customerEmail,
           customerPhone: `${selectedCountry.code}${customerPhone}`,
@@ -688,12 +753,14 @@ export const BookingContent = memo(function BookingContent({
       const res = await response.json();
 
       if (response.ok) {
-        setBookingId(res.data?.[0]?.id);
+        setBookingId(res.data?.[0]?.id || "SOV-" + Math.random().toString(36).substr(2, 9).toUpperCase());
         setStep(3);
       } else {
         console.error("Booking Submission Error:", res.error);
         setError?.(res.error || "Failed to establish journey. Please verify your connection.");
       }
+    } catch (err) {
+      console.error("Sovereign Submission Failure:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -759,43 +826,29 @@ export const BookingContent = memo(function BookingContent({
 
       {/* 2. SOVEREIGN BLACK FOUNDATION (IMMERSIVE CONTEXT) */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-[#0a0a0b]">
-        {/* Layer 1: Universal Foundation (Fixed High-Performance Backdrop) */}
-        <img
-          src="/assets/discovery-fallback.png"
-          className="absolute inset-0 w-full h-full object-cover brightness-[0.4] opacity-40 blur-[15px] scale-110"
-          alt="Foundation"
-        />
-        
-        {/* Layer 2: PRIMARY VISUAL AUTHORITY (Pexels / Manifest) */}
-        {/* We use a key-based re-mount strategy to ensure smooth cross-fades */}
-        {(dynamicImage || internalPackage?.image) && (
-          <img
-            key={dynamicImage || internalPackage?.image}
-            src={dynamicImage || internalPackage?.image}
-            loading="eager"
-            onLoad={(e) => {
-              setIsImgLoaded(true);
-              // Cinematic "Ken Burns" Horizon Effect
-              gsap.fromTo(e.currentTarget, 
-                { scale: 1.15, xPercent: -2, yPercent: -2 }, 
-                { 
-                  scale: 1, 
-                  xPercent: 0, 
-                  yPercent: 0, 
-                  duration: 20, 
-                  ease: "power1.inOut",
-                  repeat: -1,
-                  yoyo: true
-                }
-              );
-            }}
-            crossOrigin="anonymous"
-            referrerPolicy="no-referrer"
+        {/* Cinematic Video Layer */}
+        {dynamicVideo ? (
+          <video
+            key={dynamicVideo}
+            autoPlay
+            muted
+            loop
+            playsInline
+            onLoadedData={() => setIsVisualLoading(false)}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-all duration-[2000ms] will-change-transform brightness-[0.8]",
-              !isImgLoaded 
-                ? (discoveryPhase === 1 ? "opacity-0" : "opacity-40 blur-[20px] scale-105") 
-                : (discoveryPhase === 1 ? "opacity-70 blur-[10px]" : "opacity-100 blur-0 scale-[1.01]")
+              "absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out brightness-[0.7]",
+              isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
+            )}
+          >
+            <source src={dynamicVideo} type="video/mp4" />
+          </video>
+        ) : (dynamicImage || internalPackage?.image) && (
+          <img
+            src={dynamicImage || internalPackage?.image}
+            onLoad={() => setIsVisualLoading(false)}
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out brightness-[0.7]",
+              isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
             )}
             alt={internalPackage?.title || destination}
           />
@@ -977,9 +1030,10 @@ export const BookingContent = memo(function BookingContent({
                   <div className="w-full flex-1 flex flex-col overflow-y-hidden overflow-x-hidden scrollbar-hide min-h-0 relative">
                     {isThinking ? (
                       <div className="w-full h-40 flex flex-col items-center justify-center gap-4 text-white/20">
-                        <div className="relative">
-                          <div className="w-10 h-10 border border-white/5 rounded-full" />
-                          <div className="absolute inset-0 w-10 h-10 border-t-2 border-white/40 rounded-full animate-spin" />
+                        <div className="flex items-center gap-8 mb-2">
+                          <Globe size={18} className="text-white/40 animate-pulse [animation-duration:2s]" />
+                          <CloudSun size={18} className="text-white/40 animate-pulse [animation-duration:2s] [animation-delay:0.3s]" />
+                          <Diamond size={18} className="text-white/40 animate-pulse [animation-duration:2s] [animation-delay:0.6s]" />
                         </div>
                         <div className="flex flex-col items-center gap-4">
                           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white animate-pulse">
@@ -1191,7 +1245,7 @@ export const BookingContent = memo(function BookingContent({
                     {/* Top Section: Title (Unified Phase 2-4 Header) */}
                     <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)] shrink-0">
                       <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
-                        <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none pl-[1.2em] flex items-center justify-center">
+                        <h2 className="text-[clamp(1.2rem,6vw,2.2rem)] font-black tracking-[0.5em] md:tracking-[1.2em] text-white drop-shadow-2xl uppercase leading-none md:pl-[1.2em] flex items-center justify-center">
                           {(internalPackage?.title || "Journey").split('').map((char: string, index: number) => (
                             <span 
                               key={`${char}-${index}`}
@@ -1230,10 +1284,22 @@ export const BookingContent = memo(function BookingContent({
                             >
                               {/* LEFT: DEPARTURE */}
                               <div 
-                                onClick={() => startInputRef.current?.showPicker()}
+                                onClick={() => {
+                                  const startInput = startInputRef.current as any;
+                                  if (!startInput) return;
+                                  try {
+                                    if ('showPicker' in startInput) {
+                                      startInput.showPicker();
+                                    } else {
+                                      startInput.click();
+                                    }
+                                  } catch (e) {
+                                    startInput.click();
+                                  }
+                                }}
                                 className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08] transition-all group/arrival border-b md:border-b-0 md:border-r border-white/10 md:border-transparent"
                               >
-                                <span className="text-[7px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/arrival:text-white/70 transition-colors">
+                                <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/arrival:text-white/70 transition-colors">
                                   Departure
                                 </span>
                               <div className="flex flex-col items-center">
@@ -1271,7 +1337,20 @@ export const BookingContent = memo(function BookingContent({
 
                             {/* RIGHT: RETURN */}
                             <div 
-                              onClick={() => !isDurationFixed && endInputRef.current?.showPicker()}
+                              onClick={() => {
+                                if (isDurationFixed) return;
+                                const endInput = endInputRef.current as any;
+                                if (!endInput) return;
+                                try {
+                                  if ('showPicker' in endInput) {
+                                    endInput.showPicker();
+                                  } else {
+                                    endInput.click();
+                                  }
+                                } catch (e) {
+                                  endInput.click();
+                                }
+                              }}
                               className={cn(
                                 "flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 transition-all group/return",
                                 isDurationFixed ? "cursor-default bg-white/[0.02]" : "cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08]"
@@ -1279,7 +1358,7 @@ export const BookingContent = memo(function BookingContent({
                             >
                               <div className="flex items-center gap-2">
                                 <span className={cn(
-                                  "text-[7px] font-black uppercase tracking-[0.5em] transition-colors",
+                                  "text-[9px] font-black uppercase tracking-[0.5em] transition-colors",
                                   isDurationFixed ? "text-white/20" : "text-white/40 group-hover/return:text-white/70"
                                 )}>
                                   Return
@@ -1505,8 +1584,8 @@ export const BookingContent = memo(function BookingContent({
                                       {Array.from({ length: adults - 1 }).map((_, i) => (
                                         <div key={`adult-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500 min-w-0">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
-                                              Guest {i + 2} <span className="text-[7px] text-white/20 pl-1">(Adult)</span>
+                                            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
+                                              Guest {i + 2} <span className="text-[8px] text-white/20 pl-1">(Adult)</span>
                                             </span>
                                           </div>
                                           <div className="border-b border-white/10 pb-2 focus-within:border-white/40 transition-all w-full min-w-0">

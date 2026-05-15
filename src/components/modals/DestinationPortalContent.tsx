@@ -45,31 +45,70 @@ export function DestinationPortalContent() {
     return Array.from(map.entries());
   }, [filtered]);
 
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // Background Slideshow Intelligence
+  useEffect(() => {
+    if (destinations.length === 0) return;
+    const interval = setInterval(() => {
+      setActiveImageIndex(prev => (prev + 1) % destinations.length);
+    }, 6000); // 6 second editorial rhythm
+    return () => clearInterval(interval);
+  }, [destinations]);
+
   return (
     <div className="w-full">
       {/* Hero */}
-      <section className="relative pt-24 md:pt-28 pb-16 md:pb-24 px-6">
-        <div className="relative max-w-[1200px] mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-              <Globe size={14} strokeWidth={2} className="text-white/40" />
+      <section className="relative min-h-[60vh] flex flex-col justify-center pt-24 md:pt-28 pb-16 md:pb-24 px-6 overflow-hidden">
+        {/* Cinematic Slideshow Engine */}
+        <div className="absolute inset-0 z-0">
+          {destinations.map((dest, idx) => (
+            <div
+              key={`bg-${dest.id}`}
+              className={`absolute inset-0 transition-all duration-[2500ms] ease-in-out transform ${
+                idx === activeImageIndex 
+                  ? "opacity-65 scale-100" 
+                  : "opacity-0 scale-110"
+              }`}
+            >
+              {dest.cover_image && (
+                <Image
+                  src={dest.cover_image}
+                  alt="Atmosphere"
+                  fill
+                  className="object-cover"
+                  priority={idx === 0}
+                  quality={100}
+                />
+              )}
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">
-              Destinations
+          ))}
+          {/* Multi-layered cinematic overlays */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/20 to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/10" />
+        </div>
+
+        <div className="relative z-10 max-w-[1200px] mx-auto w-full">
+          <div className="flex items-center gap-3 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md">
+              <Globe size={14} strokeWidth={2} className="text-blue-400" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/50">
+              Global Manifest
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] max-w-3xl">
-            <span className="text-white">Discover Your</span>
-            <br />
-            <span className="text-white/30">Next Chapter</span>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] max-w-5xl animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
+            <span className="bg-gradient-to-b from-white via-white/80 to-white/40 bg-clip-text text-transparent inline-block">Discover Your</span>
+            <br className="md:hidden" />
+            <span className="md:ml-5 bg-gradient-to-b from-[#86868b] via-[#a1a1a6] to-[#86868b] bg-clip-text text-transparent font-normal italic inline-block">Next Chapter.</span>
           </h1>
 
-          <p className="mt-6 text-base md:text-lg text-white/30 max-w-lg leading-relaxed">
-            Each destination is a story waiting to unfold. Explore our curated collection of extraordinary places.
+          <p className="mt-8 text-base md:text-xl text-white/40 max-w-xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+            Moments that move you. Places you&apos;ll never forget.
           </p>
 
-          <div className="mt-10 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+          <div className="mt-12 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
             {[
               { key: "all" as const, label: "All Destinations", icon: Globe },
               { key: "international" as const, label: "International", icon: Globe },
@@ -78,10 +117,10 @@ export function DestinationPortalContent() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-500 border ${
+                className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-700 border backdrop-blur-md ${
                   activeTab === tab.key
-                    ? "bg-white text-black border-white"
-                    : "bg-white/[0.03] border-white/[0.06] text-white/40 hover:border-white/15"
+                    ? "bg-white text-black border-white shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)]"
+                    : "bg-white/[0.05] border-white/[0.1] text-white/40 hover:border-white/30"
                 }`}
               >
                 <tab.icon size={12} strokeWidth={2.5} />
@@ -93,7 +132,7 @@ export function DestinationPortalContent() {
       </section>
 
       {/* Destinations Grid */}
-      <section className="px-6 pb-24 md:pb-32">
+      <section className="px-6 pt-12 md:pt-20 pb-24 md:pb-32">
         <div className="max-w-[1200px] mx-auto space-y-16">
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,30 +140,12 @@ export function DestinationPortalContent() {
                 <div key={i} className="aspect-[4/3] rounded-3xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />
               ))}
             </div>
-          ) : grouped.length === 0 ? (
-            <div className="text-center py-24">
-              <p className="text-white/20 text-sm">No destinations yet. Add them from the admin panel.</p>
-            </div>
           ) : (
-            grouped.map(([region, dests]) => (
-              <div key={region} className="space-y-8">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-white/70">
-                    {region}
-                  </h2>
-                  <div className="flex-1 h-px bg-white/[0.05]" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/20">
-                    {dests.length} {dests.length === 1 ? "destination" : "destinations"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {dests.map((dest) => (
-                    <DestinationCard key={dest.id} destination={dest} />
-                  ))}
-                </div>
-              </div>
-            ))
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((dest) => (
+                <DestinationCard key={dest.id} destination={dest} />
+              ))}
+            </div>
           )}
         </div>
       </section>
