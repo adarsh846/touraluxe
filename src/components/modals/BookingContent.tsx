@@ -1853,13 +1853,13 @@ export const BookingContent = memo(function BookingContent({
                             {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
                           </span>
                         </div>
-                        {experience?.flights_status === 'included' && (
+                        {packageData?.flights_status === 'included' && (
                           <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
                             <Plane size={10} className="text-blue-400" />
                             <span className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest whitespace-nowrap">Flights Included</span>
                           </div>
                         )}
-                        {experience?.flights_status === 'on_request' && (
+                        {packageData?.flights_status === 'on_request' && (
                           <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
                             <Plane size={10} className="text-blue-400/80" />
                             <span className="text-[9px] md:text-[10px] font-black text-blue-400/80 uppercase tracking-widest whitespace-nowrap">Flights on Request</span>
@@ -1972,20 +1972,20 @@ export const BookingContent = memo(function BookingContent({
                           <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
                             <div className="flex flex-col items-center md:items-start gap-0.5">
                               <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Tour & Services</span>
-                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.landBase.toLocaleString()}</span>
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{(pricing.breakdown?.landBase || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex flex-col items-center md:items-start gap-0.5">
                               <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
                                 GST ({pricing.taxRate}%)
                               </span>
                               <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
-                                + {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
+                                + {pricing.symbol}{(pricing.breakdown?.taxAmount || 0).toLocaleString()}
                               </span>
                             </div>
-                            {pricing.breakdown.flightNet > 0 && (
+                            {(pricing.breakdown?.flightNet || 0) > 0 && (
                               <div className="flex flex-col items-center md:items-start gap-0.5">
                                 <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Final Airfare</span>
-                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{pricing.breakdown.flightNet.toLocaleString()}</span>
+                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{(pricing.breakdown?.flightNet || 0).toLocaleString()}</span>
                               </div>
                             )}
                           </div>

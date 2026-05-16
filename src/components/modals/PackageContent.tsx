@@ -505,141 +505,141 @@ export const PackageContent = memo(({
 
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'investment')}`}
-          className="min-h-screen flex items-center justify-center px-6 md:px-12 lg:px-20 animate-in fade-in duration-1000 snap-center snap-always overflow-hidden"
+          className="min-h-screen lg:h-screen flex items-center justify-center py-16 px-4 sm:px-6 md:px-10 lg:px-16 animate-in fade-in duration-1000 snap-center snap-always"
         >
-          <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-10 lg:gap-16 py-16">
+          <div className="w-full max-w-6xl flex flex-col lg:flex-row items-stretch gap-8 lg:gap-10 relative z-10">
             
-            {/* Left: Branding Narrative (Desktop Highlight) */}
-            <div className="flex-1 text-center lg:text-left space-y-4 md:space-y-6">
-              <div className="inline-flex items-center gap-3 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
-                <Sparkles size={14} className="text-white/80" />
-                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/80">Legacy Investment</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-none tracking-tighter">
-                Curated <span className="text-white/30 italic">Value</span>
-              </h2>
-              <p className="text-[11px] md:text-sm lg:text-[15px] text-white/60 max-w-sm mx-auto lg:mx-0 leading-relaxed font-medium italic">
-                A masterpiece of travel architecture, where every fiscal detail is refined for absolute transparency and unrivaled excellence.
-              </p>
-            </div>
-
-            {/* Right: Pricing Pillar & Metadata Manifest */}
-            <div className="flex-1 w-full max-w-2xl flex flex-col items-center lg:items-end gap-8 lg:gap-12">
+            {/* Left Column: Price Hero */}
+            <div className="flex-1 flex flex-col justify-center items-center lg:items-start text-center lg:text-left gap-4 md:gap-5 lg:gap-6">
               
-              {/* Main Pricing Cluster */}
-              <div className="flex flex-col items-center lg:items-end gap-2">
-                <div className="flex flex-col items-center lg:items-end gap-2 md:gap-3">
-                  {pricing.hasSavings && (
-                    <div className="flex flex-col items-center lg:items-start self-center lg:self-start gap-1">
-                      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Original Trip Cost</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-white/30 text-base md:text-xl font-bold line-through tracking-tighter decoration-white/30">
-                          {pricing.symbol}{pricing.originalTotal.toLocaleString()}
-                        </span>
-                        <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/30 shadow-[0_0_20px_rgba(52,211,153,0.1)]">
-                          Save {pricing.discountPercent}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col items-center lg:items-end gap-2">
-                    <div className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter tabular-nums leading-none flex items-center gap-3">
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
-                      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 px-3 py-1 md:px-4 md:py-1.5 rounded-full border border-white/20 whitespace-nowrap">Per Person</span>
-                    </div>
-                  </div>
-                </div>
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                <Sparkles size={12} className="text-white/40" />
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Investment</span>
               </div>
 
-              {/* Self-Healing Metadata Grid (Right Aligned on Desktop) */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-end gap-x-8 gap-y-5 md:gap-x-12 lg:gap-x-14">
+              {/* Savings Row */}
+              {pricing.hasSavings && (
+                <div className="flex items-center gap-3">
+                  <span className="text-white/20 text-sm md:text-base font-bold line-through tracking-tighter">
+                    {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                    Save {pricing.discountPercent}%
+                  </span>
+                </div>
+              )}
+
+              {/* Primary Price */}
+              <div className="space-y-2">
+                <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tighter tabular-nums leading-none">
+                  {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                </div>
+                <span className="block text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/25">
+                  Per Person · All-Inclusive
+                </span>
+              </div>
+
+              {/* Metadata Pills */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
                 {(experience.tax_label || pricing.taxLabel) && (
-                  <div className="flex flex-col items-center lg:items-end gap-1.5">
-                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Tax Status</span>
-                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.tax_label || pricing.taxLabel}</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.05]">
+                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/25">Tax</span>
+                    <span className="text-[8px] md:text-[9px] font-bold text-white/60">{experience.tax_label || pricing.taxLabel}</span>
                   </div>
                 )}
                 {experience.duration && (
-                  <div className="flex flex-col items-center lg:items-end gap-1.5">
-                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Duration</span>
-                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.duration}</span>
-                  </div>
-                )}
-                {experience.booking_status && (
-                  <div className="flex flex-col items-center lg:items-end gap-1.5">
-                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Booking</span>
-                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.booking_status}</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.05]">
+                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/25">Duration</span>
+                    <span className="text-[8px] md:text-[9px] font-bold text-white/60">{experience.duration}</span>
                   </div>
                 )}
               </div>
 
-              {/* Enhanced Fiscal Ledger */}
-              <div className="w-full max-w-[320px] p-6 rounded-3xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md space-y-4 animate-in fade-in zoom-in duration-1000 delay-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Fiscal Breakdown</span>
+              {/* Itinerary Download — hidden when URL is JSON anchor */}
+              {experience.itinerary_url && !experience.itinerary_url.startsWith('{') && (
+                <a 
+                  href={experience.itinerary_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-500 self-center lg:self-start"
+                >
+                  <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shrink-0">
+                    <svg className="w-3.5 h-3.5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/25 leading-none mb-0.5">Digital Asset</span>
+                    <span className="text-[10px] md:text-xs font-bold text-white/60 tracking-tight">Download Itinerary</span>
+                  </div>
+                </a>
+              )}
+            </div>
+
+            {/* Right Column: Sovereign Manifest */}
+            <div className="w-full lg:w-[360px] xl:w-[400px] shrink-0 p-5 sm:p-6 md:p-7 rounded-[2rem] bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl relative overflow-hidden animate-in slide-in-from-bottom-8 duration-1000 delay-200">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+              
+              {/* Manifest Header */}
+              <div className="flex items-center gap-2 mb-5 relative z-10">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] animate-pulse" />
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/25">Fiscal Breakdown</span>
+              </div>
+              
+              {/* Ledger Items */}
+              <div className="space-y-3 relative z-10">
+
+                {/* Ground */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] md:text-[10px] font-black text-white/25 uppercase tracking-[0.15em]">Ground & Services</span>
+                  <span className="text-xs md:text-sm font-bold text-white tracking-tighter tabular-nums">
+                    {pricing.symbol}{(pricing.breakdown?.landBase || 0).toLocaleString()}
+                  </span>
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center group/item">
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest group-hover/item:text-white/60 transition-colors">Tour & Services</span>
-                    <span className="text-sm font-bold text-white tracking-tighter">
-                      {pricing.symbol}{pricing.breakdown.landBase.toLocaleString()}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center group/item">
-                    <span className="text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest group-hover/item:text-emerald-400 transition-colors">GST ({pricing.taxRate}%)</span>
-                    <span className="text-sm font-bold text-emerald-400 tracking-tighter">
-                      + {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
-                    </span>
-                  </div>
+                {/* Tax */}
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] md:text-[10px] font-black text-emerald-400/40 uppercase tracking-[0.15em]">GST ({pricing.taxRate}%)</span>
+                  <span className="text-xs md:text-sm font-bold text-emerald-400 tracking-tighter tabular-nums">
+                    + {pricing.symbol}{(pricing.breakdown?.taxAmount || 0).toLocaleString()}
+                  </span>
+                </div>
 
-                  {pricing.breakdown.flightNet > 0 && (
-                    <div className="flex justify-between items-center group/item">
-                      <div className="flex items-center gap-2">
-                        <Plane size={10} className="text-blue-400/60" />
-                        <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest group-hover/item:text-blue-400 transition-colors">Final Airfare</span>
+                {/* Aviation */}
+                {(pricing.breakdown?.flightNet || 0) > 0 && (
+                  <div className="space-y-2.5 pt-3 border-t border-white/[0.04]">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5">
+                        <Plane size={10} className="text-blue-400/40" />
+                        <span className="text-[9px] md:text-[10px] font-black text-blue-400/40 uppercase tracking-[0.15em]">Airfare</span>
                       </div>
-                      <span className="text-sm font-bold text-blue-400 tracking-tighter">
-                        + {pricing.symbol}{pricing.breakdown.flightNet.toLocaleString()}
+                      <span className="text-xs md:text-sm font-black text-blue-400 tracking-tighter tabular-nums">
+                        + {pricing.symbol}{(pricing.breakdown?.flightNet || 0).toLocaleString()}
                       </span>
                     </div>
-                  )}
-
-                  <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Total Investment</span>
-                    <span className="text-xl font-black text-white tracking-tighter">
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
-                    </span>
+                    
+                    {pricing.breakdown?.flight_segments && pricing.breakdown.flight_segments.length > 0 && (
+                      <div className="pl-3.5 space-y-1.5 border-l border-blue-400/10 ml-1">
+                        {pricing.breakdown.flight_segments.map((seg: any, idx: number) => seg.label && (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-tight">{seg.label}</span>
+                            <span className="text-[9px] font-mono text-blue-300/40 tabular-nums">{pricing.symbol}{Number(seg.price).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                )}
+
+                {/* Total */}
+                <div className="pt-3 mt-1 border-t border-white/[0.08] flex justify-between items-center">
+                  <span className="text-[9px] md:text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Total</span>
+                  <span className="text-lg md:text-xl font-black text-white tracking-tighter tabular-nums">
+                    {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                  </span>
                 </div>
               </div>
-
-              {/* Digital Itinerary Asset Button */}
-              {experience.itinerary_url && (
-                <div className="pt-2">
-                  <a 
-                    href={experience.itinerary_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="group relative flex items-center gap-4 px-6 md:px-8 py-3 md:py-4 rounded-full bg-white/[0.03] border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all duration-500"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
-                      {experience.itinerary_url.toLowerCase().endsWith('.pdf') ? (
-                        <svg className="w-4 h-4 md:w-5 md:h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v20l10-10L7 2z" /></svg>
-                      ) : (
-                        <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/50 leading-none mb-1">Digital Itinerary</span>
-                      <span className="text-xs md:text-sm font-bold text-white tracking-tight">Download Full Itinerary</span>
-                    </div>
-                  </a>
-                </div>
-              )}
             </div>
           </div>
         </section>
@@ -783,12 +783,12 @@ export const PackageContent = memo(({
           onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
           onTouchEnd={handleGlowLeave}
-          className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit max-w-[calc(100vw-24px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
+          className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-full md:w-fit max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
         >
           {/* ════ PHYSICAL JELLY SHELL ════ */}
           <div 
             ref={jellyRef}
-            className="relative flex items-center justify-between p-2 transform-gpu"
+            className="relative flex items-center justify-between py-2.5 pl-6 pr-3 md:p-2 transform-gpu w-full"
           >
             {/* Background Layer */}
             <div className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
@@ -801,59 +801,94 @@ export const PackageContent = memo(({
             />
 
             {/* Content Container (Wrapped in Jelly) */}
-            <div className="relative z-10 flex items-center justify-between w-full h-full" style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}>
-            {/* Metadata Segments Area */}
-            <div className="relative z-10 flex items-center min-w-0" ref={segmentsRef}>
-              <div className="flex items-center justify-center" style={{ padding: '0 clamp(0.2rem, 1.5vw, 2rem)', gap: 'clamp(4px, 1.2vw, 16px)' }}>
+            <div className="relative z-10 flex items-center justify-between w-full h-full gap-2 md:gap-4 lg:gap-6">
+
+              {/* ── MOBILE LAYOUT (< md): Full info + icon-only Reserve ── */}
+              <div className="flex md:hidden items-center gap-3 flex-1 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                  {/* Label */}
+                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/30 leading-none">Investment</span>
                   
-                  {/* Left Column: Primary Price */}
+                  {/* Primary Price Area */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[1.35rem] font-black text-white leading-none tabular-nums tracking-tighter">
+                      {pricing.formattedFinal}
+                    </span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white/40 border-l border-white/10 pl-2 leading-none">
+                      / Person
+                    </span>
+                  </div>
+                  
+                  {/* Info Row: savings + flight + tax */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {pricing.hasSavings && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[8px] font-medium text-white/25 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                        <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
+                      </div>
+                    )}
+                    {(experience.flights_status === 'included' || experience.flights_status === 'on_request') && (
+                      <div className="flex items-center gap-1 text-blue-400">
+                        <Plane size={8} />
+                        <span className="text-[7px] font-black uppercase tracking-wide">
+                          {experience.flights_status === 'included' ? 'Flights Incl.' : 'On Request'}
+                        </span>
+                      </div>
+                    )}
+                    {(pricing.taxLabel) && (
+                      <span className="text-[7px] font-bold text-white/25 uppercase tracking-wide">{pricing.taxLabel}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── DESKTOP LAYOUT (md+): Full metadata stack ── */}
+              <div className="hidden md:flex items-center min-w-0" ref={segmentsRef}>
+                <div className="flex items-center justify-center px-2 md:px-6 gap-3 md:gap-4">
+                  
+                  {/* Primary Price */}
                   <div className="flex flex-col items-center justify-center">
-                    <span className="font-black uppercase text-white/40 md:text-white/70 whitespace-nowrap text-center mb-0.5" style={{ fontSize: 'clamp(6px, 1vw, 7px)', letterSpacing: '0.4em' }}>
+                    <span className="font-black uppercase text-white/50 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
                       Investment
                     </span>
-                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(20px, 4.5vw, 1.6rem)' }}>
+                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-2xl md:text-3xl">
                       {pricing.formattedFinal}
                     </p>
                   </div>
 
-                  {/* Right Column: Secondary Metadata Stack */}
-                  <div className="flex flex-col items-start justify-center gap-0.5 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(7px, 1.2vw, 7px)' }}>
+                  {/* Divider */}
+                  <div className="w-px h-8 bg-white/10 shrink-0" />
+
+                  {/* Secondary Metadata */}
+                  <div className="flex flex-col items-start justify-center gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold uppercase tracking-wider text-white/40 leading-none whitespace-nowrap text-[8px]">
                         / Person
                       </span>
                       {pricing.hasSavings && (
                         <div className="flex items-center gap-2">
-                          <span className="font-medium tracking-tight text-white/40 line-through whitespace-nowrap" style={{ fontSize: 'clamp(8px, 1.4vw, 0.8rem)' }}>
+                          <span className="font-medium tracking-tight text-white/30 line-through whitespace-nowrap text-[10px]">
                             {pricing.symbol}{pricing.originalTotal.toLocaleString()}
                           </span>
-                          <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(6px, 1vw, 6px)' }}>
+                          <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[8px]">
                             Save {pricing.discountPercent}%
                           </span>
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {(experience.flights_status === 'included' || experience.flights_status === 'on_request') && (
-                        <div className="flex items-center gap-2">
-                          {experience.flights_status === 'included' && (
-                            <div className="flex items-center gap-1 text-blue-400">
-                              <Plane size={8} />
-                              <span className="text-[6px] font-black uppercase tracking-wider">Flights Incl.</span>
-                            </div>
-                          )}
-                          {experience.flights_status === 'on_request' && (
-                            <div className="flex items-center gap-1 text-blue-400/80">
-                              <Plane size={8} />
-                              <span className="text-[6px] font-black uppercase tracking-wider">Flights Req.</span>
-                            </div>
-                          )}
-                          <div className="w-[1px] h-2 bg-white/20" />
+                        <div className="flex items-center gap-1 text-blue-400">
+                          <Plane size={9} />
+                          <span className="text-[7px] font-black uppercase tracking-wider">
+                            {experience.flights_status === 'included' ? 'Flights Incl.' : 'Flights Req.'}
+                          </span>
+                          <div className="w-px h-2 bg-white/20" />
                         </div>
                       )}
-                      {(pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) && (
-                        <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(4px, 1vw, 6px)' }}>
+                      {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
+                        <span className="font-bold uppercase tracking-wider text-white/40 leading-none whitespace-nowrap text-[7px]">
                           {pricing.taxLabel}
                         </span>
                       )}
@@ -862,18 +897,22 @@ export const PackageContent = memo(({
                 </div>
               </div>
               
-              {/* Action Button Area */}
-              <div ref={actionRef} className="flex items-center justify-end shrink-0" style={{ paddingLeft: 'clamp(0px, 1vw, 12px)' }}>
+              {/* Action Button — icon-only on mobile, full on desktop */}
+              <div ref={actionRef} className="flex items-center justify-end shrink-0 pl-1 md:pl-3">
                 <Magnetic intensity={0.3}>
                   <button 
                     onClick={() => openModal('BOOKING', experience)}
-                    className="group/btn relative overflow-hidden h-8.5 md:h-12 xl:h-14 px-3 md:px-10 rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center gap-1 md:gap-2"
+                    className="group/btn relative overflow-hidden rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center
+                      h-10 w-10 md:h-12 md:w-auto md:px-10"
                   >
-                    <div className="relative z-10 flex items-center justify-center gap-1 md:gap-2">
-                      <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.3em] whitespace-nowrap ml-[0.15em] md:ml-[0.3em]">
+                    <div className="relative z-10 flex items-center justify-center gap-1.5">
+                      {/* Mobile: icon only */}
+                      <ChevronRight strokeWidth={2.5} className="text-black group-hover/btn:translate-x-0.5 transition-transform shrink-0 w-4 h-4 md:hidden" />
+                      {/* Desktop: text + icon */}
+                      <span className="hidden md:block text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
                         Reserve
                       </span>
-                      <ChevronRight strokeWidth={2.5} className="text-black group-hover/btn:translate-x-1 transition-transform shrink-0 w-3 h-3 md:w-[18px] md:h-[18px]" />
+                      <ChevronRight strokeWidth={2.5} className="text-black hidden md:block group-hover/btn:translate-x-1 transition-transform shrink-0 w-[18px] h-[18px]" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                   </button>

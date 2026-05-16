@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Plane } from "lucide-react";
 import type { Package } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { usePricing } from "@/hooks/usePricing";
@@ -27,6 +28,18 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
   const initialDur = parseDuration(initialData?.duration || "");
   const ALLOWED_CATEGORIES = ["Luxury Tours", "Group Trips", "Adventure Tours", "Luxury Honeymoons", "MICE Events", "Custom Journeys"];
+
+  // Detect and unpack the Aviation Anchor from the stable column
+  const getAnchor = () => {
+    try {
+      const anchor = (initialData as any)?.itinerary_url;
+      if (anchor && anchor.includes('{')) {
+        return JSON.parse(anchor);
+      }
+    } catch (e) { console.warn("Aviation Anchor Corrupt", e); }
+    return null;
+  };
+  const anchor = getAnchor();
 
   const [form, setForm] = useState({
     title: initialData?.title || "",
@@ -69,9 +82,15 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       ? (initialData as any).trip_type
       : ((initialData as any)?.trip_type || "group").split(",").filter(Boolean),
     itinerary_url: (initialData as any)?.itinerary_url || "",
-    flights_status: (initialData as any)?.flights_status || "excluded",
+    flights_status: anchor?.status || (initialData as any)?.flights_status || "excluded",
     flight_price_estimate: (initialData as any)?.flight_price_estimate || "",
     departure_cities: (initialData as any)?.departure_cities || [],
+    flight_type: anchor?.type || (initialData as any)?.flight_type || "Round-Trip",
+    flight_segments: anchor?.segments || (Array.isArray((initialData as any)?.flight_segments) 
+      ? (initialData as any)?.flight_segments 
+      : (initialData as any)?.flight_segments?.segments || [{ label: "", price: "" }]),
+    flight_price_child: anchor?.child_fare || (initialData as any)?.flight_price_child || (initialData as any)?.flight_segments?.child_fare || "",
+    flight_price_infant: anchor?.infant_fare || (initialData as any)?.flight_price_infant || (initialData as any)?.flight_segments?.infant_fare || "",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -91,6 +110,17 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // ── Fiscal Synchronization ──
+  // Ensure the master estimate always matches the live ledger sum
+  useEffect(() => {
+    const total = form.flight_segments.reduce((acc: number, s: any) => 
+      acc + (parseInt(String(s.price).replace(/[^0-9]/g, "")) || 0), 0
+    );
+    if (total.toString() !== form.flight_price_estimate) {
+      setForm(p => ({ ...p, flight_price_estimate: total.toString() }));
+    }
+  }, [form.flight_segments, form.flight_price_estimate]);
 
   useEffect(() => {
     fetch("/api/destinations")
@@ -301,9 +331,33 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     // Construct duration string
     const duration = `${form.nights} Nights ${form.days} Days`;
     
+    // Total Aviation Anchor Strategy: Bundle ALL flight metadata into one safe column
+    const aviationAnchor = JSON.stringify({
+      segments: form.flight_segments,
+      type: form.flight_type,
+      child_fare: form.flight_price_child,
+      infant_fare: form.flight_price_infant,
+      status: form.flights_status,
+      hubs: form.departure_cities,
+      estimate: form.flight_price_estimate
+    });
+
+    // Sterilize the payload: Remove ALL potential schema-mismatch columns
+    const { 
+      flight_segments: _fs,
+      flight_type: _ft,
+      flights_status: _fst,
+      departure_cities: _dc,
+      flight_price_estimate: _fpe,
+      flight_price_child: _c,
+      flight_price_infant: _i,
+      ...safeForm 
+    } = form;
+
     const payload = {
-      ...form,
+      ...safeForm,
       duration,
+      itinerary_url: aviationAnchor, // All aviation data is safe in this single column
       highlights: form.highlights.filter((h) => h.trim() !== ""),
       inclusions: form.inclusions.filter((h) => h.trim() !== ""),
       exclusions: form.exclusions.filter((h) => h.trim() !== ""),
@@ -346,7 +400,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
       {/* Top Bar */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-[60] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] px-4 md:px-8 ${
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] px-4 md:px-8 ${
           isScrolled 
             ? "py-3" 
             : "py-4 md:py-6"
@@ -372,7 +426,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               </div>
             </button>
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/5 px-3 py-1 rounded-full border border-white/10 leading-none">Admin</span>
+              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/90 bg-white/5 px-3 py-1 rounded-full border border-white/10 leading-none">Admin</span>
               <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/80 bg-white/10 px-3 py-1 rounded-full border border-white/20 leading-none">Catalog</span>
               <div className="flex items-center justify-center px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.05] leading-none">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
@@ -391,8 +445,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
         </div>
       </header>
 
-      <main className="max-w-[1000px] mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-40 md:pb-24">
-        <form onSubmit={handleSubmit} id="package-form" className="space-y-12 md:space-y-20">
+      <main className="max-w-[1400px] mx-auto px-4 md:px-12 pt-24 md:pt-36 pb-40 md:pb-24">
+        <form onSubmit={handleSubmit} id="package-form" className="space-y-16 md:space-y-24">
           
           {/* ── HERO: CINEMATIC COVER ── */}
           <section className="space-y-6 md:space-y-8">
@@ -413,7 +467,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
                     <svg className="w-6 h-6 text-white/50 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                   </div>
-                  <span className="text-[13px] md:text-sm text-white/60 font-medium">{uploading ? "Processing asset..." : "Upload experience cover (16:9 recommended)"}</span>
+                  <span className="text-[13px] md:text-sm text-white/90 font-medium">{uploading ? "Processing asset..." : "Upload experience cover (16:9 recommended)"}</span>
                 </div>
               )}
             </div>
@@ -432,14 +486,14 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-4">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">
                 Service Category (Multi-Select)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {["Luxury Tours", "Group Trips", "Adventure Tours", "Luxury Honeymoons", "MICE Events", "Custom Journeys"].map((cat) => {
                   const isActive = form.category.includes(cat);
                   return (
-                    <button key={cat} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }})} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-white/60 hover:border-white/10 hover:text-white/50"}`}>
+                    <button key={cat} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }})} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-white/90 hover:border-white/10 hover:text-white/50"}`}>
                       <span className="pr-2">{cat}</span>
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${isActive ? "bg-white scale-100" : "bg-white/10 scale-50"}`} />
                     </button>
@@ -458,12 +512,12 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, tagline: v }})} placeholder="e.g. Witness the infinite from the wild" />
 
             <div className="space-y-4">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Experience Narrative</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Experience Narrative</label>
               <textarea value={form.description} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, description: e.target.value }})} placeholder="Craft the story of this journey..." rows={6} required className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" />
             </div>
 
             <div className="space-y-5">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Journey Highlights</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Journey Highlights</label>
               <div className="space-y-3">
                 {form.highlights.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -480,7 +534,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">What&apos;s Included (Inclusions)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">What&apos;s Included (Inclusions)</label>
               <div className="space-y-3">
                 {form.inclusions.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -497,7 +551,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">What&apos;s NOT Included (Exclusions)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">What&apos;s NOT Included (Exclusions)</label>
               <div className="space-y-3">
                 {form.exclusions.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -514,12 +568,12 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Journey Itinerary (Day-by-Day)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Journey Itinerary (Day-by-Day)</label>
               <div className="space-y-6">
                 {form.itinerary.map((item, i) => (
                   <div key={i} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] space-y-4 relative group/itinerary">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-white/40">
+                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-xs font-black text-white/90">
                         D{item.day}
                       </div>
                       <input 
@@ -550,7 +604,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
           {/* ── SECTION 3: LOGISTICS & FINANCIALS ── */}
           <section className="space-y-6 pt-12 border-t border-white/[0.03]">
-            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/90 uppercase">
               Pricing & Itinerary
             </h3>
             
@@ -567,47 +621,215 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
           {/* ── SECTION: FINANCIAL ARCHITECTURE ── */}
           <section className="space-y-6 pt-12 border-t border-white/[0.03]">
-            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/90 uppercase">
               Financial Architecture
             </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12 lg:gap-20 items-start">
+              <div className="space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <SegmentedControl 
+                    label="Currency" 
+                    value={form.currency} 
+                    onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, currency: v }})} 
+                    options={[{ label: "₹ INR", value: "₹" }, { label: "$ USD", value: "$" }, { label: "€ EUR", value: "€" }]} 
+                    description="Global currency for this specific journey."
+                  />
+                  <Field 
+                    label="Strikethrough Price (Old)" 
+                    value={form.original_price} 
+                    onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, original_price: v }})} 
+                    placeholder="e.g. 95,000" 
+                    description="Higher old price for 'Discount' tag."
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-              <div className="space-y-6 md:space-y-8">
-                <SegmentedControl 
-                  label="Currency" 
-                  value={form.currency} 
-                  onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, currency: v }})} 
-                  options={[{ label: "₹ INR", value: "₹" }, { label: "$ USD", value: "$" }, { label: "€ EUR", value: "€" }]} 
-                  description="Global currency for this specific journey."
-                />
-                <Field 
-                  label="Strikethrough Price (Old)" 
-                  value={form.original_price} 
-                  onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, original_price: v }})} 
-                  placeholder="e.g. 95,000" 
-                  description="Add a higher old price here to show a 'Discount' tag."
-                />
-                <SegmentedControl 
-                  label="Airfare Status" 
-                  value={form.flights_status} 
-                  onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, flights_status: v as any }})} 
-                  options={[
-                    { label: "Excluded", value: "excluded" },
-                    { label: "Included", value: "included" },
-                    { label: "On Request", value: "on_request" }
-                  ]} 
-                  description="Standardize airfare disclosure for this package."
-                />
-                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <SegmentedControl 
+                    label="Airfare Status" 
+                    value={form.flights_status} 
+                    onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, flights_status: v as any }})} 
+                    options={[
+                      { label: "Excluded", value: "excluded" },
+                      { label: "Included", value: "included" },
+                      { label: "On Request", value: "on_request" }
+                    ]} 
+                  />
+                  <Field 
+                    label="Ground & Services Cost (Base)" 
+                    value={form.price} 
+                    onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, price: v }})} 
+                    placeholder="e.g. 80,000" 
+                    description="Base cost per adult (Excl. Flights & GST). These are added automatically."
+                    required
+                  />
+                </div>
+
                 {form.flights_status !== "excluded" && (
-                  <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <Field 
-                      label="Final Airfare (Incl. Taxes)" 
-                      value={form.flight_price_estimate} 
-                      onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, flight_price_estimate: v }})} 
-                      placeholder="e.g. 25,000" 
-                      description="Total airfare cost per traveler. TouraLuxe will not add extra GST on this amount."
-                    />
+                  <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-1000 p-8 rounded-[2rem] bg-white/[0.02] border border-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Plane size={14} className="text-blue-400" />
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white">Flight Segment Breakdown</h4>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setForm(p => ({ ...p, flight_segments: [...p.flight_segments, { label: "", price: "" }] }))}
+                        className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-colors"
+                      >
+                        + Add Flight Leg
+                      </button>
+                    </div>
+
+                    <div className="space-y-8">
+                      {form.flight_segments.map((segment: any, i: number) => (
+                        <div key={i} className="flex flex-col md:grid md:grid-cols-[1fr_160px_40px] gap-5 md:gap-8 items-stretch md:items-end group/seg border-b border-white/[0.03] pb-8 last:border-none">
+                          <div className="space-y-2.5">
+                            <div className="flex justify-between items-center">
+                              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 group-focus-within/seg:text-blue-400 transition-colors">Origin</label>
+                              <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 group-focus-within/seg:text-blue-400 transition-colors">Destination</label>
+                            </div>
+                            <div className="flex items-center gap-6 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-6 py-4">
+                              <input 
+                                className="flex-1 bg-transparent text-[15px] font-bold text-white transition-all outline-none placeholder:text-white/10"
+                                placeholder="Origin"
+                                value={segment.label.split(" ➔ ")[0] || ""}
+                                onChange={(e) => {
+                                  const newSegments = [...form.flight_segments];
+                                  const parts = segment.label.split(" ➔ ");
+                                  newSegments[i].label = `${e.target.value} ➔ ${parts[1] || ""}`;
+                                  setForm(p => ({ ...p, flight_segments: newSegments }));
+                                }}
+                              />
+                              <div className="flex items-center justify-center shrink-0">
+                                <span className="text-blue-400 font-black text-xl select-none leading-none">➔</span>
+                              </div>
+                              <input 
+                                className="flex-1 bg-transparent text-[15px] font-bold text-white transition-all outline-none text-right placeholder:text-white/10"
+                                placeholder="Destination"
+                                value={segment.label.split(" ➔ ")[1] || ""}
+                                onChange={(e) => {
+                                  const newSegments = [...form.flight_segments];
+                                  const parts = segment.label.split(" ➔ ");
+                                  newSegments[i].label = `${parts[0] || ""} ➔ ${e.target.value}`;
+                                  setForm(p => ({ ...p, flight_segments: newSegments }));
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2.5">
+                            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 text-right block group-focus-within/seg:text-blue-400 transition-colors">Cost (₹)</label>
+                            <input 
+                              className="w-full bg-transparent text-[15px] text-white transition-all outline-none text-right font-mono"
+                              placeholder="0"
+                              value={segment.price}
+                              onChange={(e) => {
+                                const newSegments = [...form.flight_segments];
+                                newSegments[i].price = e.target.value;
+                                setForm(p => ({ ...p, flight_segments: newSegments }));
+                              }}
+                            />
+                          </div>
+                          <div className="flex justify-end pb-1">
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const newSegments = form.flight_segments.filter((_: any, idx: number) => idx !== i);
+                                const total = newSegments.reduce((acc: number, s: any) => acc + (Number(s.price) || 0), 0);
+                                setForm(p => ({ ...p, flight_segments: newSegments, flight_price_estimate: total.toString() }));
+                              }}
+                              className="text-white/10 hover:text-red-400 transition-colors"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white/90 uppercase tracking-[0.2em]">Total Adult Airfare</span>
+                        <span className="text-[9px] text-white/70 italic">Calculated sum for one adult traveler</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xl font-black text-blue-400 tracking-tighter">
+                          ₹{(form.flight_segments.reduce((acc: number, s: any) => acc + (parseInt(String(s.price).replace(/[^0-9]/g, "")) || 0), 0)).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6 pt-8 border-t border-white/[0.05]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-white/90 uppercase tracking-[0.2em]">Age-Specific Airfare</span>
+                          <span className="text-[9px] text-white/70 italic">Customize pricing for younger travelers</span>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            if (form.flight_price_child || form.flight_price_infant) {
+                              setForm(p => ({ ...p, flight_price_child: "", flight_price_infant: "" }));
+                            } else {
+                              setForm(p => ({ ...p, flight_price_child: " ", flight_price_infant: " " }));
+                            }
+                          }}
+                          className={cn(
+                            "px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border",
+                            (form.flight_price_child || form.flight_price_infant) 
+                              ? "bg-blue-500/10 border-blue-500/30 text-blue-400" 
+                              : "bg-white/5 border-white/10 text-white/70 hover:text-white/90"
+                          )}
+                        >
+                          {(form.flight_price_child || form.flight_price_infant) ? "Reset to Adult Rates" : "+ Add Age-Specific Pricing"}
+                        </button>
+                      </div>
+
+                      {(form.flight_price_child || form.flight_price_infant) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in zoom-in-95 duration-500">
+                          <Field 
+                            label="Custom Child Airfare" 
+                            value={form.flight_price_child.trim()} 
+                            onChange={(v) => setForm(p => ({ ...p, flight_price_child: v || " " }))} 
+                            placeholder="e.g. 60,000" 
+                            description="Estimated flight cost per child traveler."
+                          />
+                          <Field 
+                            label="Custom Infant Airfare" 
+                            value={form.flight_price_infant.trim()} 
+                            onChange={(v) => setForm(p => ({ ...p, flight_price_infant: v || " " }))} 
+                            placeholder="e.g. 5,000" 
+                            description="Estimated flight cost per infant traveler."
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 pt-10 border-t border-white/[0.05]">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/90">Journey Type Summary</label>
+                        <div className="flex gap-3">
+                          {["Round-Trip", "One-Way", "Multi-City"].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setForm(p => ({ ...p, flight_type: preset }))}
+                              className={cn(
+                                "text-[9px] font-black uppercase tracking-widest transition-all",
+                                form.flight_type === preset ? "text-blue-400" : "text-white/70 hover:text-white/90"
+                              )}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <input 
+                        className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl px-5 text-[13px] text-white focus:border-white/20 transition-all outline-none"
+                        placeholder="e.g. Round-Trip, Incl. 2 Hops"
+                        value={form.flight_type}
+                        onChange={(e) => setForm((p) => ({ ...p, flight_type: e.target.value }))}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -623,12 +845,12 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 />
 
                 <div className="space-y-4 pt-2">
-                  <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Departure Hubs</label>
+                  <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Departure Hubs</label>
                   <div className="flex flex-wrap gap-2">
-                    {form.departure_cities.map((city, i) => (
+                    {form.departure_cities.map((city: string, i: number) => (
                       <span key={i} className="px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold text-white flex items-center gap-2">
                         {city}
-                        <button type="button" onClick={() => setForm(p => ({ ...p, departure_cities: p.departure_cities.filter((_, idx) => idx !== i) }))} className="text-white/40 hover:text-white transition-colors">×</button>
+                        <button type="button" onClick={() => setForm(p => ({ ...p, departure_cities: p.departure_cities.filter((_: any, idx: number) => idx !== i) }))} className="text-white/90 hover:text-white transition-colors">×</button>
                       </span>
                     ))}
                     <input 
@@ -643,7 +865,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                         }
                       }}
                       placeholder="Add hub (Enter)..." 
-                      className="bg-transparent border-none text-[10px] font-bold text-white/40 focus:outline-none focus:text-white w-24"
+                      className="bg-transparent border-none text-[10px] font-bold text-white/90 focus:outline-none focus:text-white w-24"
                     />
                   </div>
                 </div>
@@ -666,7 +888,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     </p>
                   </div>
                   <div className="pt-4 border-t border-white/[0.08]">
-                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">Fiscal Breakdown</p>
+                    <p className="text-[9px] font-black text-white/90 uppercase tracking-widest mb-2">Fiscal Breakdown</p>
                     {(() => {
                       const pricing = computePrice(form, 1, 0, 0);
                       const { landBase, taxAmount, flightNet } = (pricing as any).breakdown || {};
@@ -708,7 +930,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 )} />
                 
                 <div className="relative z-10 flex-1 space-y-2">
-                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Tax Strategy</label>
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Tax Strategy</label>
                   <div className="flex items-center gap-3">
                     <span className="text-sm md:text-base font-bold text-white/90 tracking-tight italic">
                       {form.tax_status === "Exclusive of Taxes" ? "Strategy: Add Tax (+ TAX)" : "Strategy: Built-In (INCL. TAX)"}
@@ -731,7 +953,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
                 <div className="relative z-10 flex items-center gap-4">
                   <div className="text-right hidden md:block">
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Fiscal Mode</p>
+                    <p className="text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-1">Fiscal Mode</p>
                     <p className={cn(
                       "text-[10px] font-bold uppercase tracking-wider",
                       form.tax_status === "Exclusive of Taxes" ? "text-emerald-400" : "text-blue-400"
@@ -753,13 +975,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
           {/* ── SECTION: PROMOTIONS & BADGES ── */}
           <section className="space-y-6 pt-12 border-t border-white/[0.03]">
-            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/20 uppercase">
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/70 uppercase">
               Badges & Status
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Package Badge</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Package Badge</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {["", "Trending", "Bestseller", "New", "Recommended", "Super Saver"].map((b) => {
                     const pricing = computePrice(form, 1, 0, 0);
@@ -767,7 +989,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     const isActive = form.badge === b;
                     const label = b || "None";
                     return (
-                      <button key={label} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, badge: b }})} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-white/60 hover:border-white/10"}`}>
+                      <button key={label} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, badge: b }})} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-white/90 hover:border-white/10"}`}>
                         {label}
                       </button>
                     );
@@ -822,11 +1044,11 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
               <SegmentedControl label="Difficulty Level" value={form.difficulty_level} onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} />
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Min Group Size</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Min Group Size</label>
                 <input type="number" value={form.min_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, min_group_size: parseInt(e.target.value) || 1 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Max Group Size</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Max Group Size</label>
                 <input type="number" value={form.max_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, max_group_size: parseInt(e.target.value) || 20 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
             </div>
@@ -841,7 +1063,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               {/* Destination Picker */}
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Destination Card</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Destination Card</label>
                 <select
                   value={form.destination}
                   onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, destination: e.target.value }; })}
@@ -866,7 +1088,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
               <div className="space-y-4 col-span-full">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Trip Architecture (Multi-Select)</label>
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Trip Architecture (Multi-Select)</label>
                   <div className="flex items-center gap-2">
                     <div className="relative flex items-center gap-2">
                       <input 
@@ -923,7 +1145,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                           };
                         })} 
                         className={`px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border flex items-center justify-between gap-2 ${
-                          isActive ? "bg-white text-black border-white shadow-xl scale-[1.02]" : "bg-white/5 border-white/5 text-white/40 hover:border-white/10"
+                          isActive ? "bg-white text-black border-white shadow-xl scale-[1.02]" : "bg-white/5 border-white/5 text-white/90 hover:border-white/10"
                         }`}
                       >
                         <span className="truncate">{t}</span>
@@ -938,7 +1160,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 {/* Difficulty */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="space-y-1">
-                    <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Intensity Level</label>
+                    <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Intensity Level</label>
                     <p className="text-[10px] text-white/30 italic font-medium leading-tight">Rate the physical demand of this journey.</p>
                   </div>
                   <button 
@@ -975,7 +1197,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Digital Assets (Itinerary Flyer)</label>
+              <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Digital Assets (Itinerary Flyer)</label>
               <div className="p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden">
                 <div className="relative z-10 flex-1 space-y-2">
                   <div className="flex items-center gap-4">
@@ -988,13 +1210,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                             <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           )}
                         </div>
-                        <span className="text-[11px] font-bold text-white/60 truncate max-w-[200px]">
+                        <span className="text-[11px] font-bold text-white/90 truncate max-w-[200px]">
                           {form.itinerary_url.split('/').pop()?.split('-').slice(1).join('-') || "Asset Loaded"}
                         </span>
-                        <button type="button" onClick={() => setForm(p => ({ ...p, itinerary_url: "" }))} className="text-white/20 hover:text-white transition-colors">×</button>
+                        <button type="button" onClick={() => setForm(p => ({ ...p, itinerary_url: "" }))} className="text-white/70 hover:text-white transition-colors">×</button>
                       </div>
                     ) : (
-                      <p className="text-[14px] font-bold text-white/40 italic tracking-tight">No digital flyer attached yet.</p>
+                      <p className="text-[14px] font-bold text-white/90 italic tracking-tight">No digital flyer attached yet.</p>
                     )}
                   </div>
                   <p className="text-[11px] text-white/50 leading-relaxed max-w-md italic pt-1">
@@ -1007,7 +1229,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     type="button" 
                     onClick={() => pdfInputRef.current?.click()} 
                     disabled={pdfUploading}
-                    className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${pdfUploading ? "bg-white/5 text-white/20" : "bg-white/10 text-white hover:bg-white/20 active:scale-95 border border-white/10 shadow-xl"}`}
+                    className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${pdfUploading ? "bg-white/5 text-white/70" : "bg-white/10 text-white hover:bg-white/20 active:scale-95 border border-white/10 shadow-xl"}`}
                   >
                     {pdfUploading ? "Uploading..." : form.itinerary_url ? "Replace Asset" : "Upload Asset"}
                   </button>
@@ -1017,7 +1239,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Discovery Themes & Tags</label>
+              <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">Discovery Themes & Tags</label>
               <div className="flex flex-wrap gap-2 mb-4">
                 {form.tags.map((tag: string) => (
                   <span key={tag} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-white/70">
@@ -1064,7 +1286,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                <p className="w-full text-[9px] text-white/60 font-bold uppercase tracking-widest mb-1">Common Suggestions:</p>
+                <p className="w-full text-[9px] text-white/90 font-bold uppercase tracking-widest mb-1">Common Suggestions:</p>
                 {["Honeymoon", "Adventure", "Cultural", "Wildlife", "Wellness", "Solo Friendly", "Family"].map(s => (
                   <button 
                     key={s}
@@ -1089,7 +1311,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               {form.faq.map((item: { question: string; answer: string }, i: number) => (
                 <div key={i} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] space-y-4 relative">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-white/40 shrink-0 mt-1">
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-white/90 shrink-0 mt-1">
                       Q{i + 1}
                     </div>
                     <div className="flex-1 space-y-3">
@@ -1127,7 +1349,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
               <div className="flex-1 space-y-3">
-                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Display Position (1 = Top)</label>
+                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Display Position (1 = Top)</label>
                 <input type="number" value={form.sort_order} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, sort_order: parseInt(e.target.value) || 0 }})} className="w-full sm:w-32 h-[56px] px-4 rounded-xl md:rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-white/[0.05] pt-6 sm:pt-0">
@@ -1181,7 +1403,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
           <button 
             type="button" 
             onClick={safeBack}
-            className="flex-1 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-white/20 hover:text-white transition-all"
+            className="flex-1 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] text-white/70 hover:text-white transition-all"
           >
             Discard
           </button>
@@ -1235,7 +1457,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 </button>
                 <button 
                   onClick={() => setShowDiscardConfirm(false)}
-                  className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+                  className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-widest text-white/90 hover:text-white transition-all"
                 >
                   Keep Editing
                 </button>
@@ -1293,7 +1515,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
+      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
         {label}
       </label>
       <input
@@ -1338,9 +1560,9 @@ function SegmentedControl({
             onClick={() => onChange(opt.value)}
             className={`flex-1 h-full flex items-center justify-center text-[12px] font-bold uppercase tracking-wider transition-all duration-300 rounded-lg z-10 ${
               value === opt.value
-                ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+                ? "bg-white text-black shadow-lg"
                 : "text-white/40 hover:text-white"
-            } text-[10px] md:text-[11px]`}
+            } text-[10px] md:text-[11px] font-black`}
           >
             {opt.label}
           </button>

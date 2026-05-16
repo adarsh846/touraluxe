@@ -97,12 +97,37 @@ export function useGlobalSettings() {
     const landOriginal = isExclusive && taxRate > 0 ? Math.round(originalBase + (originalBase * taxRate) / 100) : originalBase;
 
     // ── AIRFARE COMPONENT (Sovereign Pass-Through) ──
-    // We treat all entered airfare as 'Final Taxed' amounts to prevent double taxation.
-    const flightEstimate = parseInt(String(pkg.flight_price_estimate || "0").replace(/[^0-9]/g, "")) || 0;
-    const perAdultFinal = landAdult + flightEstimate;
-    const perChildFinal = landChild + flightEstimate;
-    const perInfantFinal = landInfant + flightEstimate;
-    const perOriginalFinal = landOriginal + (flightEstimate > 0 ? flightEstimate : 0);
+    // ── Aviation Anchor Recovery ──
+    const getAviationAnchor = () => {
+      try {
+        const anchor = pkg.itinerary_url;
+        if (anchor && anchor.includes('{')) {
+          return JSON.parse(anchor);
+        }
+      } catch (e) { return null; }
+      return null;
+    };
+    const anchor = getAviationAnchor();
+
+    // Tiered Aviation Fiscal Logic (Sovereign Model - No Hard-Coded Fallbacks)
+    const currentStatus = anchor?.status || pkg.flights_status;
+    const isExcluded = currentStatus === 'excluded';
+    
+    // Priority: Anchor Estimate -> Database Column -> Default 0
+    const rawAdultEstimate = anchor?.estimate || pkg.flight_price_estimate || "0";
+    const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
+    
+    // Support for both legacy columns and new nested JSON architecture
+    const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
+    const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
+
+    const flightChild = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
+    const flightInfant = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
+
+    const perAdultFinal = landAdult + flightAdult;
+    const perChildFinal = landChild + flightChild;
+    const perInfantFinal = landInfant + flightInfant;
+    const perOriginalFinal = landOriginal + (flightAdult > 0 ? flightAdult : 0);
 
       // The "Unified Final Total" for a booking
       const finalTotal = (perAdultFinal * adultCount) + (perChildFinal * childCount) + (perInfantFinal * infantCount);
@@ -111,13 +136,14 @@ export function useGlobalSettings() {
       const discountPercent = hasSavings ? Math.round(((perOriginalFinal - perAdultFinal) / perOriginalFinal) * 100) : 0;
 
       // In this unified model, the customer always sees a price that includes tax
+      const flightTypeLabel = pkg.flight_type || (pkg.flights_status === 'included' ? "RT Flights" : "Flight Est.");
       const flightContext = pkg.flights_status === 'included' 
-        ? " & Airfare" 
-        : flightEstimate > 0 || pkg.flights_status === 'on_request'
-          ? " + Flight Est." 
+        ? ` & ${flightTypeLabel}` 
+        : (flightAdult > 0 || pkg.flights_status === 'on_request')
+          ? ` + ${flightTypeLabel}` 
           : "";
       const taxLabel = `Incl. Tax${flightContext}`;
-      const isEstimate = flightEstimate > 0 || pkg.flights_status === 'on_request';
+      const isEstimate = flightAdult > 0 || pkg.flights_status === 'on_request';
 
       return {
         finalTotal,
@@ -141,7 +167,8 @@ export function useGlobalSettings() {
           taxAmount: isInclusive
             ? Math.round(base * adultCount - (base * adultCount) / (1 + taxRate/100))
             : (landAdult - base) * adultCount,
-          flightNet: flightEstimate * adultCount,
+          flightNet: (flightAdult * adultCount) + (flightChild * childCount) + (flightInfant * infantCount),
+          flight_segments: anchor?.segments || (Array.isArray(pkg.flight_segments) ? pkg.flight_segments : (pkg.flight_segments as any)?.segments || []),
           total: perAdultFinal
         }
       };
