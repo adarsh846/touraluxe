@@ -12,6 +12,7 @@ export interface FilterState {
   difficulty: string[];
   region: string[];
   theme: string[];
+  flights: string[];
   sort: string;
 }
 
@@ -29,6 +30,7 @@ const FILTER_LABELS: Record<keyof FilterState, string> = {
   difficulty: "Level",
   region: "Region",
   theme: "Theme",
+  flights: "Flights",
   sort: "Sort",
 };
 
@@ -78,6 +80,12 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
         { label: "Shortest First", value: "duration-asc" },
         { label: "Longest First", value: "duration-desc" },
       ],
+      flights: [
+        { label: "Any Status", value: "" },
+        { label: "Airfare Included", value: "included" },
+        { label: "Land Only", value: "excluded" },
+        { label: "On Request", value: "on_request" },
+      ],
     };
   }, [packages]);
 
@@ -114,6 +122,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
       difficulty: [],
       region: [],
       theme: [],
+      flights: [],
       sort: "",
     });
   }, [onChange]);
@@ -121,13 +130,13 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
   return (
     <div className="w-full">
       <div 
-        className="flex items-center gap-2 pb-0.5"
+        className="flex items-center gap-2 pb-0.5 overflow-x-auto scrollbar-hide"
         data-lenis-prevent
       >
         {/* Filter icon label */}
         <div className="shrink-0 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white/20 pr-2">
           <SlidersHorizontal size={11} strokeWidth={2.5} />
-          <span>Filters</span>
+          <span className="hidden sm:inline">Filters</span>
         </div>
 
         <div className="shrink-0 w-px h-4 bg-white/[0.06]" />
@@ -226,6 +235,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                               {key === 'difficulty' && packages.filter(p => p.difficulty_level === opt.value).length}
                               {key === 'region' && packages.filter(p => p.region === opt.value).length}
                               {key === 'theme' && packages.filter(p => p.tags?.includes(opt.value)).length}
+                              {key === 'flights' && packages.filter(p => p.flights_status === opt.value).length}
                             </span>
                           )}
                         </button>

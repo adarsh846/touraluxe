@@ -407,6 +407,41 @@ export const PackageContent = memo(({
           </section>
         )}
 
+        {/* FLIGHT POLICY INSIGHT */}
+        <section className="min-h-[60vh] flex flex-col items-center justify-center text-center py-20 px-6 snap-center snap-always">
+          <div className="w-full max-w-4xl p-12 rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-50" />
+            
+            <div className="relative z-10 flex flex-col items-center gap-8">
+              <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center relative">
+                <Plane className={cn(
+                  "w-10 h-10 transition-all duration-1000",
+                  experience.flights_status === 'included' ? "text-emerald-400" : 
+                  experience.flights_status === 'on_request' ? "text-amber-400" : "text-white/20"
+                )} strokeWidth={1} />
+                {experience.flights_status === 'excluded' && (
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-[1px] bg-red-500/50 rotate-45" />
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30">Logistics Policy</span>
+                <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+                  {experience.flights_status === 'included' ? "Airfare Included." : 
+                   experience.flights_status === 'on_request' ? "Flights on Request." : "Land Package Only."}
+                </h3>
+                <p className="text-white/40 text-sm md:text-base font-medium max-w-lg mx-auto leading-relaxed">
+                  {experience.flights_status === 'included' ? 
+                    "This journey encompasses full round-trip airfare from major hubs, ensuring a seamless portal-to-portal experience." : 
+                   experience.flights_status === 'on_request' ? 
+                    "Flight arrangements are customized per traveler. Our concierge will curate the optimal routes upon your reservation." : 
+                    "International and domestic airfare is curated separately. Travelers enjoy the freedom to utilize miles or preferred carriers."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CHAPTER IV: INCLUSIONS */}
         {experience.inclusions && experience.inclusions.length > 0 && (
           <section 

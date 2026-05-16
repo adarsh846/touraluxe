@@ -69,8 +69,16 @@ export function useGlobalSettings() {
 
       // ── PARSE RAW INPUTS ──
       const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
-      const childBase = parseInt(String(pkg.child_price || "0").replace(/[^0-9]/g, "")) || 0;
-      const infantBase = parseInt(String(pkg.infant_price || "0").replace(/[^0-9]/g, "")) || 0;
+      
+      // No hardcoded fallbacks: Default to full adult rate if specific tier pricing is missing
+      const childBase = pkg.child_price && pkg.child_price !== "0"
+        ? (parseInt(String(pkg.child_price).replace(/[^0-9]/g, "")) || 0)
+        : base;
+        
+      const infantBase = pkg.infant_price && pkg.infant_price !== "0"
+        ? (parseInt(String(pkg.infant_price).replace(/[^0-9]/g, "")) || 0)
+        : base;
+
       const originalBase = parseInt(String(pkg.original_price || "0").replace(/[^0-9]/g, "")) || 0;
 
     // ── RESILIENT STATUS CHECK ──
@@ -111,7 +119,7 @@ export function useGlobalSettings() {
         taxRate,
         isInclusive,
         shouldAddTaxLabel: true,
-        formattedFinal: `${symbol}${perAdultFinal.toLocaleString("en-IN")}`,
+        formattedFinal: `${symbol}${finalTotal.toLocaleString("en-IN")}`,
         formattedOriginal: hasSavings ? `${symbol}${perOriginalFinal.toLocaleString("en-IN")}` : "",
         taxLabel,
         breakdown: {

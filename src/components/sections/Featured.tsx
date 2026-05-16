@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
+import { Plane } from "lucide-react";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { usePricing } from "@/hooks/usePricing";
@@ -146,9 +147,13 @@ export function Featured() {
 
                   {/* Text Content */}
                   <div className="w-full md:w-1/3 flex flex-col items-start gap-4 p-4 md:p-8">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">
-                      {exp.location}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">
+                        {exp.location}
+                      </span>
+                      {exp.flights_status === 'included' && <Plane size={10} className="text-emerald-400" />}
+                      {exp.flights_status === 'on_request' && <Plane size={10} className="text-amber-400/70" />}
+                    </div>
                     <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                       {exp.title}
                     </h3>

@@ -28,6 +28,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
     difficulty: [],
     region: [],
     theme: [],
+    flights: [],
     sort: "",
   });
 
@@ -124,6 +125,11 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
         const pkgThemes = pkg.tags || [];
         return filters.theme.some(theme => pkgThemes.includes(theme));
       });
+    }
+    
+    // Flights Filter (OR within category)
+    if (filters.flights.length > 0) {
+      result = result.filter(pkg => filters.flights.includes(pkg.flights_status || "excluded"));
     }
 
     // Sort Logic
@@ -224,7 +230,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6"><MapPin size={24} className="text-white/20" /></div>
               <h3 className="text-xl font-semibold text-white mb-2">No Journeys Match</h3>
               <p className="text-white/40 text-sm">Try adjusting your filters.</p>
-              <button onClick={() => setFilters({ duration: [], budget: [], tripType: [], difficulty: [], region: [], theme: [], sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
+              <button onClick={() => setFilters({ duration: [], budget: [], tripType: [], difficulty: [], region: [], theme: [], flights: [], sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
             </div>
           )}
         </div>
@@ -251,20 +257,34 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
             <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
               <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                 {relatedDestinations.map((dest) => (
-                  <Link key={dest.id} href={`/destinations/${dest.slug}`} className="group flex-shrink-0 w-[300px] rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-500 hover:translate-y-[-4px]">
-                    <div className="relative aspect-[4/3] overflow-hidden bg-white/5">
+                  <Link key={dest.id} href={`/destinations/${dest.slug}`} className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
                       {dest.cover_image ? (
-                        <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" quality={60} sizes="300px" />
+                        <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out" quality={80} sizes="300px" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center"><MapPin size={32} className="text-white/10" /></div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      <div className="absolute bottom-4 left-5 right-5">
-                        <h3 className="text-xl font-semibold text-white tracking-tight">{dest.name}</h3>
-                        {dest.country && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mt-1">{dest.country}</p>}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700" />
+                      
+                      <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                        <div className="flex justify-end">
+                          <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] text-white/60">
+                            {dest.region || "Discovery"}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-1">
+                            <h3 className="text-2xl font-bold text-white tracking-tight leading-none group-hover:translate-x-1 transition-transform duration-700">{dest.name}</h3>
+                            {dest.country && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{dest.country}</p>}
+                          </div>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-700">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/60">Explore Journey</span>
+                            <ArrowRight size={12} className="text-white/40" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-5 border-t border-white/[0.04]"><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">{dest.region || "Explore"}</span><ArrowRight size={14} className="text-white/20 group-hover:text-white/60 group-hover:translate-x-1 transition-all" /></div>
                   </Link>
                 ))}
               </div>

@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { MapPin, TrendingUp, Star, Sparkles, Zap, Tag, ArrowRight } from "lucide-react";
+import { MapPin, TrendingUp, Star, Sparkles, Zap, Tag, ArrowRight, Plane } from "lucide-react";
 import { Magnetic } from "./Magnetic";
 import type { Package } from "@/lib/supabase";
 import { usePricing } from "@/hooks/usePricing";
@@ -63,8 +63,10 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
                         {routeStart || pkg.location}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
+                    <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.2em] text-white/70 flex items-center gap-1.5">
                       {pkg.duration}
+                      {pkg.flights_status === 'included' && <Plane size={10} className="text-emerald-400" />}
+                      {pkg.flights_status === 'on_request' && <Plane size={10} className="text-amber-400/70" />}
                     </span>
                   </div>
                 </div>

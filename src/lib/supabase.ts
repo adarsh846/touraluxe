@@ -51,6 +51,7 @@ export type Package = {
   region?: string;
   trip_type?: string;
   itinerary_url?: string;
+  flights_status?: 'included' | 'excluded' | 'on_request';
 };
 
 export type Destination = {

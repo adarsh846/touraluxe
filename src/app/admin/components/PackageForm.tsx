@@ -69,6 +69,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       ? (initialData as any).trip_type
       : ((initialData as any)?.trip_type || "group").split(",").filter(Boolean),
     itinerary_url: (initialData as any)?.itinerary_url || "",
+    flights_status: (initialData as any)?.flights_status || "excluded",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -583,6 +584,17 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, original_price: v }})} 
                   placeholder="e.g. 95,000" 
                   description="Add a higher old price here to show a 'Discount' tag."
+                />
+                <SegmentedControl 
+                  label="Airfare Status" 
+                  value={form.flights_status} 
+                  onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, flights_status: v as any }})} 
+                  options={[
+                    { label: "Excluded", value: "excluded" },
+                    { label: "Included", value: "included" },
+                    { label: "On Request", value: "on_request" }
+                  ]} 
+                  description="Standardize airfare disclosure for this package."
                 />
               </div>
 
