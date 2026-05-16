@@ -52,6 +52,9 @@ export type Package = {
   trip_type?: string;
   itinerary_url?: string;
   flights_status?: 'included' | 'excluded' | 'on_request';
+  flight_price_estimate?: string;
+  is_airfare_taxable?: boolean;
+  departure_cities?: string[];
 };
 
 export type Destination = {

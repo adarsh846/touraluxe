@@ -1,24 +1,26 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, memo } from "react";
-import {
-  Search,
-  Calendar,
-  Users,
-  Check,
+import { 
+  X, 
   ArrowLeft,
-  ArrowRight,
-  X,
-  Plane,
-  Command,
+  ArrowRight, 
+  MapPin, 
+  Calendar, 
+  Users, 
+  MessageSquare, 
   ChevronRight,
-  ChevronDown,
-  LockKeyhole,
-  ShieldCheck,
+  Plane,
   Sparkles,
+  Command,
+  Search,
+  Check,
   Globe,
   CloudSun,
-  Diamond
+  Diamond,
+  LockKeyhole,
+  ChevronDown,
+  ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -168,6 +170,8 @@ export const BookingContent = memo(function BookingContent({
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [departureCity, setDepartureCity] = useState("");
+  const [includeFlights, setIncludeFlights] = useState(false);
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
@@ -353,6 +357,9 @@ export const BookingContent = memo(function BookingContent({
     setIsImgLoaded(false); 
     setDynamicImage(null); // CRITICAL: Kill the search visual instantly so the package visual can take over
     setInternalPackage(pkg);
+    
+    // Auto-select flight assistance for 'Included' or 'On Request' packages
+    setIncludeFlights(pkg?.flights_status === 'on_request' || pkg?.flights_status === 'included');
     
     // Generate TRX ID (Prompt Section III.2 - Idempotency)
     // We do this instantly now to keep the flow snappy
@@ -739,9 +746,10 @@ export const BookingContent = memo(function BookingContent({
           customerName,
           customerEmail,
           customerPhone: `${selectedCountry.code}${customerPhone}`,
-          specialRequests: `Dates: ${startDate} to ${endDate} | Notes: ${notes}`,
+          specialRequests: `Dates: ${startDate} to ${endDate} | Departure Hub: ${departureCity} | Flights: ${includeFlights ? 'Yes' : 'No'} | Notes: ${notes}`,
           bookingSource: bookingSource || "SOVEREIGN_ENGINE",
           totalAmount: Math.round(pricing.finalTotal),
+          metadata: { departureCity, includeFlights } // Optional: For future-proof API handling
         }),
       });
 
@@ -1162,7 +1170,7 @@ export const BookingContent = memo(function BookingContent({
                                               </span>
                                             )}
                                             <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-xl">
-                                              {pkgPricing.symbol}{pkgPricing.finalTotal.toLocaleString()}
+                                              {pkgPricing.formattedFinal}
                                             </p>
                                             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
                                               Per Person
@@ -1507,9 +1515,7 @@ export const BookingContent = memo(function BookingContent({
                                     </span>
                                   </div>
                                   
-                                  <div 
-                                    className="grid grid-cols-1 md:grid-cols-2 gap-x-[clamp(1.5rem,4vw,4rem)] gap-y-8 items-start"
-                                  >
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-[clamp(1.5rem,4vw,4rem)] gap-y-8 items-start">
                                     <div className="space-y-3 md:space-y-4 group/id min-w-0">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/id:text-white/80 transition-colors">
                                         Full Name
@@ -1524,6 +1530,56 @@ export const BookingContent = memo(function BookingContent({
                                         />
                                       </div>
                                     </div>
+
+                                    {/* Section 1.5: Flight Concierge Details */}
+                                    {(internalPackage?.flights_status === 'included' || internalPackage?.flights_status === 'on_request') && (
+                                      <div className="space-y-6 md:space-y-8 p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] animate-in fade-in slide-in-from-top-4 duration-700">
+                                        <div className="flex items-center justify-between">
+                                          <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Flight Concierge</span>
+                                            <p className="text-[9px] text-white/40 uppercase tracking-widest">Help us find the best routes for you</p>
+                                          </div>
+                                          <button 
+                                            type="button"
+                                            onClick={() => setIncludeFlights(!includeFlights)}
+                                            className={cn(
+                                              "px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all",
+                                              includeFlights ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-white/40"
+                                            )}
+                                          >
+                                            {includeFlights ? "Assistance Requested" : "Land Only"}
+                                          </button>
+                                        </div>
+
+                                        {includeFlights && (
+                                          <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                                            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/50">Departure City / Hub</span>
+                                            <div className="flex flex-wrap gap-2">
+                                              {internalPackage?.departure_cities?.map((city: string) => (
+                                                <button
+                                                  key={city}
+                                                  type="button"
+                                                  onClick={() => setDepartureCity(city)}
+                                                  className={cn(
+                                                    "px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all",
+                                                    departureCity === city ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
+                                                  )}
+                                                >
+                                                  {city}
+                                                </button>
+                                              ))}
+                                              <input
+                                                type="text"
+                                                value={internalPackage?.departure_cities?.includes(departureCity) ? "" : departureCity}
+                                                onChange={(e) => setDepartureCity(e.target.value)}
+                                                placeholder={internalPackage?.departure_cities?.length ? "Other city..." : "Enter departure city"}
+                                                className="bg-transparent border-b border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 px-2 min-w-[150px]"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
 
                                     <div className="space-y-4 group/contact min-w-0">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
@@ -1797,6 +1853,18 @@ export const BookingContent = memo(function BookingContent({
                             {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
                           </span>
                         </div>
+                        {experience?.flights_status === 'included' && (
+                          <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+                            <Plane size={10} className="text-blue-400" />
+                            <span className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest whitespace-nowrap">Flights Included</span>
+                          </div>
+                        )}
+                        {experience?.flights_status === 'on_request' && (
+                          <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+                            <Plane size={10} className="text-blue-400/80" />
+                            <span className="text-[9px] md:text-[10px] font-black text-blue-400/80 uppercase tracking-widest whitespace-nowrap">Flights on Request</span>
+                          </div>
+                        )}
                         <span className="text-[8px] md:text-[9px] font-bold text-white/50 uppercase tracking-[0.3em]">
                           {DOSSIER_PROTOCOL.LABELS.NIGHTS_DAYS(totalNights, totalDays)}
                         </span>
@@ -1832,6 +1900,17 @@ export const BookingContent = memo(function BookingContent({
                               <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.CONTACT}</span>
                               <span className="text-[10px] font-black text-white/90 tracking-widest">{selectedCountry.code} {customerPhone}</span>
                             </div>
+
+                            {/* Unified Bar: Departure Hub */}
+                            {departureCity && (
+                              <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm text-center gap-1 animate-in fade-in zoom-in duration-500">
+                                <span className="text-[8px] font-black text-emerald-400/60 uppercase tracking-[0.3em]">Departure Hub</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black text-emerald-400 tracking-widest uppercase">{departureCity}</span>
+                                  {includeFlights && <Plane size={10} className="text-emerald-400/40" />}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1892,26 +1971,23 @@ export const BookingContent = memo(function BookingContent({
                         ) : (
                           <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
                             <div className="flex flex-col items-center md:items-start gap-0.5">
-                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.PACKAGE_RATE}</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.perAdultFinal.toLocaleString()}</span>
-                                <span className="inline-flex items-center justify-center text-center text-[6px] font-black uppercase tracking-wider text-white/30 px-2 py-0.5 rounded-full bg-white/5 border border-white/5 min-w-[50px]">
-                                  {pricing.isInclusive ? DOSSIER_PROTOCOL.LABELS.TAX_INCL : DOSSIER_PROTOCOL.LABELS.TAX_EXCL}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-center md:items-start gap-0.5">
-                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">{DOSSIER_PROTOCOL.LABELS.BASE_RATE}</span>
-                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.baseAmount.toLocaleString()}</span>
+                              <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Tour & Services</span>
+                              <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{pricing.breakdown.landBase.toLocaleString()}</span>
                             </div>
                             <div className="flex flex-col items-center md:items-start gap-0.5">
                               <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
-                                {DOSSIER_PROTOCOL.LABELS.TAXES_LABEL(pricing.taxRate)}
+                                GST ({pricing.taxRate}%)
                               </span>
                               <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
-                                {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
+                                + {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
                               </span>
                             </div>
+                            {pricing.breakdown.flightNet > 0 && (
+                              <div className="flex flex-col items-center md:items-start gap-0.5">
+                                <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Final Airfare</span>
+                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{pricing.breakdown.flightNet.toLocaleString()}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -90,13 +90,19 @@ export function useGlobalSettings() {
     const isSovereignInclusive = destination.includes("maldives") || destination.includes("bali");
     const isInclusive = taxStatus.includes("inclusive") || isSovereignInclusive || !isExclusive;
 
-    // ── MASTER FISCAL RULE ──
-    // If Exclusive: The system ADDS the global tax percentage to the entered base.
-    // If Inclusive: The system treats the entered base as the final, all-in price.
-    const perAdultFinal = isExclusive && taxRate > 0 ? Math.round(base + (base * taxRate) / 100) : base;
-    const perChildFinal = isExclusive && taxRate > 0 ? Math.round(childBase + (childBase * taxRate) / 100) : childBase;
-    const perInfantFinal = isExclusive && taxRate > 0 ? Math.round(infantBase + (infantBase * taxRate) / 100) : infantBase;
-    const perOriginalFinal = isExclusive && taxRate > 0 ? Math.round(originalBase + (originalBase * taxRate) / 100) : originalBase;
+    // ── MASTER FISCAL RULE (Split Architecture) ──
+    const landAdult = isExclusive && taxRate > 0 ? Math.round(base + (base * taxRate) / 100) : base;
+    const landChild = isExclusive && taxRate > 0 ? Math.round(childBase + (childBase * taxRate) / 100) : childBase;
+    const landInfant = isExclusive && taxRate > 0 ? Math.round(infantBase + (infantBase * taxRate) / 100) : infantBase;
+    const landOriginal = isExclusive && taxRate > 0 ? Math.round(originalBase + (originalBase * taxRate) / 100) : originalBase;
+
+    // ── AIRFARE COMPONENT (Sovereign Pass-Through) ──
+    // We treat all entered airfare as 'Final Taxed' amounts to prevent double taxation.
+    const flightEstimate = parseInt(String(pkg.flight_price_estimate || "0").replace(/[^0-9]/g, "")) || 0;
+    const perAdultFinal = landAdult + flightEstimate;
+    const perChildFinal = landChild + flightEstimate;
+    const perInfantFinal = landInfant + flightEstimate;
+    const perOriginalFinal = landOriginal + (flightEstimate > 0 ? flightEstimate : 0);
 
       // The "Unified Final Total" for a booking
       const finalTotal = (perAdultFinal * adultCount) + (perChildFinal * childCount) + (perInfantFinal * infantCount);
@@ -105,7 +111,13 @@ export function useGlobalSettings() {
       const discountPercent = hasSavings ? Math.round(((perOriginalFinal - perAdultFinal) / perOriginalFinal) * 100) : 0;
 
       // In this unified model, the customer always sees a price that includes tax
-      const taxLabel = "Incl. Tax";
+      const flightContext = pkg.flights_status === 'included' 
+        ? " & Airfare" 
+        : flightEstimate > 0 || pkg.flights_status === 'on_request'
+          ? " + Flight Est." 
+          : "";
+      const taxLabel = `Incl. Tax${flightContext}`;
+      const isEstimate = flightEstimate > 0 || pkg.flights_status === 'on_request';
 
       return {
         finalTotal,
@@ -119,13 +131,18 @@ export function useGlobalSettings() {
         taxRate,
         isInclusive,
         shouldAddTaxLabel: true,
-        formattedFinal: `${symbol}${finalTotal.toLocaleString("en-IN")}`,
+        formattedFinal: `${isEstimate ? "From " : ""}${symbol}${finalTotal.toLocaleString("en-IN")}`,
         formattedOriginal: hasSavings ? `${symbol}${perOriginalFinal.toLocaleString("en-IN")}` : "",
         taxLabel,
         breakdown: {
-          subtotal: finalTotal,
-          taxAmount: Math.round(finalTotal - (finalTotal / (1 + taxRate/100))),
-          baseAmount: Math.round(finalTotal / (1 + taxRate/100))
+          landBase: isInclusive 
+            ? Math.round((base * adultCount) / (1 + taxRate/100))
+            : base * adultCount,
+          taxAmount: isInclusive
+            ? Math.round(base * adultCount - (base * adultCount) / (1 + taxRate/100))
+            : (landAdult - base) * adultCount,
+          flightNet: flightEstimate * adultCount,
+          total: perAdultFinal
         }
       };
     },

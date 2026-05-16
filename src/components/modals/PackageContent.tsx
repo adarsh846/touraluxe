@@ -572,12 +572,49 @@ export const PackageContent = memo(({
                     <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.booking_status}</span>
                   </div>
                 )}
-                {experience.guests && (
-                  <div className="flex flex-col items-center lg:items-end gap-1.5">
-                    <span className="text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest leading-none">Ideal For</span>
-                    <span className="text-white font-bold text-[10px] md:text-xs leading-none">{experience.guests}</span>
+              </div>
+
+              {/* Enhanced Fiscal Ledger */}
+              <div className="w-full max-w-[320px] p-6 rounded-3xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md space-y-4 animate-in fade-in zoom-in duration-1000 delay-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">Fiscal Breakdown</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest group-hover/item:text-white/60 transition-colors">Tour & Services</span>
+                    <span className="text-sm font-bold text-white tracking-tighter">
+                      {pricing.symbol}{pricing.breakdown.landBase.toLocaleString()}
+                    </span>
                   </div>
-                )}
+                  
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest group-hover/item:text-emerald-400 transition-colors">GST ({pricing.taxRate}%)</span>
+                    <span className="text-sm font-bold text-emerald-400 tracking-tighter">
+                      + {pricing.symbol}{pricing.breakdown.taxAmount.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {pricing.breakdown.flightNet > 0 && (
+                    <div className="flex justify-between items-center group/item">
+                      <div className="flex items-center gap-2">
+                        <Plane size={10} className="text-blue-400/60" />
+                        <span className="text-[10px] font-bold text-blue-400/60 uppercase tracking-widest group-hover/item:text-blue-400 transition-colors">Final Airfare</span>
+                      </div>
+                      <span className="text-sm font-bold text-blue-400 tracking-tighter">
+                        + {pricing.symbol}{pricing.breakdown.flightNet.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+                    <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Total Investment</span>
+                    <span className="text-xl font-black text-white tracking-tighter">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Digital Itinerary Asset Button */}
@@ -775,7 +812,7 @@ export const PackageContent = memo(({
                       Investment
                     </span>
                     <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(20px, 4.5vw, 1.6rem)' }}>
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString()}
+                      {pricing.formattedFinal}
                     </p>
                   </div>
 
@@ -786,21 +823,41 @@ export const PackageContent = memo(({
                         / Person
                       </span>
                       {pricing.hasSavings && (
-                        <span className="font-medium tracking-tight text-white/40 line-through whitespace-nowrap" style={{ fontSize: 'clamp(8px, 1.4vw, 0.8rem)' }}>
-                          {pricing.symbol}{pricing.originalTotal.toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium tracking-tight text-white/40 line-through whitespace-nowrap" style={{ fontSize: 'clamp(8px, 1.4vw, 0.8rem)' }}>
+                            {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                          </span>
+                          <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(6px, 1vw, 6px)' }}>
+                            Save {pricing.discountPercent}%
+                          </span>
+                        </div>
                       )}
                     </div>
                     
-                    {pricing.hasSavings ? (
-                      <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(6px, 1vw, 6px)' }}>
-                        Save {pricing.discountPercent}%
-                      </span>
-                    ) : (pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) ? (
-                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(4px, 1vw, 6px)' }}>
-                        {pricing.taxLabel}
-                      </span>
-                    ) : null}
+                    <div className="flex items-center gap-3">
+                      {(experience.flights_status === 'included' || experience.flights_status === 'on_request') && (
+                        <div className="flex items-center gap-2">
+                          {experience.flights_status === 'included' && (
+                            <div className="flex items-center gap-1 text-blue-400">
+                              <Plane size={8} />
+                              <span className="text-[6px] font-black uppercase tracking-wider">Flights Incl.</span>
+                            </div>
+                          )}
+                          {experience.flights_status === 'on_request' && (
+                            <div className="flex items-center gap-1 text-blue-400/80">
+                              <Plane size={8} />
+                              <span className="text-[6px] font-black uppercase tracking-wider">Flights Req.</span>
+                            </div>
+                          )}
+                          <div className="w-[1px] h-2 bg-white/20" />
+                        </div>
+                      )}
+                      {(pricing.shouldAddTaxLabel || pricing.isInclusive || experience.location?.toLowerCase().includes('maldives') || experience.location?.toLowerCase().includes('bali')) && (
+                        <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(4px, 1vw, 6px)' }}>
+                          {pricing.taxLabel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

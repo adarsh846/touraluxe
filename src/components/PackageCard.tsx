@@ -63,11 +63,23 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
                         {routeStart || pkg.location}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.2em] text-white/70 flex items-center gap-1.5">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
                       {pkg.duration}
-                      {pkg.flights_status === 'included' && <Plane size={10} className="text-emerald-400" />}
-                      {pkg.flights_status === 'on_request' && <Plane size={10} className="text-amber-400/70" />}
                     </span>
+                    {pkg.flights_status === 'included' && (
+                      <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 w-fit px-2 py-0.5 rounded-full border border-blue-500/20">
+                        <Plane size={8} />
+                        <span>Flights Included</span>
+                      </div>
+                    )}
+                    {pkg.flights_status === 'on_request' && (
+                      <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-blue-400/80 bg-blue-500/10 w-fit px-2 py-0.5 rounded-full border border-blue-500/20">
+                        <Plane size={8} />
+                        <span>Flights on Request</span>
+                      </div>
+                    )}
+                  </div>
                   </div>
                 </div>
 

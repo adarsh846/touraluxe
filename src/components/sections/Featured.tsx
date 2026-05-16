@@ -147,12 +147,22 @@ export function Featured() {
 
                   {/* Text Content */}
                   <div className="w-full md:w-1/3 flex flex-col items-start gap-4 p-4 md:p-8">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">
                         {exp.location}
                       </span>
-                      {exp.flights_status === 'included' && <Plane size={10} className="text-emerald-400" />}
-                      {exp.flights_status === 'on_request' && <Plane size={10} className="text-amber-400/70" />}
+                      {exp.flights_status === 'included' && (
+                        <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">
+                          <Plane size={9} />
+                          <span>Flights Incl.</span>
+                        </span>
+                      )}
+                      {exp.flights_status === 'on_request' && (
+                        <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-400/80 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">
+                          <Plane size={9} />
+                          <span>Flights on Req.</span>
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
                       {exp.title}

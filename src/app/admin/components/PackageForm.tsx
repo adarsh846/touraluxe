@@ -70,6 +70,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       : ((initialData as any)?.trip_type || "group").split(",").filter(Boolean),
     itinerary_url: (initialData as any)?.itinerary_url || "",
     flights_status: (initialData as any)?.flights_status || "excluded",
+    flight_price_estimate: (initialData as any)?.flight_price_estimate || "",
+    departure_cities: (initialData as any)?.departure_cities || [],
   });
 
   const [uploading, setUploading] = useState(false);
@@ -370,8 +372,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               </div>
             </button>
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/5 leading-none">Admin</span>
-              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/10 px-3 py-1 rounded-full border border-white/10 leading-none">Catalog</span>
+              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/60 bg-white/5 px-3 py-1 rounded-full border border-white/10 leading-none">Admin</span>
+              <span className="flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-white/80 bg-white/10 px-3 py-1 rounded-full border border-white/20 leading-none">Catalog</span>
               <div className="flex items-center justify-center px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.05] leading-none">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
                   {isEditing ? "Edit" : "New"}
@@ -381,7 +383,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button type="button" onClick={safeBack} className="hidden md:block px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] hover:text-white transition-colors">Discard</button>
+            <button type="button" onClick={safeBack} className="hidden md:block px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 hover:text-white transition-colors">Discard</button>
             <button type="submit" disabled={saving} form="package-form" className="hidden md:block px-8 py-2.5 rounded-full bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50 shadow-2xl">
               {saving ? "..." : isEditing ? "Update Journey" : "Publish"}
             </button>
@@ -409,9 +411,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
-                    <svg className="w-6 h-6 text-[#86868b] group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    <svg className="w-6 h-6 text-white/50 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                   </div>
-                  <span className="text-[13px] md:text-sm text-[#48484a] font-medium">{uploading ? "Processing asset..." : "Upload experience cover (16:9 recommended)"}</span>
+                  <span className="text-[13px] md:text-sm text-white/60 font-medium">{uploading ? "Processing asset..." : "Upload experience cover (16:9 recommended)"}</span>
                 </div>
               )}
             </div>
@@ -430,14 +432,14 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-4">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">
                 Service Category (Multi-Select)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {["Luxury Tours", "Group Trips", "Adventure Tours", "Luxury Honeymoons", "MICE Events", "Custom Journeys"].map((cat) => {
                   const isActive = form.category.includes(cat);
                   return (
-                    <button key={cat} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }})} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10 hover:text-[#86868b]"}`}>
+                    <button key={cat} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, category: isActive ? prev.category.filter(c => c !== cat) : [...prev.category, cat] }})} className={`px-4 py-4 min-h-[64px] rounded-xl text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all border text-left flex items-center justify-between group ${isActive ? "bg-white/10 border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]" : "bg-white/5 border-white/5 text-white/60 hover:border-white/10 hover:text-white/50"}`}>
                       <span className="pr-2">{cat}</span>
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${isActive ? "bg-white scale-100" : "bg-white/10 scale-50"}`} />
                     </button>
@@ -456,12 +458,12 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, tagline: v }})} placeholder="e.g. Witness the infinite from the wild" />
 
             <div className="space-y-4">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Experience Narrative</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Experience Narrative</label>
               <textarea value={form.description} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, description: e.target.value }})} placeholder="Craft the story of this journey..." rows={6} required className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" />
             </div>
 
             <div className="space-y-5">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Journey Highlights</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Journey Highlights</label>
               <div className="space-y-3">
                 {form.highlights.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -472,13 +474,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addHighlight} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+              <button type="button" onClick={addHighlight} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
                 + Add Highlight
               </button>
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">What&apos;s Included (Inclusions)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">What&apos;s Included (Inclusions)</label>
               <div className="space-y-3">
                 {form.inclusions.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -489,13 +491,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addInclusion} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+              <button type="button" onClick={addInclusion} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
                 + Add Inclusion
               </button>
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">What&apos;s NOT Included (Exclusions)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">What&apos;s NOT Included (Exclusions)</label>
               <div className="space-y-3">
                 {form.exclusions.map((h, i) => (
                   <div key={i} className="flex gap-3">
@@ -506,13 +508,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addExclusion} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+              <button type="button" onClick={addExclusion} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
                 + Add Exclusion
               </button>
             </div>
 
             <div className="space-y-5 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Journey Itinerary (Day-by-Day)</label>
+              <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Journey Itinerary (Day-by-Day)</label>
               <div className="space-y-6">
                 {form.itinerary.map((item, i) => (
                   <div key={i} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] space-y-4 relative group/itinerary">
@@ -540,7 +542,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addItineraryDay} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+              <button type="button" onClick={addItineraryDay} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
                 + Add Day to Journey
               </button>
             </div>
@@ -596,6 +598,18 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   ]} 
                   description="Standardize airfare disclosure for this package."
                 />
+                
+                {form.flights_status !== "excluded" && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <Field 
+                      label="Final Airfare (Incl. Taxes)" 
+                      value={form.flight_price_estimate} 
+                      onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, flight_price_estimate: v }})} 
+                      placeholder="e.g. 25,000" 
+                      description="Total airfare cost per traveler. TouraLuxe will not add extra GST on this amount."
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-6 md:space-y-8 h-full">
@@ -607,6 +621,32 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                   description="The final price travelers will see and pay."
                   required 
                 />
+
+                <div className="space-y-4 pt-2">
+                  <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Departure Hubs</label>
+                  <div className="flex flex-wrap gap-2">
+                    {form.departure_cities.map((city, i) => (
+                      <span key={i} className="px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-[10px] font-bold text-white flex items-center gap-2">
+                        {city}
+                        <button type="button" onClick={() => setForm(p => ({ ...p, departure_cities: p.departure_cities.filter((_, idx) => idx !== i) }))} className="text-white/40 hover:text-white transition-colors">×</button>
+                      </span>
+                    ))}
+                    <input 
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (val && !form.departure_cities.includes(val)) {
+                            setForm(p => ({ ...p, departure_cities: [...p.departure_cities, val] }));
+                            (e.target as HTMLInputElement).value = "";
+                          }
+                        }
+                      }}
+                      placeholder="Add hub (Enter)..." 
+                      className="bg-transparent border-none text-[10px] font-bold text-white/40 focus:outline-none focus:text-white w-24"
+                    />
+                  </div>
+                </div>
               </div>
               
               {/* Fiscal Intelligence Preview */}
@@ -617,27 +657,36 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 )} />
                 <div className="relative z-10 flex flex-col gap-4 h-full justify-between">
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.2em]">Customer Pays (All-In)</p>
-                    <p className="text-2xl md:text-3xl font-black text-white/90 tracking-tighter">
+                    <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Customer Pays (All-In)</p>
+                    <p className="text-2xl md:text-3xl font-black text-white tracking-tighter">
                       {(() => {
                         const pricing = computePrice(form, 1, 0, 0);
                         return pricing.formattedFinal;
                       })()}
                     </p>
                   </div>
-                  <div className="pt-4 border-t border-white/[0.05]">
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest mb-1">Fiscal Breakdown</p>
+                  <div className="pt-4 border-t border-white/[0.08]">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-2">Fiscal Breakdown</p>
                     {(() => {
                       const pricing = computePrice(form, 1, 0, 0);
-                      const taxAmt = pricing.breakdown.taxAmount;
-                      const baseAmt = pricing.breakdown.baseAmount;
+                      const { landBase, taxAmount, flightNet } = (pricing as any).breakdown || {};
                       return (
-                        <p className="text-[10px] font-bold text-white/40 italic leading-none">
-                          {form.tax_status === "Exclusive of Taxes" 
-                            ? `${form.currency}${baseAmt.toLocaleString()} + ${form.currency}${taxAmt.toLocaleString()} GST`
-                            : `${form.currency}${baseAmt.toLocaleString()} (Base) + ${form.currency}${taxAmt.toLocaleString()} (GST)`
-                          }
-                        </p>
+                        <div className="space-y-1 text-[10px] font-bold text-white/70 italic leading-tight">
+                          <div className="flex justify-between items-center">
+                            <span>Tour & Services:</span>
+                            <span>{form.currency}{landBase?.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-emerald-400/80">
+                            <span>GST ({pricing.taxRate}%):</span>
+                            <span>+ {form.currency}{taxAmount?.toLocaleString()}</span>
+                          </div>
+                          {flightNet > 0 && (
+                            <div className="flex justify-between items-center text-blue-400/80">
+                              <span>Final Airfare:</span>
+                              <span>+ {form.currency}{flightNet?.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
                       );
                     })()}
                   </div>
@@ -659,7 +708,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 )} />
                 
                 <div className="relative z-10 flex-1 space-y-2">
-                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Tax Strategy</label>
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Tax Strategy</label>
                   <div className="flex items-center gap-3">
                     <span className="text-sm md:text-base font-bold text-white/90 tracking-tight italic">
                       {form.tax_status === "Exclusive of Taxes" ? "Strategy: Add Tax (+ TAX)" : "Strategy: Built-In (INCL. TAX)"}
@@ -710,7 +759,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Package Badge</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Package Badge</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {["", "Trending", "Bestseller", "New", "Recommended", "Super Saver"].map((b) => {
                     const pricing = computePrice(form, 1, 0, 0);
@@ -718,7 +767,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     const isActive = form.badge === b;
                     const label = b || "None";
                     return (
-                      <button key={label} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, badge: b }})} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-[#48484a] hover:border-white/10"}`}>
+                      <button key={label} type="button" onClick={() => setForm(prev => { setIsDirty(true); return { ...prev, badge: b }})} className={`px-3 py-3 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all border ${isActive ? "bg-white/10 border-white text-white" : "bg-white/5 border-white/5 text-white/60 hover:border-white/10"}`}>
                         {label}
                       </button>
                     );
@@ -773,11 +822,11 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
               <SegmentedControl label="Difficulty Level" value={form.difficulty_level} onChange={(v) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }})} options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} />
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Min Group Size</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Min Group Size</label>
                 <input type="number" value={form.min_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, min_group_size: parseInt(e.target.value) || 1 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Max Group Size</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Max Group Size</label>
                 <input type="number" value={form.max_group_size} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, max_group_size: parseInt(e.target.value) || 20 }})} className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
             </div>
@@ -792,7 +841,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               {/* Destination Picker */}
               <div className="space-y-3">
-                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Destination Card</label>
+                <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Destination Card</label>
                 <select
                   value={form.destination}
                   onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, destination: e.target.value }; })}
@@ -817,7 +866,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
               <div className="space-y-4 col-span-full">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Trip Architecture (Multi-Select)</label>
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Trip Architecture (Multi-Select)</label>
                   <div className="flex items-center gap-2">
                     <div className="relative flex items-center gap-2">
                       <input 
@@ -889,7 +938,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 {/* Difficulty */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="space-y-1">
-                    <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Intensity Level</label>
+                    <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Intensity Level</label>
                     <p className="text-[10px] text-white/30 italic font-medium leading-tight">Rate the physical demand of this journey.</p>
                   </div>
                   <button 
@@ -926,7 +975,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-[#48484a]">Digital Assets (Itinerary Flyer)</label>
+              <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/60">Digital Assets (Itinerary Flyer)</label>
               <div className="p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden">
                 <div className="relative z-10 flex-1 space-y-2">
                   <div className="flex items-center gap-4">
@@ -968,7 +1017,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="space-y-4 pt-8 border-t border-white/[0.02]">
-              <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Discovery Themes & Tags</label>
+              <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">Discovery Themes & Tags</label>
               <div className="flex flex-wrap gap-2 mb-4">
                 {form.tags.map((tag: string) => (
                   <span key={tag} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-white/70">
@@ -1015,7 +1064,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                <p className="w-full text-[9px] text-[#48484a] font-bold uppercase tracking-widest mb-1">Common Suggestions:</p>
+                <p className="w-full text-[9px] text-white/60 font-bold uppercase tracking-widest mb-1">Common Suggestions:</p>
                 {["Honeymoon", "Adventure", "Cultural", "Wildlife", "Wellness", "Solo Friendly", "Family"].map(s => (
                   <button 
                     key={s}
@@ -1065,7 +1114,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 </div>
               ))}
             </div>
-            <button type="button" onClick={addFaq} className="text-[12px] md:text-[13px] font-bold text-[#86868b] hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
+            <button type="button" onClick={addFaq} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
               + Add FAQ
             </button>
           </section>
@@ -1078,13 +1127,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             
             <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 md:p-8 rounded-3xl bg-[#1c1c1e] border border-white/[0.04]">
               <div className="flex-1 space-y-3">
-                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-[#48484a]">Display Position (1 = Top)</label>
+                <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/60">Display Position (1 = Top)</label>
                 <input type="number" value={form.sort_order} onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, sort_order: parseInt(e.target.value) || 0 }})} className="w-full sm:w-32 h-[56px] px-4 rounded-xl md:rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-white/[0.05] pt-6 sm:pt-0">
                 <div className="text-right">
                   <span className="block text-[13px] font-bold text-white uppercase tracking-wider">{form.is_published ? "Published to Website" : "Saved as Draft"}</span>
-                  <span className="block text-[11px] text-[#86868b] mt-1">{form.is_published ? "Live and visible to all guests" : "Hidden from public view"}</span>
+                  <span className="block text-[11px] text-white/50 mt-1">{form.is_published ? "Live and visible to all guests" : "Hidden from public view"}</span>
                 </div>
                 <button type="button" onClick={() => setForm((p) => { setIsDirty(true); return { ...p, is_published: !p.is_published }})} className={`relative w-16 h-9 rounded-full transition-all duration-500 shrink-0 ${form.is_published ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]" : "bg-[#3a3a3c]"}`}>
                   <div className={`absolute top-1 w-7 h-7 rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.is_published ? "left-[34px]" : "left-1"}`} />
@@ -1093,7 +1142,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             <div className="hidden sm:flex flex-col-reverse sm:flex-row gap-4 pt-4">
-              <button type="button" onClick={() => router.push("/admin/dashboard")} className="w-full sm:w-auto px-12 h-[60px] rounded-2xl bg-red-500/[0.02] border border-red-500/30 text-[#86868b] font-bold text-[14px] tracking-wider uppercase hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all active:scale-[0.98]">
+              <button type="button" onClick={() => router.push("/admin/dashboard")} className="w-full sm:w-auto px-12 h-[60px] rounded-2xl bg-red-500/[0.02] border border-red-500/30 text-white/50 font-bold text-[14px] tracking-wider uppercase hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-all active:scale-[0.98]">
                 Discard
               </button>
               <button type="submit" disabled={saving} className="w-full sm:flex-1 h-[60px] rounded-2xl bg-white text-black font-bold text-[14px] tracking-wider uppercase transition-all hover:bg-white/90 disabled:opacity-40 active:scale-[0.98] shadow-[0_0_30px_rgba(255,255,255,0.1)]">
@@ -1111,7 +1160,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
           <button 
             type="button" 
             onClick={safeBack} 
-            className="flex-1 h-12 rounded-[18px] bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-[#86868b] active:scale-95 transition-all"
+            className="flex-1 h-12 rounded-[18px] bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-white/50 active:scale-95 transition-all"
           >
             Discard
           </button>
@@ -1173,7 +1222,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               </div>
               
               <h2 className="text-xl font-bold text-white mb-3">Unsaved Changes</h2>
-              <p className="text-[14px] text-[#86868b] leading-relaxed mb-8">
+              <p className="text-[14px] text-white/50 leading-relaxed mb-8">
                 Your journey's configuration has been modified. Discarding will purge these edits forever.
               </p>
 
@@ -1244,7 +1293,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
+      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
         {label}
       </label>
       <input
@@ -1253,10 +1302,10 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all"
+        className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
       />
       {description && (
-        <p className="text-[10px] text-white/30 italic font-medium leading-tight px-1">{description}</p>
+        <p className="text-[10px] text-white/50 italic font-medium leading-tight px-1">{description}</p>
       )}
     </div>
   );
@@ -1278,7 +1327,7 @@ function SegmentedControl({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#48484a]">
+      <label className="block text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-white/60">
         {label}
       </label>
       <div className="flex w-full p-1.5 h-[56px] rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] relative">
@@ -1290,8 +1339,8 @@ function SegmentedControl({
             className={`flex-1 h-full flex items-center justify-center text-[12px] font-bold uppercase tracking-wider transition-all duration-300 rounded-lg z-10 ${
               value === opt.value
                 ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
-                : "text-[#86868b] hover:text-white"
-            }`}
+                : "text-white/40 hover:text-white"
+            } text-[10px] md:text-[11px]`}
           >
             {opt.label}
           </button>
