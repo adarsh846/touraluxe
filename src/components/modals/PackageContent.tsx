@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, memo, useMemo, useCallback, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { ChevronRight, IndianRupee, CreditCard, Banknote, Clock, Users, Compass, ShieldCheck, MapPin, Sparkles, Calendar, Plane, ArrowRight } from "lucide-react";
 import { Magnetic } from "../Magnetic";
@@ -32,34 +33,74 @@ export const PackageContent = memo(({
   const [activeSection, setActiveSection] = useState(0);
   const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  // ── Swipe handling for premium mobile feel ──
-  const touchStart = useRef(0);
-  const touchEnd = useRef(0);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStart.current = e.targetTouches[0].clientX;
+  // Listen to keyboard event (Escape key) to dismiss full view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsLightboxOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    touchEnd.current = e.targetTouches[0].clientX;
-  }, []);
+  // ── Gallery Horizontal Scroll Snap Logic ──
+  const galleryScrollRef = useRef<HTMLDivElement>(null);
+  const isNavigatingRef = useRef(false);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleTouchEnd = useCallback(() => {
-    if (!touchStart.current || !touchEnd.current) return;
-    const distance = touchStart.current - touchEnd.current;
-    const isLeftSwipe = distance > 45;
-    const isRightSwipe = distance < -45;
-    
-    if (isLeftSwipe) {
-      setCurrentImageIndex(p => p === experience.gallery.length - 1 ? 0 : p + 1);
-    } else if (isRightSwipe) {
-      setCurrentImageIndex(p => p === 0 ? experience.gallery.length - 1 : p - 1);
+  const handleGalleryScroll = useCallback(() => {
+    if (isNavigatingRef.current || !galleryScrollRef.current) return;
+    const { scrollLeft, clientWidth } = galleryScrollRef.current;
+    if (clientWidth === 0) return;
+    const index = Math.round(scrollLeft / clientWidth);
+    if (index >= 0 && index < (experience?.gallery?.length || 0)) {
+      setCurrentImageIndex(index);
     }
-    
-    touchStart.current = 0;
-    touchEnd.current = 0;
   }, [experience?.gallery]);
+
+  const triggerNavigation = useCallback((targetIndex: number) => {
+    if (!galleryScrollRef.current) return;
+    
+    isNavigatingRef.current = true;
+    if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
+    
+    setCurrentImageIndex(targetIndex);
+    
+    const clientWidth = galleryScrollRef.current.clientWidth;
+    galleryScrollRef.current.scrollTo({
+      left: targetIndex * clientWidth,
+      behavior: 'smooth'
+    });
+    
+    navigationTimeoutRef.current = setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 450);
+  }, []);
+
+  const handleNavClick = useCallback((direction: 'prev' | 'next') => {
+    if (!experience?.gallery) return;
+    let targetIndex = currentImageIndex;
+    const galleryLength = experience.gallery.length;
+    if (direction === 'prev') {
+      targetIndex = currentImageIndex === 0 ? galleryLength - 1 : currentImageIndex - 1;
+    } else {
+      targetIndex = currentImageIndex === galleryLength - 1 ? 0 : currentImageIndex + 1;
+    }
+    triggerNavigation(targetIndex);
+  }, [currentImageIndex, experience?.gallery, triggerNavigation]);
+
+  const handleThumbnailClick = useCallback((idx: number) => {
+    triggerNavigation(idx);
+  }, [triggerNavigation]);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
+    };
+  }, []);
 
   // ═══ DYNAMIC CHAPTER MANIFEST (Source of Truth) ═══
   const navChapters = useMemo(() => [
@@ -276,7 +317,7 @@ export const PackageContent = memo(({
         
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'entrance')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
           <div className="space-y-10">
             <div className="flex flex-col items-center gap-6">
@@ -315,7 +356,7 @@ export const PackageContent = memo(({
 
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'story')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
           <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none mb-12">The Vision</h2>
           
@@ -349,19 +390,12 @@ export const PackageContent = memo(({
         {experience.gallery && experience.gallery.length > 0 && (
           <section
             id={`section-${navChapters.findIndex(c => c.id === 'gallery')}`}
-            className="h-screen w-full flex flex-col snap-center snap-always select-none"
-            style={{
-              paddingTop: isMobile ? '132px' : '72px',
-              paddingBottom: isMobile ? '112px' : '108px'
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            className="h-screen w-full flex flex-col snap-center snap-always select-none pt-[164px] pb-[112px] md:pt-[128px] md:pb-[108px]"
           >
             <div className="relative z-10 flex flex-col flex-1 min-h-0 gap-4 px-3 md:px-8">
 
               {/* ── Label row (High Visibility) ── */}
-              <div className="flex items-center justify-between shrink-0 px-2">
+              <div className="flex items-center justify-between shrink-0 px-2 mt-8 md:mt-0">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[9px] font-black uppercase tracking-[0.5em] text-amber-400/80">Gallery</span>
                   <span className="text-base font-bold text-white leading-none">{experience.title}</span>
@@ -373,27 +407,71 @@ export const PackageContent = memo(({
                 </div>
               </div>
 
-              {/* ── Floating photo card — Dynamic Aspect Ratio ── */}
-              <div className="flex-1 min-h-0 flex items-center justify-center relative">
+              {/* ── Floating photo card — Horizontal Scrollable Strip ── */}
+              <div className="flex-1 min-h-0 w-full relative flex items-center justify-center">
 
-                {/* The photo naturally defines its own bounding box; borders, shadows, and corners wrap it perfectly */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  key={currentImageIndex}
-                  src={experience.gallery[currentImageIndex]}
-                  alt={`${experience.title} — photo ${currentImageIndex + 1}`}
-                  className="max-w-[calc(100%-24px)] md:max-w-[min(680px,calc(100%-80px))] max-h-full w-auto h-auto rounded-[2rem] md:rounded-[2.5rem] border border-white/15 bg-black/20 animate-in fade-in duration-700 block"
+                {/* Golden Ambient Glow (Positioned outside overflow-hidden boundaries to bleed infinitely with zero clipping) */}
+                <div
+                  key={`glow-${currentImageIndex}`}
+                  className="absolute rounded-[2.5rem] bg-amber-500/16 blur-[80px] pointer-events-none transition-all duration-1000 animate-in fade-in"
                   style={{
-                    objectFit: 'contain',
-                    boxShadow: '0 25px 90px -10px rgba(251,191,36,0.28), 0 0 0 1px rgba(255,255,255,0.08)',
+                    width: 'min(480px, 70%)',
+                    height: 'min(280px, 55%)',
+                    transform: 'translateY(12px)',
                   }}
                 />
 
-                {/* Left chevron — floats over, high visibility (hidden on mobile, gestures take over) */}
+                {/* Horizontal Scroll Row with Snap Points */}
+                <div
+                  ref={galleryScrollRef}
+                  onScroll={handleGalleryScroll}
+                  className="absolute inset-0 flex flex-row overflow-x-auto snap-x snap-mandatory scrollbar-hide items-center gap-0 touch-pan-x"
+                  style={{ touchAction: 'pan-x' }}
+                >
+                  {experience.gallery.map((url: string, idx: number) => (
+                    <div
+                      key={idx}
+                      className="shrink-0 w-full h-full flex items-center justify-center snap-center snap-always px-3"
+                    >
+                      {/* Photo wrapper card that keeps the rounded gold border 100% stable and glitch-free */}
+                      <div
+                        onClick={() => setIsLightboxOpen(true)}
+                        className="relative w-fit h-fit max-w-[calc(100%-24px)] md:max-w-[min(680px,calc(100%-80px))] max-h-full rounded-[2rem] md:rounded-[2.5rem] border border-amber-400 bg-black/20 overflow-hidden cursor-zoom-in group transition-all duration-500 flex items-center justify-center"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`${experience.title} — photo ${idx + 1}`}
+                          className="w-auto h-auto max-h-full object-contain block transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-[1.04]"
+                          style={{
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
+                          }}
+                        />
+
+                        {/* Floating "Click to Expand" / "Tap to Expand" Pill Badge */}
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                          <div className="bg-black/75 backdrop-blur-md border border-white/10 px-3.5 py-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-2 transform scale-90 group-hover:scale-100 group-active:scale-100 transition-all duration-500 shadow-2xl">
+                            {/* Simple inline zoom SVG */}
+                            <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                            </svg>
+                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/90">
+                              <span className="md:hidden">Tap to Expand</span>
+                              <span className="hidden md:inline">Click to Expand</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Left chevron — floats over, high visibility (hidden on mobile) */}
                 <button
                   type="button"
-                  onClick={() => setCurrentImageIndex(p => p === 0 ? experience.gallery.length - 1 : p - 1)}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10
+                  onClick={() => handleNavClick('prev')}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10
                              w-9 h-14 rounded-2xl
                              bg-white/10 hover:bg-white/20 backdrop-blur-md
                              border border-white/15 hover:border-white/30
@@ -405,11 +483,11 @@ export const PackageContent = memo(({
                   </svg>
                 </button>
 
-                {/* Right chevron — high visibility (hidden on mobile, gestures take over) */}
+                {/* Right chevron — high visibility (hidden on mobile) */}
                 <button
                   type="button"
-                  onClick={() => setCurrentImageIndex(p => p === experience.gallery.length - 1 ? 0 : p + 1)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10
+                  onClick={() => handleNavClick('next')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10
                              w-9 h-14 rounded-2xl
                              bg-white/10 hover:bg-white/20 backdrop-blur-md
                              border border-white/15 hover:border-white/30
@@ -423,14 +501,14 @@ export const PackageContent = memo(({
               </div>
 
               {/* ── Thumbnail strip — dynamic sizing for mobile ── */}
-              <div className="shrink-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-none py-1.5 px-4 w-full">
+              <div className="shrink-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-3.5 px-4 w-full">
                 {experience.gallery.map((url: string, idx: number) => {
                   const active = idx === currentImageIndex;
                   return (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setCurrentImageIndex(idx)}
+                      onClick={() => handleThumbnailClick(idx)}
                       className={cn(
                         "relative shrink-0 rounded-xl md:rounded-2xl overflow-hidden border transition-all duration-300",
                         "h-8 md:h-12",
@@ -438,7 +516,6 @@ export const PackageContent = memo(({
                           ? "w-12 md:w-20 border-amber-400 opacity-100 scale-105"
                           : "w-8 md:w-12 border-white/10 opacity-40 hover:opacity-80 hover:border-white/30 scale-95"
                       )}
-                      style={active ? { boxShadow: '0 0 16px rgba(251,191,36,0.35)' } : undefined}
                     >
                       <Image
                         src={url}
@@ -460,7 +537,7 @@ export const PackageContent = memo(({
 
         {/* CHAPTER III: THE ITINERARY (Cinematic Narrative Edition) */}
         {experience.itinerary && experience.itinerary.length > 0 && (
-          <section className="relative w-full max-w-4xl mx-auto px-8 lg:px-0 py-24">
+          <section className="relative w-full max-w-4xl mx-auto px-6 lg:px-0 py-12 md:py-24">
             <div className="absolute left-8 lg:left-0 top-0 bottom-0 w-[1.5px] bg-white/10 z-0 -translate-x-1/2">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-transparent blur-[1px]" />
             </div>
@@ -528,9 +605,9 @@ export const PackageContent = memo(({
         {/* FLIGHT POLICY INSIGHT */}
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'logistics')}`}
-          className="min-h-[60vh] flex flex-col items-center justify-center text-center py-20 px-6 snap-center snap-always"
+          className="min-h-[60vh] flex flex-col items-center justify-center text-center py-10 md:py-20 px-4 md:px-6 snap-center snap-always"
         >
-          <div className="w-full max-w-4xl p-12 rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
+          <div className="w-full max-w-4xl p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-50" />
             
             <div className="relative z-10 flex flex-col items-center gap-8">
@@ -567,7 +644,7 @@ export const PackageContent = memo(({
         {experience.inclusions && experience.inclusions.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'hallmarks')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 space-y-8 md:space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
           >
             <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Inclusions</h2>
             
@@ -1043,6 +1120,42 @@ export const PackageContent = memo(({
           </div>
           </div>
       </div>
+
+      {/* Immersive Lightbox Modal Overlay */}
+      {isLightboxOpen && experience?.gallery?.[currentImageIndex] && typeof window !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[400] flex items-center justify-center bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300 cursor-zoom-out"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          {/* Floating Close Button */}
+          <div className="absolute top-6 right-6 z-[410]">
+            <Magnetic>
+              <button
+                type="button"
+                onClick={() => setIsLightboxOpen(false)}
+                className="w-12 h-12 rounded-full bg-white hover:bg-white/90 text-black flex items-center justify-center transition-all duration-200 active:scale-95 group shadow-2xl"
+              >
+                <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </Magnetic>
+          </div>
+
+          {/* Centered Image Card */}
+          <div className="relative max-w-[95vw] max-h-[92vh] w-auto h-auto flex items-center justify-center animate-in zoom-in-95 duration-300 pointer-events-none select-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={experience.gallery[currentImageIndex]}
+              alt={`${experience.title} — full view`}
+              className="max-w-full max-h-full w-auto h-auto rounded-3xl border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.85)]"
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+
     </>)}
     </div>
   );

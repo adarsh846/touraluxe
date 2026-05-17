@@ -1610,7 +1610,7 @@ export const BookingContent = memo(function BookingContent({
                                               <span className="text-[10px] md:text-xs font-bold text-white/60 group-focus-within/phone:text-white/90">{selectedCountry.code}</span>
                                             </div>
                                             {countryMenuOpen && (
-                                              <div className="absolute top-full left-0 mt-2 w-48 max-h-40 overflow-y-auto bg-[#121214] backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-none">
+                                              <div className="absolute top-full left-0 mt-2 w-48 max-h-40 overflow-y-auto bg-[#121214] backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-hide">
                                                 {[
                                                   { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
                                                   { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
@@ -1773,7 +1773,7 @@ export const BookingContent = memo(function BookingContent({
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     placeholder="Any special desire? Tell us!"
-                                    className="w-full h-24 md:h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-none shadow-inner"
+                                    className="w-full h-24 md:h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-hide shadow-inner"
                                   />
                                 </div>
                               </div>
