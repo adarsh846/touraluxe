@@ -522,23 +522,24 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4">
-              {packages.map((pkg) => (
-                <div key={pkg.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-5 rounded-[24px] bg-[#1c1c1e] border border-white/[0.04] group hover:border-white/[0.08] transition-all">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="relative w-16 h-16 md:w-20 md:h-14 rounded-2xl overflow-hidden bg-white/5 shrink-0">
-                      {pkg.image && <img src={pkg.image} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[15px] md:text-[17px] font-bold truncate text-white">{pkg.title}</h3>
-                      <p className="text-[12px] md:text-[13px] text-[#86868b]">
-                        {pkg.location} · {(() => {
-                          const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
-                          const taxRate = parseFloat(settings.tax_percentage || "0");
-                          const isExclusive = pkg.tax_status === "Exclusive of Taxes";
-                          // MASTER REFLECTION: Dashboard must show the SAME price as the live site.
-                          const finalPrice = isExclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
-                          return `${pkg.currency || "₹"}${Math.round(finalPrice).toLocaleString('en-IN')}`;
-                        })()}
+              {packages.map((pkg) => {
+                const isExclusive = pkg.tax_status === "Exclusive of Taxes";
+                return (
+                  <div key={pkg.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-5 rounded-[24px] bg-[#1c1c1e] border border-white/[0.04] group hover:border-white/[0.08] transition-all">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="relative w-16 h-16 md:w-20 md:h-14 rounded-2xl overflow-hidden bg-white/5 shrink-0">
+                        {pkg.image && <img src={pkg.image} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[15px] md:text-[17px] font-bold truncate text-white">{pkg.title}</h3>
+                        <p className="text-[12px] md:text-[13px] text-[#86868b]">
+                          {pkg.location} · {(() => {
+                            const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
+                            const taxRate = parseFloat(settings.tax_percentage || "0");
+                            // MASTER REFLECTION: Dashboard must show the SAME price as the live site.
+                            const finalPrice = isExclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
+                            return `${pkg.currency || "₹"}${Math.round(finalPrice).toLocaleString('en-IN')}`;
+                          })()}
                       </p>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {Array.isArray(pkg.category) ? pkg.category.map((cat) => (
@@ -546,8 +547,8 @@ export default function AdminDashboard() {
                         )) : (
                           <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{pkg.category || "Uncategorized"}</span>
                         )}
-                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${pkg.tax_status === "Exclusive of Taxes" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
-                          {pkg.tax_status === "Exclusive of Taxes" ? "+ TAX" : "INCL. TAX"}
+                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${isExclusive ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
+                          {isExclusive ? "+ TAX" : "INCL. TAX"}
                         </span>
                       </div>
                     </div>
@@ -558,7 +559,8 @@ export default function AdminDashboard() {
                     <button onClick={() => handleDelete(pkg.id, pkg.title)} className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg></button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </div>
         ) : view === "bookings" ? (

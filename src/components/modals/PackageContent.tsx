@@ -39,6 +39,7 @@ export const PackageContent = memo(({
     { id: 'story', label: 'The Vision', type: 'core' },
     { id: 'chronicle', label: 'Itinerary', type: 'core' },
     ...(experience?.itinerary?.map((_: any, i: number) => ({ id: `day-${i + 1}`, label: `Day ${i + 1}`, type: 'day' })) || []),
+    { id: 'logistics', label: 'Logistics', type: 'core' },
     ...(experience?.inclusions?.length > 0 ? [{ id: 'hallmarks', label: 'Inclusions', type: 'optional' }] : []),
     ...(experience?.exclusions?.length > 0 ? [{ id: 'exclusions', label: 'Exclusions', type: 'optional' }] : []),
     ...(experience?.highlights?.length > 0 ? [{ id: 'essence', label: 'Highlights', type: 'optional' }] : []),
@@ -245,7 +246,7 @@ export const PackageContent = memo(({
       <div className="relative z-10 w-full max-w-5xl mx-auto px-8 lg:px-12">
         
         <section 
-          id="section-0"
+          id={`section-${navChapters.findIndex(c => c.id === 'entrance')}`}
           className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
           <div className="space-y-10">
@@ -284,7 +285,7 @@ export const PackageContent = memo(({
         </section>
 
         <section 
-          id="section-1"
+          id={`section-${navChapters.findIndex(c => c.id === 'story')}`}
           className="min-h-screen flex flex-col items-center justify-center text-center py-40 animate-in fade-in duration-1000 snap-center snap-always"
         >
           <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none mb-12">The Vision</h2>
@@ -349,7 +350,7 @@ export const PackageContent = memo(({
 
             <div className="space-y-32">
               <div 
-                id="section-2"
+                id={`section-${navChapters.findIndex(c => c.id === 'chronicle')}`}
                 className="relative min-h-[40vh] flex flex-col justify-center snap-center snap-always"
               >
                 <div className="absolute left-0 -translate-x-1/2 top-1/2 z-20 bg-black rounded-full p-1 border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -365,7 +366,7 @@ export const PackageContent = memo(({
               {experience.itinerary.map((item: any, i: number) => (
                 <div 
                   key={i}
-                  id={`section-${3 + i}`}
+                  id={`section-${navChapters.findIndex(c => c.id === `day-${i + 1}`)}`}
                   className="relative group/itinerary flex flex-col justify-center snap-center snap-always"
                 >
                   {/* Visual Connector Node */}
@@ -408,7 +409,10 @@ export const PackageContent = memo(({
         )}
 
         {/* FLIGHT POLICY INSIGHT */}
-        <section className="min-h-[60vh] flex flex-col items-center justify-center text-center py-20 px-6 snap-center snap-always">
+        <section 
+          id={`section-${navChapters.findIndex(c => c.id === 'logistics')}`}
+          className="min-h-[60vh] flex flex-col items-center justify-center text-center py-20 px-6 snap-center snap-always"
+        >
           <div className="w-full max-w-4xl p-12 rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-50" />
             

@@ -18,6 +18,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [galleryUploading, setGalleryUploading] = useState(false);
   const { computePrice, settings } = usePricing();
 
   const parseDuration = (d: string) => {
@@ -58,6 +60,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     exclusions: initialData?.exclusions || [""],
     itinerary: initialData?.itinerary || [{ day: "1", title: "", description: "" }],
     faq: (initialData as any)?.faq || [{ question: "", answer: "" }],
+    gallery: (initialData as any)?.gallery || [],
     category: Array.isArray(initialData?.category) 
       ? initialData.category.filter(cat => ALLOWED_CATEGORIES.includes(cat)) 
       : (initialData?.category && ALLOWED_CATEGORIES.includes(initialData.category as string) ? [initialData.category as string] : []),
@@ -194,6 +197,80 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     }
 
     setUploading(false);
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setGalleryUploading(true);
+    setIsDirty(true);
+
+    const uploadedUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "x-admin-token": getToken() },
+          body: formData,
+        });
+
+        if (res.ok) {
+          const { url } = await res.json();
+          uploadedUrls.push(url);
+        }
+      } catch (err) {
+        console.error("Gallery upload error:", err);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      setForm((prev) => {
+        const newGallery = [...(prev.gallery || []), ...uploadedUrls];
+        return { ...prev, gallery: newGallery };
+      });
+      setToast({ show: true, message: `${uploadedUrls.length} image(s) added to gallery.`, type: "success" });
+    } else {
+      setToast({ show: true, message: "Upload failed. Please try again.", type: "error" });
+    }
+
+    setGalleryUploading(false);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setForm((prev) => {
+      setIsDirty(true);
+      const gallery = (prev.gallery || []).filter((_, i) => i !== index);
+      return { ...prev, gallery };
+    });
+  };
+
+  const moveGalleryImage = (index: number, direction: 'up' | 'down') => {
+    setForm((prev) => {
+      const gallery = [...(prev.gallery || [])];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= gallery.length) return prev;
+      
+      setIsDirty(true);
+      const temp = gallery[index];
+      gallery[index] = gallery[targetIndex];
+      gallery[targetIndex] = temp;
+      
+      return { ...prev, gallery };
+    });
+  };
+
+  const addGalleryUrl = (url: string) => {
+    if (!url.trim()) return;
+    setForm((prev) => {
+      setIsDirty(true);
+      return { ...prev, gallery: [...(prev.gallery || []), url.trim()] };
+    });
   };
   
   const [pdfUploading, setPdfUploading] = useState(false);
@@ -364,6 +441,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       itinerary: form.itinerary.filter((item) => item.title.trim() !== ""),
       trip_type: Array.isArray(form.trip_type) ? form.trip_type.join(",") : form.trip_type,
       faq: form.faq.filter((f: { question: string; answer: string }) => f.question.trim() !== ""),
+      gallery: (form.gallery || []).filter((g: string) => g.trim() !== ""),
     };
 
     const url = isEditing
@@ -472,6 +550,116 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               )}
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+          </section>
+
+          {/* ── HERO: CINEMATIC GALLERY ── */}
+          <section className="space-y-6 md:space-y-8">
+            <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5 flex items-center justify-between">
+              <span>Cinematic Gallery</span>
+              <span className="text-[10px] font-bold tracking-[0.2em] text-white/40 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                {(form.gallery || []).length} Photo(s)
+              </span>
+            </h3>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+              {/* Existing Gallery Thumbnails */}
+              {(form.gallery || []).map((url: string, index: number) => (
+                <div key={index} className="group relative aspect-[16/10] rounded-2xl overflow-hidden bg-[#1c1c1e] border border-white/[0.06] hover:border-white/20 transition-all duration-500 shadow-xl">
+                  <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  
+                  {/* Glassmorphic Overlay Controls */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                    {/* Move Up/Left */}
+                    {index > 0 && (
+                      <button 
+                        type="button" 
+                        onClick={() => moveGalleryImage(index, 'up')}
+                        className="p-2 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all active:scale-90"
+                        title="Move Left"
+                      >
+                        <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Move Down/Right */}
+                    {index < (form.gallery || []).length - 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => moveGalleryImage(index, 'down')}
+                        className="p-2 rounded-xl bg-white/10 border border-white/15 text-white hover:bg-white/20 transition-all active:scale-90"
+                        title="Move Right"
+                      >
+                        <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Delete */}
+                    <button 
+                      type="button" 
+                      onClick={() => removeGalleryImage(index)}
+                      className="p-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/35 transition-all active:scale-90"
+                      title="Remove Photo"
+                    >
+                      <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Badge showing order index */}
+                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/60 border border-white/10 text-[9px] font-black text-white/50 tracking-wider">
+                    {index < 9 ? `0${index + 1}` : index + 1}
+                  </div>
+                </div>
+              ))}
+
+              {/* Upload Trigger Card */}
+              <div 
+                onClick={() => galleryInputRef.current?.click()}
+                className="relative aspect-[16/10] rounded-2xl border-2 border-dashed border-white/[0.06] hover:border-white/[0.12] bg-[#1c1c1e]/40 hover:bg-[#1c1c1e] transition-all duration-500 cursor-pointer flex flex-col items-center justify-center gap-2 group shadow-xl"
+              >
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-115 group-hover:bg-white/10 transition-all duration-500">
+                  <svg className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <span className="text-[10px] md:text-[11px] text-white/50 font-bold uppercase tracking-widest">
+                  {galleryUploading ? "Uploading..." : "Add Photo"}
+                </span>
+              </div>
+            </div>
+
+            {/* URL Paster Utility */}
+            <div className="max-w-xl flex items-center gap-3 bg-[#1c1c1e]/50 border border-white/[0.06] rounded-2xl p-2.5">
+              <input 
+                type="text" 
+                placeholder="Or paste direct image URL here..." 
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.currentTarget;
+                    addGalleryUrl(input.value);
+                    input.value = "";
+                  }
+                }}
+                className="flex-1 bg-transparent text-xs text-white/80 placeholder-white/20 outline-none px-3 border-none"
+              />
+              <button 
+                type="button"
+                onClick={(e) => {
+                  const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                  addGalleryUrl(input.value);
+                  input.value = "";
+                }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-[10px] font-black uppercase tracking-wider transition-all"
+              >
+                Add URL
+              </button>
+            </div>
+            
+            <input ref={galleryInputRef} type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" />
           </section>
 
           {/* ── SECTION 1: BASIC INFORMATION ── */}

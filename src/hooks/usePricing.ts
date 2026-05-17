@@ -83,12 +83,8 @@ export function useGlobalSettings() {
 
     // ── RESILIENT STATUS CHECK ──
     const taxStatus = String(pkg?.tax_status || "").toLowerCase();
-    const destination = String(pkg?.location || "").toLowerCase();
     const isExclusive = taxStatus.includes("exclusive");
-    
-    // Sovereign Fallback: Certain destinations are ALWAYS inclusive by business rule
-    const isSovereignInclusive = destination.includes("maldives") || destination.includes("bali");
-    const isInclusive = taxStatus.includes("inclusive") || isSovereignInclusive || !isExclusive;
+    const isInclusive = taxStatus.includes("inclusive") || !isExclusive;
 
     // ── MASTER FISCAL RULE (Split Architecture) ──
     const landAdult = isExclusive && taxRate > 0 ? Math.round(base + (base * taxRate) / 100) : base;
