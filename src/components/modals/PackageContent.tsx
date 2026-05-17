@@ -31,6 +31,35 @@ export const PackageContent = memo(({
   const { computePrice, settings } = usePricing();
   const [activeSection, setActiveSection] = useState(0);
   const [relatedPackages, setRelatedPackages] = useState<any[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // ── Swipe handling for premium mobile feel ──
+  const touchStart = useRef(0);
+  const touchEnd = useRef(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStart.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > 45;
+    const isRightSwipe = distance < -45;
+    
+    if (isLeftSwipe) {
+      setCurrentImageIndex(p => p === experience.gallery.length - 1 ? 0 : p + 1);
+    } else if (isRightSwipe) {
+      setCurrentImageIndex(p => p === 0 ? experience.gallery.length - 1 : p - 1);
+    }
+    
+    touchStart.current = 0;
+    touchEnd.current = 0;
+  }, [experience?.gallery]);
 
   // ═══ DYNAMIC CHAPTER MANIFEST (Source of Truth) ═══
   const navChapters = useMemo(() => [
@@ -318,25 +347,113 @@ export const PackageContent = memo(({
 
         {/* CHAPTER: GALLERY */}
         {experience.gallery && experience.gallery.length > 0 && (
-          <section 
+          <section
             id={`section-${navChapters.findIndex(c => c.id === 'gallery')}`}
-            className="min-h-screen flex items-center justify-center snap-center snap-always"
+            className="h-screen w-full flex flex-col snap-center snap-always select-none"
+            style={{
+              paddingTop: isMobile ? '132px' : '72px',
+              paddingBottom: isMobile ? '112px' : '108px'
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            <div className="w-full h-full p-4 md:p-8 pt-24 pb-24 md:pb-32">
-              <div className="w-full h-full rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-white/5 relative border border-white/10 flex items-center justify-center">
-                {/* We can build a proper carousel here, for now it shows the first image full bleed */}
-                <Image
-                  src={experience.gallery[0]}
-                  alt="Gallery"
-                  fill
-                  className="object-cover transition-transform duration-[2s] hover:scale-105"
-                  quality={85}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute bottom-8 right-8 px-4 py-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
-                  1 / {experience.gallery.length} Images
+            <div className="relative z-10 flex flex-col flex-1 min-h-0 gap-4 px-3 md:px-8">
+
+              {/* ── Label row (High Visibility) ── */}
+              <div className="flex items-center justify-between shrink-0 px-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.5em] text-amber-400/80">Gallery</span>
+                  <span className="text-base font-bold text-white leading-none">{experience.title}</span>
+                </div>
+                <div className="px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-black tabular-nums tracking-widest text-white">
+                  {String(currentImageIndex + 1).padStart(2, '0')}
+                  <span className="text-white/30 mx-1.5">/</span>
+                  {String(experience.gallery.length).padStart(2, '0')}
                 </div>
               </div>
+
+              {/* ── Floating photo card — Dynamic Aspect Ratio ── */}
+              <div className="flex-1 min-h-0 flex items-center justify-center relative">
+
+                {/* The photo naturally defines its own bounding box; borders, shadows, and corners wrap it perfectly */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={currentImageIndex}
+                  src={experience.gallery[currentImageIndex]}
+                  alt={`${experience.title} — photo ${currentImageIndex + 1}`}
+                  className="max-w-[calc(100%-24px)] md:max-w-[min(680px,calc(100%-80px))] max-h-full w-auto h-auto rounded-[2rem] md:rounded-[2.5rem] border border-white/15 bg-black/20 animate-in fade-in duration-700 block"
+                  style={{
+                    objectFit: 'contain',
+                    boxShadow: '0 25px 90px -10px rgba(251,191,36,0.28), 0 0 0 1px rgba(255,255,255,0.08)',
+                  }}
+                />
+
+                {/* Left chevron — floats over, high visibility (hidden on mobile, gestures take over) */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex(p => p === 0 ? experience.gallery.length - 1 : p - 1)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10
+                             w-9 h-14 rounded-2xl
+                             bg-white/10 hover:bg-white/20 backdrop-blur-md
+                             border border-white/15 hover:border-white/30
+                             hidden md:flex items-center justify-center
+                             transition-all duration-200 active:scale-95 group shadow-lg"
+                >
+                  <svg className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {/* Right chevron — high visibility (hidden on mobile, gestures take over) */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentImageIndex(p => p === experience.gallery.length - 1 ? 0 : p + 1)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10
+                             w-9 h-14 rounded-2xl
+                             bg-white/10 hover:bg-white/20 backdrop-blur-md
+                             border border-white/15 hover:border-white/30
+                             hidden md:flex items-center justify-center
+                             transition-all duration-200 active:scale-95 group shadow-lg"
+                >
+                  <svg className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* ── Thumbnail strip — dynamic sizing for mobile ── */}
+              <div className="shrink-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-none py-1.5 px-4 w-full">
+                {experience.gallery.map((url: string, idx: number) => {
+                  const active = idx === currentImageIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={cn(
+                        "relative shrink-0 rounded-xl md:rounded-2xl overflow-hidden border transition-all duration-300",
+                        "h-8 md:h-12",
+                        active
+                          ? "w-12 md:w-20 border-amber-400 opacity-100 scale-105"
+                          : "w-8 md:w-12 border-white/10 opacity-40 hover:opacity-80 hover:border-white/30 scale-95"
+                      )}
+                      style={active ? { boxShadow: '0 0 16px rgba(251,191,36,0.35)' } : undefined}
+                    >
+                      <Image
+                        src={url}
+                        alt={`Photo ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                        quality={35}
+                        unoptimized
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
             </div>
           </section>
         )}
