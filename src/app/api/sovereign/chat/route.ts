@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DiscoveryService } from '@/services/DiscoveryService';
-import { Package } from '@/lib/supabase';
+import { Package, supabase } from '@/lib/supabase';
 import { MAJOR_DESTINATIONS, validateLocation, getSuggestion } from "@/lib/geography";
+import { INTENT_MESSAGES } from '@/lib/intentMessages';
 
 /**
  * TOURALUXE SOVEREIGN AGENT API (V1 - SCALING ENGINE)
@@ -12,7 +13,6 @@ import { MAJOR_DESTINATIONS, validateLocation, getSuggestion } from "@/lib/geogr
 
 export async function POST(req: NextRequest) {
   try {
-    // Safety Guard: Ensure request body exists to prevent JSON parse errors
     if (!req.body) {
       return NextResponse.json({ error: 'Body is required' }, { status: 400 });
     }
@@ -22,70 +22,224 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Initialize the Pattern-Matching Engine as a "Tool"
-    const engine = new DiscoveryService<Package>(manifest || []);
-    let results = engine.search(message);
+    let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    let supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // --- SOVEREIGN AGENTIC LOGIC ---
-    // Here we simulate the reasoning process defined in the Sovereign Prompt V2.
-    
+    // Fail-safe: manual disk parser for Supabase credentials to bypass Next.js env caching
+    if (!supabaseUrl || !supabaseKey) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const envPath = path.join(process.cwd(), '.env.local');
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          const urlMatch = envContent.match(/^NEXT_PUBLIC_SUPABASE_URL\s*=\s*(.*)$/m);
+          const keyMatch = envContent.match(/^NEXT_PUBLIC_SUPABASE_ANON_KEY\s*=\s*(.*)$/m);
+          if (urlMatch && urlMatch[1]) supabaseUrl = urlMatch[1].trim();
+          if (keyMatch && keyMatch[1]) supabaseKey = keyMatch[1].trim();
+        }
+      } catch (fsErr) {
+        console.error("Local Supabase env read error:", fsErr);
+      }
+    }
+
+    // Initialize/Fallback Supabase Client
+    let supabaseClient = supabase;
+    if (supabaseUrl && supabaseKey && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+      try {
+        const { createClient } = require("@supabase/supabase-js");
+        supabaseClient = createClient(supabaseUrl, supabaseKey);
+      } catch (clientErr) {
+        console.error("Failed to dynamically build Supabase client, fallback to default import:", clientErr);
+      }
+    }
+
+    // Fetch real-time active products from database to ensure complete product awareness
+    let dbPackages: Package[] = [];
+    try {
+      const { data, error } = await supabaseClient
+        .from("packages")
+        .select("*")
+        .eq("is_published", true)
+        .order("sort_order", { ascending: true });
+      if (!error && data) {
+        dbPackages = data as Package[];
+      }
+    } catch (dbErr) {
+      console.error("Supabase package fetch error, using manifest fallback:", dbErr);
+    }
+
+    // Fallback to client manifest if database query returns empty (as a bulletproof measure)
+    const activeManifest = dbPackages.length > 0 ? dbPackages : (manifest || []);
+
+    let GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+    // Fail-safe: if Next.js cached process environment fails to read newly added key, parse .env.local directly from disk!
+    if (!GEMINI_API_KEY) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const envPath = path.join(process.cwd(), '.env.local');
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          const match = envContent.match(/^GEMINI_API_KEY\s*=\s*(.*)$/m);
+          if (match && match[1]) {
+            GEMINI_API_KEY = match[1].trim();
+          }
+        }
+      } catch (fsErr) {
+        console.error("Local env.local read fail-safe error:", fsErr);
+      }
+    }
+
+    // ==========================================
+    // TIER 1: LIVE GEMINI AI MODEL INTEGRATION
+    // ==========================================
+    if (GEMINI_API_KEY) {
+      try {
+        const systemPrompt = `You are the TouraLuxe Sovereign Curator, an elite, high-fidelity AI travel concierge.
+Your task is to parse a natural human travel query and align it with our inventory of packages.
+
+Our inventory manifest is:
+${JSON.stringify(activeManifest)}
+
+Analyze the user's message: "${message}"
+
+Identify:
+1. The target destination, mood, emotion, or vacation style from the message.
+2. The user's travel style (honeymoon, luxury escape, adventure, relaxation, etc.).
+3. The preferred season.
+
+Return a standardized JSON object with EXACTLY the following structure:
+{
+  "thought_process": "Your professional reasoning and semantic analysis of the user's requirements.",
+  "state": "CURATING" | "CLARIFYING" | "SUGGESTING" | "ESCALATING",
+  "ui_message": "An elegant, bespoke response to the user in a poetic, premium, and welcoming voice.",
+  "matched_package_ids": ["array of matching package IDs from manifest in order of relevance"],
+  "suggestion": "Optional suggestion of a destination if they made a typo"
+}
+
+If the user expresses a mood, emotional state, or general vacation desire (e.g. "I'm so tired of work I want to go on a luxury vacation", "I want a relaxing beach getaway", "I need peace and quiet"), DO NOT clarify. Set state to "CURATING", match the most luxurious, peaceful, or relevant packages from our manifest (like premium resorts, beach escapes, or tranquil mountain retreats), and write an empathetic, beautifully soothing, luxurious concierge response acknowledging their feelings and inviting them to escape.
+If the query is vague, gibberish, or does not indicate a clear travel intent, set state to "CLARIFYING" and politely ask for clarification in "ui_message".
+If the query contains a minor typo or close alignment to a destination, set state to "SUGGESTING" and supply the corrected destination in "suggestion".
+If the destination is valid but we do not have a direct package in our manifest, set state to "ESCALATING" and offer to design a bespoke custom journey in "ui_message".`;
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.2
+              }
+            })
+          }
+        );
+
+        if (response.ok) {
+          const resData = await response.json();
+          const responseText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          
+          if (responseText) {
+            const cleanJson = responseText.replace(/```json\n?|```/g, "").trim();
+            const aiResult = JSON.parse(cleanJson);
+            
+            let matchedPackages = activeManifest.filter((pkg: any) => 
+              aiResult.matched_package_ids?.includes(pkg.id) ||
+              aiResult.matched_package_ids?.includes(pkg.id?.toString())
+            );
+
+            // Fail-safe: if state is CURATING but no packages are matched directly by ID, utilize high-recall semantic fallback search
+            if (matchedPackages.length === 0 && aiResult.state === "CURATING") {
+              const localEngine = new DiscoveryService<any>(activeManifest);
+              matchedPackages = localEngine.search(message);
+            }
+
+            if (matchedPackages.length > 0) {
+              matchedPackages = matchedPackages.map((pkg: any, idx: number) => ({
+                ...pkg,
+                match_score: Math.min(99, 95 - (idx * 5)),
+                match_label: idx === 0 ? "Prime Alignment" : "Strong Correlation",
+                authority_type: idx === 0 ? "gold" : "silver",
+                sovereign_reason: `Curated by Gemini AI based on your natural language travel preferences.`
+              }));
+            }
+
+            return NextResponse.json({
+              thought_process: aiResult.thought_process,
+              state: aiResult.state,
+              ui_message: aiResult.ui_message,
+              results: matchedPackages,
+              suggestion: aiResult.suggestion,
+              tool_call: matchedPackages.length > 0 ? {
+                name: "search_manifest",
+                parameters: { query: message },
+                result: matchedPackages.slice(0, 3)
+              } : null
+            });
+          }
+        }
+      } catch (geminiError) {
+        console.error("Gemini Live Integration Error, falling back to local patterns:", geminiError);
+      }
+    }
+
+    // ==========================================
+    // TIER 2: LOCAL HIGH-FIDELITY PATTERN FALLBACK
+    // ==========================================
+    const engine = new DiscoveryService<Package>(activeManifest);
+    let results = await engine.search(message);
+
+    const query = message.toLowerCase();
+    const isRomanticQuery = query.includes("honeymoon") || query.includes("romantic") || query.includes("anniversary") || query.includes("couple");
+    const isRelaxQuery = query.includes("vacation") || query.includes("relax") || query.includes("luxury") || query.includes("escape") || query.includes("tired") || query.includes("weary");
+
     let thoughtProcess = "";
     let uiMessage = "";
     let state = "CURATING";
     let toolCall = null;
 
-    const query = message.toLowerCase();
     
-    // --- SOVEREIGN GEOGRAPHY VALIDATION LAYER ---
+    
     const isGibberish = (text: string) => {
       const clean = text.trim().toLowerCase();
       if (clean.length < 2) return true;
       
-      // Check against Global Geography Manifest
-      const validGeography = validateLocation(clean);
+      const validGeography = validateLocation(clean, activeManifest);
       if (validGeography) return false;
 
-      // Check for Suggestion (Did you mean?)
-      const suggestion = getSuggestion(clean);
+      const suggestion = getSuggestion(clean, activeManifest);
       if (suggestion) return false;
 
-      // Check for Generic Travel Intents
       const genericIntents = ["warm", "cold", "beach", "mountain", "adventure", "luxury", "honeymoon", "family", "budget", "exclusive"];
       if (genericIntents.some(intent => clean.includes(intent))) return false;
 
-      // --- DYNAMIC LINGUISTIC HEURISTICS (No Blacklists) ---
-      
-      // 1. Lexical Entropy: Real words have a healthy variety of characters
       const uniqueChars = new Set(clean.replace(/\s/g, "")).size;
       const entropyRatio = uniqueChars / clean.replace(/\s/g, "").length;
-      if (clean.length > 4 && entropyRatio < 0.4) return true; // Catch "aaaaa", "ababab", etc.
+      if (clean.length > 4 && entropyRatio < 0.4) return true;
 
-      // 2. Pattern Repetition (3+ identical chars in a row)
       if (/(.)\1{2,}/.test(clean)) return true;
 
-      // 3. Phonetic Flow: Catching "Wall of Consonants" or "Wall of Vowels"
       if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(clean)) return true; 
       if (/[aeiouy]{5,}/i.test(clean)) return true;
 
-      // 4. Token-Level Intelligence
       const tokens = clean.split(/\s+/);
       const isNonsense = tokens.some(t => {
         if (t.length < 3) return false;
         const tVowels = t.match(/[aeiouy]/gi) || [];
         const tRatio = tVowels.length / t.length;
-        // Words without a single vowel are extremely rare (unless very short like "sky")
         if (t.length >= 3 && tVowels.length === 0) return true;
-        // Catch extreme ratios in individual tokens
         if (tRatio < 0.1 || tRatio > 0.9) return true;
         return false;
       });
       
       if (isNonsense) return true;
-
       return false;
     };
 
-    // --- SOVEREIGN TRAVEL INTENT ANALYZER (Pass 2) ---
     const hasTravelIntent = (text: string) => {
       const travelKeywords = [
         "trip", "travel", "visit", "stay", "luxury", "vacation", "holiday", 
@@ -97,25 +251,26 @@ export async function POST(req: NextRequest) {
 
     if (isGibberish(query)) {
       return NextResponse.json({
-        thoughtProcess: `Input "${message}" flagged as non-geographic or gibberish. Requesting clarification.`,
-        ui_message: `I couldn't quite identify a destination in your message. Could you clarify where your heart is leading you?`,
+        thought_process: `Input "${message}" flagged as non-geographic or gibberish. Requesting clarification.`,
+        ui_message: "Where does your heart long to go? Tell us a mood, a feeling, or a destination, and let's begin your escape.",
         results: [],
         state: 'CLARIFYING'
       });
     }
 
-    // --- TWO-PASS SOVEREIGN VERIFICATION ENGINE ---
-    
-    // Pass 1: Authority Check
-    let validLoc = validateLocation(query); // Tier 1: Local Atlas
+    let validLoc = validateLocation(query, activeManifest);
     let isGlobalLandmark = false;
     
     if (!validLoc && query.length >= 3) {
-      // Tier 2: Global Search Engine Sync
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
         const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`, {
-          headers: { 'User-Agent': 'TouraLuxe-Sovereign-Agent/1.0' }
+          headers: { 'User-Agent': 'TouraLuxe-Sovereign-Agent/1.0' },
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const data = await response.json();
         
         if (data && data.length > 0) {
@@ -128,11 +283,9 @@ export async function POST(req: NextRequest) {
           const isPlace = validTypes.includes(type) || category === 'boundary';
           
           if (isPlace) {
-            // Tier 2: Open Horizon Protocol (Liberalized Recognition)
-            // If it's a recognized place with reasonable authority (>0.4), we trust it.
             if (importance > 0.4 || hasTravelIntent(message)) {
               validLoc = result.display_name.split(',')[0];
-              isGlobalLandmark = true; // Elevate to verified status
+              isGlobalLandmark = true;
             }
           }
         }
@@ -141,23 +294,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // --- SOVEREIGN SUGGESTION ENGINE ---
-    // If we haven't found a match yet, check for close Atlas alignments
-    const suggestion = getSuggestion(query);
+    // Fail-safe: if local search returned empty but query expresses a clear ambient intent (e.g. Honeymoon or Vacation) AND is NOT a valid global location query
+    if (results.length === 0 && (isRomanticQuery || isRelaxQuery) && !validLoc && !isGlobalLandmark && activeManifest.length > 0) {
+      results = [...activeManifest];
+      state = "CURATING";
+      if (isRomanticQuery) {
+        uiMessage = "Welcome to TouraLuxe. We have hand-picked our most exclusive romantic sanctuaries in Bali, Maldives, and Vietnam to curate a first chapter worthy of your love.";
+        thoughtProcess = `User expressed romantic/honeymoon intent "${message}". Matching all available luxury packages as prime recommendations.`;
+      } else {
+        uiMessage = "We hear you. Allow us to whisk you away to absolute tranquility in our private sanctuaries in Bali, Maldives, and Vietnam where work is completely forgotten.";
+        thoughtProcess = `User expressed escape/relaxation intent "${message}". Curating active luxury retreats: Bali, Maldives, and Vietnam.`;
+      }
+    }
 
-    // Pass 2: Decision Logic
+    const suggestion = getSuggestion(query, activeManifest);
+
     const isVerifiedIntent = 
       results.length > 0 || 
-      !!validateLocation(query) || 
+      !!validateLocation(query, activeManifest) || 
       isGlobalLandmark || 
       (validLoc && hasTravelIntent(message) && validLoc.toLowerCase() !== query.trim().toLowerCase());
 
     if (!isVerifiedIntent) {
-      // Suggesting instead of auto-correcting to respect user agency
       if (suggestion && !results.length) {
         return NextResponse.json({
-          thoughtProcess: `Input "${message}" not verified, but found close Atlas match: "${suggestion}". Suggesting correction.`,
-          ui_message: `I couldn't find an exact match for "${message}". Did you mean ${suggestion}?`,
+          thought_process: `Input "${message}" not verified, but found close Atlas match: "${suggestion}". Suggesting correction.`,
+          ui_message: `Were you dreaming of ${suggestion}? Let us take you there.`,
           results: [],
           state: 'SUGGESTING',
           suggestion: suggestion
@@ -165,11 +327,22 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({
-        thoughtProcess: `Input "${message}" lacks sufficient geographic authority or separate travel intent correlation. Staying in CLARIFYING state.`,
-        ui_message: `I couldn't quite identify a destination in your message. Could you clarify where your heart is leading you?`,
+        thought_process: `Input "${message}" lacks sufficient geographic authority or separate travel intent correlation. Staying in CLARIFYING state.`,
+        ui_message: "Every great journey begins with a spark. Share a destination, a dream, or how you want to feel, and let us design it.",
         results: [],
         state: 'CLARIFYING'
       });
+    }
+
+    const lowerQuery = query.toLowerCase();
+    let intent = 'fallback';
+    
+    if (lowerQuery.includes('romantic') || lowerQuery.includes('honeymoon') || lowerQuery.includes('love')) {
+      intent = 'romantic';
+    } else if (lowerQuery.includes('sea') || lowerQuery.includes('beach') || lowerQuery.includes('coast') || lowerQuery.includes('tranquil')) {
+      intent = 'beach';
+    } else if (lowerQuery.includes('adventure') || lowerQuery.includes('trek') || lowerQuery.includes('hike')) {
+      intent = 'adventure';
     }
 
     if (results.length > 0) {
@@ -184,34 +357,57 @@ export async function POST(req: NextRequest) {
       const isPrefixMatch = 
         topMatch.title.toLowerCase().startsWith(queryClean) || 
         topMatch.location.toLowerCase().startsWith(queryClean);
-
-      // Tiered Decision:
-      // 1. If it's an exact match or a clear single-candidate prefix, we auto-resolve for speed.
-      // 2. If it's a fuzzy match (typo), we ask "Did you mean?" to respect intent.
       
-      if (!exactMatch && !isPrefixMatch && queryClean.length > 2) {
+      if (suggestion && suggestion === topMatch.title && !exactMatch && !isPrefixMatch && queryClean.length > 2) {
         const suggestion = topMatch.title;
         return NextResponse.json({
-          thoughtProcess: `Fuzzy match detected for "${message}". Suggesting "${suggestion}" for editorial clarity.`,
-          ui_message: `I couldn't find an exact match for "${message}". Did you mean ${suggestion}?`,
+          thought_process: `Fuzzy match detected for "${message}". Suggesting "${suggestion}" for editorial clarity.`,
+          ui_message: `Were you dreaming of ${suggestion}? Let us take you there.`,
           results: [],
           state: 'SUGGESTING',
           suggestion: suggestion
         });
       }
 
-      // Ambiguity Management: If multiple results are found for a short query, we ask for clarification
-      if (results.length > 1 && query.length < 5 && !exactMatch) {
+      if (results.length > 1 && query.length < 5 && !exactMatch && !uiMessage) {
         const options = results.slice(0, 2).map(r => r.title).join(" or ");
-        uiMessage = `You've caught my interest with "${message}". Are you dreaming of ${options}, or perhaps exploring another horizon?`;
+        uiMessage = `You have beautiful taste. Are you dreaming of the magic of ${options}, or exploring another horizon?`;
         thoughtProcess = `Ambiguous intent detected for "${message}". Multiple matches found (${results.length}). Guiding user towards clarification between ${options}.`;
-      } else {
+      } else if (!uiMessage) {
         thoughtProcess = `User intent identified: ${message}. Searching manifest for elite matches. Found ${results.length} relevant experiences. Prioritizing ${topMatch.title}.`;
-        uiMessage = `I've found ${results.length} journeys for you. I think you'll find your heart in our ${topMatch.title} collection.`;
+        
+        const topTitles = results.slice(0, 3).map(r => r.title);
+        let formattedOptions = topMatch.title;
+        
+        if (topTitles.length === 2) {
+          formattedOptions = `${topTitles[0]} & ${topTitles[1]}`;
+        } else if (topTitles.length > 2) {
+          formattedOptions = `${topTitles.slice(0, -1).join(", ")} & ${topTitles[topTitles.length - 1]}`;
+        }
+
+        let activeIntentMessages = INTENT_MESSAGES;
+        try {
+          const { data, error } = await supabase.from('intent_messages').select('*');
+          if (!error && data) {
+            const map: Record<string, string[]> = {};
+            data.forEach((row: any) => {
+              map[row.intent_key] = row.messages;
+            });
+            activeIntentMessages = { ...INTENT_MESSAGES, ...map };
+          }
+        } catch (err) {
+          console.error("Failed to fetch intent messages from Supabase, falling back to local file.", err);
+        }
+
+        const messages = activeIntentMessages[intent] || activeIntentMessages.fallback;
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        uiMessage = randomMessage.replace('{options}', formattedOptions);
       }
-      
       const enrichedResults = results.map((r, idx) => {
-        const packageTerms = `${r.title} ${r.location} ${r.destination || ""}`.toLowerCase();
+        const categoriesStr = Array.isArray(r.category) ? r.category.join(" ") : "";
+        const tagsStr = Array.isArray(r.tags) ? r.tags.join(" ") : "";
+        const tripTypeStr = typeof r.trip_type === "string" ? r.trip_type : "";
+        const packageTerms = `${r.title} ${r.location} ${r.destination || ""} ${categoriesStr} ${tagsStr} ${tripTypeStr}`.toLowerCase();
         const searchTerms = query.split(' ').filter((t: string) => t.length > 2);
         
         let matchCount = 0;
@@ -261,26 +457,37 @@ export async function POST(req: NextRequest) {
       
       results = enrichedResults;
     } else if (validLoc) {
-      // If we found a valid location via Atlas or Search Engine but NO packages match
       const formattedDest = validLoc.charAt(0).toUpperCase() + validLoc.slice(1);
       thoughtProcess = `Intent "${message}" verified as ${formattedDest}. No direct manifest match found. Initiating Custom Design.`;
-      uiMessage = `A journey to ${formattedDest} should be as unique as your vision. Let’s design it together.`;
+      uiMessage = `A journey to ${formattedDest} is a beautiful dream. Although we don't have a package ready, let's co-create your custom escape together right now.`;
       state = "ESCALATING";
       toolCall = {
         name: "create_custom_inquiry",
         parameters: { destination: validLoc }
       };
+    } else if (intent !== 'fallback') {
+      const themeNames: Record<string, string> = {
+        romantic: "romantic escapes",
+        beach: "coastal retreats",
+        adventure: "thrilling adventures"
+      };
+      const themeName = themeNames[intent] || "specialized travel";
+      thoughtProcess = `Theme "${intent}" detected but no direct manifest match found. Initiating Custom Design.`;
+      uiMessage = `We love ${themeName}. While we don't have a pre-designed package for that right now, let's co-create your custom escape together right now.`;
+      state = "ESCALATING";
+      toolCall = {
+        name: "create_custom_inquiry",
+        parameters: { theme: intent }
+      };
     } else {
-      // No packages, no valid location found anywhere
       return NextResponse.json({
-        thoughtProcess: `Input "${message}" not identified as a valid destination or intent. Requesting clarification.`,
-        ui_message: `I couldn't quite identify a destination in your message. Could you clarify where your heart is leading you?`,
+        thought_process: `Input "${message}" not identified as a valid destination or intent. Requesting clarification.`,
+        ui_message: "Every great journey begins with a spark. Share a destination, a dream, or how you want to feel, and let us design it.",
         results: [],
         state: 'CLARIFYING'
       });
     }
 
-    // Standardized Sovereign Response Format (Prompt V2 Section VI)
     return NextResponse.json({
       thought_process: thoughtProcess,
       tool_call: toolCall,

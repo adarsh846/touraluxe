@@ -649,6 +649,7 @@ export default function AdminDashboard() {
           <EditorialManager 
             settings={settings} 
             isUpdating={isUpdatingSettings} 
+            addNotification={addNotification}
             onUpdate={async (key, value) => {
               const token = getToken();
               if (!token) return;
@@ -677,22 +678,22 @@ export default function AdminDashboard() {
       {selectedBooking && <BookingDetailModal booking={selectedBooking} isUpdating={isUpdating} onClose={() => setSelectedBooking(null)} onUpdate={handleUpdateBooking} />}
 
       {/* Dynamic Island Notification System */}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none w-full max-w-[400px]">
+      <div className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none w-full max-w-[350px] md:max-w-[450px] px-4">
         {notifications.map((n) => (
           <div 
             key={n.id} 
-            className={`pointer-events-auto flex items-center gap-3 px-6 py-2.5 rounded-full backdrop-blur-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-top-8 zoom-in-95 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-              n.type === "success" ? "bg-black/80 border-emerald-500/30 text-emerald-400" :
-              n.type === "error" ? "bg-black/80 border-rose-500/30 text-rose-400" :
-              "bg-black/80 border-white/10 text-white"
+            className={`pointer-events-auto flex items-start gap-3 px-5 py-3 rounded-2xl backdrop-blur-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-top-8 zoom-in-95 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+              n.type === "success" ? "bg-black/90 border-emerald-500/30 text-emerald-400" :
+              n.type === "error" ? "bg-black/90 border-rose-500/30 text-rose-400" :
+              "bg-black/90 border-white/10 text-white"
             }`}
           >
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${
               n.type === "success" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" :
               n.type === "error" ? "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]" :
               "bg-white/40"
             }`} />
-            <p className="text-[11px] font-black uppercase tracking-[0.15em] whitespace-nowrap">{n.message}</p>
+            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] leading-relaxed break-words">{n.message}</p>
           </div>
         ))}
       </div>

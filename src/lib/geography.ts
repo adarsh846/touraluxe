@@ -1,46 +1,4 @@
-/**
- * Sovereign Visual Atlas
- * A curated mapping of destinations to definitive, authentic tourism imagery.
- * These IDs are hand-picked for their "TouraLuxe" quality and accuracy.
- */
-export const VISUAL_ATLAS: Record<string, { image: string }> = {
-  // --- ASIA ---
-  "Vietnam": { 
-    image: "https://images.pexels.com/photos/1632791/pexels-photo-1632791.jpeg"
-  },
-  "Thailand": {
-    image: "https://images.pexels.com/photos/1007657/pexels-photo-1007657.jpeg"
-  },
-  "Japan": {
-    image: "https://images.pexels.com/photos/161401/pexels-photo-161401.jpeg"
-  },
-  "India": {
-    image: "https://images.pexels.com/photos/1603650/pexels-photo-1603650.jpeg"
-  },
-  "Bali": {
-    image: "https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg"
-  },
-  "Dubai": {
-    image: "https://images.pexels.com/photos/3763190/pexels-photo-3763190.jpeg",
-  },
-  "Maldives": {
-    image: "https://images.pexels.com/photos/1450360/pexels-photo-1450360.jpeg",
-  },
-  
-  // --- EUROPE ---
-  "France": {
-    image: "https://images.pexels.com/photos/532826/pexels-photo-532826.jpeg",
-  },
-  "Italy": {
-    image: "https://images.pexels.com/photos/1797161/pexels-photo-1797161.jpeg",
-  },
-  "Switzerland": {
-    image: "https://images.pexels.com/photos/3722818/pexels-photo-3722818.jpeg",
-  },
-  "Greece": {
-    image: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
-  },
-};
+
 
 export const MAJOR_DESTINATIONS = [
   // --- COUNTRIES ---
@@ -135,18 +93,39 @@ function getJaroWinklerSimilarity(s1: string, s2: string): number {
 }
 
 /**
+ * Helper to dynamically extract unique destination search names from active database packages.
+ */
+function getDynamicDestinations(packages?: any[]): string[] {
+  if (!packages || packages.length === 0) return [];
+  const list = new Set<string>();
+  packages.forEach(pkg => {
+    if (pkg.title) list.add(pkg.title.trim());
+    if (pkg.destination) list.add(pkg.destination.trim());
+    if (pkg.location) {
+      const parts = pkg.location.split(',').map((p: string) => p.trim());
+      parts.forEach((p: string) => {
+        if (p.length > 2) list.add(p);
+      });
+    }
+  });
+  return Array.from(list);
+}
+
+/**
  * Validates if a text input matches a known destination EXACTLY.
  */
-export function validateLocation(input: string): string | null {
+export function validateLocation(input: string, packages?: any[]): string | null {
   const query = input.trim().toLowerCase();
   if (query.length < 2) return null;
 
+  const allDestinations = [...getDynamicDestinations(packages), ...MAJOR_DESTINATIONS];
+
   // Direct Match (Strict)
-  const directMatch = MAJOR_DESTINATIONS.find(d => d.toLowerCase() === query);
+  const directMatch = allDestinations.find(d => d.toLowerCase() === query);
   if (directMatch) return directMatch;
 
   // Word-boundary Match (e.g., "Paris trip" contains "Paris")
-  const partialMatch = MAJOR_DESTINATIONS.find(d => {
+  const partialMatch = allDestinations.find(d => {
     const dest = d.toLowerCase();
     const words = query.split(/\s+/);
     return words.includes(dest);
@@ -157,13 +136,33 @@ export function validateLocation(input: string): string | null {
   return null;
 }
 
+const DESTINATION_SYNONYMS: Record<string, string> = {
+  "burma": "Myanmar",
+  "holland": "Netherlands",
+  "america": "United States",
+  "usa": "United States",
+  "uk": "United Kingdom",
+  "uae": "United Arab Emirates",
+  "dubai": "United Arab Emirates",
+  "czechia": "Czech Republic",
+  "ceylon": "Sri Lanka",
+  "siam": "Thailand",
+  "persia": "Iran"
+};
+
 /**
  * Finds the closest matching destination using a Hybrid Jaro-Winkler & Tokenized approach.
  */
-export function getSuggestion(input: string): string | null {
+export function getSuggestion(input: string, packages?: any[]): string | null {
   const query = input.trim().toLowerCase();
+  
+  // Check synonyms first (supports short queries like 'uk' or 'usa')
+  const synonymMatch = DESTINATION_SYNONYMS[query];
+  if (synonymMatch) return synonymMatch;
+
   if (query.length < 3) return null;
 
+  const allDestinations = [...getDynamicDestinations(packages), ...MAJOR_DESTINATIONS];
   let bestMatch: string | null = null;
   
   // Dynamic threshold: shorter words need slightly more leeway (0.80) 
@@ -173,7 +172,38 @@ export function getSuggestion(input: string): string | null {
   // Tokenize query for multi-word matching
   const queryTokens = query.split(/\s+/);
 
-  for (const dest of MAJOR_DESTINATIONS) {
+  // If the query is multi-word, try matching individual high-value tokens to identify misspelled destinations
+  if (queryTokens.length > 1) {
+    const stopWords = new Set(["a", "an", "the", "to", "in", "on", "at", "for", "with", "escape", "scape", "trip", "travel", "vacation", "holiday", "package", "getaway"]);
+    const interestingTokens = queryTokens.filter(t => t.length >= 3 && !stopWords.has(t));
+    
+    for (const token of interestingTokens) {
+      let tokenBestMatch: string | null = null;
+      let tokenMaxScore = token.length <= 6 ? 0.78 : 0.83;
+
+      for (const dest of allDestinations) {
+        const d = dest.toLowerCase();
+        
+        // Direct match with high confidence
+        if (d === token || d.startsWith(token)) {
+          return dest;
+        }
+
+        // Jaro-Winkler check on individual token
+        const score = getJaroWinklerSimilarity(token, d);
+        if (score > tokenMaxScore) {
+          tokenMaxScore = score;
+          tokenBestMatch = dest;
+        }
+      }
+      
+      if (tokenBestMatch) {
+        return tokenBestMatch;
+      }
+    }
+  }
+
+  for (const dest of allDestinations) {
     const d = dest.toLowerCase();
     
     // 1. Exact Substring/Prefix Match (High Confidence)

@@ -2,22 +2,54 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, GripVertical, Upload, ImageIcon, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface EditorialManagerProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<void>;
   isUpdating: boolean;
+  addNotification?: (message: string, type: "success" | "error" | "info") => void;
 }
 
-export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialManagerProps) {
+export function EditorialManager({ settings, onUpdate, isUpdating, addNotification }: EditorialManagerProps) {
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
-  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery">("hero");
+  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery" | "intelligence">("hero");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useState<HTMLInputElement | null>(null);
+
+  // Discovery Intelligence State
+  const [synonyms, setSynonyms] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingIntelligence, setLoadingIntelligence] = useState(false);
+  const [newWord, setNewWord] = useState("");
+  const [newSynonyms, setNewSynonyms] = useState("");
+  const [newIntentKey, setNewIntentKey] = useState("");
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  const fetchIntelligence = async () => {
+    setLoadingIntelligence(true);
+    try {
+      const [synRes, msgRes] = await Promise.all([
+        supabase.from("search_synonyms").select("*").order("word"),
+        supabase.from("intent_messages").select("*").order("intent_key")
+      ]);
+      if (synRes.data) setSynonyms(synRes.data);
+      if (msgRes.data) setMessages(msgRes.data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+    setLoadingIntelligence(false);
+  };
+
+  useEffect(() => {
+    if (activeCategory === "intelligence") {
+      fetchIntelligence();
+    }
+  }, [activeCategory]);
 
   const handleChange = (key: string, value: string) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
@@ -63,6 +95,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
     { id: "cta", label: "Final CTA" },
     { id: "contact", label: "Contact & Footer" },
     { id: "discovery", label: "Discovery Atmosphere" },
+    { id: "intelligence", label: "Discovery Intelligence" },
   ];
 
   // Helper to parse JSON safely
@@ -455,6 +488,203 @@ export function EditorialManager({ settings, onUpdate, isUpdating }: EditorialMa
                   hint="Direct URL for external asset hosting."
                 />
               </div>
+            </div>
+          )}
+
+          {activeCategory === "intelligence" && (
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <SectionHeader title="Discovery Intelligence" description="Manage synonyms and intent recommendations." />
+              
+              {loadingIntelligence ? (
+                <div className="flex items-center justify-center p-12">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+                  
+                  {/* Section 1: Synonyms */}
+                  <div className="p-6 md:p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.04]">
+                    <h2 className="text-xl font-bold text-white mb-2 italic">Synonym Mapping</h2>
+                    <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold mb-6">Expand search vocabulary</p>
+
+                    {/* Form */}
+                    <div className="space-y-4 mb-8">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block mb-2">Target Word</label>
+                        <input 
+                          type="text" 
+                          value={newWord}
+                          onChange={(e) => setNewWord(e.target.value)}
+                          placeholder="e.g. sea"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block mb-2">Synonyms (Comma separated)</label>
+                        <input 
+                          type="text" 
+                          value={newSynonyms}
+                          onChange={(e) => setNewSynonyms(e.target.value)}
+                          placeholder="e.g. beach, ocean, coastal"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          if (!newWord.trim() || !newSynonyms.trim()) return;
+                          const synonymArray = newSynonyms.split(",").map(s => s.trim()).filter(s => s.length > 0);
+                          const { error } = await supabase
+                            .from("search_synonyms")
+                            .insert([{ word: newWord.toLowerCase().trim(), synonyms: synonymArray }]);
+                          if (!error) {
+                            setNewWord("");
+                            setNewSynonyms("");
+                            fetchIntelligence();
+                          } else {
+                            if (addNotification) {
+                              addNotification(error.message, "error");
+                            } else {
+                              alert(error.message);
+                            }
+                          }
+                        }}
+                        className="w-full py-4 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] transition-all"
+                      >
+                        Add Mapping
+                      </button>
+                    </div>
+
+                    {/* List */}
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                      {synonyms.map(row => (
+                        <div key={row.id} className="p-4 rounded-xl bg-black/20 border border-white/[0.03] flex justify-between items-center group hover:border-white/10 transition-all">
+                          <div>
+                            <p className="text-sm font-bold text-white">{row.word}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {row.synonyms.map((s: string) => (
+                                <span key={s} className="text-[9px] uppercase font-bold tracking-wider text-white/40 bg-white/5 px-1.5 py-0.5 rounded">{s}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={async () => {
+                              if (!confirm("Delete this synonym mapping?")) return;
+                              const { error } = await supabase.from("search_synonyms").delete().eq("id", row.id);
+                              if (!error) fetchIntelligence();
+                            }}
+                            className="p-2 text-[#48484a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section 2: Intent Messages */}
+                  <div className="p-6 md:p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.04]">
+                    <h2 className="text-xl font-bold text-white mb-2 italic">Intent Recommendations</h2>
+                    <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold mb-6">Controlled dynamic responses</p>
+
+                    {/* Form */}
+                    <div className="space-y-4 mb-8">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block mb-2">Intent Key</label>
+                        <input 
+                          type="text" 
+                          value={newIntentKey}
+                          onChange={(e) => setNewIntentKey(e.target.value)}
+                          placeholder="e.g. romantic"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block mb-2">Poetic Template (Use {'{options}'} for dynamic insert)</label>
+                        <textarea 
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="e.g. Escape the ordinary and celebrate your love at {options}."
+                          className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
+                        />
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          if (!newIntentKey.trim() || !newMessage.trim()) return;
+                          const existing = messages.find(m => m.intent_key === newIntentKey.trim().toLowerCase());
+                          if (existing) {
+                            const { error } = await supabase
+                              .from("intent_messages")
+                              .update({ messages: [...existing.messages, newMessage.trim()] })
+                              .eq("id", existing.id);
+                            if (!error) {
+                              setNewMessage("");
+                              fetchIntelligence();
+                            } else {
+                              if (addNotification) {
+                                addNotification(error.message, "error");
+                              } else {
+                                alert(error.message);
+                              }
+                            }
+                          } else {
+                            const { error } = await supabase
+                              .from("intent_messages")
+                              .insert([{ intent_key: newIntentKey.trim().toLowerCase(), messages: [newMessage.trim()] }]);
+                            if (!error) {
+                              setNewIntentKey("");
+                              setNewMessage("");
+                              fetchIntelligence();
+                            } else {
+                              if (addNotification) {
+                                addNotification(error.message, "error");
+                              } else {
+                                alert(error.message);
+                              }
+                            }
+                          }
+                        }}
+                        className="w-full py-4 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] transition-all"
+                      >
+                        Add Template
+                      </button>
+                    </div>
+
+                    {/* List */}
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                      {messages.map(row => (
+                        <div key={row.id} className="p-4 rounded-xl bg-black/20 border border-white/[0.03] hover:border-white/10 transition-all">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">{row.intent_key}</span>
+                          </div>
+                          <div className="space-y-2">
+                            {row.messages.map((msg: string, idx: number) => (
+                              <div key={idx} className="flex justify-between items-start gap-2 text-[12px] text-white/70 bg-white/5 p-2 rounded-lg group">
+                                <p className="leading-relaxed flex-1">"{msg}"</p>
+                                <button 
+                                  onClick={async () => {
+                                    const updatedMessages = row.messages.filter((_: string, i: number) => i !== idx);
+                                    if (updatedMessages.length === 0) {
+                                      if (!confirm("This will delete the entire intent category. Proceed?")) return;
+                                      await supabase.from("intent_messages").delete().eq("id", row.id);
+                                    } else {
+                                      await supabase.from("intent_messages").update({ messages: updatedMessages }).eq("id", row.id);
+                                    }
+                                    fetchIntelligence();
+                                  }}
+                                  className="text-[#48484a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              )}
             </div>
           )}
         </div>

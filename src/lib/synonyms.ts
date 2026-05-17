@@ -1,0 +1,17 @@
+export const SYNONYM_MAP: Record<string, string[]> = {
+  sea: ["beach", "ocean", "coastal", "water"],
+  beach: ["sea", "ocean", "coastal", "sand"],
+  mountain: ["hill", "trek", "peak", "summit", "alpine"],
+  hill: ["mountain", "trek", "peak"],
+  trek: ["mountain", "hill", "hike", "hiking"],
+  hike: ["trek", "walk", "mountain"],
+  cheap: ["budget", "saver", "affordable"],
+  budget: ["cheap", "saver", "affordable"],
+  luxury: ["elite", "premium", "exclusive", "rich"],
+  romantic: ["honeymoon", "couple", "love"],
+  honeymoon: ["romantic", "couple"],
+  wildlife: ["safari", "animals", "jungle"],
+  safari: ["wildlife", "animals", "jungle"],
+  culture: ["heritage", "tradition", "history", "cultural"],
+  heritage: ["culture", "tradition", "history"],
+};

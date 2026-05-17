@@ -159,35 +159,46 @@ export function Services() {
           <p className="text-lg md:text-xl text-[#86868b] tracking-wide opacity-0 whitespace-pre-wrap">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div 
+          className="flex flex-row overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-5 pt-10 pb-10 px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-8 lg:pb-10 touch-pan-y"
+          style={{ touchAction: 'pan-y' }}
+        >
           {SERVICES.map((service, index) => (
-            <div key={service.title} ref={(el) => { cardsRef.current[index] = el; }} className="opacity-0 h-full" onClick={() => openModal('SERVICES', service)}>
+            <div 
+              key={service.title} 
+              ref={(el) => { cardsRef.current[index] = el; }} 
+              className="opacity-0 shrink-0 w-[80vw] sm:w-[45vw] lg:w-auto h-auto snap-center snap-always" 
+              onClick={() => openModal('SERVICES', service)}
+            >
               <Magnetic intensity={0.08} className="block w-full h-full">
-                <div className="group relative h-full aspect-[4/5] rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]">
+                <div className="group relative h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 hover:border-amber-400/80 transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_0_40px_rgba(251,191,36,0.08)]">
                   {/* Background Image Container */}
-                  <div className="absolute inset-0 z-0">
+                  <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
                     <Image 
                       src={service.image} 
                       alt={service.title} 
                       fill 
-                      className="object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-[1.1]"
+                      className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-[1.04]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent transition-opacity duration-700" />
                   </div>
 
                   {/* Content Overlay */}
                   <div className="absolute inset-0 z-10 p-8 flex flex-col justify-between">
-                    <div className="text-white/40 group-hover:text-white/90 transition-all duration-500 transform group-hover:translate-y-[-4px] scale-110 origin-top-left">
+                    <div className="text-white/40 group-hover:text-amber-400/90 transition-all duration-500 transform group-hover:translate-y-[-4px] scale-110 origin-top-left">
                       {service.icon}
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex items-end justify-between">
                         <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 group-hover:text-white/60 transition-colors">
+                          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 group-hover:text-white/60 transition-colors">
                             Service Division
                           </p>
-                          <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-white leading-none italic drop-shadow-lg">
+                          <h3 
+                            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                            className="text-2xl md:text-3xl font-light tracking-tight text-white leading-none italic drop-shadow-lg"
+                          >
                             {service.title}
                           </h3>
                         </div>
@@ -204,7 +215,7 @@ export function Services() {
                   </div>
                   
                   {/* Kinetic Bottom Line */}
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/30 transition-all duration-1000" />
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-amber-400/40 transition-all duration-1000" />
                 </div>
               </Magnetic>
             </div>

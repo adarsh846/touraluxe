@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { BADGE_CONFIG } from "@/lib/badges";
+import { Sparkles } from "lucide-react";
 
 interface PackageBadgesProps {
   pkg: any;
@@ -16,40 +17,39 @@ interface PackageBadgesProps {
 }
 
 export function PackageBadges({ pkg, pricing, className, size = "md", matchData }: PackageBadgesProps) {
-  const badge = pkg.badge ? BADGE_CONFIG[pkg.badge] : null;
-  const BadgeIcon = badge?.icon;
-
+  const badgeConfig = pkg.badge ? BADGE_CONFIG[pkg.badge] : null;
+  const BadgeIcon = badgeConfig?.icon || Sparkles;
   const isSmall = size === "sm";
 
   return (
-    <div className={cn("absolute top-4 left-4 right-4 flex items-start justify-between pointer-events-none z-10", className)}>
-      {badge && BadgeIcon ? (
-        <div className={cn(`rounded-full border flex items-center backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-top-4 duration-700`, badge.bg, isSmall ? "px-2.5 py-1 gap-1" : "px-3 py-1.5 gap-1.5")}>
-          <BadgeIcon size={isSmall ? 10 : 12} className={badge.color} />
-          <span className={cn("font-black uppercase tracking-widest", badge.color, isSmall ? "text-[8px]" : "text-[9px]")}>
+    <div className={cn("absolute top-3 left-3 right-3 md:top-4 md:left-4 md:right-4 flex items-start justify-between pointer-events-none z-10", className)}>
+      {pkg.badge ? (
+        <div className={cn(`rounded-full border flex items-center justify-center backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-top-4 duration-700`, badgeConfig?.bg || "bg-white/5 border-white/10", "px-2 py-0.5 md:px-3 md:py-1.5 gap-1 md:gap-1.5")}>
+          <BadgeIcon size={8} className={cn(badgeConfig?.color || "text-white/80", "md:w-[12px] md:h-[12px]")} />
+          <span className={cn("font-black uppercase tracking-widest text-center", badgeConfig?.color || "text-white/80", "text-[7px] md:text-[9px]")}>
             {pkg.badge}
           </span>
         </div>
       ) : <div />}
       
-      <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col items-end gap-1.5 md:gap-2">
         {matchData && (
           <div className={cn(
-            "rounded-full border backdrop-blur-md flex items-center shadow-xl animate-in fade-in slide-in-from-right-4 duration-700",
-            isSmall ? "px-2.5 py-1 gap-1" : "px-3 py-1.5 gap-1.5",
+            "rounded-full border backdrop-blur-md flex items-center justify-center shadow-xl animate-in fade-in slide-in-from-right-4 duration-700",
+            "px-2 py-0.5 md:px-3 md:py-1.5 gap-1 md:gap-1.5",
             matchData.authority === 'gold' ? "bg-amber-400/10 border-amber-400/30 text-amber-100" :
             matchData.authority === 'silver' ? "bg-white/10 border-white/30 text-white" :
             "bg-white/5 border-white/10 text-white/70"
           )}>
-            <span className={cn("font-black uppercase tracking-widest", isSmall ? "text-[8px]" : "text-[9px]")}>
+            <span className={cn("font-black uppercase tracking-widest text-center", "text-[7px] md:text-[9px]")}>
               {matchData.label}
             </span>
           </div>
         )}
         
         {pricing?.hasSavings && (
-          <div className={cn(`rounded-full bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 delay-150`, isSmall ? "px-2.5 py-1" : "px-3 py-1.5")}>
-            <span className={cn("font-black text-emerald-400", isSmall ? "text-[9px]" : "text-[10px]")}>
+          <div className={cn(`rounded-full bg-emerald-600 border border-emerald-500 shadow-xl animate-in fade-in slide-in-from-right-4 duration-700 delay-150 flex items-center justify-center`, "w-6 h-6 md:w-8 md:h-8")}>
+            <span className={cn("font-black text-white text-center", "text-[8px] md:text-[10px]")}>
               -{pricing.discountPercent}%
             </span>
           </div>

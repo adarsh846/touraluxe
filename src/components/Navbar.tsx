@@ -225,9 +225,9 @@ export function Navbar() {
               <Magnetic>
                 <button
                   onClick={() => { openBooking(undefined, "NAVBAR_MOBILE_CTA"); setIsMobileMenuOpen(false); }}
-                  className="inline-flex rounded-full bg-foreground px-7 py-3.5 text-sm font-medium text-background transition-transform hover:scale-105"
+                  className="inline-flex rounded-full bg-foreground px-7 py-3.5 text-[11px] font-bold uppercase tracking-wider text-background transition-transform hover:scale-105"
                 >
-                  Curate Your Trip
+                  Start Journey
                 </button>
               </Magnetic>
             </div>

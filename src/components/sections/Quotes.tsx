@@ -121,7 +121,7 @@ export function Quotes() {
       setCurrentIndex((prev) => (prev + 1) % QUOTES.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [QUOTES.length]);
 
   return (
     <section 
@@ -172,16 +172,19 @@ export function Quotes() {
 
       {/* Main Quote Content */}
       <div className="max-w-[800px] mx-auto text-center relative z-10 px-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-14 text-8xl text-[#1d1d1f]/20 font-serif select-none pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-16 text-9xl text-white/5 font-serif select-none pointer-events-none">
            &quot;
         </div>
         
         <p 
           key={`quote-${currentIndex}`}
           ref={textRef}
-          className="text-3xl md:text-6xl font-medium tracking-tight leading-[1.1] will-change-transform text-[#1d1d1f] whitespace-pre-wrap"
+          style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          className="text-4xl md:text-7xl font-light italic tracking-tight leading-[1.1] will-change-transform text-black whitespace-pre-wrap"
         >
-          {QUOTES[currentIndex]?.quote}
+          {typeof QUOTES[currentIndex] === 'string' 
+            ? QUOTES[currentIndex] 
+            : QUOTES[currentIndex]?.quote || "The world is waiting. It's time to explore."}
         </p>
 
         {/* Minimal Progress Indicators */}
@@ -196,8 +199,8 @@ export function Quotes() {
                 <div 
                   className={`h-px transition-all duration-500 ease-out ${
                     idx === currentIndex 
-                      ? "w-8 bg-[#1d1d1f]" 
-                      : "w-4 bg-[#1d1d1f]/20 group-hover:bg-[#1d1d1f]/50 group-hover:w-6"
+                      ? "w-8 bg-black" 
+                      : "w-4 bg-black/20 group-hover:bg-black/50 group-hover:w-6"
                   }`}
                 />
               </button>

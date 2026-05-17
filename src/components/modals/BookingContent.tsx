@@ -32,7 +32,7 @@ import { Magnetic } from "@/components/Magnetic";
 import { PackageBadges } from "@/components/ui/PackageBadges";
 import gsap from "gsap";
 import { usePricing } from "@/hooks/usePricing";
-import { MAJOR_DESTINATIONS, VISUAL_ATLAS } from "@/lib/geography";
+import { MAJOR_DESTINATIONS } from "@/lib/geography";
 
 // --- DOMAIN CONSTANTS ---
 const MS_PER_DAY = 86400000;
@@ -120,7 +120,7 @@ export const BookingContent = memo(function BookingContent({
   const { setError, intent } = useBooking();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
-  const hasPrefilled = useRef(false);
+  const prevIntent = useRef<string | undefined>(undefined);
 
   // Flow State
   const [step, setStep] = useState(1);
@@ -328,9 +328,16 @@ export const BookingContent = memo(function BookingContent({
 
   // Sovereign Portal Intent Synchronization
   useEffect(() => {
-    if (intent && discoveryPhase === 1 && step === 1 && !hasPrefilled.current) {
-      setDestination(intent);
-      hasPrefilled.current = true;
+    if (intent && discoveryPhase === 1 && step === 1 && intent !== prevIntent.current) {
+      let cleanedDestination = intent;
+      const bracketIndex = intent.indexOf('(');
+      if (bracketIndex !== -1) {
+        cleanedDestination = intent.substring(0, bracketIndex).trim();
+      }
+      
+      const finalDest = cleanedDestination || "Luxury";
+      setDestination(finalDest);
+      prevIntent.current = intent;
       if (manifest.length > 0) {
         askSovereign(intent, manifest);
       }
@@ -876,8 +883,8 @@ export const BookingContent = memo(function BookingContent({
                   className={cn(
                     "w-full h-full flex flex-col transition-all duration-[1.2s] cubic-bezier(0.23,1,0.32,1)",
                     searchResults.length > 0 && destination.length > 0
-                      ? "pt-[clamp(3.5rem,10vh,5rem)]"
-                      : "pt-[clamp(5rem,12vh,7rem)]",
+                      ? "pt-[clamp(5rem,10vh,6rem)]"
+                      : "pt-[clamp(6.5rem,12vh,8rem)]",
                   )}
                 >
                   <div
@@ -931,7 +938,7 @@ export const BookingContent = memo(function BookingContent({
                           }
                           placeholder="Where should your journey begin?"
                           autoComplete="off"
-                          className="w-full py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-2xl md:rounded-[40px] text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
+                          className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                           autoFocus
                         />
                         {destination.length > 0 && (
@@ -961,15 +968,10 @@ export const BookingContent = memo(function BookingContent({
                     <div className="flex items-center justify-center gap-6 w-full">
                       {sovereignResponse && !isThinking && (
                         <div className="flex flex-col items-center gap-6 animate-in fade-in duration-700 w-full justify-center text-center">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-1.5 h-1.5 rounded-full animate-pulse shrink-0",
-                              sovereignState === 'ESCALATING' ? "bg-amber-400" : 
-                              sovereignState === 'CLARIFYING' ? "bg-rose-400" : 
-                              sovereignState === 'SUGGESTING' ? "bg-blue-400" : "bg-emerald-400"
-                            )} />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[10px] md:text-xs font-medium tracking-wide text-white/50 md:text-white/90 leading-relaxed block max-w-[280px] md:max-w-none">
+                          <div className="flex flex-col items-center gap-2">
+                            <Sparkles size={12} className="text-amber-400 shrink-0 animate-pulse" />
+                            <div className="max-w-[280px] md:max-w-none">
+                              <span className="text-[10px] md:text-xs font-medium tracking-wide text-white/50 md:text-white/90 leading-relaxed block text-center">
                                 {sovereignState === 'SUGGESTING' && (sovereignResponse as any).suggestion ? (
                                   <>
                                     I couldn't find an exact match for "{destination}". Did you mean{" "}
@@ -1056,7 +1058,7 @@ export const BookingContent = memo(function BookingContent({
                           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white animate-pulse">
                             {sovereignResponse?.state === 'CURATING' ? "Curating Excellence" : 
                              sovereignResponse?.state === 'ESCALATING' ? "Designing Bespoke" : 
-                             "Consulting Sovereign Intelligence"}
+                             "Mapping your desires..."}
                           </span>
                           
                           {/* Reasoning Stream (The Intelligence) */}
@@ -1088,9 +1090,14 @@ export const BookingContent = memo(function BookingContent({
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0"
+                        className={cn(
+                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0",
+                          sovereignResponse.results?.length === 1 ? "justify-center" : "justify-start"
+                        )}
                       >
-                        <div className="w-1 md:w-4 flex-shrink-0" />
+                        {(sovereignResponse.results?.length ?? 0) > 1 && (
+                          <div className="w-1 md:w-4 flex-shrink-0" />
+                        )}
                         
                         {sovereignResponse.results.map((pkg, idx) => {
                           const pkgPricing = computePrice(pkg, 1, 0, 0);
@@ -1116,9 +1123,9 @@ export const BookingContent = memo(function BookingContent({
                                   onClick={() => handlePackageSelect(pkg)}
                                     className={cn(
                                       "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02]",
-                                      (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_20px_80px_-10px_rgba(251,191,36,0.25)]" :
-                                      (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_20px_60px_-10px_rgba(255,255,255,0.1)]" :
-                                      "border-white/[0.03] hover:border-white/10 hover:shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)]"
+                                      (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_10px_40px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_15px_50px_-5px_rgba(251,191,36,0.3)]" :
+                                      (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_10px_30px_-5px_rgba(255,255,255,0.05)] hover:shadow-[0_15px_40px_-5px_rgba(255,255,255,0.1)]" :
+                                      "border-white/[0.03] hover:border-white/10 hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)]"
                                     )}
                                   >
                                     <div className="absolute inset-0">
@@ -1129,6 +1136,13 @@ export const BookingContent = memo(function BookingContent({
                                       />
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
+                                    
+                                    {/* Centered Arrow on Hover */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-700 pointer-events-none">
+                                      <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center transform scale-90 group-hover/card:scale-100 transition-all duration-500 text-white shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                        <ArrowRight size={24} strokeWidth={2.5} />
+                                      </div>
+                                    </div>
                                     
                                     <PackageBadges 
                                       pkg={pkg} 
@@ -1148,15 +1162,18 @@ export const BookingContent = memo(function BookingContent({
                                               {pkg.title}
                                             </h3>
                                           </div>
-                                          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-500 flex-shrink-0 hover:bg-white hover:text-black">
-                                            <ArrowRight size={18} strokeWidth={2.5} className="text-current transition-colors" />
-                                          </div>
                                         </div>
 
                                         <div className="pt-4 border-t border-white/10 flex items-end justify-between gap-4">
                                           <div className="space-y-1">
-                                            <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg">
-                                              {pkg.duration}
+                                            <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg leading-tight">
+                                              {pkg.duration.includes('Nights') ? (
+                                                <>
+                                                  <span className="whitespace-nowrap">{pkg.duration.split('Nights')[0].trim()} Nights</span>
+                                                  <br />
+                                                  <span className="whitespace-nowrap">{pkg.duration.split('Nights')[1].trim()}</span>
+                                                </>
+                                              ) : pkg.duration}
                                             </p>
                                             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block drop-shadow-md">
                                               Duration
@@ -1187,7 +1204,9 @@ export const BookingContent = memo(function BookingContent({
 
 
                         {/* Visual Spacer for Horizontal End */}
-                        <div className="flex-shrink-0 w-8 md:w-32 h-1" />
+                        {(sovereignResponse.results?.length ?? 0) > 1 && (
+                          <div className="flex-shrink-0 w-8 md:w-32 h-1" />
+                        )}
                       </motion.div>
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">

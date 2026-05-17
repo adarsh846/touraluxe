@@ -34,7 +34,7 @@ export function useDiscovery<T extends { title: string; location: string }>() {
     initialize();
   }, []);
 
-  const search = useCallback((query: string) => {
+  const search = useCallback(async (query: string) => {
     if (!discoveryService.current) return;
     
     const cleanQuery = query.trim();
@@ -47,7 +47,7 @@ export function useDiscovery<T extends { title: string; location: string }>() {
     
     // The Sovereign Engine is instant (client-side), 
     // but we simulate a premium "Consulting" delay
-    const results = discoveryService.current.search(cleanQuery);
+    const results = await discoveryService.current.search(cleanQuery);
     setSearchResults(results);
     
     setTimeout(() => setIsSearching(false), 250);
