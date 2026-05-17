@@ -245,7 +245,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const removeGalleryImage = (index: number) => {
     setForm((prev) => {
       setIsDirty(true);
-      const gallery = (prev.gallery || []).filter((_, i) => i !== index);
+      const gallery = (prev.gallery || []).filter((_: any, i: number) => i !== index);
       return { ...prev, gallery };
     });
   };
