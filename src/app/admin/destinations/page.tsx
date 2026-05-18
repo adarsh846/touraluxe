@@ -701,9 +701,9 @@ function VisualManager({ query, currentImage, onSelect }: { query: string; curre
             <footer className="p-6 md:px-8 md:py-4 border-t border-white/5 bg-black/20 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
               <div className="flex gap-6">
                 <span>API: Pexels Photographic</span>
-                <span>Tier: Sovereign Discovery</span>
+                <span>Tier: Premium Discovery</span>
               </div>
-              <span className="text-blue-500/40 italic">TouraLuxe Sovereign Visual Intelligence Engine</span>
+              <span className="text-blue-500/40 italic">TouraLuxe Ultimate Visual Intelligence Engine</span>
             </footer>
           </div>
         </div>

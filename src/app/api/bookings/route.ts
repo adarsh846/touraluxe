@@ -57,7 +57,8 @@ export async function POST(req: Request) {
       customerName,
       customerEmail,
       customerPhone,
-      bookingSource 
+      bookingSource,
+      userId
     } = body;
 
     // 1. Validate the data
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
           special_requests: specialRequests,
           total_amount: totalAmount,
           booking_source: bookingSource || "GENERAL_INQUIRY",
+          user_id: userId || null,
           status: "pending",
         },
       ])

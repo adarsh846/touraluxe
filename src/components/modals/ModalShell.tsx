@@ -15,6 +15,7 @@ import { BookingContent } from "@/components/modals/BookingContent";
 import { AboutContent } from "@/components/modals/AboutContent";
 import { CtaContent } from "@/components/modals/CtaContent";
 import { PackageContent } from "@/components/modals/PackageContent";
+import { PortalContent } from "@/components/modals/PortalContent";
 
 export function ModalShell() {
   const { isOpen, view, data, source, openModal, closeModal, isClosing, startClosing, goBack, canGoBack, history, error, errorTrigger, setError } = useBooking();
@@ -90,7 +91,7 @@ export function ModalShell() {
   useEffect(() => {
     // Determine transition direction based on history change
     if (view && view !== activeView) {
-      const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1 };
+      const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1, 'PORTAL': 2 };
       const newDepth = viewDepth[view as string] || 0;
       const oldDepth = viewDepth[activeView as string] || 0;
       
@@ -482,6 +483,18 @@ export function ModalShell() {
                   : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
           >
             <PackageContent data={packageDetailData} isActive={activeView === 'PACKAGE'} source={activeSource} onScroll={handleScroll} openModal={openModal} />
+          </div>
+
+          {/* Traveler Portal Layer */}
+          <div 
+            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+              ${activeView === 'PORTAL' 
+                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
+                : direction === 'forward' 
+                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
+                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
+          >
+            <PortalContent isActive={activeView === 'PORTAL'} onScroll={handleScroll} />
           </div>
         </div>
 

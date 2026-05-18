@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
+import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { useSovereign } from "@/hooks/useSovereign";
@@ -118,6 +119,7 @@ export const BookingContent = memo(function BookingContent({
   onStepChange?: (step: number) => void;
 }) {
   const { setError, intent } = useBooking();
+  const { user, profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const prevIntent = useRef<string | undefined>(undefined);
@@ -179,6 +181,36 @@ export const BookingContent = memo(function BookingContent({
   const [taxRate, setTaxRate] = useState(0);
   const [visualManifest, setVisualManifest] = useState<Record<string, string>>({});
   const curationScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-fill traveler information from active Supabase profile
+  useEffect(() => {
+    if (user) {
+      if (profile?.full_name) setCustomerName(profile.full_name);
+      if (user.email) setCustomerEmail(user.email);
+      if (profile?.phone) {
+        const rawPhone = profile.phone;
+        const codeMatch = rawPhone.match(/^\+(\d+)\s*/);
+        if (codeMatch) {
+          const matchedCode = `+${codeMatch[1]}`;
+          const cleanPhone = rawPhone.replace(matchedCode, "").trim();
+          setCustomerPhone(cleanPhone);
+          const countries = [
+            { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
+            { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
+            { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
+            { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
+            { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
+            { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 }
+          ];
+          const country = countries.find(c => c.code === matchedCode);
+          if (country) setSelectedCountry(country);
+        } else {
+          setCustomerPhone(rawPhone);
+        }
+      }
+      if (profile?.departure_city) setDepartureCity(profile.departure_city);
+    }
+  }, [user, profile]);
   const guestScrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -756,6 +788,7 @@ export const BookingContent = memo(function BookingContent({
           specialRequests: `Dates: ${startDate} to ${endDate} | Departure Hub: ${departureCity} | Flights: ${includeFlights ? 'Yes' : 'No'} | Notes: ${notes}`,
           bookingSource: bookingSource || "SOVEREIGN_ENGINE",
           totalAmount: Math.round(pricing.finalTotal),
+          userId: user?.id || null, // Traveler lounge integration
           metadata: { departureCity, includeFlights } // Optional: For future-proof API handling
         }),
       });

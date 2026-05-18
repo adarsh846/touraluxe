@@ -9,6 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 import { usePathname } from "next/navigation";
 import { BookingProvider } from "./BookingProvider";
+import { AuthProvider } from "./AuthProvider";
 import { ModalShell } from "./modals/ModalShell";
 import { WhatsAppButton } from "./WhatsAppButton";
 
@@ -66,10 +67,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <BookingProvider>
-      {children}
-      <ModalShell />
-      {!isAdmin && whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
-    </BookingProvider>
+    <AuthProvider>
+      <BookingProvider>
+        {children}
+        <ModalShell />
+        {!isAdmin && whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
+      </BookingProvider>
+    </AuthProvider>
   );
 }

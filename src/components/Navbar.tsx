@@ -7,6 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 import { useBooking } from "./BookingProvider";
+import { useAuth } from "./AuthProvider";
 
 import { useRouter } from "next/navigation";
 
@@ -20,6 +21,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const router = useRouter();
   const { openBooking, openModal } = useBooking();
+  const { user, profile } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -116,7 +118,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-9">
+          <nav className="hidden md:flex items-center gap-9 absolute left-1/2 -translate-x-1/2">
             {NAV_LINKS.map((link) => (
               <Magnetic key={link.name}>
                 {link.href.startsWith("/") ? (
@@ -138,15 +140,30 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* Desktop Action Button */}
-          <div className="hidden md:flex items-center">
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center gap-4">
+            <Magnetic>
+              <button
+                onClick={() => openModal('PORTAL', undefined, "NAVBAR_PORTAL")}
+                className="relative rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] px-5 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-none"
+              >
+                {user ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {profile?.full_name ? profile.full_name.split(" ")[0] : "Lounge"}
+                  </>
+                ) : (
+                  "Lounge"
+                )}
+              </button>
+            </Magnetic>
             <Magnetic>
               <div className="relative group">
                 {/* Matching shadow for action button */}
                 <div className="absolute inset-0 bg-black/60 blur-xl rounded-full translate-y-2 scale-90 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <button
                   onClick={() => openBooking(undefined, "NAVBAR_CTA")}
-                  className="relative rounded-full bg-white px-5 py-2 text-[11px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 active:scale-95 shadow-2xl border border-white/20"
+                  className="relative rounded-full bg-white px-5 py-2 text-[11px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 active:scale-95 shadow-2xl border border-white/20 cursor-none"
                 >
                   Start Journey
                 </button>
@@ -218,15 +235,30 @@ export function Navbar() {
 
             <div
               className={cn(
-                "mt-10 pt-8 border-t border-white/10 transition-all duration-500",
+                "mt-10 pt-8 border-t border-white/10 transition-all duration-500 flex flex-col gap-4",
                 isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
               style={{ transitionDelay: isMobileMenuOpen ? "320ms" : "0ms" }}
             >
               <Magnetic>
                 <button
+                  onClick={() => { openModal('PORTAL', undefined, "NAVBAR_MOBILE_PORTAL"); setIsMobileMenuOpen(false); }}
+                  className="rounded-full bg-white/5 border border-white/10 px-7 py-3.5 text-[11px] font-bold uppercase tracking-wider text-white transition-transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  {user ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      {profile?.full_name ? profile.full_name : "Traveler Lounge"}
+                    </>
+                  ) : (
+                    "Traveler Lounge"
+                  )}
+                </button>
+              </Magnetic>
+              <Magnetic>
+                <button
                   onClick={() => { openBooking(undefined, "NAVBAR_MOBILE_CTA"); setIsMobileMenuOpen(false); }}
-                  className="inline-flex rounded-full bg-foreground px-7 py-3.5 text-[11px] font-bold uppercase tracking-wider text-background transition-transform hover:scale-105"
+                  className="rounded-full bg-white px-7 py-3.5 text-[11px] font-bold uppercase tracking-wider text-black transition-transform hover:scale-105"
                 >
                   Start Journey
                 </button>

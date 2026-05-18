@@ -21,7 +21,7 @@ export function Marquee() {
   const marqueeWords = settings.marquee_words ? settings.marquee_words.split(',') : [
     "Explore", "Discover", "Journey", "Wander", "Roam", "Venture", "Navigate", "FUN", "Excellence", "Adventure",
     "Mountains", "Oceans", "Cities", "Islands", "Horizons", "Landscapes", "Destinations", "Worlds", "Bespoke",
-    "Curated", "Elite", "Luxury", "Sanctuary", "Unseen", "Boundless", "Transcendent", "Sovereign", "Unrivaled", "Grandeur"
+    "Curated", "Elite", "Luxury", "Sanctuary", "Unseen", "Boundless", "Transcendent", "Supreme", "Unrivaled", "Grandeur"
   ];
 
   useEffect(() => {
@@ -164,7 +164,7 @@ export function Marquee() {
       <div ref={row8Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-25 select-none whitespace-nowrap ml-[-25%] gap-[4vw] transform-gpu">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="flex items-center gap-[4vw]">
-            <span className="text-outline-white">Beyond</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Sovereign</span><span>Elite</span><span className="text-outline-white">Luxury</span><span>Excellence</span><span className="text-outline-white">Heritage</span><span>Sanctuary</span>
+            <span className="text-outline-white">Beyond</span><span>Unseen</span><span className="text-outline-white">Boundless</span><span>Transcendent</span><span className="text-outline-white">Supreme</span><span>Elite</span><span className="text-outline-white">Luxury</span><span>Excellence</span><span className="text-outline-white">Heritage</span><span>Sanctuary</span>
           </div>
         ))}
       </div>

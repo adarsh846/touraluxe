@@ -13,7 +13,7 @@ interface EditorialManagerProps {
 
 export function EditorialManager({ settings, onUpdate, isUpdating, addNotification }: EditorialManagerProps) {
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
-  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery" | "intelligence">("hero");
+  const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery" | "portal" | "intelligence">("hero");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useState<HTMLInputElement | null>(null);
 
@@ -95,6 +95,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
     { id: "cta", label: "Final CTA" },
     { id: "contact", label: "Contact & Footer" },
     { id: "discovery", label: "Discovery Atmosphere" },
+    { id: "portal", label: "Traveler Portal" },
     { id: "intelligence", label: "Discovery Intelligence" },
   ];
 
@@ -485,6 +486,83 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   onSave={() => handleSave("discovery_default_image")}
                   isUpdating={isUpdating}
                   placeholder="URL to high-fidelity background image..."
+                  hint="Direct URL for external asset hosting."
+                />
+              </div>
+            </div>
+          )}
+
+          {activeCategory === "portal" && (
+            <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <SectionHeader title="Traveler Portal" description="The visual backdrop of the authenticated traveler experience." />
+              <div className="grid grid-cols-1 gap-6 md:gap-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#48484a]">Portal Atmosphere Asset</p>
+                    <p className="hidden md:block text-[8px] uppercase tracking-widest text-[#86868b] font-bold">Ultrawide (21:9) recommended</p>
+                  </div>
+                  <div
+                    onClick={() => document.getElementById('portal-upload')?.click()}
+                    className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-[24px] md:rounded-[40px] bg-[#1c1c1e] border-2 border-dashed border-white/[0.04] hover:border-white/10 transition-all cursor-pointer group overflow-hidden flex flex-col items-center justify-center gap-4"
+                  >
+                    {localSettings.portal_default_image ? (
+                      <>
+                        <img
+                          src={localSettings.portal_default_image}
+                          alt="Portal Background"
+                          className="absolute inset-0 w-full h-full object-cover opacity-30 md:opacity-40 group-hover:opacity-60 transition-opacity duration-700"
+                        />
+                        <div className="relative z-10 flex flex-col items-center gap-3 px-6 text-center">
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                            {isUploading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" /> : <Upload className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                          </div>
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-2xl">Replace Portal Asset</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all duration-500">
+                          {isUploading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-white animate-spin" /> : <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-[#86868b] group-hover:text-white" />}
+                        </div>
+                        <div className="text-center px-6">
+                          <p className="text-xs md:text-sm font-bold text-white tracking-tight">Upload Portal Background</p>
+                          <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#86868b] font-bold mt-1.5 leading-relaxed">Displayed behind the traveler login and profile lounge.</p>
+                        </div>
+                      </>
+                    )}
+                    <input
+                      id="portal-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploading(true);
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        try {
+                          const token = sessionStorage.getItem("admin_token") || "";
+                          const res = await fetch("/api/upload", { method: "POST", headers: { "x-admin-token": token }, body: formData });
+                          if (res.ok) {
+                            const { url } = await res.json();
+                            handleChange("portal_default_image", url);
+                            await onUpdate("portal_default_image", url);
+                          }
+                        } catch (err) { console.error("Portal upload error:", err); }
+                        finally { setIsUploading(false); }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                <InputGroup
+                  label="Asset URL Override"
+                  value={localSettings.portal_default_image || ""}
+                  onChange={(v) => handleChange("portal_default_image", v)}
+                  onSave={() => handleSave("portal_default_image")}
+                  isUpdating={isUpdating}
+                  placeholder="URL to high-fidelity portal background image..."
                   hint="Direct URL for external asset hosting."
                 />
               </div>
