@@ -105,18 +105,18 @@ export const PackageContent = memo(({
   // ═══ DYNAMIC CHAPTER MANIFEST (Source of Truth) ═══
   const navChapters = useMemo(() => [
     { id: 'entrance', label: 'Introduction', type: 'core' },
-    ...(experience?.gallery?.length > 0 ? [{ id: 'gallery', label: 'Gallery', type: 'optional' }] : []),
     { id: 'story', label: 'The Vision', type: 'core' },
+    ...(experience?.gallery?.length > 0 ? [{ id: 'gallery', label: 'Gallery', type: 'optional' }] : []),
     { id: 'chronicle', label: 'Itinerary', type: 'core' },
     ...(experience?.itinerary?.map((_: any, i: number) => ({ id: `day-${i + 1}`, label: `Day ${i + 1}`, type: 'day' })) || []),
     { id: 'logistics', label: 'Logistics', type: 'core' },
     ...(experience?.inclusions?.length > 0 ? [{ id: 'hallmarks', label: 'Inclusions', type: 'optional' }] : []),
     ...(experience?.exclusions?.length > 0 ? [{ id: 'exclusions', label: 'Exclusions', type: 'optional' }] : []),
     ...(experience?.highlights?.length > 0 ? [{ id: 'essence', label: 'Highlights', type: 'optional' }] : []),
-    { id: 'investment', label: 'Investment', type: 'core' },
+    { id: 'investment', label: 'Pricing', type: 'core' },
     ...(experience?.faq?.length > 0 ? [{ id: 'faq', label: 'FAQ', type: 'optional' }] : []),
     ...(relatedPackages.length > 0 ? [{ id: 'related', label: 'Similar', type: 'optional' }] : []),
-    { id: 'legacy', label: 'Next Steps', type: 'core' }
+    { id: 'legacy', label: 'Book Now', type: 'core' }
   ], [
     experience?.itinerary, 
     experience?.inclusions, 
@@ -501,7 +501,14 @@ export const PackageContent = memo(({
               </div>
 
               {/* ── Thumbnail strip — dynamic sizing for mobile ── */}
-              <div className="shrink-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-3.5 px-4 w-full">
+              <div 
+                className={cn(
+                  "shrink-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide py-3.5 px-4 w-full transition-all duration-[0.8s] ease-[cubic-bezier(0.25,1,0.25,1)] transform-gpu",
+                  activeSection === navChapters.findIndex(c => c.id === 'gallery')
+                    ? "opacity-100 translate-y-0 pointer-events-auto"
+                    : "opacity-0 translate-y-4 pointer-events-none"
+                )}
+              >
                 {experience.gallery.map((url: string, idx: number) => {
                   const active = idx === currentImageIndex;
                   return (
@@ -552,8 +559,8 @@ export const PackageContent = memo(({
                 </div>
 
                 <div className="pl-10 md:pl-16 lg:pl-24">
-                  <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30 mb-4 block">The Narrative</span>
-                  <h2 className="text-4xl md:text-5xl lg:text-[7rem] font-black text-white tracking-tighter leading-none">Chronicle.</h2>
+                  <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30 mb-4 block">Day-by-Day Plan</span>
+                  <h2 className="text-4xl md:text-5xl lg:text-[7rem] font-black text-white tracking-tighter leading-none">Itinerary.</h2>
                 </div>
               </div>
 
@@ -605,7 +612,7 @@ export const PackageContent = memo(({
         {/* FLIGHT POLICY INSIGHT */}
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'logistics')}`}
-          className="min-h-[60vh] flex flex-col items-center justify-center text-center py-10 md:py-20 px-4 md:px-6 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 px-4 md:px-6 snap-center snap-always"
         >
           <div className="w-full max-w-4xl p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-50" />
@@ -623,7 +630,7 @@ export const PackageContent = memo(({
               </div>
 
               <div className="space-y-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30">Logistics Policy</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30">Flight Details</span>
                 <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
                   {experience.flights_status === 'included' ? "Airfare Included." : 
                    experience.flights_status === 'on_request' ? "Flights on Request." : "Land Package Only."}
@@ -713,7 +720,7 @@ export const PackageContent = memo(({
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
                 <Sparkles size={12} className="text-white/40" />
-                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Investment</span>
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/30">Pricing</span>
               </div>
 
               {/* Savings Row */}
@@ -782,7 +789,7 @@ export const PackageContent = memo(({
               {/* Manifest Header */}
               <div className="flex items-center gap-2 mb-5 relative z-10">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] animate-pulse" />
-                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/25">Fiscal Breakdown</span>
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/25">Price Breakdown</span>
               </div>
               
               {/* Ledger Items */}
@@ -850,7 +857,7 @@ export const PackageContent = memo(({
             id={`section-${navChapters.findIndex(c => c.id === 'faq')}`}
             className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
           >
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">F.A.Q.</h2>
+            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">FAQ.</h2>
             <div className="w-full max-w-3xl space-y-4">
               {experience.faq.map((item: { question: string; answer: string }, i: number) => (
                 <div key={i} className="text-left p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors">
