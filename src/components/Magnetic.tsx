@@ -117,7 +117,6 @@ export function Magnetic({
     wrapper.addEventListener("mousemove", onMouseMove);
     wrapper.addEventListener("mouseleave", onMouseLeave);
     window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect, { passive: true });
 
     if (isTouch) {
       wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -133,7 +132,6 @@ export function Magnetic({
       wrapper.removeEventListener("mousemove", onMouseMove);
       wrapper.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect);
       wrapper.removeEventListener("touchstart", onTouchStart);
       wrapper.removeEventListener("touchmove", onTouchMove);
       wrapper.removeEventListener("touchend", onTouchEnd);

@@ -152,7 +152,7 @@ export function Services() {
   }, [openModal]);
 
   return (
-    <section ref={containerRef} id="services" className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center overflow-hidden">
+    <section ref={containerRef} id="services" className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center">
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-20 max-w-2xl">
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
@@ -160,8 +160,7 @@ export function Services() {
         </div>
 
         <div 
-          className="flex flex-row overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-5 pt-10 pb-10 px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-8 lg:pb-10 touch-pan-y"
-          style={{ touchAction: 'pan-y' }}
+          className="flex flex-row overflow-x-auto lg:overflow-visible snap-x snap-mandatory scrollbar-hide gap-5 pt-10 pb-10 px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-8 lg:pb-10"
         >
           {SERVICES.map((service, index) => (
             <div 

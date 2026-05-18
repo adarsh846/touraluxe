@@ -15,7 +15,7 @@ export function CTA() {
 
   const title = settings.cta_title || "Ready to transcend the ordinary?";
   const description = settings.cta_description || "Connect with our travel curators to design your next unparalleled experience.";
-  const buttonText = settings.cta_button_text || "Begin Your Journey";
+  const buttonText = settings.cta_button_text || "Have a Query? Speak to us";
 
   useEffect(() => {
     const ctx = gsap.context(() => {

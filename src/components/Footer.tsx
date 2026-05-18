@@ -14,7 +14,7 @@ function scrollToSection(id: string, offset: number = 0) {
 
 export function Footer() {
   return (
-    <footer className="w-full bg-black py-16 px-6">
+    <footer className="relative z-20 w-full bg-black py-16 px-6 -mt-[1px]">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         <div className="flex flex-col items-start gap-4">
           <Magnetic>

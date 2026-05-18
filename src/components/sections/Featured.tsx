@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
-import { Plane } from "lucide-react";
+import { Plane, MapPin } from "lucide-react";
 import { useBooking } from "../BookingProvider";
 import { supabase } from "@/lib/supabase";
 import { usePricing } from "@/hooks/usePricing";
@@ -71,19 +71,22 @@ export function Featured() {
           }
         );
 
-        const img = item.querySelector("img");
-        if (img) {
-          gsap.set(img, { scale: 1.15, transformGpu: true });
-          gsap.to(img, {
-            yPercent: 12,
-            ease: "none",
-            scrollTrigger: {
-              trigger: item,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
+        const imgWrapper = item.querySelector(".parallax-bg");
+        if (imgWrapper) {
+          gsap.set(imgWrapper, { transformGpu: true });
+          gsap.fromTo(imgWrapper, 
+            { yPercent: -15 },
+            {
+              yPercent: 15,
+              ease: "none",
+              scrollTrigger: {
+                trigger: item,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+              }
             }
-          });
+          );
         }
       });
 
@@ -99,7 +102,7 @@ export function Featured() {
     <section
       ref={containerRef}
       id="featured"
-      className="relative z-10 py-32 px-6 w-full bg-[#0a0a0a] min-h-screen flex flex-col justify-center overflow-hidden"
+      className="relative z-10 py-32 px-6 w-full bg-[#0a0a0a] min-h-screen flex flex-col justify-center"
     >
       <div className="max-w-[1200px] w-full mx-auto relative z-20">
         <h2
@@ -127,17 +130,7 @@ export function Featured() {
               const pricing = computePrice(exp);
               const isEven = index % 2 === 0;
               
-              // Custom poetical quotes based on the experience
-              const poeticalQuotes: Record<number, string> = {
-                1: "A choreographed sanctuary for seekers of secluded luxury and high-altitude perspective.",
-                2: "A grand collective crossing of high mountain chains and untamed wild country.",
-                3: "A precision climbing logistics expedition to the absolute edge of high solitude.",
-                4: "An immortal honeymoon designed to capture absolute romantic perfection.",
-                5: "A seamless, strategic alignment of world-class corporate gatherings and retreats.",
-                6: "A fully custom vintage journey tailored meticulously to your absolute desires.",
-                7: "A generative real-time digital itinerary crafted by TouraLuxe intelligence."
-              };
-              const quote = poeticalQuotes[exp.id] || "A bespoke sanctuary designed to deliver absolute comfort and pristine memories.";
+              const quote = exp.tagline || "A bespoke sanctuary designed to deliver absolute comfort and pristine memories.";
 
               return (
                 <div
@@ -148,38 +141,35 @@ export function Featured() {
                 >
                   {/* Image Container — Stable gold-bordered card that scales image cleanly */}
                   <div className="relative w-full md:w-3/5 aspect-[4/3] rounded-[2.5rem] border border-white/10 group-hover:border-amber-400/80 bg-[#0a0a0b] overflow-hidden transform-gpu transition-all duration-700 shadow-2xl group-hover:shadow-[0_0_60px_rgba(251,191,36,0.12)]">
-                    <Image
-                      src={exp.image}
-                      alt={exp.title}
-                      fill
-                      className="object-cover transform-gpu transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-[1.04]"
-                      quality={85}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
-                      style={{ transform: "translate3d(0,0,0)" }}
-                    />
-                    
-                    {/* Excursion Index stamp overlay */}
-                    <div className="absolute top-8 left-8 bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-5 py-2 z-10 text-[9px] font-black uppercase tracking-[0.3em] text-amber-400">
-                      Excursion No. 0{index + 1}
+                    <div className="parallax-bg absolute inset-[-15%] w-[130%] h-[130%]">
+                      <Image
+                        src={exp.image}
+                        alt={exp.title}
+                        fill
+                        className="object-cover transform-gpu transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-110"
+                        quality={85}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
+                      />
                     </div>
                   </div>
 
                   {/* Text Content */}
                   <div className="w-full md:w-2/5 flex flex-col items-start gap-5 p-4 md:p-6">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[9px] font-black uppercase tracking-[0.4em] text-amber-400/80">
-                        {exp.location}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none whitespace-nowrap">
+                        <MapPin size={9} className="shrink-0" />
+                        <span className="leading-none">{exp.location}</span>
                       </span>
                       {exp.flights_status === 'included' && (
-                        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
-                          <Plane size={9} />
-                          <span>Flights Incl.</span>
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                          <Plane size={9} className="shrink-0" />
+                          <span className="leading-none">Flights Incl.</span>
                         </span>
                       )}
                       {exp.flights_status === 'on_request' && (
-                        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
-                          <Plane size={9} />
-                          <span>Flights on Req.</span>
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                          <Plane size={9} className="shrink-0" />
+                          <span className="leading-none">Flights on Req.</span>
                         </span>
                       )}
                     </div>
@@ -198,17 +188,23 @@ export function Featured() {
 
                     {/* Luxury Travel Manifest details */}
                     <div className="grid grid-cols-3 gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Manifest</p>
-                        <p className="text-[10px] font-bold text-white/70">8-12 Days</p>
+                      <div className="min-w-0">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Duration</p>
+                        <p className="text-[10px] font-bold text-white/70">{exp.duration || 'Flexible'}</p>
                       </div>
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Transit</p>
-                        <p className="text-[10px] font-bold text-white/70">Private Luxe</p>
+                      <div className="min-w-0">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Ideal For</p>
+                        <p className="text-[10px] font-bold text-white/70">{exp.guests || 'Couples, Families'}</p>
                       </div>
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Stays</p>
-                        <p className="text-[10px] font-bold text-white/70">Signature 5★</p>
+                      <div className="min-w-0">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Flight Status</p>
+                        <p className="text-[10px] font-bold text-white/70">
+                          {exp.flights_status === 'included'
+                            ? `Included ${exp.flight_type ? `(${exp.flight_type})` : ''}`
+                            : exp.flights_status === 'on_request'
+                            ? 'On Request'
+                            : 'Excluded'}
+                        </p>
                       </div>
                     </div>
 

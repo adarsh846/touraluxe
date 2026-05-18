@@ -57,7 +57,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     const fov = 45 + Math.max(0, (1 - aspect) * 30);
     const camera = new THREE.PerspectiveCamera(fov, aspect, 1, 3000);
     const minCamZ = aspect < 1 ? 165 : 180;
-    const camZ = (screen.width - w) / 3;
+    const camZ = aspect < 1 ? minCamZ : (screen.width - w) / 3;
     camera.position.set(0, 0, camZ < minCamZ ? minCamZ : camZ);
     // Less horizontal offset on portrait to keep the plane centered in narrow viewport
     const lookAtX = aspect < 1 ? 5 : 15;
@@ -118,45 +118,123 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     };
     render();
 
+    let myPlane: THREE.Group | null = null;
+    let flightTimeline: gsap.core.Timeline | null = null;
+    let originalMaxDim = 1;
+    let originalCenter = new THREE.Vector3();
+    let isInitialized = false;
+
+    const rebuildTimeline = () => {
+      if (!myPlane || !isInitialized || !canvasContainerRef.current) return;
+
+      // 1. Clean up old timeline and ScrollTrigger completely using the ID to prevent ghost instances
+      const oldTrigger = ScrollTrigger.getById("flight-trigger");
+      if (oldTrigger) {
+        oldTrigger.kill(true);
+      }
+      if (flightTimeline) {
+        flightTimeline.kill();
+        flightTimeline = null;
+      }
+
+      // 2. Reset material opacities to 0 so GSAP compiles the fade-in tween from a clean state
+      myPlane.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = (child as THREE.Mesh);
+          if (mesh.material) {
+            (mesh.material as any).opacity = 0;
+          }
+        }
+      });
+
+      const currentAspect = window.innerWidth / window.innerHeight;
+
+      // Auto-scale and center the model responsively using original boundaries
+      const baseScale = currentAspect < 1 ? 85 * (0.55 + currentAspect * 0.45) : 85;
+      const scale = baseScale / originalMaxDim;
+      myPlane.scale.set(scale, scale, scale);
+      myPlane.position.set(-originalCenter.x * scale, -originalCenter.y * scale, -originalCenter.z * scale);
+
+      const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
+      if (!flightWrapper) return;
+
+      const sectionDuration = 1;
+
+      // Scale flight path x-positions on narrow screens to keep S-curves proportional
+      const xScale = currentAspect < 1 ? 0.6 + currentAspect * 0.4 : 1;
+
+      flightTimeline = gsap.timeline({
+        onUpdate: render,
+        scrollTrigger: {
+          id: "flight-trigger",
+          trigger: flightWrapper,
+          start: "top bottom",
+          end: "bottom bottom",
+          scrub: true,
+        },
+        defaults: { duration: sectionDuration, ease: "power2.inOut" },
+      });
+
+      const pathFunction = FLIGHT_PATHS[pathName] || FLIGHT_PATHS["classic-touraluxe"];
+      pathFunction({
+        timeline: flightTimeline,
+        planeGroup,
+        myPlane,
+        light,
+        rimLight,
+        camera,
+        sectionDuration,
+        xScale,
+        tau
+      });
+
+      ScrollTrigger.refresh();
+      render();
+
+      // 3. Fade the canvas back in smoothly now that coordinates are 100% accurate
+      canvasContainerRef.current.style.opacity = "1";
+    };
+
+    let rebuildTimeout: number | null = null;
     const onResize = () => {
-      if (!renderer) return;
+      if (!renderer || !canvasContainerRef.current) return;
+      
+      // Instantly hide the canvas during resize to prevent the user from seeing any layout shift jumps
+      canvasContainerRef.current.style.opacity = "0";
+
       w = window.innerWidth;
       h = window.innerHeight;
       const aspect = w / h;
       camera.aspect = aspect;
       camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
       const minZ = aspect < 1 ? 165 : 180;
-      const cZ = (screen.width - w) / 3;
+      const cZ = aspect < 1 ? minZ : (screen.width - w) / 3;
       camera.position.z = cZ < minZ ? minZ : cZ;
       const lookAtX = aspect < 1 ? 5 : 15;
       camera.lookAt(new THREE.Vector3(lookAtX, 5, 0));
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       render();
+
+      // Debounce the timeline rebuild by 600ms to guarantee React finishes rendering 
+      // the new desktop/mobile DOM heights before we measure coordinates.
+      if (rebuildTimeout) {
+        window.clearTimeout(rebuildTimeout);
+      }
+      rebuildTimeout = window.setTimeout(() => {
+        rebuildTimeline();
+      }, 600);
     };
     window.addEventListener("resize", onResize);
-
-    let myPlane: THREE.Group | null = null;
-    let flightTimeline: gsap.core.Timeline | null = null;
 
     const manager = new THREE.LoadingManager(() => {
       if (!myPlane) return;
 
-      // Compute current aspect at load time for responsive scaling
-      const currentAspect = window.innerWidth / window.innerHeight;
-
-      // Auto-scale and center the model
-      // Desktop (aspect >= 1): full 85-unit wingspan
-      // Portrait phones: scales down proportionally (e.g., ~62 at 0.46 aspect)
       const box = new THREE.Box3().setFromObject(myPlane);
       const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const baseScale = currentAspect < 1 ? 85 * (0.55 + currentAspect * 0.45) : 85;
-      const scale = baseScale / maxDim;
-      myPlane.scale.set(scale, scale, scale);
-
-      const center = box.getCenter(new THREE.Vector3());
-      myPlane.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+      originalMaxDim = Math.max(size.x, size.y, size.z);
+      originalCenter = box.getCenter(new THREE.Vector3());
+      isInitialized = true;
 
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -182,34 +260,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
       if (!flightWrapper) return;
 
-      const sectionDuration = 1;
-
-      // Scale flight path x-positions on narrow screens to keep S-curves proportional
-      const xScale = currentAspect < 1 ? 0.6 + currentAspect * 0.4 : 1;
-
-      flightTimeline = gsap.timeline({
-        onUpdate: render,
-        scrollTrigger: {
-          trigger: flightWrapper,
-          start: "top bottom",
-          end: "bottom bottom",
-          scrub: true,
-        },
-        defaults: { duration: sectionDuration, ease: "power2.inOut" },
-      });
-
-      const pathFunction = FLIGHT_PATHS[pathName] || FLIGHT_PATHS["classic-touraluxe"];
-      pathFunction({
-        timeline: flightTimeline,
-        planeGroup,
-        myPlane,
-        light,
-        rimLight,
-        camera,
-        sectionDuration,
-        xScale,
-        tau
-      });
+      // Build flight path timeline for the first time
+      rebuildTimeline();
 
       const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
       const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
@@ -286,17 +338,11 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       observer.observe(flightWrapperNode);
     }
 
-    const onScrollEnd = () => {
-      ScrollTrigger.refresh();
-    };
-    window.addEventListener("scrollend", onScrollEnd);
-
     return () => {
       if (unsupportedTimeout) {
         window.clearTimeout(unsupportedTimeout);
       }
       window.removeEventListener("resize", onResize);
-      window.removeEventListener("scrollend", onScrollEnd);
       if (observer) observer.disconnect();
       if (flightTimeline) flightTimeline.kill();
       gsap.killTweensOf(".gsap-clouds-parallax");
@@ -321,8 +367,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
   return (
     <div
       ref={canvasContainerRef}
-      style={{ visibility: "hidden" }}
-      className="fixed inset-0 pointer-events-none z-[2] w-full h-full"
+      style={{ visibility: "hidden", opacity: 0 }}
+      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
     >
       {loadState === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center">

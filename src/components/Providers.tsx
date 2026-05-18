@@ -23,7 +23,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       .then(data => {
         if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     // ... (lenis setup)
     const lenis = new Lenis({
-      syncTouch: true,
+      syncTouch: false, // Let mobile devices handle touch scrolling natively to prevent diagonal hijacking on horizontal carousels
       touchMultiplier: 1.2,
       wheelMultiplier: 1.0,
       lerp: 0.1,

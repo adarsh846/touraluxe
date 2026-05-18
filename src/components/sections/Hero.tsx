@@ -280,7 +280,6 @@ export function Hero() {
         { opacity: 1, y: 0 },
         {
           opacity: 0,
-          y: -10,
           ease: "none",
           scrollTrigger: {
             trigger: containerRef.current,
@@ -329,8 +328,11 @@ export function Hero() {
           sizes="100vw"
           className="object-cover object-center transform-gpu will-change-transform"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30 z-10" />
+        <div className="absolute inset-0 bg-black/20 z-10" />
       </div>
+
+      {/* Static Section Blend Mask (Doesn't move with parallax) */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/40 z-[1] pointer-events-none" />
 
       {/* Narrative Overlay Content */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col items-center text-center mt-12 md:mt-20">

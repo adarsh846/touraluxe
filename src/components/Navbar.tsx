@@ -20,15 +20,16 @@ const NAV_LINKS = [
 export function Navbar() {
   const router = useRouter();
   const { openBooking, openModal } = useBooking();
-  const [blurOpacity, setBlurOpacity] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      setIsScrolled(scrollY > 50);
-      setBlurOpacity(Math.min(scrollY / 400, 1));
+      setIsScrolled(prev => {
+        const isNowScrolled = scrollY > 50;
+        return prev !== isNowScrolled ? isNowScrolled : prev;
+      });
     };
 
     window.addEventListener("scroll", handleScroll);

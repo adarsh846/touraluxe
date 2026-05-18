@@ -32,7 +32,7 @@ export function Marquee() {
           trigger: sectionRef.current,
           start: "top bottom",
           end: "bottom top",
-          scrub: true, // Direct scrub is more performant than lerped scrub for complex layouts
+          scrub: true,
         },
       });
 
@@ -83,7 +83,7 @@ export function Marquee() {
   return (
     <section
       ref={sectionRef}
-      className="relative z-30 min-h-[400px] bg-black text-white w-full overflow-hidden flex flex-col justify-center gap-[clamp(1rem,3vw,3rem)] py-20 md:py-32"
+      className="relative z-30 min-h-[400px] bg-black text-white w-full overflow-hidden flex flex-col justify-center gap-[clamp(1rem,3vw,3rem)] py-20 md:py-32 -mt-[1px]"
     >
       {/* Row 1: Left */}
       <div ref={row1Ref} className="flex items-center text-[clamp(1.2rem,8vw,10rem)] sm:text-[clamp(1.5rem,6vw,10rem)] font-bold uppercase leading-none -tracking-[0.02em] opacity-50 select-none whitespace-nowrap gap-[4vw] transform-gpu">

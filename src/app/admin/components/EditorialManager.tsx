@@ -382,7 +382,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   onChange={(v) => handleChange("cta_button_text", v)}
                   onSave={() => handleSave("cta_button_text")}
                   isUpdating={isUpdating}
-                  placeholder="Begin Your Journey"
+                  placeholder="Have a Query? Speak to us"
                 />
               </div>
             </div>
