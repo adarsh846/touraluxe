@@ -71,7 +71,6 @@ export function HeroSequence() {
     // 5. Wide Color Gamut (Display-P3) Rendering
     const ctx = canvas.getContext("2d", { 
       alpha: false,
-      desynchronized: true,
       willReadFrequently: false,
       colorSpace: "display-p3"
     } as any) as CanvasRenderingContext2D;
@@ -268,6 +267,7 @@ export function HeroSequence() {
       gsap.to(pinRef.current, {
         y: () => (sectionRef.current?.offsetHeight || 0) - window.innerHeight,
         ease: "none",
+        force3D: true,
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top top",
@@ -286,6 +286,7 @@ export function HeroSequence() {
           opacity: 1, y: 0, filter: "blur(0px)",
           stagger: 0.05,
           ease: "power3.out",
+          force3D: true,
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "56.3% top", // Exactly frame 200 (200 / 355 = ~56.3%)
@@ -301,6 +302,7 @@ export function HeroSequence() {
         {
           opacity: 1, y: 0,
           ease: "power3.out",
+          force3D: true,
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "58.3% top",

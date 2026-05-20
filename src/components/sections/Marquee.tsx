@@ -42,6 +42,7 @@ export function Marquee() {
         tl.to(ref.current, {
           xPercent: 50 * direction,
           ease: "none",
+          force3D: true,
         }, 0); // All start at 0 (concurrently)
         
         // Promote to GPU layer
@@ -58,9 +59,11 @@ export function Marquee() {
         duration: 0.85,
         ease: "expo.out",
         stagger: 0.1,
+        force3D: true,
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 75%",
+          once: true,
         },
       });
 
@@ -68,6 +71,7 @@ export function Marquee() {
       gsap.to(".marquee-chip", {
         y: -150,
         ease: "none",
+        force3D: true,
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top bottom",

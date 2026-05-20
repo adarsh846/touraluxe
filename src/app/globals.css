@@ -302,3 +302,25 @@ textarea:-webkit-autofill {
   mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
 }
+
+/* ─── INVISIBLE GPU COMPOSITING LAYER PROMOTION ─── */
+/* Only permanently promote elements that are continuously scroll-linked.
+   One-shot animations (.marquee-chip, .word) are promoted dynamically by
+   GSAP's force3D:true during their tween, then released. */
+.gsap-ground-parallax,
+.gsap-clouds-deep,
+.gsap-clouds-foreground,
+.parallax-bg,
+#hero-canvas,
+.will-change-gpu {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Promote custom cursor elements to GPU layer for absolute latency-free movement */
+.fixed.top-0.left-0.w-2.h-2,
+.fixed.top-0.left-0.w-20.h-20 {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+

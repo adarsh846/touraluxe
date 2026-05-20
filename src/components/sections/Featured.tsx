@@ -55,6 +55,7 @@ export function Featured() {
           scrollTrigger: {
             trigger: titleRef.current,
             start: "top 85%",
+            once: true,
           }
         }
       );
@@ -63,22 +64,26 @@ export function Featured() {
       itemsRef.current.forEach((item, index) => {
         if (!item) return;
 
-        gsap.fromTo(item,
-          { y: 100, x: index % 2 === 0 ? -60 : 60, opacity: 0 },
-          {
-            y: 0, x: 0, opacity: 1, duration: 1.8, ease: "expo.out",
-            scrollTrigger: { trigger: item, start: "top 90%" }
-          }
-        );
+        const revealTarget = item.querySelector(".reveal-inner");
+        if (revealTarget) {
+          gsap.fromTo(revealTarget,
+            { y: 100, x: index % 2 === 0 ? -60 : 60, opacity: 0 },
+            {
+              y: 0, x: 0, opacity: 1, duration: 1.8, ease: "expo.out",
+              force3D: true,
+              scrollTrigger: { trigger: item, start: "top 90%", once: true }
+            }
+          );
+        }
 
         const imgWrapper = item.querySelector(".parallax-bg");
         if (imgWrapper) {
-          gsap.set(imgWrapper, { transformGpu: true });
           gsap.fromTo(imgWrapper, 
             { yPercent: -15 },
             {
               yPercent: 15,
               ease: "none",
+              force3D: true,
               scrollTrigger: {
                 trigger: item,
                 start: "top bottom",
@@ -136,100 +141,104 @@ export function Featured() {
                 <div
                   key={exp.id}
                   ref={(el) => { if (el) itemsRef.current[index] = el; }}
-                  className={`group relative flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-12 md:gap-20 items-center opacity-0 transform-gpu`}
-                  style={{ transform: "translate3d(0,0,0)" }}
+                  className="group relative w-full"
                 >
-                  {/* Image Container — Stable gold-bordered card that scales image cleanly */}
-                  <div className="relative w-full md:w-3/5 aspect-[4/3] rounded-[2.5rem] border border-white/10 group-hover:border-amber-400/80 bg-[#0a0a0b] overflow-hidden transform-gpu transition-all duration-700 shadow-2xl group-hover:shadow-[0_0_60px_rgba(251,191,36,0.12)]">
-                    <div className="parallax-bg absolute inset-[-15%] w-[130%] h-[130%]">
-                      <Image
-                        src={exp.image}
-                        alt={exp.title}
-                        fill
-                        className="object-cover transform-gpu transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-110"
-                        quality={85}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Text Content */}
-                  <div className="w-full md:w-2/5 flex flex-col items-start gap-5 p-4 md:p-6">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none whitespace-nowrap">
-                        <MapPin size={9} className="shrink-0" />
-                        <span className="leading-none">{exp.location}</span>
-                      </span>
-                      {exp.flights_status === 'included' && (
-                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
-                          <Plane size={9} className="shrink-0" />
-                          <span className="leading-none">Flights Incl.</span>
-                        </span>
-                      )}
-                      {exp.flights_status === 'on_request' && (
-                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
-                          <Plane size={9} className="shrink-0" />
-                          <span className="leading-none">Flights on Req.</span>
-                        </span>
-                      )}
-                    </div>
-                    
-                    <h3 
-                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                      className="text-3xl md:text-5xl font-light italic tracking-tight text-white leading-[1.1] drop-shadow-md group-hover:text-amber-400/90 transition-colors duration-700 animate-pulse-once"
-                    >
-                      {exp.title}
-                    </h3>
-                    
-                    {/* Poetical Concierge Summary */}
-                    <p className="text-xs md:text-sm text-[#86868b] tracking-wide leading-relaxed font-light italic">
-                      &ldquo;{quote}&rdquo;
-                    </p>
-
-                    {/* Luxury Travel Manifest details */}
-                    <div className="grid grid-cols-3 gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Duration</p>
-                        <p className="text-[10px] font-bold text-white/70">{exp.duration || 'Flexible'}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Ideal For</p>
-                        <p className="text-[10px] font-bold text-white/70">{exp.guests || 'Couples, Families'}</p>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Flight Status</p>
-                        <p className="text-[10px] font-bold text-white/70">
-                          {exp.flights_status === 'included'
-                            ? `Included ${exp.flight_type ? `(${exp.flight_type})` : ''}`
-                            : exp.flights_status === 'on_request'
-                            ? 'On Request'
-                            : 'Excluded'}
-                        </p>
+                  <div 
+                    className={`reveal-inner flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-12 md:gap-20 items-center w-full opacity-0 transform-gpu`}
+                    style={{ transform: "translate3d(0,0,0)" }}
+                  >
+                    {/* Image Container — Stable gold-bordered card that scales image cleanly */}
+                    <div className="relative w-full md:w-3/5 aspect-[4/3] rounded-[2.5rem] border border-white/10 group-hover:border-amber-400/80 bg-[#0a0a0b] overflow-hidden transform-gpu transition-[border-color,box-shadow] duration-700 shadow-2xl group-hover:shadow-[0_0_60px_rgba(251,191,36,0.12)]">
+                      <div className="parallax-bg absolute inset-[-15%] w-[130%] h-[130%]">
+                        <Image
+                          src={exp.image}
+                          alt={exp.title}
+                          fill
+                          className="object-cover transform-gpu transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-110"
+                          quality={85}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
+                        />
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-lg text-white/80 font-medium">
-                          {pricing.formattedFinal} <span className="text-[9px] opacity-50 uppercase tracking-widest ml-1">/ Person</span>
+                    {/* Text Content */}
+                    <div className="w-full md:w-2/5 flex flex-col items-start gap-5 p-4 md:p-6">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none whitespace-nowrap">
+                          <MapPin size={9} className="shrink-0" />
+                          <span className="leading-none">{exp.location}</span>
                         </span>
-                        {pricing.hasSavings && (
-                          <span className="text-xs text-white/20 line-through">{pricing.formattedOriginal}</span>
+                        {exp.flights_status === 'included' && (
+                          <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                            <Plane size={9} className="shrink-0" />
+                            <span className="leading-none">Flights Incl.</span>
+                          </span>
+                        )}
+                        {exp.flights_status === 'on_request' && (
+                          <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                            <Plane size={9} className="shrink-0" />
+                            <span className="leading-none">Flights on Req.</span>
+                          </span>
                         )}
                       </div>
-                      <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
-                        {pricing.taxLabel}
-                      </span>
-                    </div>
-
-                    <Magnetic>
-                      <button
-                        onClick={() => openModal('PACKAGE', exp)}
-                        className="mt-4 bg-white/5 border border-white/10 hover:border-amber-400/80 px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-[0.25em] text-white/70 hover:text-white transition-all duration-700 hover:bg-white/[0.08]"
+                      
+                      <h3 
+                        style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                        className="text-3xl md:text-5xl font-light italic tracking-tight text-white leading-[1.1] drop-shadow-md group-hover:text-amber-400/90 transition-colors duration-700 animate-pulse-once"
                       >
-                        Request Access
-                      </button>
-                    </Magnetic>
+                        {exp.title}
+                      </h3>
+                      
+                      {/* Poetical Concierge Summary */}
+                      <p className="text-xs md:text-sm text-[#86868b] tracking-wide leading-relaxed font-light italic">
+                        &ldquo;{quote}&rdquo;
+                      </p>
+
+                      {/* Luxury Travel Manifest details */}
+                      <div className="grid grid-cols-3 gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Duration</p>
+                          <p className="text-[10px] font-bold text-white/70">{exp.duration || 'Flexible'}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Ideal For</p>
+                          <p className="text-[10px] font-bold text-white/70">{exp.guests || 'Couples, Families'}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Flight Status</p>
+                          <p className="text-[10px] font-bold text-white/70">
+                            {exp.flights_status === 'included'
+                              ? `Included ${exp.flight_type ? `(${exp.flight_type})` : ''}`
+                              : exp.flights_status === 'on_request'
+                              ? 'On Request'
+                              : 'Excluded'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-lg text-white/80 font-medium">
+                            {pricing.formattedFinal} <span className="text-[9px] opacity-50 uppercase tracking-widest ml-1">/ Person</span>
+                          </span>
+                          {pricing.hasSavings && (
+                            <span className="text-xs text-white/20 line-through">{pricing.formattedOriginal}</span>
+                          )}
+                        </div>
+                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+                          {pricing.taxLabel}
+                        </span>
+                      </div>
+
+                      <Magnetic>
+                        <button
+                          onClick={() => openModal('PACKAGE', exp)}
+                          className="mt-4 bg-white/5 border border-white/10 hover:border-amber-400/80 px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-[0.25em] text-white/70 hover:text-white transition-all duration-700 hover:bg-white/[0.08]"
+                        >
+                          Request Access
+                        </button>
+                      </Magnetic>
+                    </div>
                   </div>
                 </div>
               );

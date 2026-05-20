@@ -20,10 +20,10 @@ export function CustomCursor() {
     gsap.set(follower, { scale: 0.4 });
 
     // Use quickTo for high-frequency events to recycle tween instances and eliminate GC pressure
-    const xCursor = gsap.quickTo(cursor, "x", { duration: 0.1, ease: "power2.out" });
-    const yCursor = gsap.quickTo(cursor, "y", { duration: 0.1, ease: "power2.out" });
-    const xFollower = gsap.quickTo(follower, "x", { duration: 0.4, ease: "power3.out" });
-    const yFollower = gsap.quickTo(follower, "y", { duration: 0.4, ease: "power3.out" });
+    const xCursor = gsap.quickTo(cursor, "x", { duration: 0.1, ease: "power2.out", force3D: true });
+    const yCursor = gsap.quickTo(cursor, "y", { duration: 0.1, ease: "power2.out", force3D: true });
+    const xFollower = gsap.quickTo(follower, "x", { duration: 0.4, ease: "power3.out", force3D: true });
+    const yFollower = gsap.quickTo(follower, "y", { duration: 0.4, ease: "power3.out", force3D: true });
 
     const moveCursor = (e: MouseEvent) => {
       xCursor(e.clientX);

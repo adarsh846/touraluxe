@@ -26,15 +26,18 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      setIsScrolled(prev => {
-        const isNowScrolled = scrollY > 50;
-        return prev !== isNowScrolled ? isNowScrolled : prev;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const isNowScrolled = window.scrollY > 50;
+        setIsScrolled(prev => prev !== isNowScrolled ? isNowScrolled : prev);
+        ticking = false;
       });
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 

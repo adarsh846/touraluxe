@@ -64,7 +64,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     camera.lookAt(new THREE.Vector3(lookAtX, 5, 0));
 
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        powerPreference: "high-performance",
+        precision: "mediump"
+      } as any);
     } catch {
       unsupportedTimeout = window.setTimeout(() => {
         setLoadState("unsupported");
@@ -77,7 +82,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     }
 
     renderer.setSize(w, h);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setClearColor(0x000000, 0); 
     
     // Optimization: Shadows are expensive and not needed for this floating scene
@@ -137,15 +142,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         flightTimeline = null;
       }
 
-      // 2. Reset material opacities to 0 so GSAP compiles the fade-in tween from a clean state
-      myPlane.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = (child as THREE.Mesh);
-          if (mesh.material) {
-            (mesh.material as any).opacity = 0;
-          }
-        }
-      });
+      // 2. Clear old states and proceed to timeline rebuild
 
       const currentAspect = window.innerWidth / window.innerHeight;
 
@@ -239,14 +236,14 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       myPlane.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = (child as THREE.Mesh);
-          mesh.frustumCulled = false;
+          mesh.geometry.computeBoundingBox();
+          mesh.geometry.computeBoundingSphere();
+          mesh.frustumCulled = true;
           if (mesh.material) {
             (mesh.material as any).metalness = 0.8;
             (mesh.material as any).roughness = 0.2;
             (mesh.material as any).emissive = new THREE.Color(0x050505);
             (mesh.material as any).emissiveIntensity = 1.0;
-            (mesh.material as any).transparent = true;
-            (mesh.material as any).opacity = 0;
           }
         }
       });
@@ -255,6 +252,13 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       myPlane.rotation.y = -Math.PI / 2;
 
       planeGroup.add(myPlane);
+
+      // Pre-compile all GLSL shaders on the GPU now (during load) instead of
+      // lazily on the first scroll frame — eliminates first-scroll stutter
+      if (renderer) {
+        renderer.compile(scene, camera);
+      }
+
       setLoadState("ready");
 
       const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
@@ -267,11 +271,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
       const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
 
-      grounds.forEach((groundNode) => {
+      grounds.forEach((groundNode, idx) => {
         gsap.to(groundNode, {
           y: "30%",
           force3D: true,
           scrollTrigger: {
+            id: `parallax-ground-${idx}`,
             trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
@@ -280,11 +285,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         });
       });
 
-      deepClouds.forEach((cloudNode) => {
+      deepClouds.forEach((cloudNode, idx) => {
         gsap.from(cloudNode, {
           y: "20%",
           force3D: true,
           scrollTrigger: {
+            id: `parallax-deep-${idx}`,
             trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
@@ -293,11 +299,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         });
       });
 
-      foregroundClouds.forEach((cloudNode) => {
+      foregroundClouds.forEach((cloudNode, idx) => {
         gsap.from(cloudNode, {
           y: "25%",
           force3D: true,
           scrollTrigger: {
+            id: `parallax-foreground-${idx}`,
             trigger: flightWrapper,
             start: "top bottom",
             end: "bottom top",
@@ -344,9 +351,19 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       }
       window.removeEventListener("resize", onResize);
       if (observer) observer.disconnect();
+
+      // Dynamically destroy and garbage-collect all cloud/ground scroll triggers
+      ScrollTrigger.getAll().forEach(t => {
+        if (t.vars.id && (t.vars.id.startsWith("parallax-") || t.vars.id === "flight-trigger")) {
+          t.kill(true);
+        }
+      });
+
       if (flightTimeline) flightTimeline.kill();
       gsap.killTweensOf(".gsap-clouds-parallax");
       gsap.killTweensOf(".gsap-ground-parallax");
+      gsap.killTweensOf(".gsap-clouds-deep");
+      gsap.killTweensOf(".gsap-clouds-foreground");
       scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;

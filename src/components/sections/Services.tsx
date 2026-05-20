@@ -129,10 +129,10 @@ export function Services() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(".services-header > *", { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 1.5, ease: "expo.out", stagger: 0.2, scrollTrigger: { trigger: ".services-header", start: "top 85%" } });
+      gsap.fromTo(".services-header > *", { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 1.5, ease: "expo.out", stagger: 0.2, scrollTrigger: { trigger: ".services-header", start: "top 85%", once: true } });
       cardsRef.current.forEach((card, index) => {
         if (!card) return;
-        gsap.fromTo(card, { y: 40, x: index % 2 === 0 ? -30 : 30, opacity: 0, scale: 0.98 }, { y: 0, x: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out", scrollTrigger: { trigger: card, start: "top 90%" } });
+        gsap.fromTo(card, { y: 40, x: index % 2 === 0 ? -30 : 30, opacity: 0, scale: 0.98 }, { y: 0, x: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out", scrollTrigger: { trigger: card, start: "top 90%", once: true } });
       });
     }, containerRef);
     return () => ctx.revert();

@@ -26,8 +26,8 @@ export function Magnetic({
     if (!wrapper || !inner) return;
 
     // ═══ TRACKING: smooth, no overshoot ═══
-    const xTo = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out" });
-    const yTo = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
+    const xTo = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out", force3D: true });
+    const yTo = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out", force3D: true });
 
     const reset = () => {
       gsap.to(inner, {
@@ -43,8 +43,8 @@ export function Magnetic({
     let yToLive = yTo;
 
     const refreshQuickTo = () => {
-      xToLive = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out" });
-      yToLive = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out" });
+      xToLive = gsap.quickTo(inner, "x", { duration: 0.5, ease: "power3.out", force3D: true });
+      yToLive = gsap.quickTo(inner, "y", { duration: 0.5, ease: "power3.out", force3D: true });
     };
 
     let cachedRect: DOMRect | null = null;
