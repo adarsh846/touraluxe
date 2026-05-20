@@ -876,9 +876,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 group-focus-within/seg:text-blue-400 transition-colors">Origin</label>
                               <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/70 group-focus-within/seg:text-blue-400 transition-colors">Destination</label>
                             </div>
-                            <div className="flex items-center gap-6 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-6 py-4">
+                            <div className="flex items-center gap-3 md:gap-6 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-4 md:px-6 py-3 md:py-4">
                               <input 
-                                className="flex-1 bg-transparent text-[15px] font-bold text-white transition-all outline-none placeholder:text-white/10"
+                                className="flex-1 min-w-0 bg-transparent text-[15px] font-bold text-white transition-all outline-none placeholder:text-white/10"
                                 placeholder="Origin"
                                 value={segment.label.split(" ➔ ")[0] || ""}
                                 onChange={(e) => {
@@ -892,7 +892,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                                 <span className="text-blue-400 font-black text-xl select-none leading-none">➔</span>
                               </div>
                               <input 
-                                className="flex-1 bg-transparent text-[15px] font-bold text-white transition-all outline-none text-right placeholder:text-white/10"
+                                className="flex-1 min-w-0 bg-transparent text-[15px] font-bold text-white transition-all outline-none text-right placeholder:text-white/10"
                                 placeholder="Destination"
                                 value={segment.label.split(" ➔ ")[1] || ""}
                                 onChange={(e) => {
