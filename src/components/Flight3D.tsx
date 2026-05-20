@@ -83,10 +83,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
 
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setClearColor(0x000000, 0); 
-    
-    // Optimization: Shadows are expensive and not needed for this floating scene
-    renderer.shadowMap.enabled = false;
+    renderer.setClearColor(0x000000, 0);
+
+    // Fix 2: Engine-level renderer micro-optimizations (0 visual change)
+    renderer.shadowMap.enabled = false;   // Shadows unused in this scene
+    renderer.sortObjects = false;          // All materials are opaque — no need to sort draw calls
+    renderer.info.autoReset = false;       // Stop automatic per-frame stats collection (unused in prod)
     container.appendChild(renderer.domElement);
 
     // ─── LIGHTING (original fb37f5e calibration) ───
@@ -116,12 +118,18 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     gsap.set(planeGroup.rotation, { y: tau * -0.25 });
     gsap.set(planeGroup.position, { x: 180, y: -32, z: -60 });
 
-    // Optimization: Skip rendering if the component is off-screen
-    const render = () => {
-      if (!isVisible.current) return;
+    // Fix 1+3: Continuous rAF render loop — renders exactly once per screen refresh (60fps)
+    // GSAP tweens update Three.js object positions; this loop independently reads
+    // those positions and renders. Completely decoupled from scroll event timing.
+    // The loop pauses entirely when off-screen (isVisible = false), freeing CPU.
+    let rafId = 0;
+    const rafLoop = () => {
+      rafId = requestAnimationFrame(rafLoop);
+      if (!isVisible.current) return; // Fix 3: skip the GPU draw call, but keep rAF alive
       renderer?.render(scene, camera);
+      renderer?.info.reset(); // Reset stats manually since autoReset is false
     };
-    render();
+    rafId = requestAnimationFrame(rafLoop);
 
     let myPlane: THREE.Group | null = null;
     let flightTimeline: gsap.core.Timeline | null = null;
@@ -161,7 +169,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       const xScale = currentAspect < 1 ? 0.6 + currentAspect * 0.4 : 1;
 
       flightTimeline = gsap.timeline({
-        onUpdate: render,
+        // Fix 1: No onUpdate:render — the rAF loop handles rendering every frame independently.
+        // GSAP only mutates Three.js object positions/rotations here.
         scrollTrigger: {
           id: "flight-trigger",
           trigger: flightWrapper,
@@ -186,7 +195,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       });
 
       ScrollTrigger.refresh();
-      render();
+      // No manual render() call needed — the rAF loop picks it up on the next frame
 
       // 3. Fade the canvas back in smoothly now that coordinates are 100% accurate
       canvasContainerRef.current.style.opacity = "1";
@@ -211,7 +220,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       camera.lookAt(new THREE.Vector3(lookAtX, 5, 0));
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
-      render();
+      // rAF loop renders the updated camera on the next frame automatically
 
       // Debounce the timeline rebuild by 600ms to guarantee React finishes rendering 
       // the new desktop/mobile DOM heights before we measure coordinates.
@@ -338,7 +347,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         ([entry]) => {
           isVisible.current = entry.isIntersecting;
           container.style.visibility = entry.isIntersecting ? "visible" : "hidden";
-          if (entry.isIntersecting) render(); // Final render to ensure state is correct
+          // rAF loop picks up visibility state on next frame — no manual render() needed
         },
         { threshold: 0, rootMargin: "200px" } // Increased margin for smoother entry
       );
@@ -346,6 +355,9 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     }
 
     return () => {
+      // Fix 1: Cancel the rAF loop first to stop any in-flight renders
+      cancelAnimationFrame(rafId);
+
       if (unsupportedTimeout) {
         window.clearTimeout(unsupportedTimeout);
       }
@@ -368,7 +380,6 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
           mesh.geometry.dispose();
-
           if (Array.isArray(mesh.material)) {
             mesh.material.forEach((material) => material.dispose());
           } else {

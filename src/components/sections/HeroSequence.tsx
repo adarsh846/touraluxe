@@ -252,7 +252,9 @@ export function HeroSequence() {
       const obj = { frame: 0 };
       gsap.to(obj, {
         frame: TOTAL_FRAMES - 1,
-        snap: "frame",
+        // Fix 4: Removed snap:"frame" — drawFrame already calls Math.round(obj.frame),
+        // so snapping is redundant. Removing it allows smooth interpolation between
+        // frames instead of quantized position jumps on Lenis smooth scroll.
         ease: "none",
         scrollTrigger: {
           trigger: sectionRef.current,
