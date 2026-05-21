@@ -35,7 +35,7 @@ export function Featured() {
         if (error) throw error;
         setExperiences(data || []);
       } catch (err) {
-        console.error("Failed to fetch featured journeys:", err);
+        console.warn("Failed to fetch featured journeys:", err);
       } finally {
         setIsLoading(false);
       }

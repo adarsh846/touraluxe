@@ -60,31 +60,96 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
     }
   }, [profile]);
 
-  // Fetch bookings when user logs in
+  // Fetch bookings when user logs in and subscribe to real-time changes
   useEffect(() => {
-    const fetchUserBookings = async () => {
+    let isMounted = true;
+    let fallbackTimeout: NodeJS.Timeout;
+
+    const fetchUserBookings = async (isBackgroundRefresh = false) => {
       if (!user) return;
-      setBookingsLoading(true);
+      
+      // Only show the hard loading spinner if we don't already have data
+      if (!isBackgroundRefresh) {
+        setBookingsLoading(true);
+        // Safety fallback: if Supabase hangs for more than 5 seconds, forcefully clear loading state
+        fallbackTimeout = setTimeout(() => {
+          if (isMounted) setBookingsLoading(false);
+        }, 5000);
+      }
+
       try {
         const { data, error } = await supabase
           .from("bookings")
           .select("*")
-          .eq("user_id", user.id)
+          .or(`user_id.eq.${user.id},customer_email.eq.${user.email}`)
+          // Cache-buster: Use a TEXT column (customer_name) to avoid Postgres UUID casting crashes
+          .neq("customer_name", `CACHE_BUST_${Date.now()}`)
           .order("created_at", { ascending: false });
 
-        if (!error && data) {
+        if (error) {
+          console.warn("Fetch bookings error from Supabase:", error);
+        } else if (data && isMounted) {
           setBookings(data);
         }
       } catch (err) {
-        console.error("Fetch bookings error:", err);
+        console.warn("Fetch bookings unexpected error:", err);
       } finally {
-        setBookingsLoading(false);
+        if (!isBackgroundRefresh && isMounted) {
+          clearTimeout(fallbackTimeout);
+          setBookingsLoading(false);
+        }
       }
     };
 
+    let channel: any = null;
+
     if (user && isActive) {
-      fetchUserBookings();
+      fetchUserBookings(false);
+
+      // Realtime Authority 1: Subscribe to any changes in bookings (broad scope, relies on RLS)
+      channel = supabase
+        .channel('portal_bookings_changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'bookings'
+          }, 
+          () => {
+            fetchUserBookings(true); // Silent background refresh
+          }
+        )
+        .subscribe();
+
+      // Realtime Authority 2: Apple-tier fallback background sync
+      // Guarantee UI is never stale even if WebSockets drop or Postgres publications are disabled
+      const syncInterval = setInterval(() => {
+        if (isMounted) fetchUserBookings(true);
+      }, 10000); // 10s silent polling
+
+      // Realtime Authority 3: Instantly sync when the user switches back to this tab
+      const handleVisibilityChange = () => {
+        if (!document.hidden && isMounted) {
+          fetchUserBookings(true);
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(fallbackTimeout);
+        clearInterval(syncInterval);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      };
     }
+
+    return () => {
+      isMounted = false;
+      clearTimeout(fallbackTimeout);
+    };
   }, [user, isActive]);
 
   // Fetch admin-controlled portal background
@@ -327,23 +392,14 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
              ═════════════════════════════════════════════════════════════════════════════ */
           <div key="auth-view" className="space-y-16">
             
-            {/* Header / Logout Block */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/[0.05] pb-8">
+            {/* Header / Profile Info */}
+            <div className="border-b border-white/[0.05] pb-8">
               <div className="space-y-3">
-
                 <h2 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight text-white leading-none">
                   Welcome, <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/30">{fullName ? fullName.split(' ')[0] : "Traveler"}</span>.
                 </h2>
                 <p className="text-[#86868b] text-[10px] font-black uppercase tracking-[0.2em]">{user.email}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="self-start md:self-center flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.06] hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 text-white/50 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 shadow-lg backdrop-blur-md"
-              >
-                <LogOut size={12} />
-                Logout
-              </button>
             </div>
 
             {/* STACKED FULL-WIDTH SECTION LIST */}
@@ -353,20 +409,23 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
               <div className="space-y-8">
                 <div className="flex items-center gap-3">
                   <Compass size={16} className="text-white/60" />
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">My Active Bookings</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">My Bookings</h3>
                 </div>
 
-                {bookingsLoading ? (
+                {bookingsLoading && bookings.length === 0 ? (
                   <div className="p-12 rounded-3xl bg-white/[0.02] border border-white/[0.05] flex flex-col items-center justify-center gap-3">
-                    <Loader2 className="w-6 h-6 animate-spin text-white/20" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Accessing secure files...</span>
+                    <Loader2 className="w-5 h-5 text-white/40 animate-spin" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Loading bookings...</span>
                   </div>
                 ) : bookings.length === 0 ? (
-                  <div className="p-8 rounded-3xl bg-white/[0.01] border border-white/[0.05] text-center space-y-4">
-                    <p className="text-sm text-white/40 font-medium">No bookings logged to this account yet.</p>
-                    <p className="text-[10px] text-white/25 leading-relaxed max-w-sm mx-auto">
-                      Any luxury packages you submit with your email <span className="font-bold text-white/40">{user.email}</span> will automatically appear here.
-                    </p>
+                  <div className="p-12 rounded-3xl bg-white/[0.01] border border-white/[0.04] flex flex-col items-center justify-center gap-3 text-center">
+                    <AlertCircle className="w-5 h-5 text-white/30" />
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70">No Bookings Found</p>
+                      <p className="text-[10px] text-white/40 max-w-xs leading-relaxed">
+                        You don&apos;t have any active custom bookings with this account yet.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -405,9 +464,9 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                           
                           <div className="space-y-5">
                             {[
-                              { label: "Concierge Submission Received", desc: "Your booking request has been logged securely in our manifest database.", completed: true },
-                              { label: "Flight Details & Slots Booking", desc: "Aviation desk is coordinating premium airline allocation.", completed: booking.status === 'confirmed' || booking.status === 'completed' },
-                              { label: "Luxury Vouchers Released", desc: "Digital assets, hotel entry keys, and custom flight vouchers released.", completed: booking.status === 'completed' }
+                              { label: "Booking Request Received", desc: "Your booking request has been received and is under review by our design team.", completed: true },
+                              { label: "Flights & Accommodations Booking", desc: "We are currently securing your premium flights and room allotments.", completed: booking.status === 'confirmed' || booking.status === 'completed' },
+                              { label: "Travel Documents & Vouchers", desc: "Your flight tickets, hotel vouchers, and custom itinerary are ready.", completed: booking.status === 'completed' }
                             ].map((step, idx) => (
                               <div key={idx} className="flex gap-4 relative">
                                 <div className={cn(
@@ -444,7 +503,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
               <div className="space-y-8">
                 <div className="flex items-center gap-3">
                   <User size={16} className="text-white/60" />
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">Traveler Specifications</h3>
+                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">Traveler Profile</h3>
                 </div>
 
                 <form onSubmit={handleSavePreferences} className="space-y-8">
@@ -453,9 +512,9 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                     {/* LEFT COLUMN: IDENTITY & IMMIGRATION */}
                     <div className="space-y-8">
                       
-                      {/* Category 1: Passenger Information */}
+                      {/* Category 1: Personal Details */}
                       <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Passenger Information</span>
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Personal Details</span>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {/* Full Name */}
@@ -491,7 +550,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
 
                           {/* Gender */}
                           <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Gender Identification</label>
+                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Gender</label>
                             <div className="relative group">
                               <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
                               <select
@@ -512,9 +571,9 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                         </div>
                       </div>
 
-                      {/* Category 2: Travel Documents */}
+                      {/* Category 2: Passport Details */}
                       <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Passport & Immigration</span>
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Passport Details</span>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {/* Passport Number */}
@@ -566,7 +625,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
 
                           {/* Departure City */}
                           <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Departure Airport Hub</label>
+                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Departure City</label>
                             <div className="relative group">
                               <MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
                               <input
@@ -574,7 +633,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                                 required
                                 value={departureCity}
                                 onChange={(e) => setDepartureCity(e.target.value)}
-                                placeholder="ENTER DEPARTURE HUB"
+                                placeholder="ENTER DEPARTURE CITY"
                                 className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
                               />
                             </div>
@@ -587,14 +646,14 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                     {/* RIGHT COLUMN: PREFERENCES & EMERGENCY */}
                     <div className="space-y-8">
                       
-                      {/* Category 3: Contact & Preferences */}
+                      {/* Category 3: Preferences */}
                       <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Preferences & Communication</span>
+                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Preferences</span>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Phone Connection */}
+                          {/* Phone Number */}
                           <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Phone Connection</label>
+                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Phone Number</label>
                             <div className="relative group">
                               <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
                               <input
@@ -609,9 +668,9 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                             </div>
                           </div>
 
-                          {/* Aviation Class */}
+                          {/* Flight Class */}
                           <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Aviation Class preference</label>
+                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Flight Class Preference</label>
                             <div className="relative group">
                               <Crown size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
                               <select
@@ -631,7 +690,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
 
                           {/* Dietary Preferences */}
                           <div className="space-y-2 col-span-1 sm:col-span-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Dietary Specifications</label>
+                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Dietary Preferences</label>
                             <div className="relative group">
                               <Utensils size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
                               <input
@@ -646,14 +705,14 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
                         </div>
                       </div>
 
-                      {/* Category 4: Duty of Care Emergency */}
+                      {/* Category 4: Emergency Contact */}
                       <div className="p-6 md:p-8 rounded-3xl bg-black/40 border border-red-500/20 hover:border-red-500/25 backdrop-blur-xl transition-all duration-500 space-y-4 pt-5">
                         <div className="flex items-center gap-2.5 text-white/40">
                           <Heart size={12} className="text-[#ef4444] animate-pulse" />
-                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/75">Duty of Care Emergency Contact</span>
+                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/75">Emergency Contact</span>
                         </div>
                         <p className="text-[10px] text-white/65 leading-relaxed">
-                          In compliance with international aviation safety regulations, passenger lists must contain emergency contacts.
+                          Please provide an emergency contact for peace of mind during your travels.
                         </p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">

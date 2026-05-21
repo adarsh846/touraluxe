@@ -115,8 +115,9 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     const tau = Math.PI * 2;
 
     // Initial position (exact reference modified to start further offscreen)
+    // Initial position (moved to deep space off-screen so it's perfectly hidden before animation begins)
     gsap.set(planeGroup.rotation, { y: tau * -0.25 });
-    gsap.set(planeGroup.position, { x: 180, y: -32, z: -60 });
+    gsap.set(planeGroup.position, { x: 1500, y: -32, z: -60 });
 
     // Fix 1+3: Continuous rAF render loop — renders exactly once per screen refresh (60fps)
     // GSAP tweens update Three.js object positions; this loop independently reads
@@ -346,10 +347,12 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       observer = new IntersectionObserver(
         ([entry]) => {
           isVisible.current = entry.isIntersecting;
-          container.style.visibility = entry.isIntersecting ? "visible" : "hidden";
-          // rAF loop picks up visibility state on next frame — no manual render() needed
+          // IMPORTANT: Do NOT toggle container.style.visibility here.
+          // Toggling visibility on a heavy WebGL canvas on iOS forces a full GPU texture reallocation,
+          // causing the "black flash" when scrolling fast.
+          // Simply pausing the rAF loop via `isVisible` is enough to save CPU/GPU.
         },
-        { threshold: 0, rootMargin: "200px" } // Increased margin for smoother entry
+        { threshold: 0, rootMargin: "2000px 0px" } // Massive 2000px buffer zone to catch high-velocity scrolling
       );
       observer.observe(flightWrapperNode);
     }
@@ -395,8 +398,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
   return (
     <div
       ref={canvasContainerRef}
-      style={{ visibility: "hidden", opacity: 0 }}
-      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
+      style={{ opacity: 0 }}
+      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out transform-gpu"
     >
       {loadState === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center">

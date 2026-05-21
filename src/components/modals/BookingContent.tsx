@@ -259,7 +259,7 @@ export const BookingContent = memo(function BookingContent({
           setVisualManifest(manifest);
         }
       } catch (err) {
-        console.error("Visual Manifest Hydration Error:", err);
+        console.warn("Visual Manifest Hydration Error:", err);
       }
     };
 
@@ -274,7 +274,7 @@ export const BookingContent = memo(function BookingContent({
           localStorage.setItem('tr_discovery_atmosphere', data.discovery_default_image);
         }
       } catch (err) {
-        console.error("Settings fetch error:", err);
+        console.warn("Settings fetch error:", err);
       }
     };
 
@@ -798,12 +798,11 @@ export const BookingContent = memo(function BookingContent({
       if (response.ok) {
         setBookingId(res.data?.[0]?.id || "SOV-" + Math.random().toString(36).substr(2, 9).toUpperCase());
         setStep(3);
-      } else {
-        console.error("Booking Submission Error:", res.error);
+        console.warn("Booking Submission Error:", res.error);
         setError?.(res.error || "Failed to establish journey. Please verify your connection.");
       }
     } catch (err) {
-      console.error("Sovereign Submission Failure:", err);
+      console.warn("Sovereign Submission Failure:", err);
     } finally {
       setIsSubmitting(false);
     }

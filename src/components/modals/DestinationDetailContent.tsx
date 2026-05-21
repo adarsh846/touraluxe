@@ -179,7 +179,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       <section className="relative w-full h-[60vh] md:h-[70vh] flex items-end pb-16 md:pb-24">
         <div className="absolute inset-0 overflow-hidden bg-white/5">
           {destination.cover_image ? (
-            <Image src={destination.cover_image} alt={destination.name} fill className="object-cover" priority quality={85} />
+            <Image src={destination.cover_image} alt={destination.name} fill className="object-cover" priority quality={85} decoding="async" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center"><MapPin size={48} className="text-white/10" /></div>
           )}
@@ -260,7 +260,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
                   <Link key={dest.id} href={`/destinations/${dest.slug}`} className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
                     <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
                       {dest.cover_image ? (
-                        <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out" quality={80} sizes="300px" />
+                        <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out" quality={80} sizes="300px" decoding="async" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center"><MapPin size={32} className="text-white/10" /></div>
                       )}

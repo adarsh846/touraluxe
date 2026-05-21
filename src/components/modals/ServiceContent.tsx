@@ -172,7 +172,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
               <div className="flex flex-col">
                 {/* Hero */}
                 <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
-                  <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-70 grayscale-[0.2]" priority />
+                  <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-70 grayscale-[0.2]" priority decoding="async" />
                   {/* Hyper-Smooth Progressive Blend */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
                   <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
@@ -239,7 +239,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                               }}
                               className="group relative aspect-[16/11] min-w-[320px] md:min-w-[420px] flex-shrink-0 rounded-[24px] md:rounded-[32px] overflow-hidden bg-[#2c2c2e] border border-white/5 cursor-pointer hover:border-white/20 transition-all duration-700 snap-start transform-gpu will-change-transform"
                             >
-                              <Image src={pkg.image} alt={pkg.title} fill className="object-cover transition-transform duration-[1.5s] group-hover:scale-110" />
+                              <Image src={pkg.image} alt={pkg.title} fill className="object-cover transition-transform duration-[1.5s] group-hover:scale-110" decoding="async" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
                               
                               {/* Status Badges Layer */}

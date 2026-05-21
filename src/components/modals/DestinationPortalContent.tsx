@@ -21,7 +21,7 @@ export function DestinationPortalContent() {
           setDestinations(data);
         }
       } catch (err) {
-        console.error("Failed to fetch destinations:", err);
+        console.warn("Failed to fetch destinations:", err);
       } finally {
         setIsLoading(false);
       }

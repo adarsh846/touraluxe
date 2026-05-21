@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, useCallback, useMemo, Fragment } from "rea
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { useBooking, ModalView } from "@/components/BookingProvider";
-import { X, ArrowLeft, AlertCircle, Check } from "lucide-react";
+import { X, ArrowLeft, AlertCircle, Check, LogOut } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/AuthProvider";
 
 // Placeholder for content components
 import { ServiceContent } from "@/components/modals/ServiceContent";
@@ -18,6 +19,7 @@ import { PackageContent } from "@/components/modals/PackageContent";
 import { PortalContent } from "@/components/modals/PortalContent";
 
 export function ModalShell() {
+  const { user, signOut } = useAuth();
   const { isOpen, view, data, source, openModal, closeModal, isClosing, startClosing, goBack, canGoBack, history, error, errorTrigger, setError } = useBooking();
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ModalView>(null);
@@ -149,12 +151,12 @@ export function ModalShell() {
   useEffect(() => {
     if (isOpen && !isClosing && modalRef.current) {
       const tl = gsap.timeline();
-      gsap.set(overlayRef.current, { opacity: 0, backdropFilter: "blur(0px)" });
+      // OPTIMIZATION: Do not animate backdropFilter radius. Just animate opacity of a static blurred div.
+      gsap.set(overlayRef.current, { opacity: 0 });
       gsap.set(modalRef.current, { y: 100, opacity: 0, scale: 0.95, pointerEvents: "none" });
 
       tl.to(overlayRef.current, { 
         opacity: 1, 
-        backdropFilter: "blur(20px)", 
         duration: 0.4, 
         ease: "power3.out" 
       })
@@ -187,7 +189,6 @@ export function ModalShell() {
       })
       .to(overlayRef.current, { 
         opacity: 0, 
-        backdropFilter: "blur(0px)", 
         duration: 0.3, 
         ease: "power3.in" 
       }, "-=0.1");
@@ -396,6 +397,22 @@ export function ModalShell() {
                         return getOrigin(activeSource);
                       })()}
                     </span>
+                  </button>
+                </div>
+              </Magnetic>
+            )}
+            {activeView === 'PORTAL' && user && (
+              <Magnetic>
+                <div className="relative group block">
+                  {/* iOS 26 Deep Shadow & Glow */}
+                  <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
+                  <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
+                  <button 
+                    onClick={() => signOut()}
+                    className="relative px-5 h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-2.5 transition-all duration-500 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 text-white/50 text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
+                  >
+                    <LogOut size={12} />
+                    Logout
                   </button>
                 </div>
               </Magnetic>

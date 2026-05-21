@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Helper to fetch the profile from the database
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, activeUser?: User | null) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -53,48 +53,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         // If profile doesn't exist yet, we can create one as a safety net
-        if (error.code === "PGRST116" && user) {
+        const resolvingUser = activeUser || user;
+        if (error.code === "PGRST116" && resolvingUser) {
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert([{ id: userId, email: user.email || "" }])
+            .insert([{ id: userId, email: resolvingUser.email || "" }])
             .select()
             .single();
 
           if (!insertError) {
             setProfile(newProfile);
             return;
+          } else {
+            console.warn("Profile Insert Error:", insertError);
           }
         }
-        console.error("Profile Fetch Error:", error);
+        console.warn("Profile Fetch Error:", error);
         setProfile(null);
       } else {
         setProfile(data);
       }
     } catch (err) {
-      console.error("Failed to retrieve profile:", err);
+      console.warn("Failed to retrieve profile:", err);
       setProfile(null);
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      await fetchProfile(user.id, user);
     }
   };
 
   useEffect(() => {
+    let isMounted = true;
+    let fallbackTimeout = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 5000); // 5s absolute circuit breaker
+
     // 1. Check active session on mount
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        // Promise.race to guarantee we don't hang if getSession deadlocks
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<any>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 4500))
+        ]);
+        
+        const session = result?.data?.session;
+        if (session?.user && isMounted) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user.id, session.user);
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
+        console.warn("Auth initialization error/timeout:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -103,19 +117,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. Listen for auth changes (sign-in, sign-out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
         if (currentUser) {
-          await fetchProfile(currentUser.id);
+          try {
+            await Promise.race([
+              fetchProfile(currentUser.id, currentUser),
+              new Promise<void>((resolve) => setTimeout(() => resolve(), 4500))
+            ]);
+          } catch (e) {
+            console.warn("Profile fetch timeout/error during auth change", e);
+          }
         } else {
           setProfile(null);
         }
-        setLoading(false);
+        
+        if (isMounted) {
+          clearTimeout(fallbackTimeout);
+          setLoading(false);
+        }
       }
     );
 
     return () => {
+      isMounted = false;
+      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
   }, []);

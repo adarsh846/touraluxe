@@ -18,7 +18,7 @@ export function HeroSequence() {
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
-  const framesRef = useRef<HTMLImageElement[]>([]);
+  const framesRef = useRef<(ImageBitmap | HTMLImageElement)[]>([]);
   const currentFrameRef = useRef(-1);
   const rafRef = useRef<number>(0);
   const pendingFrameRef = useRef(0);
@@ -37,10 +37,13 @@ export function HeroSequence() {
       if (!canvas || !ctx) return;
 
       const img = framesRef.current[idx];
-      if (!img || !img.complete) {
+      const isComplete = img && ('complete' in img ? img.complete : true);
+      if (!isComplete) {
         for (let i = idx; i >= 0; i--) {
-          if (framesRef.current[i]?.complete) {
-            ctx.drawImage(framesRef.current[i], 0, 0, canvas.width, canvas.height);
+          const fallbackImg = framesRef.current[i];
+          const fallbackComplete = fallbackImg && ('complete' in fallbackImg ? fallbackImg.complete : true);
+          if (fallbackComplete) {
+            ctx.drawImage(fallbackImg, 0, 0, canvas.width, canvas.height);
             currentFrameRef.current = i;
             return;
           }
@@ -88,7 +91,7 @@ export function HeroSequence() {
 
   // Load frames incrementally with IntersectionObserver & Dynamic Resolution
   useEffect(() => {
-    const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
+    const images: (ImageBitmap | HTMLImageElement)[] = new Array(TOTAL_FRAMES);
     framesRef.current = images;
     
     let loadedCount = 0;
@@ -145,19 +148,16 @@ export function HeroSequence() {
         .then(blob => {
           if (!isActive) return;
           
-          const objectUrl = URL.createObjectURL(blob);
-          const img = new Image();
-          img.decoding = "async"; // Force background thread decoding
-          img.src = objectUrl;
-          
-          // Wait for the GPU to finish decoding the image before notifying the main thread
-          img.decode()
-            .then(() => {
+          // Off-Thread ImageBitmap Decoding (True Apple-tier optimization)
+          // createImageBitmap decodes the image raw bytes on a background web worker thread.
+          // This returns a naked GPU texture (ImageBitmap) instead of a heavy HTMLImageElement DOM node.
+          createImageBitmap(blob)
+            .then((bitmap) => {
               if (!isActive) {
-                URL.revokeObjectURL(objectUrl);
+                bitmap.close();
                 return;
               }
-              images[targetIdx] = img;
+              images[targetIdx] = bitmap;
               loadedCount++;
               setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
               
@@ -174,7 +174,6 @@ export function HeroSequence() {
             })
             .catch(() => {
               if (!isActive) return;
-              URL.revokeObjectURL(objectUrl);
               loadedCount++;
               loadNext();
             });
@@ -235,8 +234,12 @@ export function HeroSequence() {
       // 4. Aggressive Memory Garbage Collection
       framesRef.current.forEach(img => {
         if (img) {
-          try { URL.revokeObjectURL(img.src); } catch(e){}
-          img.src = "";
+          if ('close' in img) {
+            img.close(); // Clean up ImageBitmap from GPU memory
+          } else if ('src' in img) {
+            try { URL.revokeObjectURL(img.src); } catch(e){}
+            img.src = ""; // Clean up HTMLImageElement
+          }
         }
       });
       framesRef.current = [];
@@ -344,7 +347,7 @@ export function HeroSequence() {
   return (
     <section
       ref={sectionRef}
-      className="relative z-10 w-full bg-black text-white"
+      className="relative z-10 w-full bg-black text-white contain-paint"
       style={{ height: "600vh" }}
     >
       {/* 
@@ -352,7 +355,7 @@ export function HeroSequence() {
         We pin this div instead of the section, so GSAP's pin-spacer 
         is safely isolated from the flexbox layout of page.tsx.
       */}
-      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden bg-black">
+      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden bg-black transform-gpu will-change-transform" style={{ transform: "translateZ(0)" }}>
         {/* Hardware-Accelerated Canvas with Cinematic Color Grading */}
         <canvas 
           ref={canvasRef} 

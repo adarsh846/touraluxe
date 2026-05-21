@@ -308,6 +308,7 @@ export const PackageContent = memo(({
             className="object-cover opacity-75 grayscale-[0.05] brightness-[0.85]"
             quality={100}
             priority
+            decoding="async"
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-[#020202] via-[#020202]/10 to-[#020202]" />
@@ -532,6 +533,7 @@ export const PackageContent = memo(({
                         sizes="80px"
                         quality={35}
                         unoptimized
+                        decoding="async"
                       />
                     </button>
                   );

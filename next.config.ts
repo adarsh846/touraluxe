@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
+  reactStrictMode: false,
 
   // Aggressive cache headers for static sequence assets
   async headers() {

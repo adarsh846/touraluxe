@@ -3,7 +3,13 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Pass multiTab: false to disable cross-tab synchronization locks.
+// This completely prevents the notorious "Lock stolen" AbortError in Next.js React Strict Mode.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    multiTab: false
+  }
+});
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 export const supabaseAdmin = supabaseServiceKey 

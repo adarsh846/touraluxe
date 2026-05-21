@@ -66,6 +66,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Enterprise Just-In-Time Identity Synchronization
+    let finalUserId = userId || null;
+    if (!finalUserId && customerEmail) {
+      const { data: profileMatch } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", customerEmail)
+        .single();
+      
+      if (profileMatch?.id) {
+        finalUserId = profileMatch.id;
+      }
+    }
+
     // 2. Insert into Supabase
     const { data, error } = await supabase
       .from("bookings")
@@ -80,7 +94,7 @@ export async function POST(req: Request) {
           special_requests: specialRequests,
           total_amount: totalAmount,
           booking_source: bookingSource || "GENERAL_INQUIRY",
-          user_id: userId || null,
+          user_id: finalUserId,
           status: "pending",
         },
       ])

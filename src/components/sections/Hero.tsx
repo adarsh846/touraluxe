@@ -196,7 +196,7 @@ export function Hero() {
           ]);
         }
       } catch (err) {
-        console.error("Error fetching dynamic themes:", err);
+        console.warn("Error fetching dynamic themes:", err);
         setTrendingPills([
           { label: "Mountain Retreats", value: "Mountain" },
           { label: "Coastal Sanctuaries", value: "Beach" },
@@ -313,7 +313,7 @@ export function Hero() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white"
+      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white contain-paint"
     >
       {/* Background Image Container */}
       <div 
