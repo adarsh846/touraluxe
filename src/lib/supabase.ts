@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholde
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     multiTab: false
-  }
+  } as any
 });
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
