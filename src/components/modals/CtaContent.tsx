@@ -108,7 +108,7 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
                 </svg>
               </div>
               <div>
-                <h3 className="text-3xl font-semibold text-white tracking-tight">Inquiry Received</h3>
+                <h3 className="text-[clamp(1.5rem,4vw,2rem)] text-balance font-semibold text-white tracking-tight">Inquiry Received</h3>
                 <p className="text-[#86868b] mt-3 leading-relaxed">Thank you. Your request is being prioritized. A curator will contact you shortly to begin the design process.</p>
               </div>
               <button onClick={() => startClosing()} className="px-12 py-4 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-[10px] rounded-full hover:bg-white hover:text-black transition-all">Close Window</button>

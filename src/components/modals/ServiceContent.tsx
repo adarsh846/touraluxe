@@ -295,7 +295,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                     <Magnetic>
                       <button 
                         onClick={() => openModal('BOOKING', undefined, `SERVICES_CUSTOM_${service.title.toUpperCase().replace(/\s+/g, '_')}`)}
-                        className="whitespace-nowrap px-8 py-4 rounded-full bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 transition-all duration-500 shadow-xl"
+                        className="whitespace-nowrap px-[clamp(1.5rem,3vw,2.5rem)] py-[clamp(0.75rem,2vw,1.25rem)] rounded-full bg-white text-black text-[clamp(9px,1.5vw,11px)] font-black uppercase tracking-widest hover:bg-white/90 transition-all duration-500 shadow-xl"
                       >
                         Design Your Own Journey
                       </button>

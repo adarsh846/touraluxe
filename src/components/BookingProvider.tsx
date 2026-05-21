@@ -83,13 +83,24 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
+  // ── History API: hardware back button support ──────────────────────────────
+  // We track whether we have pushed a fake history entry so we don't double-push.
+  const hasPushedHistoryRef = useRef(false);
+
+  // When the modal opens for the first time, push a fake state so the
+  // hardware back button fires `popstate` instead of leaving the page.
   const openModal = useCallback((view: ModalView, data?: any, source: string = "GENERAL_INQUIRY", intent?: string) => {
-    setErrorState(null); // Clear errors on view change
+    setErrorState(null);
     if (isOpenRef.current && stateRef.current.view && stateRef.current.view !== view) {
       const currentState = stateRef.current;
       setHistory(prev => [...prev, currentState]);
     } else if (!isOpenRef.current) {
       setHistory([]);
+      // Push a fake entry so the HW back button fires popstate
+      if (!hasPushedHistoryRef.current) {
+        window.history.pushState({ touraluxeModal: true }, '');
+        hasPushedHistoryRef.current = true;
+      }
     }
     
     setModalState({ view, data, source, intent });
@@ -121,12 +132,45 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   const closeModal = useCallback(() => {
+    // If we pushed a fake history entry, clean it up silently
+    if (hasPushedHistoryRef.current) {
+      hasPushedHistoryRef.current = false;
+      // Only go back if the current state is our fake one (avoid double-back)
+      if (window.history.state?.touraluxeModal) {
+        window.history.back();
+      }
+    }
     setIsOpen(false);
     setIsClosing(false);
     setModalState({ view: null });
     setHistory([]);
     setErrorState(null);
   }, []);
+
+  // ── popstate: intercept HW back button ────────────────────────────────────
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // Only intercept if our modal is open
+      if (!isOpenRef.current) return;
+
+      // Prevent the browser from actually navigating away
+      // Re-push so the back button still works if pressed again
+      window.history.pushState({ touraluxeModal: true }, '');
+
+      if (history.length > 0) {
+        // Navigate back within modal history
+        goBack();
+      } else {
+        // No more modal history — close the modal
+        setIsClosing(true);
+        setErrorState(null);
+        hasPushedHistoryRef.current = false;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [history, goBack]);
 
   const contextValue = useMemo(() => ({ 
     isOpen, 

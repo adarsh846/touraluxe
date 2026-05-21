@@ -16,91 +16,9 @@ export function Hero() {
   const [isMobile, setIsMobile] = useState(false);
   const { settings } = useSettings();
   const { openBooking } = useBooking();
-  const [searchValue, setSearchValue] = useState("");
   const [trendingPills, setTrendingPills] = useState<{ label: string; value: string }[]>([]);
-  const pillRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const textMeasureRef = useRef<HTMLSpanElement>(null);
-  const inputAreaRef = useRef<HTMLDivElement>(null);
-  const hasMountedRef = useRef(false);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
 
-  // iOS 26 Pointer-Tracking Glow
-  const handleGlowMove = useCallback((clientX: number, clientY: number) => {
-    if (!pillRef.current || !glowRef.current) return;
-    const rect = pillRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    
-    glowRef.current.style.background = `
-      radial-gradient(ellipse 300px 180px at ${x}px ${y}px, rgba(255,251,240,0.15), rgba(255,255,255,0.02) 60%, transparent 100%),
-      radial-gradient(ellipse 500px 300px at ${x}px ${y}px, rgba(255,255,255,0.03), transparent 70%),
-      radial-gradient(ellipse 800px 500px at ${x}px ${y}px, rgba(255,255,255,0.01), transparent 80%)
-    `;
-    glowRef.current.style.opacity = '1';
-    pillRef.current.style.borderColor = 'rgba(255,255,255,0.35)';
-  }, []);
-
-  // Dynamic Island Elastic Resizing Engine
-  // KEY INSIGHT: Animate the INPUT AREA's width, not the pill container.
-  // The pill is inline-flex with no explicit width, so it auto-wraps its children.
-  // This eliminates all flex-1 vs container-width CSS conflicts.
-  useEffect(() => {
-    if (!textMeasureRef.current || !inputAreaRef.current) return;
-    
-    const calculate = () => {
-      if (!textMeasureRef.current || !inputAreaRef.current) return;
-
-      // Measure the exact pixel width the text needs
-      const textWidth = textMeasureRef.current.scrollWidth;
-      const iconWidth = 14 + 8; // icon size + gap-2
-      const inputPadding = isMobile ? 24 : 32; // px-3 = 12*2 on mobile, px-4 = 16*2 on desktop
-      const minTextWidth = isMobile ? 40 : 60;
-      
-      // Buffer only when actively typing to prevent clipping during elastic animation
-      const activeBuffer = searchValue ? (isMobile ? 40 : 60) : 0;
-      
-      const naturalWidth = Math.max(textWidth, minTextWidth) + iconWidth + inputPadding + activeBuffer;
-      
-      // Max-width clamp: input area can't push the pill beyond the screen
-      const vw = window.innerWidth;
-      const buttonEl = pillRef.current?.querySelector('button') as HTMLElement | null;
-      const buttonWidth = buttonEl?.offsetWidth || (isMobile ? 90 : 140);
-      const pillPadding = isMobile ? 12 : 16; // p-1.5 = 6*2 on mobile, p-2 = 8*2 on desktop
-      const containerPadding = 32; // px-4 = 16*2
-      const maxInputWidth = vw - containerPadding - pillPadding - buttonWidth - 8; // 8px breathing room
-      
-      const targetWidth = Math.min(naturalWidth, maxInputWidth);
-      
-      // First render or resize: instant sizing. After that: elastic animation.
-      const isFirstRender = !hasMountedRef.current;
-      hasMountedRef.current = true;
-      
-      gsap.killTweensOf(inputAreaRef.current);
-      gsap.to(inputAreaRef.current, {
-        width: targetWidth,
-        duration: isFirstRender ? 0.01 : 1.2,
-        ease: isFirstRender ? "none" : "elastic.out(1, 0.4)",
-        force3D: true,
-      });
-    };
-
-    // Run on mount/change
-    const raf = requestAnimationFrame(calculate);
-    
-    // Also run on window resize to catch layout shifts
-    window.addEventListener('resize', calculate);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', calculate);
-    };
-  }, [searchValue, isMobile]);
-
-  const handleGlowLeave = useCallback(() => {
-    if (glowRef.current) glowRef.current.style.opacity = '0';
-    if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.1)';
-  }, []);
 
   const title = settings.hero_title || "We don't sell trips. \nWe craft experiences.";
   const subtitle = settings.hero_subtitle || "Immersive, exclusive, and tailored entirely to your desires.";
@@ -313,7 +231,7 @@ export function Hero() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white contain-paint"
+      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
       {/* Background Image Container */}
       <div 
@@ -338,9 +256,9 @@ export function Hero() {
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col items-center text-center mt-12 md:mt-20">
         
         {/* Cinematic Headline */}
-        <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[5.5rem] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 flex flex-wrap justify-center gap-x-4 overflow-hidden">
+        <h1 className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 flex flex-wrap justify-center overflow-hidden">
           {titleLines.map((line, lIdx) => (
-            <div key={lIdx} className="w-full flex justify-center gap-x-2 md:gap-x-4 overflow-hidden py-1">
+            <div key={lIdx} className="w-full flex flex-wrap justify-center gap-x-[clamp(0.25em,1.5vw,1rem)] overflow-hidden py-1">
               {line.split(' ').map((word, wIdx) => (
                 <span key={wIdx} className="word inline-block origin-bottom transform-gpu opacity-0">
                   {word}
@@ -353,7 +271,7 @@ export function Hero() {
         {/* Refined Secondary Narrative */}
         <p 
           ref={subheadRef}
-          className="text-xs sm:text-sm md:text-base font-normal text-white/50 tracking-wide max-w-[620px] mb-12 leading-relaxed opacity-0 transform-gpu"
+          className="text-[clamp(0.875rem,2.5vw,1rem)] text-pretty font-normal text-white/50 tracking-wide max-w-[620px] mb-[clamp(2rem,5vw,3rem)] leading-relaxed opacity-0 transform-gpu"
         >
           {subtitle}
         </p>
@@ -394,7 +312,6 @@ export function Hero() {
                 <button
                   key={theme.label}
                   onClick={() => {
-                    setSearchValue(theme.value);
                     openBooking(undefined, "HERO_PORTAL", theme.value);
                   }}
                   className="px-3 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider text-white/70 hover:text-amber-400 border border-white/15 hover:border-amber-400/30 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-sm transition-all duration-500 active:scale-95 cursor-pointer shrink-0"
@@ -406,74 +323,21 @@ export function Hero() {
           </div>
         )}
 
-        {/* Sovereign Discovery Command Bar */}
-        <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-[700ms] px-4 flex justify-center">
-          <div 
-            ref={pillRef}
-            className="relative inline-flex items-center p-1.5 md:p-2 bg-black/95 border border-white/10 rounded-full backdrop-blur-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 transform-gpu"
-            onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
-            onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
-            onMouseLeave={handleGlowLeave}
-            onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-            onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-            onTouchEnd={handleGlowLeave}
-          >
-            {/* Hidden Span for Text Measurement */}
-            <span ref={textMeasureRef} className="absolute invisible whitespace-pre text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em]">
-              {searchValue || (isMobile ? "Search destinations" : "Where does your heart long to go?")}
-            </span>
-
-            {/* iOS 26 Pointer-Tracking Glow Overlay */}
-            <div 
-              ref={glowRef}
-              className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
-              style={{ opacity: 0, mixBlendMode: 'screen' }}
-            />
-            
-            {/* Search Input Area — THIS is what GSAP animates, not the pill */}
-            <div ref={inputAreaRef} className="flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
-              <Search className="text-white/40 shrink-0" size={14} />
-              <input
-                type="text"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder={isMobile ? "Search destinations" : "Where does your heart long to go?"}
-                className="w-full bg-transparent text-white placeholder-white/35 text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
-              />
-            </div>
-
-            {/* Explore Button — fixed size, pill wraps around it naturally */}
-            <div className="shrink-0 relative z-10">
-              <Magnetic>
-                <button
-                  onClick={() => {
-                    openBooking(undefined, "HERO_PORTAL", searchValue.trim() || "Explore");
-                  }}
-                  className="bg-gradient-to-br from-yellow-400 to-amber-600 text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] px-4 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
-                >
-                  <span>Explore</span>
-                  <ArrowRight size={10} className="stroke-[3]" />
-                </button>
-              </Magnetic>
-            </div>
-          </div>
-        </div>
-
 
       </div>
 
       {/* Scroll Indicator */}
-      <div className="scroll-indicator absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0">
-        {isMobile ? (
+      <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0 pointer-events-none md:hidden">
+        {/* {isMobile ? ( */}
           <div className="flex flex-col items-center">
             <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-amber-400 rotate-45 animate-pulse mb-1" />
             <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-amber-400 rotate-45 animate-pulse [animation-delay:0.2s]" />
           </div>
-        ) : (
+        {/* ) : (
           <div className="w-[16px] h-[26px] border border-white/20 rounded-full flex justify-center p-1">
             <div className="w-[1.5px] h-[5px] bg-amber-400 rounded-full animate-bounce" />
           </div>
-        )}
+        )} */}
         <span className="text-[7px] font-black tracking-[0.25em] uppercase text-white/20">Scroll</span>
       </div>
     </section>

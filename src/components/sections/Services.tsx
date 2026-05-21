@@ -152,15 +152,15 @@ export function Services() {
   }, [openModal]);
 
   return (
-    <section ref={containerRef} id="services" className="scroll-mt-20 pt-10 pb-20 md:pt-16 md:pb-32 px-6 w-full bg-black text-foreground min-h-screen flex flex-col items-center">
+    <section ref={containerRef} id="services" className="scroll-mt-20 pt-[clamp(2.5rem,5vw,4rem)] pb-[clamp(5rem,8vw,8rem)] px-[clamp(1.5rem,4vw,4rem)] w-full bg-black text-foreground flex flex-col items-center">
       <div className="max-w-[1200px] w-full mx-auto">
-        <div className="services-header mb-20 max-w-2xl">
-          <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
-          <p className="text-lg md:text-xl text-[#86868b] tracking-wide opacity-0 whitespace-pre-wrap">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
+        <div className="services-header mb-[clamp(3rem,6vw,5rem)] max-w-2xl">
+          <h2 className="text-[clamp(2rem,8vw,3.75rem)] leading-tight text-balance font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
+          <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] text-pretty text-[#86868b] tracking-wide opacity-0">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
         </div>
 
         <div 
-          className="flex flex-row overflow-x-auto lg:overflow-visible snap-x snap-mandatory scrollbar-hide gap-5 pt-10 pb-10 px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-8 lg:pb-10"
+          className="flex flex-row overflow-x-auto lg:overflow-visible snap-x snap-mandatory scrollbar-hide gap-[clamp(1.25rem,3vw,2rem)] pt-[clamp(2.5rem,5vw,3rem)] pb-[clamp(2.5rem,5vw,3rem)] px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-[clamp(1.5rem,3vw,2rem)] lg:pb-[clamp(2.5rem,5vw,3rem)]"
         >
           {SERVICES.map((service, index) => (
             <div 
@@ -196,7 +196,7 @@ export function Services() {
                           </p>
                           <h3 
                             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                            className="text-2xl md:text-3xl font-light tracking-tight text-white leading-none italic drop-shadow-lg"
+                            className="text-[clamp(1.25rem,6vw,2rem)] text-balance font-light tracking-tight text-white leading-none italic drop-shadow-lg"
                           >
                             {service.title}
                           </h3>

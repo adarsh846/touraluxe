@@ -9,6 +9,7 @@ import { Marquee } from "@/components/sections/Marquee";
 import { CTA } from "@/components/sections/CTA";
 import { Footer } from "@/components/Footer";
 import { FlightStage } from "@/components/FlightStage";
+import { FloatingSearch } from "@/components/FloatingSearch";
 
 export default function Home() {
   return (
@@ -32,6 +33,7 @@ export default function Home() {
       </main>
 
       <Footer />
+      <FloatingSearch />
     </>
   );
 }

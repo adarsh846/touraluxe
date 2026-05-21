@@ -98,7 +98,7 @@ export function DestinationPortalContent() {
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] max-w-5xl animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
+          <h1 className="text-[clamp(2rem,8vw,5rem)] text-balance font-bold tracking-tight leading-[1.1] max-w-5xl animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
             <span className="bg-gradient-to-b from-white via-white/80 to-white/40 bg-clip-text text-transparent inline-block">Discover Your</span>
             <br className="md:hidden" />
             <span className="md:ml-5 bg-gradient-to-b from-[#86868b] via-[#a1a1a6] to-[#86868b] bg-clip-text text-transparent font-normal italic inline-block">Next Chapter.</span>

@@ -351,7 +351,7 @@ export function HeroSequence() {
   return (
     <section
       ref={sectionRef}
-      className="relative z-10 w-full bg-black text-white contain-paint"
+      className="relative z-10 w-full bg-black text-white"
       style={{ height: "600vh" }}
     >
       {/* 
@@ -359,7 +359,7 @@ export function HeroSequence() {
         We pin this div instead of the section, so GSAP's pin-spacer 
         is safely isolated from the flexbox layout of page.tsx.
       */}
-      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden bg-black transform-gpu will-change-transform" style={{ transform: "translateZ(0)" }}>
+      <div ref={pinRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden bg-black">
         {/* Hardware-Accelerated Canvas with Cinematic Color Grading */}
         <canvas 
           ref={canvasRef} 
@@ -400,7 +400,7 @@ export function HeroSequence() {
         {/* Content overlay */}
         <div className="hero-content absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
           <div className="hero-content-wrapper max-w-4xl mx-auto will-change-transform">
-            <h1 className="hero-title text-[9.5vw] sm:text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tighter leading-[1.1] sm:leading-[1] mb-4 sm:mb-6 text-white flex flex-col items-center justify-center gap-y-1 sm:gap-y-2">
+            <h1 className="hero-title text-[clamp(2.5rem,8vw,7rem)] font-bold tracking-tighter leading-[1.1] sm:leading-[1] mb-4 sm:mb-6 text-white flex flex-col items-center justify-center gap-y-1 sm:gap-y-2">
               <div className="flex flex-wrap justify-center gap-x-[0.2em]">
                 <span className="word inline-block opacity-0">We</span>
                 <span className="word inline-block opacity-0">don&apos;t</span>
@@ -413,14 +413,14 @@ export function HeroSequence() {
                 <span className="word inline-block text-white/90 opacity-0">experiences.</span>
               </div>
             </h1>
-            <p className="hero-subhead text-[4vw] sm:text-xl md:text-2xl lg:text-3xl max-w-[90%] sm:max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0">
+            <p className="hero-subhead text-[clamp(1rem,3vw,2rem)] text-pretty max-w-[90%] sm:max-w-3xl mx-auto font-medium tracking-tight text-white/80 opacity-0">
               A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.
             </p>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div className="scroll-indicator absolute bottom-16 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none">
+        <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none md:hidden">
           <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">
             Scroll
           </span>

@@ -1190,7 +1190,7 @@ export const BookingContent = memo(function BookingContent({
                                       <div className="space-y-4 w-full">
                                         <div className="flex items-end justify-between gap-4">
                                           <div className="space-y-1 flex-1 min-w-0">
-                                            <h3 className="text-2xl md:text-4xl font-black tracking-tight text-white/90 drop-shadow-2xl">
+                                            <h3 className="text-[clamp(1.5rem,4vw,2.25rem)] text-balance font-black tracking-tight text-white/90 drop-shadow-2xl">
                                               {pkg.title}
                                             </h3>
                                           </div>
@@ -1218,7 +1218,7 @@ export const BookingContent = memo(function BookingContent({
                                                 {pkgPricing.symbol}{pkgPricing.originalTotal.toLocaleString()}
                                               </span>
                                             )}
-                                            <p className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none drop-shadow-xl">
+                                            <p className="text-[clamp(1.8rem,4vw,2.25rem)] font-black text-white tracking-tighter leading-none drop-shadow-xl">
                                               {pkgPricing.formattedFinal}
                                             </p>
                                             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
@@ -1516,7 +1516,7 @@ export const BookingContent = memo(function BookingContent({
                                     >
                                       -
                                     </button>
-                                    <span className="text-2xl md:text-3xl font-light tracking-tight text-white tabular-nums">
+                                    <span className="text-[clamp(1.5rem,3vw,1.875rem)] font-light tracking-tight text-white tabular-nums">
                                       {t.count}
                                     </span>
                                     <button
@@ -1888,7 +1888,7 @@ export const BookingContent = memo(function BookingContent({
                     <div className="w-full p-6 md:p-10 border-b border-white/15 bg-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="space-y-2 text-center md:text-left">
                         <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">Destination</span>
-                        <h4 className="text-xl md:text-3xl font-black text-white tracking-tight leading-tight">
+                        <h4 className="text-[clamp(1.25rem,3vw,1.875rem)] text-balance font-black text-white tracking-tight leading-tight">
                           {internalPackage?.title || destination}
                         </h4>
                         <div className="flex items-center justify-center md:justify-start gap-2 text-white/80">
@@ -2047,7 +2047,7 @@ export const BookingContent = memo(function BookingContent({
                       <div className="space-y-3 w-full flex flex-col items-center md:items-end text-center md:text-right">
                         <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">{DOSSIER_PROTOCOL.LABELS.INVESTMENT_HEADER}</span>
                         <div className="flex flex-col items-center md:items-end gap-3">
-                          <span className="text-3xl md:text-5xl font-black text-white tracking-tighter tabular-nums leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                          <span className="text-[clamp(1.8rem,5vw,3rem)] font-black text-white tracking-tighter tabular-nums leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                             {internalPackage?.isCustom ? "Personalized" : totalInvestment}
                           </span>
                           <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-sm flex items-center justify-center min-w-[120px]">
@@ -2072,7 +2072,7 @@ export const BookingContent = memo(function BookingContent({
                 <Check size={32} />
               </div>
               <div className="space-y-4">
-                <h3 className="text-5xl font-bold tracking-tight text-white/90 uppercase">
+                <h3 className="text-[clamp(2.5rem,6vw,3rem)] text-balance font-bold tracking-tight text-white/90 uppercase">
                   {internalPackage?.isCustom ? "Inquiry Received" : DOSSIER_PROTOCOL.FALLBACKS.ESTABLISHED_TITLE}
                 </h3>
                 <div className="flex flex-col items-center gap-3">

@@ -298,7 +298,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
           <div key="login-view" className="min-h-[65vh] flex flex-col justify-center items-center max-w-md mx-auto space-y-12 py-10">
             <div className="text-center space-y-4">
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 block">Access the Lounge</span>
-              <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none">Traveler Portal.</h2>
+              <h2 className="text-[clamp(2.5rem,7vw,4rem)] text-balance font-black text-white tracking-tighter leading-none">Traveler Portal.</h2>
               <p className="text-white/50 text-sm font-medium tracking-tight leading-relaxed">
                 Log in securely via Magic Link to access your active concierge manifests, travel vouchers, and preferences.
               </p>
@@ -395,7 +395,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
             {/* Header / Profile Info */}
             <div className="border-b border-white/[0.05] pb-8">
               <div className="space-y-3">
-                <h2 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight text-white leading-none">
+                <h2 className="text-[clamp(2rem,6vw,4rem)] text-balance font-light tracking-tight text-white leading-none">
                   Welcome, <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/30">{fullName ? fullName.split(' ')[0] : "Traveler"}</span>.
                 </h2>
                 <p className="text-[#86868b] text-[10px] font-black uppercase tracking-[0.2em]">{user.email}</p>

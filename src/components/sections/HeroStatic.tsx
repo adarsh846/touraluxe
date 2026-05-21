@@ -97,7 +97,7 @@ export function HeroStatic() {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto">
         <h1
-          className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
+          className="text-[clamp(2rem,8vw,5rem)] text-balance font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
         >
           <span className="word inline-block opacity-0">We</span>
           <span className="word inline-block opacity-0">don&apos;t</span>
@@ -118,7 +118,7 @@ export function HeroStatic() {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="scroll-indicator absolute bottom-16 md:bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0 pointer-events-none">
+      <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0 pointer-events-none md:hidden">
         <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">Scroll</span>
         <svg className="scroll-chevron w-4 h-4 text-white/40 animate-bounce" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 6l4 4 4-4" />

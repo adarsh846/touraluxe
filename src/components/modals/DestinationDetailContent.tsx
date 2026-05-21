@@ -164,7 +164,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
   if (isError || !destination) {
     return (
       <div className="w-full min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-white mb-4">Destination Not Found</h1>
+        <h1 className="text-[clamp(1.5rem,4vw,2rem)] text-balance font-semibold tracking-tight text-white mb-4">Destination Not Found</h1>
         <p className="text-white/40 mb-8">We couldn&apos;t find the destination you&apos;re looking for.</p>
         <Link href="/destinations" className="px-6 py-3 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">
           Browse All Destinations
@@ -196,7 +196,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
             <span className="text-white/20">/</span>
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/80">{destination.name}</span>
           </div>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-semibold tracking-tight leading-none text-white mb-6">{destination.name}</h1>
+          <h1 className="text-[clamp(2.5rem,8vw,6rem)] text-balance font-semibold tracking-tight leading-none text-white mb-6">{destination.name}</h1>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.15em] text-white/80">{packages.length} Journeys</div>
             {destination.region && <div className="px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/5 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">{destination.region}</div>}
@@ -249,7 +249,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
           <div className="max-w-[1200px] mx-auto">
             <div className="flex items-center justify-between mb-10">
               <div>
-                <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">Explore More</h2>
+                <h2 className="text-[clamp(1.25rem,4vw,2rem)] text-balance font-semibold tracking-tight text-white">Explore More</h2>
                 <p className="text-white/30 text-sm mt-1">Other destinations you might love</p>
               </div>
               <Magnetic><Link href="/destinations" className="px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:bg-white hover:text-black transition-all duration-500">View All</Link></Magnetic>

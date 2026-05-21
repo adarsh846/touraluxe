@@ -318,13 +318,11 @@ export const PackageContent = memo(({
         
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'entrance')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 animate-in fade-in duration-1000 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] animate-in fade-in duration-1000 snap-center snap-always"
         >
           <div className="space-y-10">
-            <div className="flex flex-col items-center gap-6">
-              <span className="text-[10px] font-bold uppercase tracking-[0.6em] text-white">{experience.location}</span>
-              <div className="w-12 h-[1px] bg-white/60" />
-            </div>
+            {/* Location pill removed — title already conveys the destination */}
+            <div className="w-12 h-[1px] bg-white/60 mx-auto" />
             <h1 className="text-[clamp(2.5rem,8vw,8rem)] font-bold tracking-tight text-white leading-[0.9] drop-shadow-2xl">
               {experience.title}
             </h1>
@@ -357,12 +355,12 @@ export const PackageContent = memo(({
 
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'story')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 animate-in fade-in duration-1000 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] animate-in fade-in duration-1000 snap-center snap-always"
         >
-          <h2 className="text-4xl lg:text-7xl font-bold text-white tracking-tight leading-none mb-12">The Vision</h2>
+          <h2 className="text-[clamp(2rem,8vw,5rem)] text-balance font-bold text-white tracking-tight leading-none mb-12">The Vision</h2>
           
           <div className="w-full max-w-3xl space-y-12">
-            <p className="text-base lg:text-xl text-white leading-relaxed font-medium tracking-normal drop-shadow-md">
+            <p className="text-[clamp(1rem,2vw,1.25rem)] text-pretty text-white/90 leading-relaxed font-medium tracking-wide drop-shadow-md">
               {experience.description}
             </p>
 
@@ -562,7 +560,7 @@ export const PackageContent = memo(({
 
                 <div className="pl-10 md:pl-16 lg:pl-24">
                   <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30 mb-4 block">Day-by-Day Plan</span>
-                  <h2 className="text-4xl md:text-5xl lg:text-[7rem] font-black text-white tracking-tighter leading-none">Itinerary.</h2>
+                  <h2 className="text-[clamp(2rem,9vw,7rem)] text-balance font-black text-white tracking-tighter leading-none">Itinerary.</h2>
                 </div>
               </div>
 
@@ -587,12 +585,12 @@ export const PackageContent = memo(({
                     </div>
 
                     <div className="space-y-8">
-                      <h4 className="text-3xl lg:text-6xl font-black text-white tracking-tighter leading-[1.1] transition-transform duration-700 group-hover/itinerary:translate-x-2">
+                      <h4 className="text-[clamp(1.5rem,7vw,4rem)] text-balance font-black text-white tracking-tighter leading-[1.1] transition-transform duration-700 group-hover/itinerary:translate-x-2">
                         {item.title}
                       </h4>
                       
                       <div className="relative">
-                        <p className="text-lg lg:text-2xl text-white/60 leading-relaxed font-medium tracking-tight max-w-3xl group-hover/itinerary:text-white/90 transition-colors duration-700">
+                        <p className="text-[clamp(1rem,2.5vw,1.5rem)] text-pretty text-white/60 leading-relaxed font-medium tracking-tight max-w-3xl group-hover/itinerary:text-white/90 transition-colors duration-700">
                           {item.description}
                         </p>
                         
@@ -614,7 +612,7 @@ export const PackageContent = memo(({
         {/* FLIGHT POLICY INSIGHT */}
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'logistics')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 px-4 md:px-6 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] px-4 md:px-6 snap-center snap-always"
         >
           <div className="w-full max-w-4xl p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] bg-white/[0.02] border border-white/[0.05] relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-50" />
@@ -633,7 +631,7 @@ export const PackageContent = memo(({
 
               <div className="space-y-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.6em] text-white/30">Flight Details</span>
-                <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+                <h3 className="text-[clamp(1.75rem,7vw,3rem)] text-balance font-black text-white tracking-tighter">
                   {experience.flights_status === 'included' ? "Airfare Included." : 
                    experience.flights_status === 'on_request' ? "Flights on Request." : "Land Package Only."}
                 </h3>
@@ -653,9 +651,9 @@ export const PackageContent = memo(({
         {experience.inclusions && experience.inclusions.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'hallmarks')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-20 md:py-40 space-y-8 md:space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-8 md:space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
           >
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">Inclusions</h2>
+            <h2 className="text-[clamp(2rem,11vw,8rem)] text-balance font-bold text-white tracking-tight leading-none">Inclusions</h2>
             
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
               {experience.inclusions.map((item: string, i: number) => (
@@ -674,9 +672,9 @@ export const PackageContent = memo(({
         {experience.exclusions && experience.exclusions.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'exclusions')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
           >
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none opacity-80">Exclusions</h2>
+            <h2 className="text-[clamp(2rem,11vw,8rem)] text-balance font-bold text-white tracking-tight leading-none opacity-80">Exclusions</h2>
             
             <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 px-4 md:px-0">
               {experience.exclusions.map((item: string, i: number) => (
@@ -695,9 +693,9 @@ export const PackageContent = memo(({
         {experience.highlights && experience.highlights.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'essence')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-12 animate-in fade-in duration-1000 snap-center snap-always"
           >
-            <h2 className="text-3xl lg:text-[5rem] font-bold text-white tracking-tight leading-none">Highlights</h2>
+            <h2 className="text-[clamp(1.75rem,8vw,5rem)] text-balance font-bold text-white tracking-tight leading-none">Highlights</h2>
             
             <div className="w-full max-w-3xl grid gap-4">
               {experience.highlights?.map((item: string, i: number) => (
@@ -739,7 +737,7 @@ export const PackageContent = memo(({
 
               {/* Primary Price */}
               <div className="space-y-2">
-                <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tighter tabular-nums leading-none">
+                <div className="text-[clamp(2rem,10vw,6rem)] font-black text-white tracking-tighter tabular-nums leading-none">
                   {pricing.symbol}{pricing.finalTotal.toLocaleString()}
                 </div>
                 <span className="block text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] text-white/25">
@@ -857,9 +855,9 @@ export const PackageContent = memo(({
         {experience.faq && experience.faq.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'faq')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
           >
-            <h2 className="text-5xl lg:text-[8rem] font-bold text-white tracking-tight leading-none">FAQ.</h2>
+            <h2 className="text-[clamp(2rem,11vw,8rem)] text-balance font-bold text-white tracking-tight leading-none">FAQ.</h2>
             <div className="w-full max-w-3xl space-y-4">
               {experience.faq.map((item: { question: string; answer: string }, i: number) => (
                 <div key={i} className="text-left p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] hover:border-white/10 transition-colors">
@@ -875,9 +873,9 @@ export const PackageContent = memo(({
         {relatedPackages.length > 0 && (
           <section 
             id={`section-${navChapters.findIndex(c => c.id === 'related')}`}
-            className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
+            className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-12 animate-in fade-in duration-1000 snap-center snap-always px-6"
           >
-            <h2 className="text-5xl lg:text-[6rem] font-bold text-white tracking-tight leading-none">Similar<br/><span className="text-white/30">Journeys</span></h2>
+            <h2 className="text-[clamp(2rem,9vw,6rem)] text-balance font-bold text-white tracking-tight leading-none">Similar<br/><span className="text-white/30">Journeys</span></h2>
             <div className="w-full max-w-5xl overflow-x-auto scrollbar-hide">
               <div className="flex gap-6 pb-4" style={{ minWidth: 'max-content' }}>
                 {relatedPackages.slice(0, 6).map((pkg: any) => {
@@ -919,10 +917,10 @@ export const PackageContent = memo(({
 
         <section 
           id={`section-${navChapters.findIndex(c => c.id === 'legacy')}`}
-          className="min-h-screen flex flex-col items-center justify-center text-center py-40 space-y-12 snap-center snap-always"
+          className="min-h-screen flex flex-col items-center justify-center text-center py-[clamp(5rem,10vw,10rem)] space-y-12 snap-center snap-always"
         >
           <div className="w-24 h-[1px] bg-white/20" />
-          <h3 className="text-2xl lg:text-5xl font-light text-white/70 italic tracking-widest uppercase">Begin Your Journey.</h3>
+          <h3 className="text-[clamp(1.25rem,6vw,3rem)] text-balance font-light text-white/70 italic tracking-widest uppercase">Begin Your Journey.</h3>
         </section>
 
       </div>
@@ -1058,7 +1056,7 @@ export const PackageContent = memo(({
                     <span className="font-black uppercase text-white/50 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
                       Investment
                     </span>
-                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-2xl md:text-3xl">
+                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)]">
                       {pricing.formattedFinal}
                     </p>
                   </div>

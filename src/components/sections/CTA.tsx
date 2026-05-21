@@ -53,7 +53,7 @@ export function CTA() {
         ref={contentRef}
         className="relative z-10 max-w-3xl mx-auto text-center flex flex-col items-center gap-8"
       >
-        <h2 className="text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] flex flex-wrap justify-center gap-x-[0.3em]">
+        <h2 className="text-[clamp(1.75rem,6vw,4rem)] text-balance font-semibold tracking-tight leading-[1.1] flex flex-wrap justify-center gap-x-[0.3em]">
           {title.split(" ").map((word, i) => (
             <span key={i} className="overflow-hidden inline-flex pt-2 pb-1 -my-2">
               <span className="cta-word inline-block translate-y-[110%] will-change-transform text-[#1d1d1f]">
@@ -63,7 +63,7 @@ export function CTA() {
           ))}
         </h2>
         
-        <p className="cta-content opacity-0 text-lg md:text-xl text-[#1d1d1f]/60 max-w-xl font-normal tracking-wide will-change-transform whitespace-pre-wrap">
+        <p className="cta-content opacity-0 text-[clamp(0.875rem,3vw,1.25rem)] text-pretty text-[#1d1d1f]/60 max-w-xl font-normal tracking-wide will-change-transform">
           {description}
         </p>
 
@@ -71,7 +71,7 @@ export function CTA() {
           <Magnetic>
             <button
               onClick={() => openModal('CTA')}
-              className="mt-4 inline-block rounded-full bg-[#1d1d1f] px-8 py-4 text-sm font-semibold text-white transition-transform hover:scale-105 active:scale-95 shadow-lg"
+              className="mt-4 inline-block rounded-full bg-[#1d1d1f] px-[clamp(1.5rem,3vw,2.5rem)] py-[clamp(0.75rem,2vw,1.25rem)] text-[clamp(0.875rem,1.5vw,1rem)] font-semibold text-white transition-transform hover:scale-105 active:scale-95 shadow-lg"
             >
               {buttonText}
             </button>

@@ -107,21 +107,21 @@ export function Featured() {
     <section
       ref={containerRef}
       id="featured"
-      className="relative z-10 py-32 px-6 w-full bg-[#0a0a0a] min-h-screen flex flex-col justify-center"
+      className="relative z-10 py-[clamp(5rem,8vw,6rem)] px-6 w-full bg-[#0a0a0a] flex flex-col justify-center"
     >
       <div className="max-w-[1200px] w-full mx-auto relative z-20">
         <h2
           ref={titleRef}
-          className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-16 opacity-0"
+          className="text-[clamp(2rem,8vw,3.75rem)] text-balance font-semibold tracking-tight text-white mb-16 opacity-0 leading-tight"
         >
           Craft New Journey.
         </h2>
 
-        <div className="flex flex-col gap-12 md:gap-24">
+        <div className="flex flex-col gap-[clamp(3rem,8vw,6rem)]">
           {isLoading ? (
             // Shimmering Skeletons
             [1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col md:flex-row gap-8 items-center animate-pulse transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
+              <div key={i} className="flex flex-col md:flex-row gap-[clamp(2rem,5vw,3rem)] items-center animate-pulse transform-gpu" style={{ transform: "translate3d(0,0,0)" }}>
                 <div className="w-full md:w-2/3 aspect-[4/3] rounded-2xl bg-white/5" />
                 <div className="w-full md:w-1/3 space-y-4 p-4 md:p-8">
                   <div className="w-24 h-2 bg-white/10 rounded" />
@@ -144,7 +144,7 @@ export function Featured() {
                   className="group relative w-full"
                 >
                   <div 
-                    className={`reveal-inner flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-12 md:gap-20 items-center w-full opacity-0 transform-gpu`}
+                    className={`reveal-inner flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} gap-[clamp(3rem,6vw,5rem)] items-center w-full opacity-0 transform-gpu`}
                     style={{ transform: "translate3d(0,0,0)" }}
                   >
                     {/* Image Container — Stable gold-bordered card that scales image cleanly */}
@@ -162,11 +162,11 @@ export function Featured() {
                     </div>
 
                     {/* Text Content */}
-                    <div className="w-full md:w-2/5 flex flex-col items-start gap-5 p-4 md:p-6">
+                    <div className="w-full md:w-2/5 flex flex-col items-start gap-[clamp(1.25rem,3vw,1.5rem)] p-[clamp(1rem,3vw,1.5rem)]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none max-w-[180px] sm:max-w-[240px] overflow-hidden">
                           <MapPin size={9} className="shrink-0" />
-                          <span className="leading-none">{exp.location}</span>
+                          <span className="leading-none truncate">{exp.location}</span>
                         </span>
                         {exp.flights_status === 'included' && (
                           <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
@@ -184,7 +184,7 @@ export function Featured() {
                       
                       <h3 
                         style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                        className="text-3xl md:text-5xl font-light italic tracking-tight text-white leading-[1.1] drop-shadow-md group-hover:text-amber-400/90 transition-colors duration-700 animate-pulse-once"
+                        className="text-[clamp(1.5rem,7vw,3rem)] text-balance font-light italic tracking-tight text-white leading-[1.1] drop-shadow-md group-hover:text-amber-400/90 transition-colors duration-700 animate-pulse-once"
                       >
                         {exp.title}
                       </h3>
