@@ -18,6 +18,7 @@ export function HeroSequence() {
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [filterStyle, setFilterStyle] = useState("none");
   const framesRef = useRef<(ImageBitmap | HTMLImageElement)[]>([]);
   const currentFrameRef = useRef(-1);
   const rafRef = useRef<number>(0);
@@ -91,6 +92,9 @@ export function HeroSequence() {
 
   // Load frames incrementally with IntersectionObserver & Dynamic Resolution
   useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setFilterStyle("brightness(1.05) contrast(1.1) saturate(1.1)");
+    }
     const images: (ImageBitmap | HTMLImageElement)[] = new Array(TOTAL_FRAMES);
     framesRef.current = images;
     
@@ -363,7 +367,7 @@ export function HeroSequence() {
           id="hero-canvas" 
           style={{
             // Cinematic punch: slightly brighter, higher contrast, deeper colors
-            filter: "brightness(1.05) contrast(1.1) saturate(1.1)"
+            filter: filterStyle
           }}
         />
 

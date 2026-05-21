@@ -202,15 +202,36 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       canvasContainerRef.current.style.opacity = "1";
     };
 
+    let lastWidth = window.innerWidth;
     let rebuildTimeout: number | null = null;
     const onResize = () => {
       if (!renderer || !canvasContainerRef.current) return;
       
+      const newW = window.innerWidth;
+      const newH = window.innerHeight;
+
+      // If width didn't change (e.g. mobile URL address bar collapse/expand),
+      // we only update the renderer size and camera aspect ratio to prevent stretching.
+      // We do NOT hide the canvas, and we do NOT rebuild the GSAP timeline.
+      if (Math.abs(newW - lastWidth) <= 10) {
+        w = newW;
+        h = newH;
+        const aspect = w / h;
+        camera.aspect = aspect;
+        camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        return;
+      }
+
+      // If width DID change (orientation change / browser window resize):
+      lastWidth = newW;
+
       // Instantly hide the canvas during resize to prevent the user from seeing any layout shift jumps
       canvasContainerRef.current.style.opacity = "0";
 
-      w = window.innerWidth;
-      h = window.innerHeight;
+      w = newW;
+      h = newH;
       const aspect = w / h;
       camera.aspect = aspect;
       camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
