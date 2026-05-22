@@ -170,7 +170,7 @@ export function Services() {
               onClick={() => openModal('SERVICES', service)}
             >
               <Magnetic intensity={0.08} className="block w-full h-full">
-                <div className="group relative h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 hover:border-amber-400/80 transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_0_40px_rgba(251,191,36,0.08)]">
+                <div className="group relative h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 hover:border-amber-400/80 transition-all duration-700 cursor-pointer hover:translate-y-[-4px] hover:shadow-[0_0_40px_rgba(251,191,36,0.08)]">
                   {/* Background Image Container */}
                   <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
                     <Image 

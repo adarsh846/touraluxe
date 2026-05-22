@@ -211,7 +211,7 @@ export function Hero() {
       // Subtle Scroll Parallax on the image
       gsap.to(imageRef.current, {
         yPercent: 15,
-        force3D: true,
+        force3D: "auto",
         ease: "none",
         scrollTrigger: {
           trigger: containerRef.current,
@@ -244,7 +244,7 @@ export function Hero() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center transform-gpu will-change-transform"
+          className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-black/20 z-10" />
       </div>
@@ -260,7 +260,7 @@ export function Hero() {
           {titleLines.map((line, lIdx) => (
             <div key={lIdx} className="w-full flex flex-wrap justify-center gap-x-[clamp(0.25em,1.5vw,1rem)] overflow-hidden py-1">
               {line.split(' ').map((word, wIdx) => (
-                <span key={wIdx} className="word inline-block origin-bottom transform-gpu opacity-0">
+                <span key={wIdx} className="word inline-block origin-bottom opacity-0">
                   {word}
                 </span>
               ))}
@@ -271,7 +271,7 @@ export function Hero() {
         {/* Refined Secondary Narrative */}
         <p 
           ref={subheadRef}
-          className="text-[clamp(0.875rem,2.5vw,1rem)] text-pretty font-normal text-white/50 tracking-wide max-w-[620px] mb-[clamp(2rem,5vw,3rem)] leading-relaxed opacity-0 transform-gpu"
+          className="text-[clamp(0.875rem,2.5vw,1rem)] text-pretty font-normal text-white/50 tracking-wide max-w-[620px] mb-[clamp(2rem,5vw,3rem)] leading-relaxed opacity-0"
         >
           {subtitle}
         </p>

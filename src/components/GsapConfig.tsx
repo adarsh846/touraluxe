@@ -5,13 +5,13 @@ import gsap from "gsap";
 
 export function GsapConfig() {
   useEffect(() => {
-    // ─── AGGRESSIVE MOBILE GPU ACCELERATION ───
-    // This forcibly upgrades ALL mathematical 'transform' and 'opacity' values configured inside GSAP 
-    // throughout the entire TouraLuxe platform to utilize translate3d() under the hood natively.
-    // This specifically pushes the layout composition directly onto mobile device GPUs (Metal/WebKit)
-    // rather than running repaint cycles on the slower CPU cores!
+    // ─── ENTERPRISE GPU MEMORY MANAGEMENT ───
+    // "auto" promotes elements to GPU layers ONLY during active animation,
+    // then releases them immediately after. This prevents VRAM exhaustion
+    // on mobile devices during fast scrolling — the same strategy used by
+    // Apple.com and Google's Material Design components.
     gsap.config({ 
-      force3D: true, // Forces matrix3d/translate3d instead of standard 2D transforms natively on all properties
+      force3D: "auto",
     });
 
     // We also forcefully set `ticker.lagSmoothing` so it doesn't arbitrarily downclock the engine

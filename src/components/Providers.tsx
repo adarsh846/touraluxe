@@ -51,7 +51,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       lenis.raf(time * 1000);
     };
     gsap.ticker.add(onTick);
-    gsap.ticker.lagSmoothing(0);
 
     lenis.on("scroll", ScrollTrigger.update);
 

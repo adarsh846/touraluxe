@@ -28,7 +28,7 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
     <Magnetic intensity={0.08} className="block w-full">
       <div
         ref={cardRef}
-        className="group relative flex flex-col rounded-2xl md:rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer transform-gpu will-change-transform hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+        className="group relative flex flex-col rounded-2xl md:rounded-3xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 cursor-pointer hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
         onClick={() => onClick(pkg)}
       >
         {/* Cinematic Image Container */}

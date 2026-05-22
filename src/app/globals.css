@@ -303,18 +303,23 @@ textarea:-webkit-autofill {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
 }
 
-/* ─── INVISIBLE GPU COMPOSITING LAYER PROMOTION ─── */
-/* Only permanently promote elements that are continuously scroll-linked.
-   One-shot animations (.marquee-chip, .word) are promoted dynamically by
-   GSAP's force3D:true during their tween, then released. */
-.gsap-ground-parallax,
-.gsap-clouds-deep,
-.gsap-clouds-foreground,
-.parallax-bg,
-#hero-canvas,
-.will-change-gpu {
+/* ─── ENTERPRISE SECTION CULLING (Apple/Google Architecture) ─── */
+/* content-visibility: auto tells the browser to skip rendering off-screen
+   sections entirely during fast scrolling. This is the single most impactful
+   optimization for preventing VRAM exhaustion on mobile devices.
+   We target only #services, #featured, and #cta sections, keeping #flight-wrapper
+   clean to prevent culling the fixed WebGL flight canvas container. */
+#services,
+#featured,
+#cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100vh;
+}
+
+/* Only permanently promote the WebGL canvas to GPU — everything else
+   is managed dynamically by GSAP's force3D: "auto" */
+#hero-canvas {
   will-change: transform;
-  transform: translate3d(0, 0, 0);
 }
 
 /* Promote custom cursor elements to GPU layer for absolute latency-free movement */
