@@ -18,9 +18,9 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div 
-      id="flight-wrapper" 
-      ref={containerRef} 
+    <div
+      id="flight-wrapper"
+      ref={containerRef}
       className="relative w-full bg-[#0a0a0a]"
     >
       {/* ─── BASE BACKGROUND & GROUND PARALLAX (Under plane) ─── */}
@@ -49,9 +49,9 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
       </div>
 
       {/* ─── HIGHLIGHT EFFECTS ─── */}
-      <div 
+      <div
         className="absolute top-0 left-0 right-0 h-[25vh] z-[1] pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)" }} 
+        style={{ background: "linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)" }}
       />
 
       {/* ─── DENSE ENTRY CLOUD CEILING ─── */}
