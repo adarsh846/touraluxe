@@ -68,7 +68,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         antialias: true, 
         alpha: true,
         powerPreference: "high-performance",
-        precision: "highp"
+        precision: "mediump"
       } as any);
     } catch {
       unsupportedTimeout = window.setTimeout(() => {
@@ -271,12 +271,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
           mesh.geometry.computeBoundingSphere();
           mesh.frustumCulled = true;
           if (mesh.material) {
-            (mesh.material as any).precision = "highp"; // Explicitly request highp per-material
-            (mesh.material as any).metalness = 0.9;
-            // Bumping roughness from 0.2 to 0.4 mathematically prevents GGX 
-            // underflow (division by zero -> NaN) on mobile GPUs restricted to mediump floats.
-            // This completely eliminates the black/white speckled artifacts on wings.
-            (mesh.material as any).roughness = 0.4;
+            (mesh.material as any).metalness = 0.8;
+            (mesh.material as any).roughness = 0.2;
             (mesh.material as any).emissive = new THREE.Color(0x050505);
             (mesh.material as any).emissiveIntensity = 1.0;
           }
@@ -309,7 +305,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       grounds.forEach((groundNode, idx) => {
         gsap.to(groundNode, {
           y: "30%",
-          force3D: "auto",
+          force3D: true,
           scrollTrigger: {
             id: `parallax-ground-${idx}`,
             trigger: flightWrapper,
@@ -323,7 +319,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       deepClouds.forEach((cloudNode, idx) => {
         gsap.from(cloudNode, {
           y: "20%",
-          force3D: "auto",
+          force3D: true,
           scrollTrigger: {
             id: `parallax-deep-${idx}`,
             trigger: flightWrapper,
@@ -337,7 +333,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       foregroundClouds.forEach((cloudNode, idx) => {
         gsap.from(cloudNode, {
           y: "25%",
-          force3D: "auto",
+          force3D: true,
           scrollTrigger: {
             id: `parallax-foreground-${idx}`,
             trigger: flightWrapper,
@@ -424,7 +420,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     <div
       ref={canvasContainerRef}
       style={{ opacity: 0 }}
-      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
+      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out transform-gpu"
     >
       {loadState === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center">

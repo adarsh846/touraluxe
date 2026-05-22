@@ -11,6 +11,7 @@ export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
   const { openBooking } = useBooking();
   
   const pillRef = useRef<HTMLDivElement>(null);
@@ -31,6 +32,11 @@ export function FloatingSearch() {
   // Smart Scroll Logic
   useEffect(() => {
     const handleScroll = () => {
+      if (isFocused) {
+        setIsVisible(true);
+        return;
+      }
+      
       const currentScrollY = window.scrollY;
       // Show if scrolling up, hide if scrolling down (give 20px threshold)
       if (currentScrollY > lastScrollY.current + 20) {
@@ -49,7 +55,7 @@ export function FloatingSearch() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isFocused]);
 
   // iOS 26 Pointer-Tracking Glow
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -149,6 +155,11 @@ export function FloatingSearch() {
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
+            onFocus={() => {
+              setIsFocused(true);
+              setIsVisible(true);
+            }}
+            onBlur={() => setIsFocused(false)}
             placeholder={isMobile ? "Search destinations" : "Where will your next journey begin?"}
             className="w-full bg-transparent text-white placeholder-white/50 text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
           />

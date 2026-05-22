@@ -70,7 +70,7 @@ export function Featured() {
             { y: 100, x: index % 2 === 0 ? -60 : 60, opacity: 0 },
             {
               y: 0, x: 0, opacity: 1, duration: 1.8, ease: "expo.out",
-              force3D: true,
+              force3D: "auto",
               scrollTrigger: { trigger: item, start: "top 90%", once: true }
             }
           );
@@ -83,7 +83,7 @@ export function Featured() {
             {
               yPercent: 15,
               ease: "none",
-              force3D: true,
+              force3D: "auto",
               scrollTrigger: {
                 trigger: item,
                 start: "top bottom",
@@ -148,13 +148,13 @@ export function Featured() {
                     style={{ transform: "translate3d(0,0,0)" }}
                   >
                     {/* Image Container — Stable gold-bordered card that scales image cleanly */}
-                    <div className="relative w-full md:w-3/5 aspect-[4/3] rounded-[2.5rem] border border-white/10 group-hover:border-amber-400/80 bg-[#0a0a0b] overflow-hidden transform-gpu transition-[border-color,box-shadow] duration-700 shadow-2xl group-hover:shadow-[0_0_60px_rgba(251,191,36,0.12)]">
+                    <div className="relative w-full md:w-3/5 aspect-[4/3] rounded-[2.5rem] border border-white/10 group-hover:border-amber-400/80 bg-[#0a0a0b] overflow-hidden transition-[border-color,box-shadow] duration-700 shadow-2xl group-hover:shadow-[0_0_60px_rgba(251,191,36,0.12)]">
                       <div className="parallax-bg absolute inset-[-15%] w-[130%] h-[130%]">
                         <Image
                           src={exp.image}
                           alt={exp.title}
                           fill
-                          className="object-cover transform-gpu transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-110"
+                          className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-110"
                           quality={85}
                           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 66vw, 760px"
                         />
