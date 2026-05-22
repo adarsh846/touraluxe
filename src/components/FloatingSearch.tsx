@@ -12,8 +12,9 @@ export function FloatingSearch() {
   const [isMobile, setIsMobile] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const { openBooking } = useBooking();
-  
+
   const pillRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const textMeasureRef = useRef<HTMLSpanElement>(null);
@@ -29,10 +30,41 @@ export function FloatingSearch() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Detect virtual keyboard state on mobile via visualViewport resize
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleVisualViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      
+      const keyboardActive = vv.height < window.innerHeight * 0.85;
+      setIsKeyboardOpen(keyboardActive);
+
+      if (keyboardActive) {
+        setIsVisible(true);
+      } else {
+        // Auto-blur input when keyboard is dismissed to reset focus state correctly
+        if (document.activeElement instanceof HTMLInputElement && 
+            document.activeElement.placeholder.includes("Search")) {
+          document.activeElement.blur();
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleVisualViewportChange);
+    window.visualViewport.addEventListener("scroll", handleVisualViewportChange);
+    
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleVisualViewportChange);
+      window.visualViewport?.removeEventListener("scroll", handleVisualViewportChange);
+    };
+  }, []);
+
   // Smart Scroll Logic
   useEffect(() => {
     const handleScroll = () => {
-      if (isFocused) {
+      if (isFocused || isKeyboardOpen) {
         setIsVisible(true);
         return;
       }
@@ -46,7 +78,7 @@ export function FloatingSearch() {
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
       }
-      
+
       // Always show when at the very top or very bottom
       if (currentScrollY < 100) {
         setIsVisible(true);
@@ -55,7 +87,7 @@ export function FloatingSearch() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isFocused]);
+  }, [isFocused, isKeyboardOpen]);
 
   // iOS 26 Pointer-Tracking Glow
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -63,7 +95,7 @@ export function FloatingSearch() {
     const rect = pillRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    
+
     glowRef.current.style.background = `
       radial-gradient(ellipse 300px 180px at ${x}px ${y}px, rgba(255,251,240,0.15), rgba(255,255,255,0.02) 60%, transparent 100%),
       radial-gradient(ellipse 500px 300px at ${x}px ${y}px, rgba(255,255,255,0.03), transparent 70%),
@@ -81,30 +113,30 @@ export function FloatingSearch() {
   // Dynamic Island Elastic Resizing Engine
   useEffect(() => {
     if (!textMeasureRef.current || !inputAreaRef.current) return;
-    
+
     const calculate = () => {
       if (!textMeasureRef.current || !inputAreaRef.current) return;
 
       const textWidth = textMeasureRef.current.scrollWidth;
       const iconWidth = 14 + 8; // icon size + gap-2
-      const inputPadding = isMobile ? 24 : 32; 
+      const inputPadding = isMobile ? 24 : 32;
       const minTextWidth = isMobile ? 40 : 60;
-      
+
       const activeBuffer = searchValue ? (isMobile ? 40 : 60) : 0;
       const naturalWidth = Math.max(textWidth, minTextWidth) + iconWidth + inputPadding + activeBuffer;
-      
+
       const vw = window.innerWidth;
       const buttonEl = pillRef.current?.querySelector('button') as HTMLElement | null;
       const buttonWidth = buttonEl?.offsetWidth || (isMobile ? 90 : 140);
-      const pillPadding = isMobile ? 12 : 16; 
+      const pillPadding = isMobile ? 12 : 16;
       // Instead of container padding, max width is vw - padding
-      const maxInputWidth = vw - 32 - pillPadding - buttonWidth - 8; 
-      
+      const maxInputWidth = vw - 32 - pillPadding - buttonWidth - 8;
+
       const targetWidth = Math.min(naturalWidth, maxInputWidth);
-      
+
       const isFirstRender = !hasMountedRef.current;
       hasMountedRef.current = true;
-      
+
       gsap.killTweensOf(inputAreaRef.current);
       gsap.to(inputAreaRef.current, {
         width: targetWidth,
@@ -123,13 +155,13 @@ export function FloatingSearch() {
   }, [searchValue, isMobile]);
 
   return (
-    <div 
+    <div
       className={cn(
         "fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[45] w-full max-w-4xl px-4 flex justify-center transition-all duration-700",
         isVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
       )}
     >
-      <div 
+      <div
         ref={pillRef}
         className="relative inline-flex items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
         onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
@@ -143,12 +175,12 @@ export function FloatingSearch() {
           {searchValue || (isMobile ? "Search destinations" : "Where will your next journey begin?")}
         </span>
 
-        <div 
+        <div
           ref={glowRef}
           className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
           style={{ opacity: 0, mixBlendMode: 'screen' }}
         />
-        
+
         <div ref={inputAreaRef} className="flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
           <Search className="text-white/50 shrink-0" size={14} />
           <input

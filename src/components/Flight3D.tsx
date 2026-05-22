@@ -115,9 +115,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     const tau = Math.PI * 2;
 
     // Initial position (exact reference modified to start further offscreen)
-    // Initial position (moved to deep space off-screen so it's perfectly hidden before animation begins)
     gsap.set(planeGroup.rotation, { y: tau * -0.25 });
-    gsap.set(planeGroup.position, { x: 1500, y: -32, z: -60 });
+    gsap.set(planeGroup.position, { x: 180, y: -32, z: -60 });
 
     // Fix 1+3: Continuous rAF render loop — renders exactly once per screen refresh (60fps)
     // GSAP tweens update Three.js object positions; this loop independently reads
@@ -202,36 +201,15 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       canvasContainerRef.current.style.opacity = "1";
     };
 
-    let lastWidth = window.innerWidth;
     let rebuildTimeout: number | null = null;
     const onResize = () => {
       if (!renderer || !canvasContainerRef.current) return;
       
-      const newW = window.innerWidth;
-      const newH = window.innerHeight;
-
-      // If width didn't change (e.g. mobile URL address bar collapse/expand),
-      // we only update the renderer size and camera aspect ratio to prevent stretching.
-      // We do NOT hide the canvas, and we do NOT rebuild the GSAP timeline.
-      if (Math.abs(newW - lastWidth) <= 10) {
-        w = newW;
-        h = newH;
-        const aspect = w / h;
-        camera.aspect = aspect;
-        camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-        return;
-      }
-
-      // If width DID change (orientation change / browser window resize):
-      lastWidth = newW;
-
       // Instantly hide the canvas during resize to prevent the user from seeing any layout shift jumps
       canvasContainerRef.current.style.opacity = "0";
 
-      w = newW;
-      h = newH;
+      w = window.innerWidth;
+      h = window.innerHeight;
       const aspect = w / h;
       camera.aspect = aspect;
       camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
@@ -368,12 +346,10 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       observer = new IntersectionObserver(
         ([entry]) => {
           isVisible.current = entry.isIntersecting;
-          // IMPORTANT: Do NOT toggle container.style.visibility here.
-          // Toggling visibility on a heavy WebGL canvas on iOS forces a full GPU texture reallocation,
-          // causing the "black flash" when scrolling fast.
-          // Simply pausing the rAF loop via `isVisible` is enough to save CPU/GPU.
+          container.style.visibility = entry.isIntersecting ? "visible" : "hidden";
+          // rAF loop picks up visibility state on next frame — no manual render() needed
         },
-        { threshold: 0, rootMargin: "2000px 0px" } // Massive 2000px buffer zone to catch high-velocity scrolling
+        { threshold: 0, rootMargin: "200px" } // Increased margin for smoother entry
       );
       observer.observe(flightWrapperNode);
     }
@@ -419,8 +395,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
   return (
     <div
       ref={canvasContainerRef}
-      style={{ opacity: 0 }}
-      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out transform-gpu"
+      style={{ visibility: "hidden", opacity: 0 }}
+      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
     >
       {loadState === "loading" && (
         <div className="absolute inset-0 flex items-center justify-center">

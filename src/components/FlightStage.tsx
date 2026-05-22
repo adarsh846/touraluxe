@@ -18,10 +18,10 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div
-      id="flight-wrapper"
-      ref={containerRef}
-      className="relative w-full bg-[#0a0a0a]"
+    <div 
+      id="flight-wrapper" 
+      ref={containerRef} 
+      className="relative w-full bg-[#0a0a0a] mt-[-1px]"
     >
       {/* ─── BASE BACKGROUND & GROUND PARALLAX (Under plane) ─── */}
       <div className="absolute inset-0 bg-[#0a0a0a] z-0" />
@@ -49,9 +49,9 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
       </div>
 
       {/* ─── HIGHLIGHT EFFECTS ─── */}
-      <div
+      <div 
         className="absolute top-0 left-0 right-0 h-[25vh] z-[1] pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)" }}
+        style={{ background: "linear-gradient(to bottom, #0a0a0a 0%, transparent 100%)" }} 
       />
 
       {/* ─── DENSE ENTRY CLOUD CEILING ─── */}
@@ -60,8 +60,8 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
           className="absolute inset-0 bg-no-repeat bg-cover bg-center"
           style={{
             backgroundImage: "url('/assets/cloud-ceiling.png')",
-            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)",
-            maskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)"
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 25%, transparent 60%)",
+            maskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 25%, transparent 60%)"
           }}
         />
         <div
@@ -69,8 +69,8 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
           style={{
             backgroundImage: "url('/assets/cloud-ceiling.png')",
             transform: "scaleX(-1)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)",
-            maskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)"
+            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 20%, transparent 55%)",
+            maskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 20%, transparent 55%)"
           }}
         />
         <div

@@ -172,7 +172,7 @@ export function Quotes() {
 
       {/* Main Quote Content */}
       <div className="max-w-[800px] mx-auto text-center relative z-10 px-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-16 text-[clamp(6rem,15vw,10rem)] text-white/5 font-serif select-none pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-16 text-9xl text-white/5 font-serif select-none pointer-events-none">
            &quot;
         </div>
         
@@ -180,7 +180,7 @@ export function Quotes() {
           key={`quote-${currentIndex}`}
           ref={textRef}
           style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          className="text-[clamp(1.75rem,8vw,5rem)] text-balance font-light italic tracking-tight leading-[1.1] will-change-transform text-black whitespace-pre-wrap"
+          className="text-4xl md:text-7xl font-light italic tracking-tight leading-[1.1] will-change-transform text-black whitespace-pre-wrap"
         >
           {typeof QUOTES[currentIndex] === 'string' 
             ? QUOTES[currentIndex] 

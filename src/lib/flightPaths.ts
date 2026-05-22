@@ -35,9 +35,8 @@ export const FLIGHT_PATHS: Record<FlightPathName, (params: FlightPathParams) => 
 
     // ══════════════════════════════════════════════════════════
     // PHASE 1: CLOUD-BREAK ENTRANCE
-    // PHASE 1: CLOUD-BREAK ENTRANCE
-    // Start way off-screen (x: 1500) so it doesn't overlap the Services section before the timeline starts
-    gsap.set(planeGroup.position, { x: 1500, y: 200, z: -600 });
+    // ══════════════════════════════════════════════════════════
+    gsap.set(planeGroup.position, { x: 350, y: 200, z: -600 });
     gsap.set(planeGroup.rotation, { x: tau * 0.1, y: tau * -0.25, z: tau * 0.1 });
 
     // Fade in is handled natively by the hardware-accelerated outer canvas container opacity fade
