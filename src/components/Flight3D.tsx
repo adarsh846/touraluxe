@@ -249,8 +249,8 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
           mesh.geometry.computeBoundingSphere();
           mesh.frustumCulled = true;
           if (mesh.material) {
-            (mesh.material as any).metalness = 0.8;
-            (mesh.material as any).roughness = 0.2;
+            (mesh.material as any).metalness = 0.9;
+            (mesh.material as any).roughness = 0.4;
             (mesh.material as any).emissive = new THREE.Color(0x050505);
             (mesh.material as any).emissiveIntensity = 1.0;
           }
