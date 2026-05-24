@@ -176,8 +176,8 @@ export function Hero() {
       )
         .fromTo(
           ".word",
-          { y: 100, opacity: 0, rotate: 5, x: -20 },
-          { y: 0, opacity: 1, rotate: 0, x: 0, stagger: 0.1 },
+          { y: 100, opacity: 0, skewX: 5, x: -20 },
+          { y: 0, opacity: 1, skewX: 0, x: 0, stagger: 0.1, force3D: true },
           "-=2.5"
         )
         .fromTo(
@@ -211,13 +211,13 @@ export function Hero() {
       // Subtle Scroll Parallax on the image
       gsap.to(imageRef.current, {
         yPercent: 15,
-        force3D: "auto",
+        force3D: true,
         ease: "none",
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.5,
         },
       });
     }, containerRef);
@@ -231,12 +231,13 @@ export function Hero() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-[100svh] w-full flex items-center justify-center overflow-hidden bg-black text-white"
+      className="relative z-10 h-screen-stable w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
       {/* Background Image Container */}
       <div 
         ref={imageRef}
         className="absolute inset-0 z-0 select-none pointer-events-none overflow-hidden scale-110 opacity-0"
+        style={{ willChange: "transform, opacity" }}
       >
         <Image
           src="/assets/hero-bg.webp"
@@ -256,7 +257,7 @@ export function Hero() {
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col items-center text-center mt-12 md:mt-20">
         
         {/* Cinematic Headline */}
-        <h1 className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 flex flex-wrap justify-center overflow-hidden">
+        <h1 className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 flex flex-wrap justify-center overflow-hidden" style={{ willChange: "transform" }}>
           {titleLines.map((line, lIdx) => (
             <div key={lIdx} className="w-full flex flex-wrap justify-center gap-x-[clamp(0.25em,1.5vw,1rem)] overflow-hidden py-1">
               {line.split(' ').map((word, wIdx) => (

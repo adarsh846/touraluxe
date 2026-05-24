@@ -17,18 +17,18 @@ export function HeroStatic() {
       tl.fromTo(
         imageRef.current,
         { scale: 1.15, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 3 }
+        { scale: 1, opacity: 1, duration: 3, force3D: true }
       )
         .fromTo(
           ".word",
-          { y: 100, opacity: 0, rotate: 5, x: -20 },
-          { y: 0, opacity: 1, rotate: 0, x: 0, stagger: 0.1 },
+          { y: 100, opacity: 0, skewX: 5, x: -20 },
+          { y: 0, opacity: 1, skewX: 0, x: 0, stagger: 0.1, force3D: true },
           "-=2.5"
         )
         .fromTo(
           subheadRef.current,
           { y: 40, x: 30, opacity: 0 },
-          { y: 0, x: 0, opacity: 1 },
+          { y: 0, x: 0, opacity: 1, force3D: true },
           "-=2.2"
         )
         .fromTo(
@@ -63,7 +63,7 @@ export function HeroStatic() {
           trigger: containerRef.current,
           start: "top top",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.5,
         },
       });
     }, containerRef);
@@ -74,7 +74,7 @@ export function HeroStatic() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-[100svh] w-full flex items-center justify-center overflow-hidden bg-black text-white"
+      className="relative z-10 h-screen-stable w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
       {/* Background Image Container */}
       <div

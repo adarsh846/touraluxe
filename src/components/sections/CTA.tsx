@@ -19,6 +19,17 @@ export function CTA() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // Pre-promote all animated elements to compositor layers before the timeline
+      const ctaWords = containerRef.current
+        ? Array.from(containerRef.current.querySelectorAll<HTMLElement>(".cta-word"))
+        : [];
+      const ctaContents = containerRef.current
+        ? Array.from(containerRef.current.querySelectorAll<HTMLElement>(".cta-content"))
+        : [];
+
+      ctaWords.forEach(el => gsap.set(el, { force3D: true }));
+      ctaContents.forEach(el => gsap.set(el, { force3D: true }));
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
@@ -26,16 +37,17 @@ export function CTA() {
         }
       });
 
-      tl.to(".cta-word", {
+      tl.to(ctaWords, {
         y: "0%",
         duration: 1.2,
         stagger: 0.08,
         ease: "power4.out",
+        force3D: true,
       })
       .fromTo(
-        ".cta-content",
+        ctaContents,
         { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1.2, ease: "expo.out" },
+        { y: 0, opacity: 1, duration: 1.2, ease: "expo.out", force3D: true },
         "-=0.8"
       );
     }, containerRef);

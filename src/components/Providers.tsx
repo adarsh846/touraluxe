@@ -30,6 +30,34 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAdmin) return;
 
+    // Configure GSAP ScrollTrigger to ignore standard resize events to prevent
+    // dynamic address bar show/hide from causing layout thrashing & lag on mobile browsers.
+    ScrollTrigger.config({
+      autoRefreshEvents: "visibilitychange,DOMContentLoaded,load"
+    });
+
+    // Viewport height stable variable setup
+    const updateVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    updateVh();
+    document.documentElement.style.setProperty('--initial-vh', `${window.innerHeight * 0.01}px`);
+
+    let lastWidth = window.innerWidth;
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      // Only recalculate viewport height & refresh ScrollTrigger if the horizontal width changes
+      // (e.g. orientation changes on mobile, or window resizes on desktop)
+      if (currentWidth !== lastWidth) {
+        lastWidth = currentWidth;
+        updateVh();
+        ScrollTrigger.refresh();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
     // ... (lenis setup)
     const lenis = new Lenis({
       syncTouch: false, // Let mobile devices handle touch scrolling natively to prevent diagonal hijacking on horizontal carousels
@@ -58,6 +86,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     ScrollTrigger.addEventListener("refresh", () => lenis.start());
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       gsap.ticker.remove(onTick);
       lenis.destroy();
     };

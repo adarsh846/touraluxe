@@ -129,10 +129,27 @@ export function Services() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(".services-header > *", { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 1.5, ease: "expo.out", stagger: 0.2, scrollTrigger: { trigger: ".services-header", start: "top 85%", once: true } });
+      // Pre-promote header children to GPU layers before animation
+      const headerChildren = document.querySelectorAll<HTMLElement>(".services-header > *");
+      headerChildren.forEach(el => { el.style.willChange = "transform, opacity"; });
+
+      gsap.fromTo(".services-header > *",
+        { x: -50, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "expo.out", stagger: 0.2, force3D: true,
+          scrollTrigger: { trigger: ".services-header", start: "top 85%", once: true }
+        }
+      );
+
       cardsRef.current.forEach((card, index) => {
         if (!card) return;
-        gsap.fromTo(card, { y: 40, x: index % 2 === 0 ? -30 : 30, opacity: 0, scale: 0.98 }, { y: 0, x: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out", scrollTrigger: { trigger: card, start: "top 90%", once: true } });
+        // Pre-promote each card to a GPU compositor layer immediately
+        card.style.willChange = "transform, opacity";
+        gsap.fromTo(card,
+          { y: 40, x: index % 2 === 0 ? -30 : 30, opacity: 0, scale: 0.98 },
+          { y: 0, x: 0, opacity: 1, scale: 1, duration: 1.2, ease: "expo.out", force3D: true,
+            scrollTrigger: { trigger: card, start: "top 90%", once: true }
+          }
+        );
       });
     }, containerRef);
     return () => ctx.revert();

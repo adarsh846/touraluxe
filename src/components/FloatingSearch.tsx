@@ -21,7 +21,8 @@ export function FloatingSearch() {
   const textMeasureRef = useRef<HTMLSpanElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
   const hasMountedRef = useRef(false);
-  const lastScrollY = useRef(0);
+  const initialHeightRef = useRef(0);
+  const lastWidthRef = useRef(0);
 
   // Check mobile & set dynamic placeholder
   useEffect(() => {
@@ -34,6 +35,13 @@ export function FloatingSearch() {
         setPlaceholder("Search destinations");
       } else {
         setPlaceholder("Where will your next journey begin?");
+      }
+
+      // Only update initialHeightRef if screen width actually changed (orientation/resize)
+      // to prevent mobile virtual keyboard opening from overriding the default layout height.
+      if (w !== lastWidthRef.current) {
+        lastWidthRef.current = w;
+        initialHeightRef.current = window.innerHeight;
       }
     };
     checkMobile();
@@ -49,8 +57,9 @@ export function FloatingSearch() {
       const vv = window.visualViewport;
       if (!vv) return;
       
-      const keyboardActive = vv.height < window.innerHeight * 0.85;
+      const keyboardActive = vv.height < initialHeightRef.current * 0.85;
       setIsKeyboardOpen(keyboardActive);
+      isKeyboardOpenRef.current = keyboardActive; // Keep ref in sync for scroll guard
 
       if (keyboardActive) {
         setIsVisible(true);
@@ -64,30 +73,34 @@ export function FloatingSearch() {
     };
 
     window.visualViewport.addEventListener("resize", handleVisualViewportChange);
-    window.visualViewport.addEventListener("scroll", handleVisualViewportChange);
     
     return () => {
       window.visualViewport?.removeEventListener("resize", handleVisualViewportChange);
-      window.visualViewport?.removeEventListener("scroll", handleVisualViewportChange);
     };
   }, []);
 
-  // Smart Scroll Logic
+  const lastScrollY = useRef(0);
+  const isFocusedRef = useRef(false);
+  const isKeyboardOpenRef = useRef(false);
+
+  // Smart Scroll Logic - runs once, refs used for real-time guard to avoid stale closure
   useEffect(() => {
-    // Initialize scroll position
     lastScrollY.current = window.scrollY;
     if (window.scrollY > 100) {
       setIsVisible(false);
     }
 
     const handleScroll = () => {
-      if (isFocused || isKeyboardOpen) {
+      // CRITICAL: Use refs instead of state to read current focus/keyboard status.
+      // Reading state in a scroll handler causes stale closures — the event sees the
+      // value from when the effect was last created, not the current value.
+      if (isFocusedRef.current || isKeyboardOpenRef.current) {
         setIsVisible(true);
         return;
       }
-      
+
       const currentScrollY = window.scrollY;
-      
+
       // Always show when near the top of the page
       if (currentScrollY < 50) {
         setIsVisible(true);
@@ -109,7 +122,8 @@ export function FloatingSearch() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isFocused, isKeyboardOpen]);
+  }, []); // Empty deps — scroll handler always reads from refs, never from stale state
+
 
   // iOS 26 Pointer-Tracking Glow
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -211,9 +225,13 @@ export function FloatingSearch() {
             onChange={(e) => setSearchValue(e.target.value)}
             onFocus={() => {
               setIsFocused(true);
+              isFocusedRef.current = true; // Sync ref immediately for scroll guard
               setIsVisible(true);
             }}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => {
+              setIsFocused(false);
+              isFocusedRef.current = false; // Sync ref immediately for scroll guard
+            }}
             placeholder={placeholder}
             className="w-full bg-transparent text-white placeholder-white/50 text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
           />

@@ -239,7 +239,7 @@ export function ModalShell() {
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full h-[100svh] md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
+        className="relative w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
         data-lenis-prevent
       >
         {/* Global Error Alert */}

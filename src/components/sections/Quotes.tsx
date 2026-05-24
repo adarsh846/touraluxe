@@ -40,9 +40,17 @@ export function Quotes() {
   // Chips animations — run ONCE on mount only
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Chips entrance pop-in (stripped Y-axis to prevent collision with parallax scroll loops later)
+      // Cache chip elements once — avoids repeated querySelectorAll on every scroll tick
+      const chips = containerRef.current
+        ? Array.from(containerRef.current.querySelectorAll<HTMLElement>(".quote-chip"))
+        : [];
+
+      // Pre-promote all chips to GPU compositor layers before any animation
+      chips.forEach(chip => gsap.set(chip, { force3D: true }));
+
+      // Chips entrance pop-in
       gsap.fromTo(
-        ".quote-chip",
+        chips,
         { opacity: 0, scale: 0.6 },
         {
           opacity: 1,
@@ -50,6 +58,7 @@ export function Quotes() {
           duration: 0.9,
           ease: "expo.out",
           stagger: 0.12,
+          force3D: true,
           scrollTrigger: {
             trigger: containerRef.current,
             start: "top 72%",
@@ -58,7 +67,7 @@ export function Quotes() {
       );
 
       // Chips parallax float
-      gsap.to(".quote-chip", {
+      gsap.to(chips, {
         y: -70,
         ease: "none",
         force3D: true,
@@ -71,6 +80,7 @@ export function Quotes() {
       });
 
       // Quote entrance timeline
+      if (textRef.current) textRef.current.style.willChange = "transform, opacity";
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
@@ -86,6 +96,7 @@ export function Quotes() {
           opacity: 1,
           duration: 1.5,
           ease: "expo.out",
+          force3D: true,
         }
       );
     }, containerRef);
@@ -127,23 +138,23 @@ export function Quotes() {
     <section 
       ref={containerRef}
       id="quotes"
-      className="scroll-mt-0 w-full min-h-[100svh] flex items-center justify-center relative bg-transparent"
+      className="scroll-mt-0 w-full min-h-screen-stable flex items-center justify-center relative bg-transparent"
     >
       {/* ── Mobile Chips (3 chips) — safe positions, no overflow ── */}
       <div className="absolute inset-0 pointer-events-none z-[5] md:hidden">
         <div className="quote-chip will-change-transform absolute opacity-0 top-[18%] left-[4%] pointer-events-auto rotate-[-8deg]">
           <Magnetic>
-            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div>
+            <div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a1c4fd, #c2e9fb)" }}>TIMELESS</div>
           </Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[50%] right-[4%] pointer-events-auto rotate-[7deg]">
           <Magnetic>
-            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div>
+            <div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div>
           </Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[78%] left-[4%] pointer-events-auto rotate-[-6deg]">
           <Magnetic>
-            <div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div>
+            <div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div>
           </Magnetic>
         </div>
       </div>
@@ -151,22 +162,22 @@ export function Quotes() {
       {/* ── Desktop Chips ── */}
       <div className="absolute inset-0 pointer-events-none z-0 hidden md:block">
         <div className="quote-chip will-change-transform absolute opacity-0 top-[12%] left-[4%] pointer-events-auto rotate-[-8deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #667eea, #764ba2)" }}>TIMELESS</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a1c4fd, #c2e9fb)" }}>TIMELESS</div></Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[18%] right-[5%] pointer-events-auto rotate-[6deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #f093fb, #f5576c)" }}>ELITE</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #ff9a9e, #fecfef)" }}>ELITE</div></Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[52%] left-[3%] pointer-events-auto rotate-[-5deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #4facfe, #00f2fe)" }}>TAILORED</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #89f7fe, #66a6ff)" }}>TAILORED</div></Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[58%] right-[4%] pointer-events-auto rotate-[9deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #43e97b, #38f9d7)" }}>BESPOKE</div></Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[80%] left-[5%] pointer-events-auto rotate-[4deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #fa709a, #fee140)" }}>PRESTIGE</div></Magnetic>
         </div>
         <div className="quote-chip will-change-transform absolute opacity-0 top-[78%] right-[5%] pointer-events-auto rotate-[-7deg]">
-          <Magnetic><div className="px-4 py-2 rounded-full text-white text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}>CURATED</div></Magnetic>
+          <Magnetic><div className="px-4 py-2 rounded-full text-black text-xs font-bold tracking-widest uppercase cursor-default select-none shadow-lg" style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}>CURATED</div></Magnetic>
         </div>
       </div>
 

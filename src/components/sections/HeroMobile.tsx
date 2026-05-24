@@ -25,12 +25,12 @@ export function HeroMobile() {
       tl.fromTo(
         imageRef.current,
         { scale: 1.15, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 3 }
+        { scale: 1, opacity: 1, duration: 3, force3D: true }
       )
         .fromTo(
           ".word",
-          { y: 60, opacity: 0, rotate: 2 },
-          { y: 0, opacity: 1, rotate: 0, stagger: 0.06 },
+          { y: 60, opacity: 0, skewX: 2 },
+          { y: 0, opacity: 1, skewX: 0, stagger: 0.06, force3D: true },
           "-=2.7"
         )
         .fromTo(
@@ -71,7 +71,7 @@ export function HeroMobile() {
           trigger: containerRef.current,
           start: "top top",
           end: "bottom top",
-          scrub: true,
+          scrub: 0.5,
         },
       });
     }, containerRef);
@@ -82,7 +82,7 @@ export function HeroMobile() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-[100svh] w-full flex items-center justify-center overflow-hidden bg-black text-white"
+      className="relative z-10 h-screen-stable w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
       {/* Background Image Container */}
       <div
@@ -106,6 +106,7 @@ export function HeroMobile() {
       <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto">
         <h1
           className="text-[clamp(2rem,8vw,5rem)] text-balance font-semibold tracking-tight leading-[1.1] mb-6 opacity-100 will-change-transform flex flex-wrap justify-center gap-x-[0.3em]"
+          style={{ willChange: "transform" }}
         >
           <span className="word inline-block opacity-0">We</span>
           <span className="word inline-block opacity-0">don&apos;t</span>

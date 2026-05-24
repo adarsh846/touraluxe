@@ -6,6 +6,19 @@
   /* Apple soft white */
   --muted: #86868b;
   /* Apple muted gray */
+  --vh: 1vh;
+}
+
+@utility h-screen-stable {
+  height: 100vh;
+  height: 100svh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+@utility min-h-screen-stable {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: calc(var(--vh, 1vh) * 100);
 }
 
 @theme inline {
@@ -86,6 +99,25 @@ body::-webkit-scrollbar {
 html.lenis {
   height: auto;
 }
+
+/* ─── GLOBAL GPU PERFORMANCE RULES ─── */
+/* Ensures all elements with transform-gpu class are always hardware-composited.
+   This eliminates the "first scroll paint flash" on GSAP-animated elements.
+   Also ensures Next.js <Image> components inside parallax containers don't
+   create their own stacking contexts unnecessarily. */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Prevent image decode/paint from blocking compositor thread during scroll */
+img {
+  image-rendering: auto;
+  /* Hint: isolate so img paints don't invalidate parent layer */
+  isolation: auto;
+}
+
 
 .lenis.lenis-smooth {
   scroll-behavior: auto;

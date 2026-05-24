@@ -73,7 +73,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
       {/* ═══ PANEL — Full Screen to match Page structure ═══ */}
       <div
         ref={panelRef}
-        className="relative w-full h-[100svh] md:h-screen bg-[#0a0a0b] flex flex-col transform-gpu"
+        className="relative w-full h-screen-stable md:h-screen bg-[#0a0a0b] flex flex-col transform-gpu"
         data-lenis-prevent
       >
         {/* Cinematic Grain Overlay */}

@@ -47,11 +47,14 @@ export function Featured() {
     if (isLoading || experiences.length === 0) return;
 
     const ctx = gsap.context(() => {
+      // Pre-promote title to GPU layer
+      if (titleRef.current) titleRef.current.style.willChange = "transform, opacity";
+
       // Title reveal
       gsap.fromTo(titleRef.current,
         { y: 30, opacity: 0 },
         {
-          y: 0, opacity: 1, duration: 1.5, ease: "expo.out",
+          y: 0, opacity: 1, duration: 1.5, ease: "expo.out", force3D: true,
           scrollTrigger: {
             trigger: titleRef.current,
             start: "top 85%",
@@ -64,8 +67,10 @@ export function Featured() {
       itemsRef.current.forEach((item, index) => {
         if (!item) return;
 
-        const revealTarget = item.querySelector(".reveal-inner");
+        const revealTarget = item.querySelector<HTMLElement>(".reveal-inner");
         if (revealTarget) {
+          // Pre-promote so browser allocates compositor layer before animation starts
+          revealTarget.style.willChange = "transform, opacity";
           gsap.fromTo(revealTarget,
             { y: 100, x: index % 2 === 0 ? -60 : 60, opacity: 0 },
             {
@@ -76,9 +81,12 @@ export function Featured() {
           );
         }
 
-        const imgWrapper = item.querySelector(".parallax-bg");
+        const imgWrapper = item.querySelector<HTMLElement>(".parallax-bg");
         if (imgWrapper) {
-          gsap.fromTo(imgWrapper, 
+          // Pre-promote image wrapper — critical for parallax smoothness
+          imgWrapper.style.willChange = "transform";
+          gsap.set(imgWrapper, { force3D: true });
+          gsap.fromTo(imgWrapper,
             { yPercent: -15 },
             {
               yPercent: 15,
@@ -88,7 +96,7 @@ export function Featured() {
                 trigger: item,
                 start: "top bottom",
                 end: "bottom top",
-                scrub: true,
+                scrub: 0.5, // Damped scrub prevents GPU re-rasterization on every tick
               }
             }
           );
