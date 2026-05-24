@@ -60,8 +60,8 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
           className="absolute inset-0 bg-no-repeat bg-cover bg-center"
           style={{
             backgroundImage: "url('/assets/cloud-ceiling.png')",
-            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 25%, transparent 60%)",
-            maskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 25%, transparent 60%)"
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)",
+            maskImage: "linear-gradient(to bottom, black 0%, black 25%, transparent 60%)"
           }}
         />
         <div
@@ -69,8 +69,8 @@ export function FlightStage({ children, pathName = "classic-touraluxe" }: Flight
           style={{
             backgroundImage: "url('/assets/cloud-ceiling.png')",
             transform: "scaleX(-1)",
-            WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 20%, transparent 55%)",
-            maskImage: "linear-gradient(to bottom, transparent 0%, black 2%, black 20%, transparent 55%)"
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)",
+            maskImage: "linear-gradient(to bottom, black 0%, black 20%, transparent 55%)"
           }}
         />
         <div

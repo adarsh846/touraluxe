@@ -39,7 +39,15 @@ export const FLIGHT_PATHS: Record<FlightPathName, (params: FlightPathParams) => 
     gsap.set(planeGroup.position, { x: 350, y: 200, z: -600 });
     gsap.set(planeGroup.rotation, { x: tau * 0.1, y: tau * -0.25, z: tau * 0.1 });
 
-    // Fade in is handled natively by the hardware-accelerated outer canvas container opacity fade
+    // Fade the fuselage in
+    myPlane.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        timeline.to((child as THREE.Mesh).material, {
+          opacity: 1,
+          duration: sectionDuration * 0.5
+        }, delay);
+      }
+    });
 
     timeline.to(planeGroup.position, { x: 0, y: 10, z: -100, ease: "power2.out" }, delay);
     timeline.to(planeGroup.rotation, { x: tau * 0.2, y: tau * -0.1, z: 0, ease: "power2.out" }, delay);
