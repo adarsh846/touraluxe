@@ -331,15 +331,15 @@ export function Hero() {
       <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0 pointer-events-none md:hidden">
         {/* {isMobile ? ( */}
           <div className="flex flex-col items-center">
-            <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-[#89f7fe] rotate-45 animate-pulse mb-1" />
-            <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-[#66a6ff] rotate-45 animate-pulse [animation-delay:0.2s]" />
+            <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-[#a18cd1] rotate-45 animate-pulse mb-1" />
+            <div className="w-2.5 h-2.5 border-r-[1.5px] border-b-[1.5px] border-[#fbc2eb] rotate-45 animate-pulse [animation-delay:0.2s]" />
           </div>
         {/* ) : (
           <div className="w-[16px] h-[26px] border border-white/20 rounded-full flex justify-center p-1">
-            <div className="w-[1.5px] h-[5px] bg-[#89f7fe] rounded-full animate-bounce" />
+            <div className="w-[1.5px] h-[5px] bg-[#a18cd1] rounded-full animate-bounce" />
           </div>
         )} */}
-        <span className="text-[7px] font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] bg-clip-text text-transparent opacity-80">Scroll</span>
+        <span className="text-[7px] font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#a18cd1] to-[#fbc2eb] bg-clip-text text-transparent opacity-80">Scroll</span>
       </div>
     </section>
   );
