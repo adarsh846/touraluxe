@@ -421,18 +421,24 @@ export function HeroSequence() {
 
         {/* Scroll indicator */}
         <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none md:hidden">
-          <span className="text-[10px] font-medium tracking-[0.25em] uppercase text-white/40">
+          <span className="text-[10px] font-medium tracking-[0.25em] uppercase bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] bg-clip-text text-transparent opacity-80">
             Scroll
           </span>
           <svg
-            className="w-4 h-4 text-white/40 animate-bounce"
+            className="w-4 h-4 animate-bounce"
             viewBox="0 0 16 16"
             fill="none"
-            stroke="currentColor"
+            stroke="url(#tailored-grad-sequence)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
+            <defs>
+              <linearGradient id="tailored-grad-sequence" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#89f7fe" />
+                <stop offset="100%" stopColor="#66a6ff" />
+              </linearGradient>
+            </defs>
             <path d="M4 6l4 4 4-4" />
           </svg>
         </div>

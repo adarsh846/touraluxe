@@ -243,7 +243,8 @@ export function FloatingSearch() {
               onClick={() => {
                 openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
               }}
-              className="bg-gradient-to-br from-yellow-400 to-amber-600 text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
+              style={{ background: "linear-gradient(135deg, #89f7fe, #66a6ff)" }}
+              className="text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
             >
               <span>Explore</span>
               <ArrowRight size={10} className="stroke-[3]" />
