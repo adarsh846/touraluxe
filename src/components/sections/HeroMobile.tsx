@@ -82,7 +82,7 @@ export function HeroMobile() {
   return (
     <section 
       ref={containerRef}
-      className="relative z-10 h-screen w-full flex items-center justify-center overflow-hidden bg-black text-white"
+      className="relative z-10 h-[100svh] w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
       {/* Background Image Container */}
       <div

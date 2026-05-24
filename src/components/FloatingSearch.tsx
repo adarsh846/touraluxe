@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
   const [isMobile, setIsMobile] = useState(false);
+  const [placeholder, setPlaceholder] = useState("Where will your next journey begin?");
   const [isVisible, setIsVisible] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -22,9 +23,19 @@ export function FloatingSearch() {
   const hasMountedRef = useRef(false);
   const lastScrollY = useRef(0);
 
-  // Check mobile
+  // Check mobile & set dynamic placeholder
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      if (w < 360) {
+        setPlaceholder("Search");
+      } else if (w < 768) {
+        setPlaceholder("Search destinations");
+      } else {
+        setPlaceholder("Where will your next journey begin?");
+      }
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -63,6 +74,12 @@ export function FloatingSearch() {
 
   // Smart Scroll Logic
   useEffect(() => {
+    // Initialize scroll position
+    lastScrollY.current = window.scrollY;
+    if (window.scrollY > 100) {
+      setIsVisible(false);
+    }
+
     const handleScroll = () => {
       if (isFocused || isKeyboardOpen) {
         setIsVisible(true);
@@ -70,18 +87,23 @@ export function FloatingSearch() {
       }
       
       const currentScrollY = window.scrollY;
-      // Show if scrolling up, hide if scrolling down (give 20px threshold)
-      if (currentScrollY > lastScrollY.current + 20) {
-        setIsVisible(false);
-        lastScrollY.current = currentScrollY;
-      } else if (currentScrollY < lastScrollY.current - 20) {
+      
+      // Always show when near the top of the page
+      if (currentScrollY < 50) {
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
+        return;
       }
 
-      // Always show when at the very top or very bottom
-      if (currentScrollY < 100) {
+      const diff = currentScrollY - lastScrollY.current;
+      if (diff > 15) {
+        // Scrolling down -> hide
+        setIsVisible(false);
+        lastScrollY.current = currentScrollY;
+      } else if (diff < -15) {
+        // Scrolling up -> show
         setIsVisible(true);
+        lastScrollY.current = currentScrollY;
       }
     };
 
@@ -152,7 +174,7 @@ export function FloatingSearch() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', calculate);
     };
-  }, [searchValue, isMobile]);
+  }, [searchValue, isMobile, placeholder]);
 
   return (
     <div
@@ -172,7 +194,7 @@ export function FloatingSearch() {
         onTouchEnd={handleGlowLeave}
       >
         <span ref={textMeasureRef} className="absolute invisible whitespace-pre text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em]">
-          {searchValue || (isMobile ? "Search destinations" : "Where will your next journey begin?")}
+          {searchValue || placeholder}
         </span>
 
         <div
@@ -192,7 +214,7 @@ export function FloatingSearch() {
               setIsVisible(true);
             }}
             onBlur={() => setIsFocused(false)}
-            placeholder={isMobile ? "Search destinations" : "Where will your next journey begin?"}
+            placeholder={placeholder}
             className="w-full bg-transparent text-white placeholder-white/50 text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
           />
         </div>

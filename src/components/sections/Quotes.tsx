@@ -127,7 +127,7 @@ export function Quotes() {
     <section 
       ref={containerRef}
       id="quotes"
-      className="scroll-mt-0 w-full min-h-[100vh] flex items-center justify-center relative bg-transparent"
+      className="scroll-mt-0 w-full min-h-[100svh] flex items-center justify-center relative bg-transparent"
     >
       {/* ── Mobile Chips (3 chips) — safe positions, no overflow ── */}
       <div className="absolute inset-0 pointer-events-none z-[5] md:hidden">

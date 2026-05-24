@@ -195,7 +195,7 @@ export function Featured() {
                       </p>
 
                       {/* Luxury Travel Manifest details */}
-                      <div className="grid grid-cols-3 gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
+                      <div className="grid grid-cols-1 xs:grid-cols-3 gap-y-3 gap-x-4 xs:gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
                         <div className="min-w-0">
                           <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Duration</p>
                           <p className="text-[10px] font-bold text-white/70">{exp.duration || 'Flexible'}</p>

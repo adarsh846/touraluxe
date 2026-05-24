@@ -12,8 +12,11 @@ gsap.registerPlugin(ScrollTrigger);
 function supportsWebGL() {
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
-  } catch {
+    const supported = Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+    console.log("=== supportsWebGL ===", supported);
+    return supported;
+  } catch (e) {
+    console.log("=== supportsWebGL ERROR ===", e);
     return false;
   }
 }
@@ -48,42 +51,57 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     let w = window.innerWidth;
     let h = window.innerHeight;
     let renderer: THREE.WebGLRenderer | null = null;
-
+    let isContextLost = false;
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0a0a0a, 10, 1200); // Blend model into background at distance
+    const camera = new THREE.PerspectiveCamera(45, w / h, 1, 3000);
 
-    const aspect = w / h;
-    // Smooth FOV scaling — wider on portrait to prevent wing cropping
-    const fov = 45 + Math.max(0, (1 - aspect) * 30);
-    const camera = new THREE.PerspectiveCamera(fov, aspect, 1, 3000);
-    const minCamZ = aspect < 1 ? 165 : 180;
-    const camZ = aspect < 1 ? minCamZ : (screen.width - w) / 3;
-    camera.position.set(0, 0, camZ < minCamZ ? minCamZ : camZ);
-    // Less horizontal offset on portrait to keep the plane centered in narrow viewport
-    const lookAtX = aspect < 1 ? 5 : 15;
-    camera.lookAt(new THREE.Vector3(lookAtX, 5, 0));
+    const handleContextLoss = (event: Event) => {
+      event.preventDefault();
+      console.warn("WebGL Context Lost.");
+      isContextLost = true;
+    };
+
+    const handleContextRestored = () => {
+      console.log("WebGL Context Restored. Resizing canvas...");
+      isContextLost = false;
+      if (renderer) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        render();
+      }
+    };
 
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch {
-      unsupportedTimeout = window.setTimeout(() => {
-        setLoadState("unsupported");
-      }, 0);
-      return () => {
-        if (unsupportedTimeout) {
-          window.clearTimeout(unsupportedTimeout);
-        }
-      };
-    }
+      scene.fog = new THREE.Fog(0x0a0a0a, 10, 1200); // Blend model into background at distance
 
-    renderer.setSize(w, h);
-    // STABILITY CAP: Limit device pixel ratio to 2 to prevent GPU VRAM context loss on high-res displays
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0); 
-    
-    // Optimization: Shadows are expensive and not needed for this floating scene
-    renderer.shadowMap.enabled = false;
-    container.appendChild(renderer.domElement);
+      const aspect = w / h;
+      // Smooth FOV scaling — wider on portrait to prevent wing cropping
+      camera.fov = 45 + Math.max(0, (1 - aspect) * 30);
+      camera.aspect = aspect;
+      const minCamZ = aspect < 1 ? 165 : 180;
+      const camZ = aspect < 1 ? minCamZ : (screen.width - w) / 3;
+      camera.position.set(0, 0, camZ < minCamZ ? minCamZ : camZ);
+      // Less horizontal offset on portrait to keep the plane centered in narrow viewport
+      const lookAtX = aspect < 1 ? 5 : 15;
+      camera.lookAt(new THREE.Vector3(lookAtX, 5, 0));
+      camera.updateProjectionMatrix();
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      // STABILITY CAP: Limit device pixel ratio to 2 to prevent GPU VRAM context loss on high-res displays
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000000, 0); 
+      
+      // Optimization: Shadows are expensive and not needed for this floating scene
+      renderer.shadowMap.enabled = false;
+      container.appendChild(renderer.domElement);
+
+      renderer.domElement.addEventListener("webglcontextlost", handleContextLoss, false);
+      renderer.domElement.addEventListener("webglcontextrestored", handleContextRestored, false);
+    } catch (e) {
+      console.error("WebGL Setup Error:", e);
+      setLoadState("unsupported");
+      return;
+    }
 
     // ─── LIGHTING (original fb37f5e calibration) ───
     const light = new THREE.PointLight(0xffffff, 0.75);
@@ -112,9 +130,9 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     gsap.set(planeGroup.rotation, { y: tau * -0.25 });
     gsap.set(planeGroup.position, { x: 180, y: -32, z: -60 });
 
-    // Optimization: Skip rendering if the component is off-screen
+    // Optimization: Skip rendering if the component is off-screen or context is lost
     const render = () => {
-      if (!isVisible.current) return;
+      if (isContextLost || !isVisible.current) return;
       renderer?.render(scene, camera);
     };
     render();
@@ -143,7 +161,10 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         if ((child as THREE.Mesh).isMesh) {
           const mesh = (child as THREE.Mesh);
           if (mesh.material) {
-            (mesh.material as any).opacity = 0;
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            materials.forEach((mat) => {
+              if (mat) (mat as any).opacity = 0;
+            });
           }
         }
       });
@@ -196,10 +217,17 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       canvasContainerRef.current.style.opacity = "1";
     };
 
+    let lastWidth = typeof window !== "undefined" ? window.innerWidth : 0;
     let rebuildTimeout: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
+
     const onResize = () => {
       if (!renderer || !canvasContainerRef.current) return;
+      
+      const newWidth = window.innerWidth;
+      // STABILITY: Filter out mobile browser address bar height resizes (ignore if width is unchanged)
+      if (newWidth === lastWidth) return;
+      lastWidth = newWidth;
       
       // Instantly hide the canvas during resize to prevent the user from seeing any layout shift jumps
       canvasContainerRef.current.style.opacity = "0";
@@ -233,111 +261,111 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     if (typeof window !== "undefined" && "ResizeObserver" in window) {
       resizeObserver = new ResizeObserver(() => {
         if (!isInitialized) return;
+
         if (rebuildTimeout) window.clearTimeout(rebuildTimeout);
         rebuildTimeout = window.setTimeout(() => {
           ScrollTrigger.refresh();
           rebuildTimeline();
-        }, 150);
+        }, 350); // Safe debounce window to let layout shifts settle
       });
       if (document.body) {
         resizeObserver.observe(document.body);
       }
     }
 
-    const manager = new THREE.LoadingManager(() => {
-      if (!myPlane) return;
-
-      const box = new THREE.Box3().setFromObject(myPlane);
-      const size = box.getSize(new THREE.Vector3());
-      originalMaxDim = Math.max(size.x, size.y, size.z);
-      originalCenter = box.getCenter(new THREE.Vector3());
-      isInitialized = true;
-
-      myPlane.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = (child as THREE.Mesh);
-          // STABILITY FIX: Disable frustum culling to prevent model from flickering/disappearing during fast turns
-          mesh.frustumCulled = false;
-          
-          if (mesh.material) {
-            (mesh.material as any).metalness = 0.9;
-            (mesh.material as any).roughness = 0.4;
-            (mesh.material as any).emissive = new THREE.Color(0x050505);
-            (mesh.material as any).emissiveIntensity = 1.0;
-            (mesh.material as any).transparent = true;
-            (mesh.material as any).opacity = 0;
-          }
-        }
-      });
-
-      // Align model orientation
-      myPlane.rotation.y = -Math.PI / 2;
-
-      planeGroup.add(myPlane);
-      setLoadState("ready");
-
-      const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
-      if (!flightWrapper) return;
-
-      // Build flight path timeline for the first time
-      rebuildTimeline();
-
-      const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
-      const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
-      const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
-
-      grounds.forEach((groundNode) => {
-        gsap.to(groundNode, {
-          y: "30%",
-          force3D: true,
-          scrollTrigger: {
-            trigger: flightWrapper,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      });
-
-      deepClouds.forEach((cloudNode) => {
-        gsap.from(cloudNode, {
-          y: "20%",
-          force3D: true,
-          scrollTrigger: {
-            trigger: flightWrapper,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      });
-
-      foregroundClouds.forEach((cloudNode) => {
-        gsap.from(cloudNode, {
-          y: "25%",
-          force3D: true,
-          scrollTrigger: {
-            trigger: flightWrapper,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-      });
-    });
-
-    manager.onError = () => {
-      setLoadState("unsupported");
-    };
-
-    const loader = new GLTFLoader(manager);
+    const loader = new GLTFLoader();
     loader.load(
       "/assets/airplane.glb",
       (gltf) => {
         myPlane = gltf.scene;
+        if (!myPlane) return;
+
+        const box = new THREE.Box3().setFromObject(myPlane);
+        const size = box.getSize(new THREE.Vector3());
+        originalMaxDim = Math.max(size.x, size.y, size.z);
+        originalCenter = box.getCenter(new THREE.Vector3());
+        isInitialized = true;
+
+        myPlane.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = (child as THREE.Mesh);
+            // STABILITY FIX: Disable frustum culling to prevent model from flickering/disappearing during fast turns
+            mesh.frustumCulled = false;
+            
+            if (mesh.material) {
+              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              materials.forEach((material) => {
+                if (material) {
+                  (material as any).metalness = 0.9;
+                  (material as any).roughness = 0.4;
+                  (material as any).emissive = new THREE.Color(0x050505);
+                  (material as any).emissiveIntensity = 1.0;
+                  (material as any).transparent = true;
+                  (material as any).opacity = 0;
+                }
+              });
+            }
+          }
+        });
+
+        // Align model orientation
+        myPlane.rotation.y = -Math.PI / 2;
+
+        planeGroup.add(myPlane);
+        setLoadState("ready");
+
+        const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
+        if (!flightWrapper) return;
+
+        // Build flight path timeline for the first time
+        rebuildTimeline();
+
+        const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
+        const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
+        const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
+
+        grounds.forEach((groundNode) => {
+          gsap.to(groundNode, {
+            y: "30%",
+            force3D: true,
+            scrollTrigger: {
+              trigger: flightWrapper,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          });
+        });
+
+        deepClouds.forEach((cloudNode) => {
+          gsap.from(cloudNode, {
+            y: "20%",
+            force3D: true,
+            scrollTrigger: {
+              trigger: flightWrapper,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          });
+        });
+
+        foregroundClouds.forEach((cloudNode) => {
+          gsap.from(cloudNode, {
+            y: "25%",
+            force3D: true,
+            scrollTrigger: {
+              trigger: flightWrapper,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true,
+            },
+          });
+        });
       },
       undefined,
-      () => {
+      (err) => {
+        console.error("GLTF Loader Error:", err);
         setLoadState("unsupported");
       }
     );
@@ -384,22 +412,27 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
           }
         }
       });
+      if (renderer && renderer.domElement) {
+        renderer.domElement.removeEventListener("webglcontextlost", handleContextLoss);
+        renderer.domElement.removeEventListener("webglcontextrestored", handleContextRestored);
+      }
       container.replaceChildren();
       renderer?.dispose();
     };
   }, []);
 
   return (
-    <div
-      ref={canvasContainerRef}
-      style={{ visibility: "hidden", opacity: 0 }}
-      className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
-    >
+    <>
+      <div
+        ref={canvasContainerRef}
+        style={{ visibility: "hidden", opacity: 0 }}
+        className="fixed inset-0 pointer-events-none z-[2] w-full h-full transition-opacity duration-500 ease-out"
+      />
       {loadState === "loading" && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="fixed inset-0 pointer-events-none z-[3] flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}
-    </div>
+    </>
   );
 }

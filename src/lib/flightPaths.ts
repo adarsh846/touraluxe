@@ -42,10 +42,16 @@ export const FLIGHT_PATHS: Record<FlightPathName, (params: FlightPathParams) => 
     // Fade the fuselage in
     myPlane.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        timeline.to((child as THREE.Mesh).material, {
-          opacity: 1,
-          duration: sectionDuration * 0.5
-        }, delay);
+        const mesh = child as THREE.Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach((mat) => {
+          if (mat) {
+            timeline.to(mat, {
+              opacity: 1,
+              duration: sectionDuration * 0.5
+            }, delay);
+          }
+        });
       }
     });
 
