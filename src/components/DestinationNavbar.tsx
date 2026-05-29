@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { Magnetic } from "@/components/Magnetic";
 
@@ -16,6 +16,7 @@ export function DestinationNavbar({
   forceScrolled?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [internalScrolled, setInternalScrolled] = useState(false);
 
   useEffect(() => {
@@ -36,20 +37,17 @@ export function DestinationNavbar({
 
   const isScrolled = forceScrolled ?? internalScrolled;
 
-  // On standalone pages, Back and X use window.location to do hard navigations.
-  // This bypasses the intercepting route and prevents DOM reconciliation errors.
+  // On standalone pages, Back and X use router.push to do smooth client-side SPA navigations.
   const handlePageBack = () => {
     if (pathname.startsWith("/destinations/")) {
-      // On detail page — go to listing page (hard nav to skip interception)
-      window.location.href = "/destinations";
+      router.push("/destinations");
     } else {
-      // On listing page — go home
-      window.location.href = "/";
+      router.push("/");
     }
   };
 
   const handlePageClose = () => {
-    window.location.href = "/";
+    router.push("/");
   };
 
   const backLabel = pathname.startsWith("/destinations/") ? "Destinations" : "Home";
@@ -87,7 +85,7 @@ export function DestinationNavbar({
         {/* Left: Logo Pill */}
         <div className="flex-1 flex items-center justify-start">
           <Magnetic>
-            <button onClick={handlePageClose} className="relative group block">
+            <button onClick={onX ?? handlePageClose} className="relative group block">
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
               <div className="relative flex items-center justify-center bg-[#f5f5f7] rounded-full transition-all duration-700 group-hover:scale-[1.05] overflow-hidden border border-white/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] w-24 h-9 md:w-28 md:h-10">

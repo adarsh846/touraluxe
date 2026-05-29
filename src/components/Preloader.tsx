@@ -1,17 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
+
+let preloaderPlayed = false;
 
 export function Preloader() {
   const preloaderRef = useRef<HTMLDivElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const progressTextRef = useRef<HTMLDivElement>(null);
+  const [shouldRender, setShouldRender] = useState(!preloaderPlayed);
 
   useEffect(() => {
+    if (preloaderPlayed) {
+      return;
+    }
+
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
+      const tl = gsap.timeline({
+        onComplete: () => {
+          preloaderPlayed = true;
+          setShouldRender(false);
+        }
+      });
 
       // 1. Initial Reveal
       tl.fromTo(
@@ -50,6 +62,8 @@ export function Preloader() {
 
     return () => ctx.revert();
   }, []);
+
+  if (!shouldRender) return null;
 
   return (
     <div

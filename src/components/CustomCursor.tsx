@@ -25,14 +25,11 @@ export function CustomCursor() {
     const xFollower = gsap.quickTo(follower, "x", { duration: 0.4, ease: "power3.out", force3D: true });
     const yFollower = gsap.quickTo(follower, "y", { duration: 0.4, ease: "power3.out", force3D: true });
 
-    const moveCursor = (e: MouseEvent) => {
-      xCursor(e.clientX);
-      yCursor(e.clientY);
-      xFollower(e.clientX);
-      yFollower(e.clientY);
-    };
+    let isHovered = false;
 
     const handleHover = () => {
+      if (isHovered) return;
+      isHovered = true;
       gsap.to(follower, {
         scale: 1, // Full 80px sharp scale
         backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -43,6 +40,8 @@ export function CustomCursor() {
     };
 
     const handleUnhover = () => {
+      if (!isHovered) return;
+      isHovered = false;
       gsap.to(follower, {
         scale: 0.4, // Down to 32px visually
         backgroundColor: "transparent",
@@ -52,20 +51,42 @@ export function CustomCursor() {
       });
     };
 
-    window.addEventListener("mousemove", moveCursor);
+    const moveCursor = (e: MouseEvent) => {
+      xCursor(e.clientX);
+      yCursor(e.clientY);
+      xFollower(e.clientX);
+      yFollower(e.clientY);
 
-    const interactiveElements = document.querySelectorAll("a, button, .interactive");
-    interactiveElements.forEach((el) => {
-      el.addEventListener("mouseenter", handleHover);
-      el.addEventListener("mouseleave", handleUnhover);
-    });
+      const target = e.target as HTMLElement;
+      if (target) {
+        const interactive = target.closest("a, button, [role='button'], .interactive, input, select, textarea");
+        if (interactive) {
+          handleHover();
+        } else {
+          handleUnhover();
+        }
+      }
+    };
+
+    const handleMouseLeaveWindow = () => {
+      handleUnhover();
+    };
+
+    const handleClick = () => {
+      // If click triggers unmount of the hovered element, reset cursor scaling immediately
+      setTimeout(() => {
+        handleUnhover();
+      }, 50);
+    };
+
+    window.addEventListener("mousemove", moveCursor);
+    document.addEventListener("mouseleave", handleMouseLeaveWindow);
+    window.addEventListener("click", handleClick);
 
     return () => {
       window.removeEventListener("mousemove", moveCursor);
-      interactiveElements.forEach((el) => {
-        el.removeEventListener("mouseenter", handleHover);
-        el.removeEventListener("mouseleave", handleUnhover);
-      });
+      document.removeEventListener("mouseleave", handleMouseLeaveWindow);
+      window.removeEventListener("click", handleClick);
     };
   }, []);
 

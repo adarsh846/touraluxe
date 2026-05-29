@@ -403,7 +403,7 @@ export function ModalShell() {
             )}
             {activeView === 'PORTAL' && user && (
               <Magnetic>
-                <div className="relative group block">
+                <div className="relative group block pointer-events-auto">
                   {/* iOS 26 Deep Shadow & Glow */}
                   <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
                   <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
@@ -418,7 +418,7 @@ export function ModalShell() {
               </Magnetic>
             )}
             <Magnetic>
-              <div className="relative group block">
+              <div className="relative group block pointer-events-auto">
                 {/* iOS 26 Deep Shadow & Glow */}
                 <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
                 <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />

@@ -39,13 +39,16 @@ export function HeroMobile() {
           { y: 0, opacity: 1 },
           "-=2.4"
         )
+        /*
         .fromTo(
           ".scroll-indicator",
           { opacity: 0, y: 10 },
           { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" },
           "-=1.5"
-        );
+        )
+        */;
 
+      /*
       // Fade out scroll indicator on scroll, reappear when scrolling back
       gsap.fromTo(".scroll-indicator",
         { opacity: 1, y: 0 },
@@ -61,6 +64,7 @@ export function HeroMobile() {
           },
         }
       );
+      */
 
       // Subtle Scroll Parallax on the image
       gsap.to(imageRef.current, {
@@ -126,7 +130,7 @@ export function HeroMobile() {
         </p>
       </div>
 
-      {/* Scroll Indicator */}
+      {/* Scroll Indicator
       <div className="scroll-indicator absolute bottom-[clamp(6rem,12vw,8rem)] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 opacity-0 pointer-events-none">
         <span className="text-[10px] font-medium tracking-[0.25em] uppercase bg-gradient-to-r from-[#a18cd1] to-[#fbc2eb] bg-clip-text text-transparent opacity-80">Scroll</span>
         <svg className="scroll-chevron w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="url(#curated-grad-mobile)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -139,6 +143,7 @@ export function HeroMobile() {
           <path d="M4 6l4 4 4-4" />
         </svg>
       </div>
+      */}
     </section>
   );
 }

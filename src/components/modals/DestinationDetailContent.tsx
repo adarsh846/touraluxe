@@ -36,23 +36,30 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const destRes = await fetch(`/api/destinations/${slug}`);
+        
+        // Parallelized Network Requests (eliminates API call waterfall bottleneck)
+        const [destRes, pkgRes, allDestsRes] = await Promise.all([
+          fetch(`/api/destinations/${slug}`),
+          fetch(`/api/packages?destination=${slug}`),
+          fetch("/api/destinations")
+        ]);
+
         if (!destRes.ok) throw new Error("Destination not found");
-        const destData = await destRes.json();
+
+        // Parallelized JSON Parsing
+        const [destData, pkgData, allDests] = await Promise.all([
+          destRes.json(),
+          pkgRes.ok ? pkgRes.json() : Promise.resolve([]),
+          allDestsRes.ok ? allDestsRes.json() : Promise.resolve([])
+        ]);
+
         setDestination(destData);
+        setPackages(pkgData);
 
-        const pkgRes = await fetch(`/api/packages?destination=${slug}`, { cache: 'no-store' });
-        if (pkgRes.ok) {
-          const pkgData = await pkgRes.json();
-          setPackages(pkgData);
-        }
-
-        const allDestsRes = await fetch("/api/destinations");
-        if (allDestsRes.ok) {
-          const allDests = await allDestsRes.json();
-          const related = allDests.filter((d: Destination) => d.slug !== slug && (d.region === destData.region || d.is_international === destData.is_international));
-          setRelatedDestinations(related.slice(0, 6));
-        }
+        const related = allDests.filter((d: Destination) => 
+          d.slug !== slug && (d.region === destData.region || d.is_international === destData.is_international)
+        );
+        setRelatedDestinations(related.slice(0, 6));
       } catch (err) {
         console.error("Failed to fetch destination data:", err);
         setIsError(true);
@@ -62,6 +69,8 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
     };
     fetchData();
   }, [slug]);
+
+
 
   const { computePrice } = usePricing();
 
@@ -216,7 +225,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       {/* ── PACKAGES ── */}
       <section className="px-6 py-16 md:py-24">
         <div className="max-w-[1200px] mx-auto">
-          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100vw-3rem)] min-w-0 bg-white/[0.03] backdrop-blur-3xl px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
+          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100vw-3rem)] min-w-0 bg-[#0a0a0b]/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
             <FilterBar packages={packages} filters={filters} onChange={setFilters} resultCount={filteredPackages.length} />
           </div>
           {filteredPackages.length > 0 ? (
@@ -257,7 +266,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
             <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
               <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
                 {relatedDestinations.map((dest) => (
-                  <Link key={dest.id} href={`/destinations/${dest.slug}`} className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
+                  <Link key={dest.id} href={`/destinations/${dest.slug}`} replace className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
                     <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
                       {dest.cover_image ? (
                         <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out" quality={80} sizes="300px" decoding="async" />
