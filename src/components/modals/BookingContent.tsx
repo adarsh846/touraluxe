@@ -131,7 +131,9 @@ export const BookingContent = memo(function BookingContent({
   const [bookingId, setBookingId] = useState<string | null>(null);
 
   // Form Data
-  const [adults, setAdults] = useState(INITIAL_ADULTS);
+  const [adults, setAdults] = useState(() => {
+    return (packageData?.selectedPax) ? Number(packageData.selectedPax) : INITIAL_ADULTS;
+  });
   const [kids, setKids] = useState(INITIAL_KIDS);
   const [infants, setInfants] = useState(INITIAL_INFANTS);
   const [startDate, setStartDate] = useState("");
@@ -397,6 +399,14 @@ export const BookingContent = memo(function BookingContent({
     setDynamicImage(null); // CRITICAL: Kill the search visual instantly so the package visual can take over
     setInternalPackage(pkg);
     
+    if (pkg?.selectedPax) {
+      setAdults(Number(pkg.selectedPax));
+    } else {
+      setAdults(INITIAL_ADULTS);
+    }
+    setKids(INITIAL_KIDS);
+    setInfants(INITIAL_INFANTS);
+    
     // Auto-select flight assistance for 'Included' or 'On Request' packages
     setIncludeFlights(pkg?.flights_status === 'on_request' || pkg?.flights_status === 'included');
     
@@ -547,7 +557,8 @@ export const BookingContent = memo(function BookingContent({
 
   const { computePrice } = usePricing();
   const pricing = React.useMemo(() => {
-    return computePrice(internalPackage || packageData, adults, kids, infants);
+    const tier = internalPackage?.selectedTier || packageData?.selectedTier;
+    return computePrice(internalPackage || packageData, adults, kids, infants, tier);
   }, [adults, kids, infants, internalPackage, packageData, computePrice]);
 
   const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;

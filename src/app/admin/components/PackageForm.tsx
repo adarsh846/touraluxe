@@ -19,7 +19,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const itineraryUploadRef = useRef<HTMLInputElement>(null);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [itineraryUploading, setItineraryUploading] = useState(false);
+  const [itineraryUploadIndex, setItineraryUploadIndex] = useState<number | null>(null);
   const { computePrice, settings } = usePricing();
 
   const parseDuration = (d: string) => {
@@ -58,7 +61,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     highlights: initialData?.highlights || [""],
     inclusions: initialData?.inclusions || [""],
     exclusions: initialData?.exclusions || [""],
-    itinerary: initialData?.itinerary || [{ day: "1", title: "", description: "" }],
+    itinerary: (initialData?.itinerary as any[]) || [{ day: "1", title: "", description: "", image: "" }],
     faq: (initialData as any)?.faq || [{ question: "", answer: "" }],
     gallery: (initialData as any)?.gallery || [],
     category: Array.isArray(initialData?.category) 
@@ -94,6 +97,14 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       : (initialData as any)?.flight_segments?.segments || [{ label: "", price: "" }]),
     flight_price_child: anchor?.child_fare || (initialData as any)?.flight_price_child || (initialData as any)?.flight_segments?.child_fare || "",
     flight_price_infant: anchor?.infant_fare || (initialData as any)?.flight_price_infant || (initialData as any)?.flight_segments?.infant_fare || "",
+    tiers: anchor?.tiers?.map((t: any) => ({
+      name: t.name || "",
+      price_grid: Object.entries(t.price_grid || {}).map(([pax, price]) => ({ pax: String(pax), price: String(price) })),
+      hotels: Object.entries(t.hotels || {}).map(([city, hotel]) => ({ city: String(city), hotel: String(hotel) })),
+      pdf_url: t.pdf_url || ""
+    })) || [],
+    transports: anchor?.transports || [],
+    pdf_url: anchor?.pdf_url || ((initialData as any)?.itinerary_url && !(initialData as any)?.itinerary_url.startsWith('{') ? (initialData as any).itinerary_url : ""),
   });
 
   const [uploading, setUploading] = useState(false);
@@ -113,6 +124,13 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   // ── Fiscal Synchronization ──
   // Ensure the master estimate always matches the live ledger sum
@@ -250,6 +268,36 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     });
   };
 
+  const handleItineraryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || itineraryUploadIndex === null) return;
+    
+    setItineraryUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "x-admin-token": getToken() },
+        body: formData,
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        handleItineraryChange(itineraryUploadIndex, "image", url);
+        setToast({ show: true, message: `Image uploaded for Day ${form.itinerary[itineraryUploadIndex].day}.`, type: "success" });
+      } else {
+        setToast({ show: true, message: "Upload failed. Please try again.", type: "error" });
+      }
+    } catch {
+      setToast({ show: true, message: "Upload failed. Check your connection.", type: "error" });
+    }
+    
+    setItineraryUploading(false);
+    setItineraryUploadIndex(null);
+    if (itineraryUploadRef.current) itineraryUploadRef.current.value = "";
+  };
+
   const moveGalleryImage = (index: number, direction: 'up' | 'down') => {
     setForm((prev) => {
       const gallery = [...(prev.gallery || [])];
@@ -293,7 +341,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
       if (res.ok) {
         const { url } = await res.json();
-        setForm((prev) => ({ ...prev, itinerary_url: url }));
+        setForm((prev) => ({ ...prev, pdf_url: url }));
         setToast({ show: true, message: "Digital Itinerary synchronized.", type: "success" });
       } else {
         setToast({ show: true, message: "PDF Upload failed.", type: "error" });
@@ -355,7 +403,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     const nextDay = (form.itinerary.length + 1).toString();
     setForm((prev) => ({ 
       ...prev, 
-      itinerary: [...prev.itinerary, { day: nextDay, title: "", description: "" }] 
+      itinerary: [...prev.itinerary, { day: nextDay, title: "", description: "", image: "" }] 
     }));
   };
 
@@ -408,7 +456,28 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     // Construct duration string
     const duration = `${form.nights} Nights ${form.days} Days`;
     
-    // Total Aviation Anchor Strategy: Bundle ALL flight metadata into one safe column
+    const serializedTiers = form.tiers.map((t: any) => {
+      const price_grid: { [key: string]: string } = {};
+      (t.price_grid || []).forEach((row: any) => {
+        if (row.pax && row.pax.trim()) {
+          price_grid[row.pax.trim()] = row.price;
+        }
+      });
+      const hotels: { [key: string]: string } = {};
+      (t.hotels || []).forEach((row: any) => {
+        if (row.city && row.city.trim()) {
+          hotels[row.city.trim()] = row.hotel;
+        }
+      });
+      return {
+        name: t.name,
+        price_grid,
+        hotels,
+        pdf_url: t.pdf_url
+      };
+    });
+
+    // Total Aviation Anchor Strategy: Bundle ALL flight, tier, and transport metadata into one safe column
     const aviationAnchor = JSON.stringify({
       segments: form.flight_segments,
       type: form.flight_type,
@@ -416,7 +485,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       infant_fare: form.flight_price_infant,
       status: form.flights_status,
       hubs: form.departure_cities,
-      estimate: form.flight_price_estimate
+      estimate: form.flight_price_estimate,
+      tiers: serializedTiers,
+      transports: form.transports,
+      pdf_url: form.pdf_url
     });
 
     // Sterilize the payload: Remove ALL potential schema-mismatch columns
@@ -428,6 +500,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       flight_price_estimate: _fpe,
       flight_price_child: _c,
       flight_price_infant: _i,
+      tiers: _tiers,
+      transports: _transports,
+      pdf_url: _pdf_url,
       ...safeForm 
     } = form;
 
@@ -777,13 +852,43 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     <textarea 
                       value={item.description} 
                       onChange={(e) => handleItineraryChange(i, "description", e.target.value)} 
-                      placeholder="Narrative for this day..." 
+                      placeholder="Narrative for this day... (Use new lines for bullet points)" 
                       rows={3} 
                       className="w-full px-6 py-4 rounded-2xl bg-black border border-white/[0.08] text-white text-[14px] focus:outline-none focus:border-white/20 transition-all resize-none" 
                     />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        value={item.image || ""} 
+                        onChange={(e) => handleItineraryChange(i, "image", e.target.value)} 
+                        placeholder="Day Image URL (Optional)" 
+                        className="flex-1 h-[48px] px-6 rounded-2xl bg-black border border-white/[0.08] text-white text-[13px] focus:outline-none focus:border-white/20 transition-all" 
+                      />
+                      {item.image && (
+                        <button 
+                          type="button"
+                          onClick={() => handleItineraryChange(i, "image", "")}
+                          className="h-[48px] w-[48px] flex items-center justify-center rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all shrink-0"
+                          title="Remove Image"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setItineraryUploadIndex(i);
+                          itineraryUploadRef.current?.click();
+                        }}
+                        disabled={itineraryUploading && itineraryUploadIndex === i}
+                        className="h-[48px] px-6 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 shrink-0"
+                      >
+                        {itineraryUploading && itineraryUploadIndex === i ? "Uploading..." : (item.image ? "Replace" : "Upload")}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
+              <input ref={itineraryUploadRef} type="file" accept="image/*" onChange={handleItineraryImageUpload} className="hidden" />
               <button type="button" onClick={addItineraryDay} className="text-[12px] md:text-[13px] font-bold text-white/50 hover:text-white transition-colors flex items-center gap-2 py-2 mt-2">
                 + Add Day to Journey
               </button>
@@ -1161,6 +1266,320 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
           </section>
 
+          {/* ── SECTION: DYNAMIC COMFORT TIERS & VEHICLES CONFIGURATOR ── */}
+          <section className="space-y-8 pt-12 border-t border-white/[0.03]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-[10px] font-black tracking-[0.3em] text-white/90 uppercase">
+                  Dynamic Comfort Tiers & Logistics Configurator
+                </h3>
+                <p className="text-[11px] text-white/50 leading-relaxed italic pt-1">
+                  Configure pricing matrix, accommodation tiers, envisaged hotels, and transport vehicle allocation.
+                </p>
+              </div>
+              
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsDirty(true);
+                  if (form.tiers.length === 0) {
+                    setForm(p => ({
+                      ...p,
+                      tiers: [
+                        {
+                          name: "Deluxe",
+                          price_grid: [],
+                          hotels: []
+                        }
+                      ],
+                      transports: []
+                    }));
+                  } else {
+                    setForm(p => ({ ...p, tiers: [], transports: [] }));
+                  }
+                }}
+                className={cn(
+                  "px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border",
+                  form.tiers.length > 0
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                    : "bg-white/5 border-white/10 text-white/70 hover:text-white/90"
+                )}
+              >
+                {form.tiers.length > 0 ? "Reset to Simple/Flat Price" : "+ Initialize Dynamic Comfort Tiers"}
+              </button>
+            </div>
+
+            {form.tiers.length > 0 && (
+              <div className="space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                {/* 1. Comfort Tiers Matrix */}
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em]">Accommodation & Price Tiers</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setForm(p => ({
+                        ...p,
+                        tiers: [...p.tiers, { name: `Tier ${p.tiers.length + 1}`, price_grid: [], hotels: [] }]
+                      }))}
+                      className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-colors"
+                    >
+                      + Add New Comfort Tier
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    {form.tiers.map((tier: any, tIdx: number) => (
+                      <div key={tIdx} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 space-y-6 relative group/tier">
+                        {/* Card Header Bar */}
+                        <div className="flex justify-between items-center pb-4 border-b border-white/[0.03]">
+                          <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.25em]">Comfort Tier #{tIdx + 1}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setIsDirty(true);
+                              setForm(p => ({ ...p, tiers: p.tiers.filter((_: any, idx: number) => idx !== tIdx) }));
+                            }}
+                            className="w-7 h-7 rounded-full flex items-center justify-center bg-red-500/[0.05] hover:bg-red-500/10 border border-red-500/10 text-red-400/80 hover:text-red-400 transition-all active:scale-95 text-lg"
+                            title="Remove Comfort Tier"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+                          {/* Left: Tier Identity */}
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50 mb-2">Tier Name</label>
+                              <input 
+                                className="w-full h-11 px-4 bg-white/[0.03] border border-white/10 rounded-xl text-[13px] text-white font-bold transition-all outline-none"
+                                value={tier.name}
+                                onChange={(e) => {
+                                  setIsDirty(true);
+                                  const nextTiers = [...form.tiers];
+                                  nextTiers[tIdx].name = e.target.value;
+                                  setForm(p => ({ ...p, tiers: nextTiers }));
+                                }}
+                                placeholder="e.g. 5 Star Deluxe"
+                              />
+                            </div>
+                            
+                            {/* PDF Flyer (Legacy upload wrapper integration) */}
+                            <div>
+                              <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50 mb-2">Digital Itinerary Flyer (PDF)</label>
+                              <div className="flex flex-col gap-2">
+                                <input 
+                                  className="w-full h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[11px] text-white/70 transition-all outline-none"
+                                  value={form.pdf_url}
+                                  onChange={(e) => {
+                                    setIsDirty(true);
+                                    setForm(p => ({ ...p, pdf_url: e.target.value }));
+                                  }}
+                                  placeholder="PDF URL or upload asset below..."
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: Grid rates & Envisaged Hotels */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pl-0 md:pl-6 md:border-l border-white/[0.04]">
+                            {/* Group Size Price Grid */}
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Group Size Price Grid (₹)</label>
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    setIsDirty(true);
+                                    const nextTiers = [...form.tiers];
+                                    nextTiers[tIdx].price_grid = [...(nextTiers[tIdx].price_grid || []), { pax: "", price: "" }];
+                                    setForm(p => ({ ...p, tiers: nextTiers }));
+                                  }}
+                                  className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-colors"
+                                >
+                                  + Add Size Row
+                                </button>
+                              </div>
+
+                              <div className="space-y-2">
+                                {(tier.price_grid || []).map((row: any, rIdx: number) => (
+                                  <div key={rIdx} className="flex items-center gap-3">
+                                    <input 
+                                      className="w-20 h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white outline-none focus:border-white/10 transition-all font-mono text-center"
+                                      placeholder="e.g. 2"
+                                      value={row.pax}
+                                      onChange={(e) => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].price_grid[rIdx].pax = e.target.value;
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                    />
+                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Pax</span>
+                                    <input 
+                                      className="flex-1 h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white/90 text-right font-mono outline-none focus:border-white/10 transition-all"
+                                      placeholder="Price"
+                                      value={row.price}
+                                      onChange={(e) => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].price_grid[rIdx].price = e.target.value;
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                    />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].price_grid = nextTiers[tIdx].price_grid.filter((_: any, idx: number) => idx !== rIdx);
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                      className="text-white/20 hover:text-red-400 transition-colors text-sm font-bold w-5 h-5 flex items-center justify-center"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Envisaged Hotels */}
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-center">
+                                <label className="text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Envisaged Accommodations</label>
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    setIsDirty(true);
+                                    const nextTiers = [...form.tiers];
+                                    nextTiers[tIdx].hotels = [...(nextTiers[tIdx].hotels || []), { city: "", hotel: "" }];
+                                    setForm(p => ({ ...p, tiers: nextTiers }));
+                                  }}
+                                  className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-colors"
+                                >
+                                  + Add Hotel Row
+                                </button>
+                              </div>
+
+                              <div className="space-y-2">
+                                {(tier.hotels || []).map((row: any, rIdx: number) => (
+                                  <div key={rIdx} className="flex items-center gap-3">
+                                    <input 
+                                      className="w-24 h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white outline-none focus:border-white/10 transition-all font-bold"
+                                      placeholder="City"
+                                      value={row.city}
+                                      onChange={(e) => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].hotels[rIdx].city = e.target.value;
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                    />
+                                    <input 
+                                      className="flex-1 h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white/90 outline-none focus:border-white/10 transition-all"
+                                      placeholder="Hotel Name"
+                                      value={row.hotel}
+                                      onChange={(e) => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].hotels[rIdx].hotel = e.target.value;
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                    />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+                                        setIsDirty(true);
+                                        const nextTiers = [...form.tiers];
+                                        nextTiers[tIdx].hotels = nextTiers[tIdx].hotels.filter((_: any, idx: number) => idx !== rIdx);
+                                        setForm(p => ({ ...p, tiers: nextTiers }));
+                                      }}
+                                      className="text-white/20 hover:text-red-400 transition-colors text-sm font-bold w-5 h-5 flex items-center justify-center"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Private Transport Rules Allocation */}
+                <div className="space-y-6 pt-6 border-t border-white/[0.02]">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.2em] block">Private Fleet Allocation Map</span>
+                      <span className="text-[9px] text-white/40 italic">Maps guest headcounts to vehicle classes (e.g. SUV, HiRoof, Coaster Bus)</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setForm(p => ({
+                        ...p,
+                        transports: [...p.transports, { pax: "", vehicle: "" }]
+                      }))}
+                      className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 hover:text-white transition-colors"
+                    >
+                      + Add Transport Class
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {form.transports.map((rule: any, idx: number) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-white/[0.01] border border-white/[0.04] flex items-center gap-4">
+                        <div className="flex-1 grid grid-cols-[100px_1fr] gap-4">
+                          <div>
+                            <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Pax count/range</label>
+                            <input 
+                              className="w-full h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white outline-none focus:border-white/10 text-center font-mono"
+                              placeholder="e.g. 3-6"
+                              value={rule.pax}
+                              onChange={(e) => {
+                                setIsDirty(true);
+                                const nextTransports = [...form.transports];
+                                nextTransports[idx].pax = e.target.value;
+                                setForm(p => ({ ...p, transports: nextTransports }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Vehicle Type</label>
+                            <input 
+                              className="w-full h-9 px-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[12px] text-white outline-none focus:border-white/10"
+                              placeholder="e.g. Toyota HiRoof"
+                              value={rule.vehicle}
+                              onChange={(e) => {
+                                setIsDirty(true);
+                                const nextTransports = [...form.transports];
+                                nextTransports[idx].vehicle = e.target.value;
+                                setForm(p => ({ ...p, transports: nextTransports }));
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setIsDirty(true);
+                            setForm(p => ({ ...p, transports: p.transports.filter((_: any, rIdx: number) => rIdx !== idx) }));
+                          }}
+                          className="text-white/20 hover:text-red-400 transition-colors text-lg font-bold mt-4"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* ── SECTION: PROMOTIONS & BADGES ── */}
           <section className="space-y-6 pt-12 border-t border-white/[0.03]">
             <h3 className="text-[10px] font-black tracking-[0.3em] text-white/70 uppercase">
@@ -1389,19 +1808,19 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               <div className="p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden">
                 <div className="relative z-10 flex-1 space-y-2">
                   <div className="flex items-center gap-4">
-                    {form.itinerary_url ? (
+                    {form.pdf_url ? (
                       <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
                         <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                          {form.itinerary_url.toLowerCase().endsWith('.pdf') ? (
+                          {form.pdf_url.toLowerCase().endsWith('.pdf') ? (
                             <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v20l10-10L7 2z" /></svg>
                           ) : (
                             <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           )}
                         </div>
                         <span className="text-[11px] font-bold text-white/90 truncate max-w-[200px]">
-                          {form.itinerary_url.split('/').pop()?.split('-').slice(1).join('-') || "Asset Loaded"}
+                          {form.pdf_url.split('/').pop()?.split('-').slice(1).join('-') || "Asset Loaded"}
                         </span>
-                        <button type="button" onClick={() => setForm(p => ({ ...p, itinerary_url: "" }))} className="text-white/70 hover:text-white transition-colors">×</button>
+                        <button type="button" onClick={() => setForm(p => ({ ...p, pdf_url: "" }))} className="text-white/70 hover:text-white transition-colors">×</button>
                       </div>
                     ) : (
                       <p className="text-[14px] font-bold text-white/90 italic tracking-tight">No digital flyer attached yet.</p>
@@ -1419,7 +1838,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     disabled={pdfUploading}
                     className={`px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${pdfUploading ? "bg-white/5 text-white/70" : "bg-white/10 text-white hover:bg-white/20 active:scale-95 border border-white/10 shadow-xl"}`}
                   >
-                    {pdfUploading ? "Uploading..." : form.itinerary_url ? "Replace Asset" : "Upload Asset"}
+                    {pdfUploading ? "Uploading..." : form.pdf_url ? "Replace Asset" : "Upload Asset"}
                   </button>
                   <input ref={pdfInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handlePdfUpload} className="hidden" />
                 </div>

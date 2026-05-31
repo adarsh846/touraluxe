@@ -53,7 +53,7 @@ export function useGlobalSettings() {
   }, []);
 
   const computePrice = useCallback(
-    (pkg: any, adultCount: number = 1, childCount: number = 0, infantCount: number = 0) => {
+    (pkg: any, adultCount: number = 1, childCount: number = 0, infantCount: number = 0, selectedTierName?: string) => {
       const taxRate = parseFloat(settings.tax_percentage || "0");
       const symbol = settings.currency_symbol || pkg?.currency || "₹";
 
@@ -68,8 +68,83 @@ export function useGlobalSettings() {
       }
 
       // ── PARSE RAW INPUTS ──
-      const base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
-      
+      let base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
+
+      // ── Aviation Anchor Recovery ──
+      const getAviationAnchor = () => {
+        try {
+          const anchor = pkg.itinerary_url;
+          if (anchor && anchor.includes('{')) {
+            return JSON.parse(anchor);
+          }
+        } catch (e) { return null; }
+        return null;
+      };
+      const anchor = getAviationAnchor();
+
+      // ── TIERED PRICING ARCHITECTURE ──
+      let activeTier: any = null;
+      if (anchor?.tiers && Array.isArray(anchor.tiers) && anchor.tiers.length > 0) {
+        if (selectedTierName) {
+          activeTier = anchor.tiers.find((t: any) => t.name === selectedTierName);
+        }
+        if (!activeTier) {
+          activeTier = anchor.tiers[0];
+        }
+      }
+
+      if (activeTier && activeTier.pax_prices) {
+        const totalPax = adultCount + childCount;
+        const keys = Object.keys(activeTier.pax_prices);
+        
+        let matchedPrice = 0;
+        let matched = false;
+        
+        for (const key of keys) {
+          if (key === String(totalPax)) {
+            matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+            matched = true;
+            break;
+          }
+          if (key.includes('-')) {
+            const [min, max] = key.split('-').map(Number);
+            if (totalPax >= min && totalPax <= max) {
+              matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+              matched = true;
+              break;
+            }
+          }
+        }
+        
+        if (!matched && keys.length > 0) {
+          const parsedKeys = keys.map(k => {
+            if (k.includes('-')) {
+              const [min, max] = k.split('-').map(Number);
+              return { key: k, min, max };
+            }
+            const val = Number(k);
+            return { key: k, min: val, max: val };
+          }).sort((a, b) => a.min - b.min);
+          
+          let found = false;
+          for (const pk of parsedKeys) {
+            if (totalPax <= pk.max) {
+              matchedPrice = parseInt(String(activeTier.pax_prices[pk.key]).replace(/[^0-9]/g, "")) || 0;
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            const lastKey = parsedKeys[parsedKeys.length - 1].key;
+            matchedPrice = parseInt(String(activeTier.pax_prices[lastKey]).replace(/[^0-9]/g, "")) || 0;
+          }
+        }
+        
+        if (matchedPrice > 0) {
+          base = matchedPrice;
+        }
+      }
+
       // No hardcoded fallbacks: Default to full adult rate if specific tier pricing is missing
       const childBase = pkg.child_price && pkg.child_price !== "0"
         ? (parseInt(String(pkg.child_price).replace(/[^0-9]/g, "")) || 0)
@@ -81,57 +156,40 @@ export function useGlobalSettings() {
 
       const originalBase = parseInt(String(pkg.original_price || "0").replace(/[^0-9]/g, "")) || 0;
 
-    // ── RESILIENT STATUS CHECK ──
-    const taxStatus = String(pkg?.tax_status || "").toLowerCase();
-    const isExclusive = taxStatus.includes("exclusive");
-    const isInclusive = taxStatus.includes("inclusive") || !isExclusive;
+      // ── RESILIENT STATUS CHECK ──
+      const taxStatus = String(pkg?.tax_status || "").toLowerCase();
+      const isExclusive = taxStatus.includes("exclusive");
+      const isInclusive = taxStatus.includes("inclusive") || !isExclusive;
 
-    // ── MASTER FISCAL RULE (Split Architecture) ──
-    const landAdult = isExclusive && taxRate > 0 ? Math.round(base + (base * taxRate) / 100) : base;
-    const landChild = isExclusive && taxRate > 0 ? Math.round(childBase + (childBase * taxRate) / 100) : childBase;
-    const landInfant = isExclusive && taxRate > 0 ? Math.round(infantBase + (infantBase * taxRate) / 100) : infantBase;
-    const landOriginal = isExclusive && taxRate > 0 ? Math.round(originalBase + (originalBase * taxRate) / 100) : originalBase;
+      // ── MASTER FISCAL RULE (Split Architecture) ──
+      const landAdult = isExclusive && taxRate > 0 ? Math.round(base + (base * taxRate) / 100) : base;
+      const landChild = isExclusive && taxRate > 0 ? Math.round(childBase + (childBase * taxRate) / 100) : childBase;
+      const landInfant = isExclusive && taxRate > 0 ? Math.round(infantBase + (infantBase * taxRate) / 100) : infantBase;
+      const landOriginal = isExclusive && taxRate > 0 ? Math.round(originalBase + (originalBase * taxRate) / 100) : originalBase;
 
-    // ── AIRFARE COMPONENT (Sovereign Pass-Through) ──
-    // ── Aviation Anchor Recovery ──
-    const getAviationAnchor = () => {
-      try {
-        const anchor = pkg.itinerary_url;
-        if (anchor && anchor.includes('{')) {
-          return JSON.parse(anchor);
-        }
-      } catch (e) { return null; }
-      return null;
-    };
-    const anchor = getAviationAnchor();
+      // ── AIRFARE COMPONENT (Sovereign Pass-Through) ──
+      const currentStatus = anchor?.status || pkg.flights_status;
+      const isExcluded = currentStatus === 'excluded';
+      
+      const rawAdultEstimate = anchor?.estimate || pkg.flight_price_estimate || "0";
+      const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
+      
+      const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
+      const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
 
-    // Tiered Aviation Fiscal Logic (Sovereign Model - No Hard-Coded Fallbacks)
-    const currentStatus = anchor?.status || pkg.flights_status;
-    const isExcluded = currentStatus === 'excluded';
-    
-    // Priority: Anchor Estimate -> Database Column -> Default 0
-    const rawAdultEstimate = anchor?.estimate || pkg.flight_price_estimate || "0";
-    const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
-    
-    // Support for both legacy columns and new nested JSON architecture
-    const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
-    const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
+      const flightChild = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
+      const flightInfant = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
 
-    const flightChild = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
-    const flightInfant = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
+      const perAdultFinal = landAdult + flightAdult;
+      const perChildFinal = landChild + flightChild;
+      const perInfantFinal = landInfant + flightInfant;
+      const perOriginalFinal = landOriginal + (flightAdult > 0 ? flightAdult : 0);
 
-    const perAdultFinal = landAdult + flightAdult;
-    const perChildFinal = landChild + flightChild;
-    const perInfantFinal = landInfant + flightInfant;
-    const perOriginalFinal = landOriginal + (flightAdult > 0 ? flightAdult : 0);
-
-      // The "Unified Final Total" for a booking
       const finalTotal = (perAdultFinal * adultCount) + (perChildFinal * childCount) + (perInfantFinal * infantCount);
       
       const hasSavings = perOriginalFinal > 0 && perOriginalFinal > perAdultFinal;
       const discountPercent = hasSavings ? Math.round(((perOriginalFinal - perAdultFinal) / perOriginalFinal) * 100) : 0;
 
-      // In this unified model, the customer always sees a price that includes tax
       const flightTypeLabel = pkg.flight_type || (pkg.flights_status === 'included' ? "RT Flights" : "Flight Est.");
       const flightContext = pkg.flights_status === 'included' 
         ? ` & ${flightTypeLabel}` 

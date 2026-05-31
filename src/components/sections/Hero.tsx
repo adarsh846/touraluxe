@@ -15,8 +15,8 @@ export function Hero() {
   const imageRef = useRef<HTMLDivElement>(null);
   // const [isMobile, setIsMobile] = useState(false);
   const { settings } = useSettings();
-  const { openBooking } = useBooking();
-  const [trendingPills, setTrendingPills] = useState<{ label: string; value: string }[]>([]);
+  const { openModal } = useBooking();
+  const [trendingPills, setTrendingPills] = useState<any[]>([]);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -26,105 +26,44 @@ export function Hero() {
   const titleLines = title.split('\n');
 
   useEffect(() => {
-    async function fetchThemes() {
+    async function fetchTrendingPackages() {
       try {
         const { data, error } = await supabase
           .from("packages")
-          .select("tags, category")
+          .select("*")
           .eq("is_published", true);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const rawThemes = new Set<string>();
-          data.forEach((pkg) => {
-            if (Array.isArray(pkg.tags)) {
-              pkg.tags.forEach((t: string) => {
-                if (t && t.trim().length > 1) rawThemes.add(t.trim());
-              });
-            }
-            if (Array.isArray(pkg.category)) {
-              pkg.category.forEach((c: string) => {
-                if (c && c.trim().length > 1) rawThemes.add(c.trim());
-              });
-            }
-          });
-
-          const themesList = Array.from(rawThemes);
-          const finalThemes = themesList.length > 0 ? themesList : ["Mountain", "Beach", "Culture", "Adventure"];
-
-          // Beautiful marketing title mapping
-          const formatted = finalThemes.map((theme) => {
-            const lower = theme.toLowerCase().trim();
-            let label = theme;
-            let value = theme;
-
-            if (lower === "adventure" || lower === "extreme adventure") {
-              label = "Extreme Adventure";
-              value = "Adventure";
-            } else if (lower === "honeymoon" || lower === "luxury honeymoons" || lower === "honeymoons") {
-              label = "Romantic Honeymoon";
-              value = "Honeymoon";
-            } else if (lower === "cultural" || lower === "culture" || lower === "cultural heritage") {
-              label = "Cultural Heritage";
-              value = "Cultural";
-            } else if (lower === "mountain" || lower === "mountains" || lower === "mountain retreats") {
-              label = "Mountain Retreats";
-              value = "Mountain";
-            } else if (lower === "beach" || lower === "beach resorts" || lower === "coastal sanctuaries" || lower === "coastal") {
-              label = "Coastal Sanctuaries";
-              value = "Beach";
-            } else if (lower === "wildlife" || lower === "wildlife safari" || lower === "safari") {
-              label = "Wildlife Safari";
-              value = "Wildlife";
-            } else {
-              label = theme
-                .replace(/([A-Z])/g, " $1")
-                .trim()
-                .replace(/^\w/, (c) => c.toUpperCase());
-            }
-
-            return { label, value };
-          });
-
-          // Deduplicate by label to prevent duplicate keys in UI
-          const uniqueFormatted: { label: string; value: string }[] = [];
-          const seenLabels = new Set<string>();
-          
-          formatted.forEach(item => {
-            if (!seenLabels.has(item.label)) {
-              seenLabels.add(item.label);
-              uniqueFormatted.push(item);
-            }
-          });
-
           // Fisher-Yates Shuffle
-          for (let i = uniqueFormatted.length - 1; i > 0; i--) {
+          const shuffled = [...data];
+          for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [uniqueFormatted[i], uniqueFormatted[j]] = [uniqueFormatted[j], uniqueFormatted[i]];
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
 
-          setTrendingPills(uniqueFormatted.slice(0, 4));
+          setTrendingPills(shuffled.slice(0, 4));
         } else {
           setTrendingPills([
-            { label: "Mountain Retreats", value: "Mountain" },
-            { label: "Coastal Sanctuaries", value: "Beach" },
-            { label: "Cultural Heritage", value: "Culture" },
-            { label: "Extreme Adventure", value: "Adventure" }
+            { id: "1", title: "Alpine Sanctuary", location: "Switzerland", price: "450000", image: "/assets/hero-bg.webp", is_published: true },
+            { id: "2", title: "Maldivian Lagoon", location: "Maldives", price: "350000", image: "/assets/hero-bg.webp", is_published: true },
+            { id: "3", title: "Kyoto Heritage", location: "Japan", price: "280000", image: "/assets/hero-bg.webp", is_published: true },
+            { id: "4", title: "Amboseli Safari", location: "Kenya", price: "390000", image: "/assets/hero-bg.webp", is_published: true }
           ]);
         }
       } catch (err) {
         console.warn("Error fetching dynamic themes:", err);
         setTrendingPills([
-          { label: "Mountain Retreats", value: "Mountain" },
-          { label: "Coastal Sanctuaries", value: "Beach" },
-          { label: "Cultural Heritage", value: "Culture" },
-          { label: "Extreme Adventure", value: "Adventure" }
+          { id: "1", title: "Alpine Sanctuary", location: "Switzerland", price: "450000", image: "/assets/hero-bg.webp", is_published: true },
+          { id: "2", title: "Maldivian Lagoon", location: "Maldives", price: "350000", image: "/assets/hero-bg.webp", is_published: true },
+          { id: "3", title: "Kyoto Heritage", location: "Japan", price: "280000", image: "/assets/hero-bg.webp", is_published: true },
+          { id: "4", title: "Amboseli Safari", location: "Kenya", price: "390000", image: "/assets/hero-bg.webp", is_published: true }
         ]);
       }
     }
 
-    fetchThemes();
+    fetchTrendingPackages();
   }, []);
 
   useEffect(() => {
@@ -313,15 +252,15 @@ export function Hero() {
                 WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent)',
               }}
             >
-              {trendingPills.map((theme) => (
+              {trendingPills.map((pkg) => (
                 <button
-                  key={theme.label}
+                  key={pkg.id || pkg.title}
                   onClick={() => {
-                    openBooking(undefined, "HERO_PORTAL", theme.value);
+                    openModal('PACKAGE', pkg);
                   }}
                   className="px-3 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider text-white/70 hover:text-amber-400 border border-white/15 hover:border-amber-400/30 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-sm transition-all duration-500 active:scale-95 cursor-pointer shrink-0"
                 >
-                  {theme.label}
+                  {pkg.title}
                 </button>
               ))}
             </div>
