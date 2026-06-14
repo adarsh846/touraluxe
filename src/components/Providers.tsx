@@ -82,7 +82,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
     lenis.on("scroll", ScrollTrigger.update);
 
-    ScrollTrigger.addEventListener("refreshInit", () => lenis.stop());
+    ScrollTrigger.addEventListener("refreshInit", () => {
+      if (!lenis.isScrolling) {
+        lenis.stop();
+      }
+    });
     ScrollTrigger.addEventListener("refresh", () => lenis.start());
 
     return () => {

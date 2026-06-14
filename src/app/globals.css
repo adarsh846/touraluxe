@@ -335,18 +335,7 @@ textarea:-webkit-autofill {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
 }
 
-/* ─── ENTERPRISE SECTION CULLING (Apple/Google Architecture) ─── */
-/* content-visibility: auto tells the browser to skip rendering off-screen
-   sections entirely during fast scrolling. This is the single most impactful
-   optimization for preventing VRAM exhaustion on mobile devices.
-   We target only #services, #featured, and #cta sections, keeping #flight-wrapper
-   clean to prevent culling the fixed WebGL flight canvas container. */
-#services,
-#featured,
-#cta {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 100vh;
-}
+
 
 /* Only permanently promote the WebGL canvas to GPU — everything else
    is managed dynamically by GSAP's force3D: "auto" */

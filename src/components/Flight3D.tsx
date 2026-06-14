@@ -219,7 +219,24 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
 
     let lastWidth = typeof window !== "undefined" ? window.innerWidth : 0;
     let rebuildTimeout: number | null = null;
+    let refreshTimeout: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
+
+    const scheduleSafeRefresh = () => {
+      if (refreshTimeout) window.clearTimeout(refreshTimeout);
+      
+      const attemptRefresh = () => {
+        const lenis = (window as any).__lenis;
+        if (lenis?.isScrolling) {
+          refreshTimeout = window.setTimeout(attemptRefresh, 150);
+        } else {
+          ScrollTrigger.refresh();
+          render();
+        }
+      };
+
+      refreshTimeout = window.setTimeout(attemptRefresh, 200);
+    };
 
     const onResize = () => {
       if (!renderer || !canvasContainerRef.current) return;
@@ -261,12 +278,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     if (typeof window !== "undefined" && "ResizeObserver" in window) {
       resizeObserver = new ResizeObserver(() => {
         if (!isInitialized) return;
-
-        if (rebuildTimeout) window.clearTimeout(rebuildTimeout);
-        rebuildTimeout = window.setTimeout(() => {
-          ScrollTrigger.refresh();
-          rebuildTimeline();
-        }, 350); // Safe debounce window to let layout shifts settle
+        scheduleSafeRefresh();
       });
       if (document.body) {
         resizeObserver.observe(document.body);
@@ -391,6 +403,9 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       }
       if (rebuildTimeout) {
         window.clearTimeout(rebuildTimeout);
+      }
+      if (refreshTimeout) {
+        window.clearTimeout(refreshTimeout);
       }
       if (resizeObserver) {
         resizeObserver.disconnect();

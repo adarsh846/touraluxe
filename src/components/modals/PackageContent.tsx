@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, memo, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { ChevronRight, Clock, Users, Compass, ShieldCheck, Sparkles, Plane, ArrowRight, X } from "lucide-react";
+import { ChevronRight, Clock, Users, Compass, ShieldCheck, Sparkles, Plane, ArrowRight, X, FileDown } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import { cn } from "@/lib/utils";
 import gsap from "gsap";
@@ -14,33 +14,58 @@ import { PackageBadges } from "@/components/ui/PackageBadges";
 gsap.registerPlugin(ScrollTrigger);
 
 // --- HELPER: SCRUB TEXT ANIMATION ---
-const ScrubText = ({ text, className, scroller }: { text: string; className?: string, scroller?: HTMLElement | null }) => {
+const ScrubText = ({ 
+  text, 
+  className, 
+  scroller,
+  start,
+  end
+}: { 
+  text: string; 
+  className?: string; 
+  scroller?: HTMLElement | null;
+  start?: string | (() => string);
+  end?: string | (() => string);
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (!containerRef.current || !scroller) return;
     const words = containerRef.current.querySelectorAll('.scrub-word');
     
+    // Default to the top edge of the floating bottom dynamic island
+    const finalStart = start || (() => {
+      const islandHeight = window.innerWidth < 768 ? 76 : 92;
+      return `top bottom-=${islandHeight}`;
+    });
+    
+    // Complete the animation 80px after the word emerges from the island
+    const finalEnd = end || (() => {
+      const islandHeight = window.innerWidth < 768 ? 76 : 92;
+      return `top bottom-=${islandHeight + 80}`;
+    });
+
     const ctx = gsap.context(() => {
-      gsap.fromTo(words, 
-        { opacity: 0.15, y: 15 },
-        {
-          opacity: 1,
-          y: 0,
-          stagger: 0.05,
-          ease: "power2.out",
-          scrollTrigger: {
-            scroller: scroller,
-            trigger: containerRef.current,
-            start: "top 85%",
-            end: "center center",
-            scrub: 1,
+      words.forEach((word) => {
+        gsap.fromTo(word, 
+          { opacity: 0.15, y: 20 },
+          {
+            opacity: 1,
+            y: 0,
+            ease: "power2.out",
+            scrollTrigger: {
+              scroller: scroller,
+              trigger: word,
+              start: finalStart,
+              end: finalEnd,
+              scrub: 0.5,
+            }
           }
-        }
-      );
+        );
+      });
     }, containerRef);
     return () => ctx.revert();
-  }, [text, scroller]);
+  }, [text, scroller, start, end]);
 
   return (
     <div ref={containerRef} className={cn("flex flex-wrap gap-x-[0.25em] gap-y-[0.1em]", className)}>
@@ -127,6 +152,25 @@ export const PackageContent = memo(({
 
   const pricing = useMemo(() => computePrice(experience), [experience, computePrice]);
 
+  const pdfUrl = useMemo(() => {
+    try {
+      const anchor = experience?.itinerary_url;
+      if (anchor) {
+        if (anchor.startsWith('{')) {
+          const parsed = JSON.parse(anchor);
+          return parsed.pdf_url || "";
+        }
+        return anchor;
+      }
+    } catch (e) {
+      console.warn("Error parsing itinerary_url for PDF:", e);
+    }
+    return "";
+  }, [experience]);
+  const isPdf = useMemo(() => {
+    if (!pdfUrl) return false;
+    return pdfUrl.toLowerCase().split('?')[0].endsWith('.pdf');
+  }, [pdfUrl]);
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
     if (!pillRef.current || !glowRef.current) return;
     const rect = pillRef.current.getBoundingClientRect();
@@ -176,9 +220,35 @@ export const PackageContent = memo(({
     }
   }, [onScroll]);
 
-  // Set the scroller element once mounted for GSAP triggers
+  // Set the scroller element once mounted and perform staged ScrollTrigger refreshes
   useEffect(() => {
-    if (scrollRef.current) setScrollerEl(scrollRef.current);
+    if (scrollRef.current) {
+      setScrollerEl(scrollRef.current);
+    }
+    
+    if (!isActive) return;
+
+    // Refresh immediately to capture initial DOM heights
+    ScrollTrigger.refresh();
+
+    // Staged refreshes to handle modal transitions & rendering delays on all devices
+    const t1 = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 100);
+
+    const t2 = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 450); // Mid-transition
+
+    const t3 = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 850); // Post-transition settlement
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isActive]);
 
   const heroMediaRef = useRef<HTMLDivElement>(null);
@@ -373,18 +443,33 @@ export const PackageContent = memo(({
           </section>
 
           {/* 4. ITINERARY (Sticky Split-Screen / Accordion Timeline) */}
-          {experience.itinerary && experience.itinerary.length > 0 && (
+          {((experience.itinerary && experience.itinerary.length > 0) || pdfUrl) && (
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
-               <div className="text-center md:text-left mb-12 md:mb-16">
-                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Chronicle</span>
-                 <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Day by Day Plan.</h2>
+               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
+                 <div className="text-center md:text-left">
+                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Chronicle</span>
+                   <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Day by Day Plan.</h2>
+                 </div>
+                 {pdfUrl && (
+                   <a 
+                     href={pdfUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="self-center md:self-auto px-6 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-lg shrink-0 cursor-pointer"
+                   >
+                     <FileDown size={14} className="text-amber-400" />
+                     {isPdf ? "Download Itinerary (PDF)" : "View Itinerary Flyer"}
+                   </a>
+                 )}
                </div>
 
-               <div className="w-full max-w-4xl mx-auto flex flex-col gap-4">
-                  {experience.itinerary.map((day: any, i: number) => (
-                    <ItineraryDay key={i} day={day} index={i + 1} />
-                  ))}
-               </div>
+               {experience.itinerary && experience.itinerary.length > 0 && (
+                 <div className="w-full max-w-4xl mx-auto flex flex-col gap-4">
+                    {experience.itinerary.map((day: any, i: number) => (
+                      <ItineraryDay key={i} day={day} index={i + 1} />
+                    ))}
+                 </div>
+               )}
             </section>
           )}
 

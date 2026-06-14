@@ -499,7 +499,14 @@ export function ModalShell() {
                   ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
                   : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
           >
-            <PackageContent data={packageDetailData} isActive={activeView === 'PACKAGE'} source={activeSource} onScroll={handleScroll} openModal={openModal} />
+            <PackageContent 
+              key={packageDetailData?.id || "empty"}
+              data={packageDetailData} 
+              isActive={activeView === 'PACKAGE'} 
+              source={activeSource} 
+              onScroll={handleScroll} 
+              openModal={openModal} 
+            />
           </div>
 
           {/* Traveler Portal Layer */}
