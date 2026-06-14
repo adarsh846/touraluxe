@@ -30,7 +30,7 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
           {/* Hero Section */}
         <div className="relative w-full aspect-[4/3] md:aspect-[2/1] overflow-hidden bg-[#0a0a0b]">
           <Image 
-            src="/about_hero.png" 
+            src="/about_hero.webp" 
             alt="TouraLuxe Vision" 
             fill 
             className="object-cover scale-[1.01] opacity-70 grayscale-[0.1]" 

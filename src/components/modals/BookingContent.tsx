@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
+import { getSettings, invalidateSettingsCache } from "@/lib/settingsCache";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { useSovereign } from "@/hooks/useSovereign";
 import { Magnetic } from "@/components/Magnetic";
@@ -121,7 +122,6 @@ export const BookingContent = memo(function BookingContent({
   const { setError, intent } = useBooking();
   const { user, profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [scrolled, setScrolled] = useState(false);
   const prevIntent = useRef<string | undefined>(undefined);
 
   // Flow State
@@ -268,8 +268,7 @@ export const BookingContent = memo(function BookingContent({
     // 3. ADMINISTRATIVE SYNC: Fetch taxes and default imagery
     const fetchSettings = async () => {
       try {
-        const res = await fetch("/api/settings", { cache: "no-store" });
-        const data = await res.json();
+        const data = await getSettings();
         if (data.tax_percentage) setTaxRate(parseFloat(data.tax_percentage));
         if (data.discovery_default_image) {
           setDefaultImage(data.discovery_default_image);
@@ -289,6 +288,8 @@ export const BookingContent = memo(function BookingContent({
       .on('postgres_changes', 
         { event: 'UPDATE', schema: 'public', table: 'site_settings' }, 
         (payload: any) => {
+          // Invalidate the singleton cache so next consumer gets fresh data
+          invalidateSettingsCache();
           if (payload.new && payload.new.key === 'tax_percentage') {
             setTaxRate(parseFloat(payload.new.value));
           }
@@ -313,14 +314,22 @@ export const BookingContent = memo(function BookingContent({
   useEffect(() => {
     onPhaseChange?.(discoveryPhase);
     
+    let t1: NodeJS.Timeout | null = null;
+    let t2: NodeJS.Timeout | null = null;
+
     // Initial check for scrollability when entering phase 4
     if (discoveryPhase === 4) {
-      setTimeout(handleCurationScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_SM);
+      t1 = setTimeout(handleCurationScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_SM);
     }
     // Check guest manifest scrollability in step 2
     if (step === 2) {
-      setTimeout(handleGuestScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
+      t2 = setTimeout(handleGuestScroll, UI_CONFIG.THRESHOLDS.ANIM_DELAY_MD);
     }
+
+    return () => {
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+    };
   }, [discoveryPhase, step, onPhaseChange]);
 
   // Dynamic Scroll & Resize Intelligence
@@ -334,7 +343,7 @@ export const BookingContent = memo(function BookingContent({
     const resizeObserver = new ResizeObserver(handleUpdate);
     resizeObserver.observe(scrollContainer);
     
-    scrollContainer.addEventListener('scroll', handleUpdate);
+    scrollContainer.addEventListener('scroll', handleUpdate, { passive: true });
     
     return () => {
       resizeObserver.disconnect();
@@ -604,11 +613,14 @@ export const BookingContent = memo(function BookingContent({
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    window.addEventListener('orientationchange', () => setTimeout(checkMobile, 100));
+    const handleOrientation = () => {
+      setTimeout(checkMobile, 100);
+    };
+    window.addEventListener('resize', checkMobile, { passive: true });
+    window.addEventListener('orientationchange', handleOrientation, { passive: true });
     return () => {
       window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('orientationchange', checkMobile);
+      window.removeEventListener('orientationchange', handleOrientation);
     };
   }, []);
 
@@ -665,7 +677,7 @@ export const BookingContent = memo(function BookingContent({
       else setScrollMask('both');
     };
 
-    el.addEventListener('scroll', handleScroll);
+    el.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     
     // Create a ResizeObserver for the content itself to update masks when segments bud
@@ -858,7 +870,6 @@ export const BookingContent = memo(function BookingContent({
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const isScrolled = e.currentTarget.scrollTop > UI_CONFIG.THRESHOLDS.SCROLL_MIN;
-    setScrolled(isScrolled);
     onScroll(isScrolled);
   };
 

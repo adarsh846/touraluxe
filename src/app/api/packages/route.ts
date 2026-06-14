@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 // GET all published packages (public) or all packages (admin)
 // Supports filtering via query params for destination listing pages
 export async function GET(req: NextRequest) {
-  console.log("DEBUG: Admin password loaded?", !!process.env.ADMIN_PASSWORD);
   const token = req.headers.get("x-admin-token");
   const isAdmin = token === process.env.ADMIN_PASSWORD;
 

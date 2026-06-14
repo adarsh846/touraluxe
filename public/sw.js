@@ -1,5 +1,9 @@
 const CACHE_NAME = "touraluxe-v2";
-const OFFLINE_URLS = ["/"];
+const OFFLINE_URLS = [
+  "/",
+  "/assets/airplane.glb",
+  "/assets/logo-transparent.webp",
+];
 
 // Install — cache the shell
 self.addEventListener("install", (event) => {
@@ -28,7 +32,7 @@ self.addEventListener("fetch", (event) => {
     event.request.destination === "video" ||
     event.request.headers.has("range") ||
     url.pathname.endsWith(".mp4");
-  const isScrubSequenceFrame = url.pathname.includes("/assets/cave-sequence");
+  const isScrubSequenceFrame = url.pathname.includes("/sequence/") || url.pathname.includes("/sequence-mobile/");
 
   if (isVideoRequest || isScrubSequenceFrame) {
     event.respondWith(fetch(event.request));

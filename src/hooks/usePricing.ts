@@ -9,6 +9,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { getSettings, invalidateSettingsCache } from "@/lib/settingsCache";
+
+export { invalidateSettingsCache };
 
 export interface GlobalSettings {
   tax_percentage: string;
@@ -40,8 +43,7 @@ export function useGlobalSettings() {
   });
 
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then(r => r.ok ? r.json() : {})
+    getSettings()
       .then((data: any) => {
         setSettings({
           tax_percentage: data.tax_percentage || "0",

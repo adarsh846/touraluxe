@@ -39,30 +39,29 @@ const ScrubText = ({
       return `top bottom-=${islandHeight}`;
     });
     
-    // Complete the animation 80px after the word emerges from the island
+    // Complete the animation relative to the container scroll trigger
     const finalEnd = end || (() => {
       const islandHeight = window.innerWidth < 768 ? 76 : 92;
-      return `top bottom-=${islandHeight + 80}`;
+      return `bottom bottom-=${islandHeight + 80}`;
     });
 
     const ctx = gsap.context(() => {
-      words.forEach((word) => {
-        gsap.fromTo(word, 
-          { opacity: 0.15, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            ease: "power2.out",
-            scrollTrigger: {
-              scroller: scroller,
-              trigger: word,
-              start: finalStart,
-              end: finalEnd,
-              scrub: 0.5,
-            }
+      gsap.fromTo(words, 
+        { opacity: 0.15, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          stagger: 0.05,
+          ease: "power2.out",
+          scrollTrigger: {
+            scroller: scroller,
+            trigger: containerRef.current,
+            start: finalStart,
+            end: finalEnd,
+            scrub: 0.5,
           }
-        );
-      });
+        }
+      );
     }, containerRef);
     return () => ctx.revert();
   }, [text, scroller, start, end]);
@@ -105,7 +104,7 @@ const ItineraryDay = ({ day, index }: { day: any, index: number }) => {
         <div className="pl-[3.5rem] md:pl-[4.5rem] flex flex-col gap-6">
           {day.image && (
             <div className="relative w-full h-48 md:h-72 rounded-2xl md:rounded-[2rem] overflow-hidden bg-white/5 border border-white/10 shrink-0">
-              <Image src={day.image} alt={day.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" unoptimized={true} />
+              <Image src={day.image} alt={day.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
             </div>
           )}
           <div className="flex flex-col gap-4">
@@ -142,7 +141,7 @@ export const PackageContent = memo(({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollerEl, setScrollerEl] = useState<HTMLElement | null>(null);
-  const [showActionBar, setShowActionBar] = useState(false);
+
 
   const pillRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -216,7 +215,6 @@ export const PackageContent = memo(({
     if (scrollRef.current) {
       const top = scrollRef.current.scrollTop;
       onScroll(top > 50);
-      setShowActionBar(top > window.innerHeight * 0.7); 
     }
   }, [onScroll]);
 

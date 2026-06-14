@@ -12,11 +12,8 @@ gsap.registerPlugin(ScrollTrigger);
 function supportsWebGL() {
   try {
     const canvas = document.createElement("canvas");
-    const supported = Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
-    console.log("=== supportsWebGL ===", supported);
-    return supported;
+    return Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
   } catch (e) {
-    console.log("=== supportsWebGL ERROR ===", e);
     return false;
   }
 }
@@ -62,7 +59,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
     };
 
     const handleContextRestored = () => {
-      console.log("WebGL Context Restored. Resizing canvas...");
+      console.warn("WebGL Context Restored. Resizing canvas...");
       isContextLost = false;
       if (renderer) {
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -272,7 +269,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         rebuildTimeline();
       }, 600);
     };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", onResize, { passive: true });
 
     // Watch for dynamic DOM layout shifts (Supabase content loading, font load, settings)
     if (typeof window !== "undefined" && "ResizeObserver" in window) {

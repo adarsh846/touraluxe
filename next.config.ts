@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
-  reactStrictMode: false,
+  reactStrictMode: true,
 
   // Aggressive cache headers for static sequence assets
   async headers() {
@@ -43,6 +43,36 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/assets/cave-sequence-mobile-60/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // 3D airplane model — immutable, cache for 1 year
+        source: "/assets/airplane.glb",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Hero sequence frames (HeroSequence.tsx) — immutable, cache for 1 year
+        source: "/sequence/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Hero sequence frames mobile — immutable, cache for 1 year
+        source: "/sequence-mobile/:path*",
         headers: [
           {
             key: "Cache-Control",

@@ -8,6 +8,7 @@ import {
   Globe, Heart, ChevronDown
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getSettings } from "@/lib/settingsCache";
 import { cn } from "@/lib/utils";
 
 export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScroll: (scrolled: boolean) => void }) {
@@ -157,8 +158,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
     const cached = localStorage.getItem('tr_portal_atmosphere');
     if (cached) setBgImage(cached);
 
-    fetch("/api/settings", { cache: "no-store" })
-      .then(r => r.json())
+    getSettings()
       .then(data => {
         if (data.portal_default_image) {
           setBgImage(data.portal_default_image);
@@ -177,7 +177,7 @@ export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScr
       onScroll(container.scrollTop > 10);
     };
 
-    container.addEventListener("scroll", handleScrollEvent);
+    container.addEventListener("scroll", handleScrollEvent, { passive: true });
     return () => container.removeEventListener("scroll", handleScrollEvent);
   }, [isActive, onScroll]);
 

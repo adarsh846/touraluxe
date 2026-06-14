@@ -91,7 +91,7 @@ export function Hero() {
     
     // Check after a short delay to ensure DOM is painted and widths are correct
     const timeout = setTimeout(checkOverflow, 100);
-    window.addEventListener('resize', checkOverflow);
+    window.addEventListener('resize', checkOverflow, { passive: true });
     
     return () => {
       clearTimeout(timeout);

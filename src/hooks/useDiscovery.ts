@@ -9,9 +9,14 @@ export function useDiscovery<T extends { title: string; location: string }>() {
   const [isLoadingManifest, setIsLoadingManifest] = useState(true);
   
   const discoveryService = useRef<DiscoveryService<T> | null>(null);
+  // Guard async state updates after unmount
+  const isMounted = useRef(true);
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize the Discovery Engine
   useEffect(() => {
+    isMounted.current = true;
+
     const initialize = async () => {
       try {
         const { data } = await supabase
@@ -19,7 +24,7 @@ export function useDiscovery<T extends { title: string; location: string }>() {
           .select('*')
           .eq('is_published', true);
         
-        if (data) {
+        if (data && isMounted.current) {
           const typedData = data as T[];
           setManifest(typedData);
           discoveryService.current = new DiscoveryService<T>(typedData);
@@ -27,11 +32,16 @@ export function useDiscovery<T extends { title: string; location: string }>() {
       } catch (error) {
         console.error('Failed to initialize Discovery Service:', error);
       } finally {
-        setIsLoadingManifest(false);
+        if (isMounted.current) setIsLoadingManifest(false);
       }
     };
 
     initialize();
+
+    return () => {
+      isMounted.current = false;
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
   }, []);
 
   const search = useCallback(async (query: string) => {
@@ -48,9 +58,12 @@ export function useDiscovery<T extends { title: string; location: string }>() {
     // The Sovereign Engine is instant (client-side), 
     // but we simulate a premium "Consulting" delay
     const results = await discoveryService.current.search(cleanQuery);
-    setSearchResults(results);
+    if (isMounted.current) setSearchResults(results);
     
-    setTimeout(() => setIsSearching(false), 250);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      if (isMounted.current) setIsSearching(false);
+    }, 250);
   }, []);
 
   const clearSearch = useCallback(() => {

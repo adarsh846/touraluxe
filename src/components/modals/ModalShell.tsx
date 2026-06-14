@@ -34,6 +34,20 @@ export function ModalShell() {
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const prevHistoryLength = useRef(0);
   
+  // Visited views cache for lazy mounting
+  const [visitedViews, setVisitedViews] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (isOpen) {
+      if (activeView) {
+        setVisitedViews(prev => prev[activeView] ? prev : { ...prev, [activeView]: true });
+      }
+      if (view) {
+        setVisitedViews(prev => prev[view] ? prev : { ...prev, [view]: true });
+      }
+    }
+  }, [isOpen, activeView, view]);
+  
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -150,6 +164,7 @@ export function ModalShell() {
   // Entrance/Exit Animations
   useEffect(() => {
     if (isOpen && !isClosing && modalRef.current) {
+      gsap.killTweensOf([overlayRef.current, modalRef.current]);
       const tl = gsap.timeline();
       // OPTIMIZATION: Do not animate backdropFilter radius. Just animate opacity of a static blurred div.
       gsap.set(overlayRef.current, { opacity: 0 });
@@ -170,9 +185,11 @@ export function ModalShell() {
         clearProps: "pointerEvents"
       }, "-=0.2");
     } else if (isClosing && modalRef.current) {
+      gsap.killTweensOf([overlayRef.current, modalRef.current]);
       const tl = gsap.timeline({
         onComplete: () => {
           setActiveView(null);
+          setVisitedViews({});
           closeModal();
         }
       });
@@ -444,7 +461,9 @@ export function ModalShell() {
                   ? 'opacity-0 -translate-x-12 z-0 pointer-events-none scale-[0.98]' 
                   : 'opacity-0 translate-x-12 z-0 pointer-events-none scale-[1.02]'}`}
           >
-            <ServiceContent data={servicesData} isActive={activeView === 'SERVICES'} onScroll={handleScroll} openModal={openModal} />
+            {visitedViews['SERVICES'] && (
+              <ServiceContent data={servicesData} isActive={activeView === 'SERVICES'} onScroll={handleScroll} openModal={openModal} />
+            )}
           </div>
 
           {/* Booking Layer */}
@@ -456,18 +475,20 @@ export function ModalShell() {
                   ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
                   : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
           >
-            <BookingContent 
-              data={bookingData} 
-              isActive={activeView === 'BOOKING'} 
-              source={activeSource} 
-              onScroll={handleScroll} 
-              startClosing={startClosing} 
-              setInternalCanGoBack={setInternalCanGoBack}
-              registerBackHandler={registerBackHandler}
-              openModal={openModal}
-              onPhaseChange={setCurrentPhase}
-              onStepChange={setActiveStep}
-            />
+            {visitedViews['BOOKING'] && (
+              <BookingContent 
+                data={bookingData} 
+                isActive={activeView === 'BOOKING'} 
+                source={activeSource} 
+                onScroll={handleScroll} 
+                startClosing={startClosing} 
+                setInternalCanGoBack={setInternalCanGoBack}
+                registerBackHandler={registerBackHandler}
+                openModal={openModal}
+                onPhaseChange={setCurrentPhase}
+                onStepChange={setActiveStep}
+              />
+            )}
           </div>
 
           {/* About Layer */}
@@ -477,7 +498,9 @@ export function ModalShell() {
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
           >
-            <AboutContent isActive={activeView === 'ABOUT'} onScroll={handleScroll} startClosing={startClosing} />
+            {visitedViews['ABOUT'] && (
+              <AboutContent isActive={activeView === 'ABOUT'} onScroll={handleScroll} startClosing={startClosing} />
+            )}
           </div>
 
           {/* CTA Layer */}
@@ -487,7 +510,9 @@ export function ModalShell() {
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
           >
-            <CtaContent isActive={activeView === 'CTA'} onScroll={handleScroll} startClosing={startClosing} />
+            {visitedViews['CTA'] && (
+              <CtaContent isActive={activeView === 'CTA'} onScroll={handleScroll} startClosing={startClosing} />
+            )}
           </div>
 
           {/* Package Detail Layer */}
@@ -499,14 +524,16 @@ export function ModalShell() {
                   ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
                   : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
           >
-            <PackageContent 
-              key={packageDetailData?.id || "empty"}
-              data={packageDetailData} 
-              isActive={activeView === 'PACKAGE'} 
-              source={activeSource} 
-              onScroll={handleScroll} 
-              openModal={openModal} 
-            />
+            {visitedViews['PACKAGE'] && (
+              <PackageContent 
+                key={packageDetailData?.id || "empty"}
+                data={packageDetailData} 
+                isActive={activeView === 'PACKAGE'} 
+                source={activeSource} 
+                onScroll={handleScroll} 
+                openModal={openModal} 
+              />
+            )}
           </div>
 
           {/* Traveler Portal Layer */}
@@ -518,7 +545,9 @@ export function ModalShell() {
                   ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
                   : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
           >
-            <PortalContent isActive={activeView === 'PORTAL'} onScroll={handleScroll} />
+            {visitedViews['PORTAL'] && (
+              <PortalContent isActive={activeView === 'PORTAL'} onScroll={handleScroll} />
+            )}
           </div>
         </div>
 

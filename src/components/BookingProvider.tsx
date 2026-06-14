@@ -86,6 +86,9 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   // ── History API: hardware back button support ──────────────────────────────
   // We track whether we have pushed a fake history entry so we don't double-push.
   const hasPushedHistoryRef = useRef(false);
+  // Ref to always hold the latest history for use in event handlers (avoids stale closures)
+  const historyRef = useRef(history);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
   // When the modal opens for the first time, push a fake state so the
   // hardware back button fires `popstate` instead of leaving the page.
@@ -157,7 +160,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Re-push so the back button still works if pressed again
       window.history.pushState({ touraluxeModal: true }, '');
 
-      if (history.length > 0) {
+      // Read from ref to avoid stale closure over history state
+      if (historyRef.current.length > 0) {
         // Navigate back within modal history
         goBack();
       } else {
@@ -170,7 +174,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [history, goBack]);
+  }, [goBack]);
 
   const contextValue = useMemo(() => ({ 
     isOpen, 

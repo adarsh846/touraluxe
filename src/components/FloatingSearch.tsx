@@ -45,7 +45,7 @@ export function FloatingSearch() {
       }
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
+    window.addEventListener('resize', checkMobile, { passive: true });
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -72,7 +72,7 @@ export function FloatingSearch() {
       }
     };
 
-    window.visualViewport.addEventListener("resize", handleVisualViewportChange);
+    window.visualViewport.addEventListener("resize", handleVisualViewportChange, { passive: true });
     
     return () => {
       window.visualViewport?.removeEventListener("resize", handleVisualViewportChange);
@@ -183,7 +183,7 @@ export function FloatingSearch() {
     };
 
     const raf = requestAnimationFrame(calculate);
-    window.addEventListener('resize', calculate);
+    window.addEventListener('resize', calculate, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', calculate);

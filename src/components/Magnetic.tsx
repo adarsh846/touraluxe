@@ -116,7 +116,7 @@ export function Magnetic({
     wrapper.addEventListener("mouseenter", onMouseEnter);
     wrapper.addEventListener("mousemove", onMouseMove);
     wrapper.addEventListener("mouseleave", onMouseLeave);
-    window.addEventListener("resize", updateRect);
+    window.addEventListener("resize", updateRect, { passive: true });
 
     if (isTouch) {
       wrapper.addEventListener("touchstart", onTouchStart, { passive: true });

@@ -12,6 +12,7 @@ import { BookingProvider } from "./BookingProvider";
 import { AuthProvider } from "./AuthProvider";
 import { ModalShell } from "./modals/ModalShell";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { getSettings } from "@/lib/settingsCache";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,12 +20,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
   useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
-      })
-      .catch(() => { });
+    getSettings().then(data => {
+      if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
+    });
   }, []);
 
   useEffect(() => {
@@ -56,7 +54,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       }
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
 
     // ... (lenis setup)
     const lenis = new Lenis({
