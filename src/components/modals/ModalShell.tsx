@@ -36,17 +36,31 @@ export function ModalShell() {
   
   // Visited views cache for lazy mounting
   const [visitedViews, setVisitedViews] = useState<Record<string, boolean>>({});
+  const [isSettled, setIsSettled] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      if (activeView) {
-        setVisitedViews(prev => prev[activeView] ? prev : { ...prev, [activeView]: true });
-      }
-      if (view) {
-        setVisitedViews(prev => prev[view] ? prev : { ...prev, [view]: true });
-      }
+  // Synchronous state derivation & visited views cache during render (prevents multiple render passes and layout thrashing)
+  if (isOpen && view && view !== activeView) {
+    const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1, 'PORTAL': 2 };
+    const newDepth = viewDepth[view as string] || 0;
+    const oldDepth = viewDepth[activeView as string] || 0;
+    
+    setDirection(newDepth >= oldDepth ? 'forward' : 'backward');
+    setActiveView(view);
+    setActiveSource(source);
+
+    // Distribute data to the correct layer's memory
+    if (view === 'SERVICES') setServicesData(data);
+    if (view === 'BOOKING') setBookingData(data);
+    if (view === 'PACKAGE') setPackageDetailData(data);
+
+    if (!visitedViews[view]) {
+      setVisitedViews(prev => ({ ...prev, [view]: true }));
     }
-  }, [isOpen, activeView, view]);
+  } else if (isOpen && view && data) {
+    if (view === 'SERVICES' && data !== servicesData) setServicesData(data);
+    if (view === 'BOOKING' && data !== bookingData) setBookingData(data);
+    if (view === 'PACKAGE' && data !== packageDetailData) setPackageDetailData(data);
+  }
   
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -104,45 +118,20 @@ export function ModalShell() {
     };
   }, [isOpen]);
 
+  // DOM Side Effects on view changes
   useEffect(() => {
-    // Determine transition direction based on history change
-    if (view && view !== activeView) {
-      const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1, 'PORTAL': 2 };
-      const newDepth = viewDepth[view as string] || 0;
-      const oldDepth = viewDepth[activeView as string] || 0;
-      
-      setDirection(newDepth >= oldDepth ? 'forward' : 'backward');
-      
-      setActiveView(view);
-      setActiveSource(source);
-
-      // Distribute data to the correct layer's memory
-      if (view === 'SERVICES') setServicesData(data);
-      if (view === 'BOOKING') setBookingData(data);
-      if (view === 'PACKAGE') setPackageDetailData(data);
-
-      if (!activeView) {
-        // Initial open logic
-      } else {
-        // Reset header mask state via DOM directly
-        if (headerMaskRef.current) {
-          headerMaskRef.current.style.opacity = "0.85";
-        }
-
-        // Reset scroll position for all views to ensure clean state
-        const scrollContainers = document.querySelectorAll('.scrollbar-hide');
-        scrollContainers.forEach(container => {
-          container.scrollTop = 0;
-        });
+    if (view) {
+      if (headerMaskRef.current) {
+        headerMaskRef.current.style.opacity = "0.85";
       }
-    } else if (view && data && (view === 'BOOKING' || view === 'SERVICES' || view === 'PACKAGE')) {
-      // Data-only update for current view
-      setActiveSource(source);
-      if (view === 'SERVICES') setServicesData(data);
-      if (view === 'BOOKING') setBookingData(data);
-      if (view === 'PACKAGE') setPackageDetailData(data);
+
+      // Reset scroll position for all views to ensure clean state
+      const scrollContainers = document.querySelectorAll('.scrollbar-hide');
+      scrollContainers.forEach(container => {
+        container.scrollTop = 0;
+      });
     }
-  }, [view, data, source, activeView]);
+  }, [view]);
 
   // Persistent Background Lock
   useEffect(() => {
@@ -164,8 +153,13 @@ export function ModalShell() {
   // Entrance/Exit Animations
   useEffect(() => {
     if (isOpen && !isClosing && modalRef.current) {
+      setIsSettled(false);
       gsap.killTweensOf([overlayRef.current, modalRef.current]);
-      const tl = gsap.timeline();
+      const tl = gsap.timeline({
+        onComplete: () => {
+          setIsSettled(true);
+        }
+      });
       // OPTIMIZATION: Do not animate backdropFilter radius. Just animate opacity of a static blurred div.
       gsap.set(overlayRef.current, { opacity: 0 });
       gsap.set(modalRef.current, { y: 100, opacity: 0, scale: 0.95, pointerEvents: "none" });
@@ -182,9 +176,10 @@ export function ModalShell() {
         duration: 0.6, 
         ease: "expo.out",
         force3D: true,
-        clearProps: "pointerEvents"
+        clearProps: "transform,scale,pointerEvents"
       }, "-=0.2");
     } else if (isClosing && modalRef.current) {
+      setIsSettled(false);
       gsap.killTweensOf([overlayRef.current, modalRef.current]);
       const tl = gsap.timeline({
         onComplete: () => {
@@ -244,7 +239,7 @@ export function ModalShell() {
     <div 
       key="modal-portal" 
       data-modal-portal
-      className={`fixed inset-0 z-[300] flex items-center justify-center p-0 overflow-hidden transform-gpu transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
+      className={`fixed inset-0 z-[300] flex items-center justify-center p-0 overflow-hidden w-full max-w-full transition-opacity duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isOpen || isClosing ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none invisible'}`}
     >
       {/* Backdrop - Shared across all views */}
       <div 
@@ -256,7 +251,7 @@ export function ModalShell() {
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu"
+        className="relative w-full max-w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden"
         data-lenis-prevent
       >
         {/* Global Error Alert */}
@@ -454,7 +449,7 @@ export function ModalShell() {
         <div className="relative flex-1 w-full h-full overflow-hidden will-change-transform transform-gpu">
           {/* Services Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'SERVICES' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : direction === 'forward' 
@@ -468,7 +463,7 @@ export function ModalShell() {
 
           {/* Booking Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'BOOKING' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : direction === 'forward' 
@@ -479,6 +474,7 @@ export function ModalShell() {
               <BookingContent 
                 data={bookingData} 
                 isActive={activeView === 'BOOKING'} 
+                isSettled={isSettled}
                 source={activeSource} 
                 onScroll={handleScroll} 
                 startClosing={startClosing} 
@@ -493,7 +489,7 @@ export function ModalShell() {
 
           {/* About Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'ABOUT' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
@@ -505,7 +501,7 @@ export function ModalShell() {
 
           {/* CTA Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'CTA' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
@@ -517,7 +513,7 @@ export function ModalShell() {
 
           {/* Package Detail Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'PACKAGE' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : direction === 'forward' 
@@ -538,7 +534,7 @@ export function ModalShell() {
 
           {/* Traveler Portal Layer */}
           <div 
-            className={`absolute inset-0 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
               ${activeView === 'PORTAL' 
                 ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
                 : direction === 'forward' 

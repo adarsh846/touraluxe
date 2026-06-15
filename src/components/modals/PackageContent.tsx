@@ -493,7 +493,7 @@ export const PackageContent = memo(({
                     <div 
                       key={i} 
                       onClick={() => { setCurrentImageIndex(i); setIsLightboxOpen(true); }} 
-                      className={cn("relative aspect-square cursor-pointer group bg-white/5", i === 0 ? "col-span-2 row-span-2 aspect-square md:aspect-auto" : "")}
+                      className={cn("relative aspect-square cursor-pointer group bg-white/5 overflow-hidden", i === 0 ? "col-span-2 row-span-2 aspect-square md:aspect-auto" : "")}
                     >
                       <Image src={img} alt={`Gallery ${i}`} fill className="object-cover group-hover:scale-105 transition-transform duration-700" sizes="(max-width: 768px) 50vw, 33vw" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
@@ -571,7 +571,7 @@ export const PackageContent = memo(({
           </section>
 
           {/* 7. BEGIN YOUR JOURNEY (Scrub Text Call to Action) */}
-          <section className="text-center pt-10 pb-32 px-6">
+          <section className="text-center pt-10 pb-4 md:pb-8 px-6">
             <div className="w-16 md:w-24 h-[1px] bg-white/20 mx-auto mb-16" />
             <ScrubText 
               text="Your journey begins here. A fully tailored, immersive sanctuary crafted entirely for your desires." 

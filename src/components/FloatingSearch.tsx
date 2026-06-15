@@ -207,7 +207,7 @@ export function FloatingSearch() {
         onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
         onTouchEnd={handleGlowLeave}
       >
-        <span ref={textMeasureRef} className="absolute invisible whitespace-pre text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em]">
+        <span ref={textMeasureRef} className="absolute invisible whitespace-pre text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em]">
           {searchValue || placeholder}
         </span>
 
@@ -232,8 +232,13 @@ export function FloatingSearch() {
               setIsFocused(false);
               isFocusedRef.current = false; // Sync ref immediately for scroll guard
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
+              }
+            }}
             placeholder={placeholder}
-            className="w-full bg-transparent text-white placeholder-white/50 text-[10px] md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
+            className="w-full bg-transparent text-white placeholder-white/50 text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
           />
         </div>
 

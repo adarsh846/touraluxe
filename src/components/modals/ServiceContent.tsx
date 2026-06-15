@@ -86,87 +86,43 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
           className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
         >
             {service.id === 7 ? (
-              <div className="flex-1 flex flex-col min-h-[80vh] bg-[#0a0a0b]">
-                {/* AI Header */}
-                <div className="p-[clamp(1.5rem,6vw,3rem)] pt-[clamp(4.5rem,10vh,6rem)] border-b border-white/[0.1] bg-zinc-900/50 backdrop-blur-xl">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
-                      {service.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-white leading-none">Aether AI</h3>
-                      <p className="text-xs text-[#86868b] mt-2 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        Instant Concierge Active
-                      </p>
-                    </div>
+              <div className="flex-1 flex flex-col items-center justify-center min-h-[85vh] bg-[#0a0a0b] px-6 pt-28 pb-16 md:pt-36 md:pb-24 text-center relative overflow-hidden">
+                {/* Glow Background */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[500px] md:h-[500px] bg-gradient-to-tr from-amber-400/20 via-purple-500/10 to-transparent rounded-full blur-[100px] md:blur-[130px] pointer-events-none z-0" />
+                
+                <div className="relative z-10 max-w-xl mx-auto flex flex-col items-center">
+                  {/* Floating Icon */}
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-[2rem] bg-white/[0.03] border border-white/10 backdrop-blur-xl flex items-center justify-center text-white/80 shadow-2xl mb-8">
+                    {service.icon}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-3xl md:text-5xl font-semibold tracking-tight text-white mb-4">
+                    AI Travel Planner
+                  </h3>
+                  
+                  {/* Subtitle */}
+                  <p className="text-lg md:text-xl text-[#86868b] font-medium tracking-tight mb-8 italic">
+                    Coming Soon
+                  </p>
+
+                  {/* Description */}
+                  <p className="text-white/60 text-sm md:text-base leading-relaxed mb-12 text-balance">
+                    Our generative intelligence engine is currently being calibrated to choreograph private charters, ultra-exclusive villa bookings, and custom routes in real-time. Prepare to chart your next horizon with pure algorithmic perfection.
+                  </p>
+
+                  {/* CTA Buttons */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <Magnetic>
+                      <button 
+                        onClick={() => openModal('BOOKING', undefined, 'AI_PLANNER_COMING_SOON')}
+                        className="px-8 py-4 rounded-full bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+                      >
+                        Design Custom Journey
+                      </button>
+                    </Magnetic>
                   </div>
                 </div>
-
-                {/* Chat Content */}
-                <div 
-                  ref={chatScrollRef}
-                  className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar scroll-smooth" 
-                  data-lenis-prevent
-                >
-                  {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto py-10">
-                      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/20 flex items-center justify-center text-white/30 mb-8 animate-pulse">
-                        {service.icon}
-                      </div>
-                      <h4 className="text-2xl font-semibold text-white mb-4">Plan with Intelligence.</h4>
-                      <p className="text-[#86868b] text-[15px] leading-relaxed">
-                        Describe your dream journey. Aether will calculate logistics, curate properties, and banking the aircraft towards your next horizon.
-                      </p>
-                      <div className="grid grid-cols-1 gap-3 w-full mt-10">
-                        {["Private villa in Maldives", "Alps helipad access", "Kyoto art tour"].map(prompt => (
-                          <button key={prompt} onClick={() => setInput(prompt)} className="px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white transition-all">
-                            "{prompt}"
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    messages.map((msg, i) => (
-                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] md:max-w-[70%] p-5 rounded-2xl text-[15px] leading-relaxed ${
-                          msg.role === 'user' 
-                            ? 'bg-white text-black font-medium rounded-tr-none' 
-                            : 'bg-zinc-900 text-white border border-white/[0.1] rounded-tl-none'
-                        }`}>
-                          {msg.content}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-zinc-900 text-[#86868b] p-5 rounded-2xl rounded-tl-none flex items-center gap-1.5 border border-white/[0.1]">
-                        <div className="w-1 h-1 rounded-full bg-current animate-bounce" />
-                        <div className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:0.2s]" />
-                        <div className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:0.4s]" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Chat Input */}
-                <form onSubmit={handleSend} className="p-6 bg-zinc-900/50 border-t border-white/[0.1] flex gap-4">
-                  <input 
-                    type="text"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    placeholder="Ask Aether anything..."
-                    className="flex-1 bg-white/5 border border-white/20 rounded-2xl px-6 py-4 text-[15px] text-white placeholder:text-[#48484a] focus:outline-none focus:border-white/20 transition-all"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={!input.trim()}
-                    className="w-14 h-14 rounded-2xl bg-white text-black flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                  </button>
-                </form>
               </div>
             ) : (
               <div className="flex flex-col">

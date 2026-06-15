@@ -59,6 +59,19 @@ body {
 }
 
 /* ─── TOUCH DEVICE OPTIMIZATIONS ─── */
+/* Prevent iOS Safari from zooming in on focus of input elements by forcing font-size to 16px */
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="search"],
+  input[type="number"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Remove 300ms tap delay on interactive elements */
 a, button, [role="button"], input, select, textarea, label, summary {
   touch-action: manipulation;

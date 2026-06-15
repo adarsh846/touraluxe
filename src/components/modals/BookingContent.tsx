@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import { getSettings, invalidateSettingsCache } from "@/lib/settingsCache";
+import { getSettings, invalidateSettingsCache, getCachedSettingsSync } from "@/lib/settingsCache";
+import { getDestinationVisualManifest, getCachedDestinationsSync } from "@/lib/manifestCache";
 import { useDiscovery } from "@/hooks/useDiscovery";
 import { useSovereign } from "@/hooks/useSovereign";
 import { Magnetic } from "@/components/Magnetic";
@@ -99,6 +100,7 @@ const UI_CONFIG = {
 export const BookingContent = memo(function BookingContent({
   data: packageData,
   isActive,
+  isSettled = false,
   source: bookingSource,
   onScroll,
   startClosing,
@@ -110,6 +112,7 @@ export const BookingContent = memo(function BookingContent({
 }: {
   data: any;
   isActive: boolean;
+  isSettled?: boolean;
   source: string;
   onScroll: (scrolled: boolean) => void;
   startClosing: () => void;
@@ -122,11 +125,24 @@ export const BookingContent = memo(function BookingContent({
   const { setError, intent } = useBooking();
   const { user, profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const prevIntent = useRef<string | undefined>(undefined);
 
   // Flow State
   const [step, setStep] = useState(1);
   const [discoveryPhase, setDiscoveryPhase] = useState(packageData ? 2 : 1);
+
+  // Focus search input only when the modal sheet has fully settled
+  useEffect(() => {
+    if (isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1) {
+      // 100ms delay to make sure browser layout calculations and GSAP clearProps are done,
+      // and virtual keyboard behaves correctly.
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isSettled, discoveryPhase, step]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
@@ -140,7 +156,14 @@ export const BookingContent = memo(function BookingContent({
   const [endDate, setEndDate] = useState("");
   const [internalPackage, setInternalPackage] = useState(packageData);
   const [destination, setDestination] = useState("");
-  const [defaultImage, setDefaultImage] = useState<string | null>(null);
+  const [defaultImage, setDefaultImage] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const cachedAtmosphere = localStorage.getItem('tr_discovery_atmosphere');
+      if (cachedAtmosphere) return cachedAtmosphere;
+    }
+    const cachedSettings = getCachedSettingsSync();
+    return cachedSettings?.discovery_default_image ?? null;
+  });
   const [dynamicImage, setDynamicImage] = useState<string | null>(null);
   const [dynamicVideo, setDynamicVideo] = useState<string | null>(null);
   const [isVisualLoading, setIsVisualLoading] = useState(false);
@@ -180,8 +203,14 @@ export const BookingContent = memo(function BookingContent({
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const [showGuestScroll, setShowGuestScroll] = useState(false);
-  const [taxRate, setTaxRate] = useState(0);
-  const [visualManifest, setVisualManifest] = useState<Record<string, string>>({});
+  const [taxRate, setTaxRate] = useState(() => {
+    const cached = getCachedSettingsSync();
+    return cached?.tax_percentage ? parseFloat(cached.tax_percentage) : 0;
+  });
+  const [visualManifest, setVisualManifest] = useState<Record<string, string>>(() => {
+    const cached = getCachedDestinationsSync();
+    return cached ?? {};
+  });
   const curationScrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-fill traveler information from active Supabase profile
@@ -238,71 +267,71 @@ export const BookingContent = memo(function BookingContent({
 
   useEffect(() => {
     // ════ SOVEREIGN INTELLIGENCE HYDRATION ════
-    
-    // 1. ATOMSPHERE HYDRATION: Instant local persistence recovery
+    let isMounted = true;
+
+    // 1. ATMOSPHERE HYDRATION: Instant local persistence recovery — synchronous, zero cost
     const cachedAtmosphere = localStorage.getItem('tr_discovery_atmosphere');
     if (cachedAtmosphere) {
       setDefaultImage(cachedAtmosphere);
     }
 
-    // 2. VISUAL MANIFEST HYDRATION: Pre-load curated destination visuals
-    const fetchVisualManifest = async () => {
-      try {
-        const { data } = await supabase
-          .from("destinations")
-          .select("name, cover_image")
-          .eq("is_published", true);
-        
-        if (data) {
-          const manifest = data.reduce((acc: Record<string, string>, curr: any) => {
-            acc[curr.name.toUpperCase().trim()] = curr.cover_image;
-            return acc;
-          }, {});
-          setVisualManifest(manifest);
+    // 2. VISUAL MANIFEST: Read from the shared singleton cache (pre-warmed on page idle).
+    //    This resolves immediately from memory — zero network cost at modal open time.
+    getDestinationVisualManifest().then((manifest) => {
+      if (!isMounted) return;
+      setVisualManifest(prev => {
+        if (Object.keys(prev).length === 0 && Object.keys(manifest).length > 0) {
+          return manifest;
         }
-      } catch (err) {
-        console.warn("Visual Manifest Hydration Error:", err);
+        return prev;
+      });
+    });
+
+    // 3. SETTINGS: Also resolves from singleton cache — zero network cost.
+    getSettings().then((data) => {
+      if (!isMounted) return;
+      if (data.tax_percentage) {
+        setTaxRate(prev => {
+          const val = parseFloat(data.tax_percentage!);
+          return prev !== val ? val : prev;
+        });
       }
-    };
-
-    // 3. ADMINISTRATIVE SYNC: Fetch taxes and default imagery
-    const fetchSettings = async () => {
-      try {
-        const data = await getSettings();
-        if (data.tax_percentage) setTaxRate(parseFloat(data.tax_percentage));
-        if (data.discovery_default_image) {
-          setDefaultImage(data.discovery_default_image);
-          localStorage.setItem('tr_discovery_atmosphere', data.discovery_default_image);
-        }
-      } catch (err) {
-        console.warn("Settings fetch error:", err);
+      if (data.discovery_default_image) {
+        setDefaultImage(prev => {
+          const val = data.discovery_default_image ?? null;
+          return prev !== val ? val : prev;
+        });
+        localStorage.setItem('tr_discovery_atmosphere', data.discovery_default_image);
       }
-    };
+    }).catch((err) => console.warn("Settings fetch error:", err));
 
-    fetchVisualManifest();
-    fetchSettings();
-
-    // 4. REAL-TIME AUTHORITY: Synchronize updates from Supabase
-    const channel = supabase
-      .channel('site_settings_discovery_changes')
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'site_settings' }, 
-        (payload: any) => {
-          // Invalidate the singleton cache so next consumer gets fresh data
-          invalidateSettingsCache();
-          if (payload.new && payload.new.key === 'tax_percentage') {
-            setTaxRate(parseFloat(payload.new.value));
+    // 4. REAL-TIME AUTHORITY: Defer the websocket subscription until after the
+    //    entrance animation so the network handshake doesn't compete with GSAP.
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const realtimeTimer = setTimeout(() => {
+      if (!isMounted) return;
+      channel = supabase
+        .channel('site_settings_discovery_changes')
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'site_settings' },
+          (payload: any) => {
+            invalidateSettingsCache();
+            if (payload.new && payload.new.key === 'tax_percentage') {
+              setTaxRate(parseFloat(payload.new.value));
+            }
+            if (payload.new && payload.new.key === 'discovery_default_image') {
+              setDefaultImage(payload.new.value);
+              localStorage.setItem('tr_discovery_atmosphere', payload.new.value);
+            }
           }
-          if (payload.new && payload.new.key === 'discovery_default_image') {
-            setDefaultImage(payload.new.value);
-            localStorage.setItem('tr_discovery_atmosphere', payload.new.value);
-          }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    }, 800);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearTimeout(realtimeTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
@@ -949,7 +978,7 @@ export const BookingContent = memo(function BookingContent({
                         : "opacity-100 scale-100 mb-[clamp(1rem,3vh,2rem)]",
                     )}
                   >
-                    <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center whitespace-nowrap">
+                    <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center sm:whitespace-nowrap text-balance">
                       <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
                       <span className="text-white/20 font-light italic tracking-tight">
                         new horizons.
@@ -957,7 +986,7 @@ export const BookingContent = memo(function BookingContent({
                     </h2>
                     <p
                       className={cn(
-                        "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 whitespace-nowrap",
+                        "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 sm:whitespace-nowrap text-balance",
                         (sovereignResponse || isThinking) && destination.length > 0
                           ? "opacity-0 h-0 overflow-hidden"
                           : "opacity-100 mb-[clamp(1.5rem,4vh,2.5rem)]",
@@ -983,6 +1012,7 @@ export const BookingContent = memo(function BookingContent({
                           size={22}
                         />
                         <input
+                          ref={searchInputRef}
                           type="text"
                           value={destination}
                           onChange={(e) => setDestination(e.target.value)}
@@ -990,10 +1020,14 @@ export const BookingContent = memo(function BookingContent({
                           onBlur={() =>
                             setTimeout(() => setSearchFocused(false), 200)
                           }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && destination.trim().length >= 2) {
+                              askSovereign(destination, manifest);
+                            }
+                          }}
                           placeholder="Where should your journey begin?"
                           autoComplete="off"
                           className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
-                          autoFocus
                         />
                         {destination.length > 0 && (
                           <button
@@ -1265,7 +1299,7 @@ export const BookingContent = memo(function BookingContent({
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
                         <div className="flex items-center gap-4 px-5 md:px-[clamp(2rem,6vw,4rem)] mb-6 md:mb-10 flex-shrink-0">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/70 whitespace-nowrap">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/70 sm:whitespace-nowrap">
                             {isThinking 
                               ? "Seeking the extraordinary..."
                               : sovereignState === 'ESCALATING' 

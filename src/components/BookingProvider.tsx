@@ -49,10 +49,29 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
+export interface BookingActionsContextType {
+  openModal: (view: ModalView, data?: any, source?: string, intent?: string) => void;
+  openBooking: (data?: PackageData, source?: string, intent?: string) => void;
+  closeModal: () => void;
+  startClosing: () => void;
+  goBack: () => void;
+  setError: (err: string | null) => void;
+}
+
+const BookingActionsContext = createContext<BookingActionsContextType | undefined>(undefined);
+
 export const useBooking = () => {
   const context = useContext(BookingContext);
   if (!context) {
     throw new Error("useBooking must be used within a BookingProvider");
+  }
+  return context;
+};
+
+export const useBookingActions = () => {
+  const context = useContext(BookingActionsContext);
+  if (!context) {
+    throw new Error("useBookingActions must be used within a BookingProvider");
   }
   return context;
 };

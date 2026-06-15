@@ -56,3 +56,10 @@ export function invalidateSettingsCache() {
   cachedSettings = null;
   inflightRequest = null;
 }
+
+/**
+ * Get current cached settings synchronously.
+ */
+export function getCachedSettingsSync(): SiteSettings | null {
+  return cachedSettings;
+}
