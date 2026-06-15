@@ -109,13 +109,10 @@ export function FloatingSearch() {
     }
 
     const handleScroll = () => {
-      // CRITICAL: Use refs instead of state to read current focus/keyboard status.
-      // Reading state in a scroll handler causes stale closures — the event sees the
-      // value from when the effect was last created, not the current value.
+      // If the input is focused or keyboard is open, keep the bar visible but do NOT blur it here.
+      // Generic window 'scroll' events trigger on programmatic shifts (e.g. browser keyboard centering).
+      // Blurring here would cause instant collapse upon tap.
       if (isFocusedRef.current || isKeyboardOpenRef.current) {
-        if (inputRef.current) {
-          inputRef.current.blur();
-        }
         setIsVisible(true);
         return;
       }
@@ -144,6 +141,20 @@ export function FloatingSearch() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []); // Empty deps — scroll handler always reads from refs, never from stale state
+
+  // Auto-blur search input and collapse virtual keyboard on manual touch drag gesture (mobile only)
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleTouchMove = () => {
+      if (isFocusedRef.current && inputRef.current) {
+        inputRef.current.blur();
+      }
+    };
+
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    return () => window.removeEventListener("touchmove", handleTouchMove);
+  }, [isMobile]);
 
 
   // iOS 26 Pointer-Tracking Glow
