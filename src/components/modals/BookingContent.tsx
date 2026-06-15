@@ -122,7 +122,7 @@ export const BookingContent = memo(function BookingContent({
   onPhaseChange?: (phase: number) => void;
   onStepChange?: (step: number) => void;
 }) {
-  const { setError, intent } = useBooking();
+  const { setError, intent, isOpen } = useBooking();
   const { user, profile } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -132,9 +132,9 @@ export const BookingContent = memo(function BookingContent({
   const [step, setStep] = useState(1);
   const [discoveryPhase, setDiscoveryPhase] = useState(packageData ? 2 : 1);
 
-  // Focus search input only when the modal sheet has fully settled
+  // Focus search input only when the modal sheet has fully settled and there is no pre-existing search intent.
   useEffect(() => {
-    if (isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1) {
+    if (isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1 && !intent) {
       // 100ms delay to make sure browser layout calculations and GSAP clearProps are done,
       // and virtual keyboard behaves correctly.
       const timer = setTimeout(() => {
@@ -142,7 +142,7 @@ export const BookingContent = memo(function BookingContent({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isSettled, discoveryPhase, step]);
+  }, [isSettled, discoveryPhase, step, intent]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
@@ -423,6 +423,15 @@ export const BookingContent = memo(function BookingContent({
     clearDiscovery();
     clearSovereign();
   }, [clearDiscovery, clearSovereign]);
+
+  // Clear search state when the modal is closed (Apple UX standard)
+  useEffect(() => {
+    if (!isOpen) {
+      setDestination("");
+      clearSearch();
+      prevIntent.current = undefined;
+    }
+  }, [isOpen, clearSearch]);
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Navigation Logic
@@ -900,7 +909,18 @@ export const BookingContent = memo(function BookingContent({
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const isScrolled = e.currentTarget.scrollTop > UI_CONFIG.THRESHOLDS.SCROLL_MIN;
     onScroll(isScrolled);
+    
+    // Apple UX Standard: Auto-blur search input and collapse virtual keyboard on scroll gesture
+    if (searchFocused && searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
   };
+
+  const handleHorizontalScroll = useCallback(() => {
+    if (searchFocused && searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+  }, [searchFocused]);
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden">
@@ -1003,7 +1023,15 @@ export const BookingContent = memo(function BookingContent({
                           : "max-w-2xl",
                       )}
                     >
-                      <div className="relative group/search">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (destination.trim().length >= 2) {
+                            askSovereign(destination, manifest);
+                          }
+                        }}
+                        className="relative group/search"
+                      >
                         <Search
                           className={cn(
                             "absolute left-6 top-1/2 -translate-y-1/2 transition-all duration-500 z-10",
@@ -1020,27 +1048,23 @@ export const BookingContent = memo(function BookingContent({
                           onBlur={() =>
                             setTimeout(() => setSearchFocused(false), 200)
                           }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && destination.trim().length >= 2) {
-                              askSovereign(destination, manifest);
-                            }
-                          }}
                           placeholder="Where should your journey begin?"
                           autoComplete="off"
                           className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                         />
                         {destination.length > 0 && (
-                          <button
-                            onClick={() => {
-                              setDestination("");
-                              clearSearch();
-                            }}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full z-10"
-                          >
-                            <X size={16} />
-                          </button>
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setDestination("");
+                               clearSearch();
+                             }}
+                             className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full z-10"
+                           >
+                             <X size={16} />
+                           </button>
                         )}
-                      </div>
+                      </form>
                     </div>
                   </div>
 
@@ -1178,6 +1202,7 @@ export const BookingContent = memo(function BookingContent({
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
+                        onScroll={handleHorizontalScroll}
                         className={cn(
                           "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0",
                           sovereignResponse.results?.length === 1 ? "justify-center" : "justify-start"
@@ -1315,6 +1340,7 @@ export const BookingContent = memo(function BookingContent({
                         </div>
 
                         <div
+                          onScroll={handleHorizontalScroll}
                           className={cn(
                             "flex-1 flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 transition-all duration-1000 min-h-0",
                             destination.length > 0

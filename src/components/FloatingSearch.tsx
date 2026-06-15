@@ -14,25 +14,43 @@ export function FloatingSearch() {
   const [isVisible, setIsVisible] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const { openBooking } = useBooking();
+  const { openBooking, isOpen } = useBooking();
 
-  const pillRef = useRef<HTMLDivElement>(null);
+  // Clear search query when the modal closes (Apple UX standard)
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchValue("");
+    }
+  }, [isOpen]);
+
+  const pillRef = useRef<HTMLFormElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const textMeasureRef = useRef<HTMLSpanElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const hasMountedRef = useRef(false);
   const initialHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
+
+  const triggerSearch = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
+  }, [searchValue, openBooking]);
 
   // Check mobile & set dynamic placeholder
   useEffect(() => {
     const checkMobile = () => {
       const w = window.innerWidth;
-      setIsMobile(w < 768);
-      if (w < 360) {
-        setPlaceholder("Search");
-      } else if (w < 768) {
-        setPlaceholder("Search destinations");
+      const mobile = w < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        if (w < 350) {
+          setPlaceholder("Where to?");
+        } else {
+          setPlaceholder("Search destinations");
+        }
       } else {
         setPlaceholder("Where will your next journey begin?");
       }
@@ -95,6 +113,9 @@ export function FloatingSearch() {
       // Reading state in a scroll handler causes stale closures — the event sees the
       // value from when the effect was last created, not the current value.
       if (isFocusedRef.current || isKeyboardOpenRef.current) {
+        if (inputRef.current) {
+          inputRef.current.blur();
+        }
         setIsVisible(true);
         return;
       }
@@ -153,6 +174,12 @@ export function FloatingSearch() {
     const calculate = () => {
       if (!textMeasureRef.current || !inputAreaRef.current) return;
 
+      if (isMobile) {
+        gsap.killTweensOf(inputAreaRef.current);
+        gsap.set(inputAreaRef.current, { clearProps: "width" });
+        return;
+      }
+
       const textWidth = textMeasureRef.current.scrollWidth;
       const iconWidth = 14 + 8; // icon size + gap-2
       const inputPadding = isMobile ? 24 : 32;
@@ -197,9 +224,13 @@ export function FloatingSearch() {
         isVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
       )}
     >
-      <div
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          triggerSearch();
+        }}
         ref={pillRef}
-        className="relative inline-flex items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
+        className="relative flex md:inline-flex w-full md:w-auto items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
         onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseLeave={handleGlowLeave}
@@ -207,7 +238,15 @@ export function FloatingSearch() {
         onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
         onTouchEnd={handleGlowLeave}
       >
-        <span ref={textMeasureRef} className="absolute invisible whitespace-pre text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em]">
+        <span 
+          ref={textMeasureRef} 
+          className={cn(
+            "absolute invisible whitespace-pre font-medium uppercase",
+            searchValue 
+              ? "text-base md:text-[11px] tracking-wider md:tracking-[0.2em]" 
+              : "text-[10px] md:text-[11px] tracking-[0.15em] md:tracking-[0.2em]"
+          )}
+        >
           {searchValue || placeholder}
         </span>
 
@@ -217,9 +256,10 @@ export function FloatingSearch() {
           style={{ opacity: 0, mixBlendMode: 'screen' }}
         />
 
-        <div ref={inputAreaRef} className="flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
+        <div ref={inputAreaRef} className="flex-1 md:flex-none flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
           <Search className="text-white/50 shrink-0" size={14} />
           <input
+            ref={inputRef}
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
@@ -234,20 +274,18 @@ export function FloatingSearch() {
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
+                triggerSearch();
               }
             }}
             placeholder={placeholder}
-            className="w-full bg-transparent text-white placeholder-white/50 text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
+            className="w-full bg-transparent text-white placeholder-white/50 placeholder-small text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
           />
         </div>
 
         <div className="shrink-0 relative z-10">
           <Magnetic>
             <button
-              onClick={() => {
-                openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
-              }}
+              type="submit"
               style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}
               className="text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
             >
@@ -256,7 +294,7 @@ export function FloatingSearch() {
             </button>
           </Magnetic>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

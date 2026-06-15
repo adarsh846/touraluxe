@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Magnetic } from "./Magnetic";
+import { Heart } from "lucide-react";
 
 function scrollToSection(id: string, offset: number = 0) {
   const lenis = (window as any).__lenis;
@@ -99,8 +100,10 @@ export function Footer() {
         <p className="text-xs text-muted">
           &copy; {new Date().getFullYear()} TouraLuxe. All rights reserved.
         </p>
-        <p className="text-xs text-muted">
-          Designed with purpose.
+        <p className="text-xs text-muted flex items-center gap-1">
+          <span>Handcrafted with</span>
+          <Heart size={14} className="fill-red-500/70 stroke-none relative top-[0.5px]" />
+          <span>by ADARSH.</span>
         </p>
       </div>
     </footer>
