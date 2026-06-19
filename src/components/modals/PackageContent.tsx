@@ -170,6 +170,27 @@ export const PackageContent = memo(({
     if (!pdfUrl) return false;
     return pdfUrl.toLowerCase().split('?')[0].endsWith('.pdf');
   }, [pdfUrl]);
+
+  const destinationsCovered = useMemo(() => {
+    if (experience?.destinations_covered) {
+      return experience.destinations_covered.split(",").map((d: string) => d.trim()).filter(Boolean);
+    }
+    try {
+      const anchor = experience?.itinerary_url;
+      if (anchor && anchor.startsWith('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed.destinations_covered) {
+          return parsed.destinations_covered
+            .split(",")
+            .map((d: string) => d.trim())
+            .filter(Boolean);
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing destinations_covered:", e);
+    }
+    return [];
+  }, [experience]);
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
     if (!pillRef.current || !glowRef.current) return;
     const rect = pillRef.current.getBoundingClientRect();
@@ -439,6 +460,38 @@ export const PackageContent = memo(({
               </div>
             </div>
           </section>
+
+          {/* Destinations Covered (Route Timeline) */}
+          {destinationsCovered.length > 0 && (
+            <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
+              <div className="bg-white/[0.01] border border-white/[0.04] rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-50 pointer-events-none" />
+                <div className="relative z-10 space-y-8">
+                  <div className="text-center md:text-left">
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Route</span>
+                    <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight leading-none">Destinations Covered</h3>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 md:gap-6 pt-4">
+                    {destinationsCovered.map((dest: string, idx: number) => (
+                      <div key={idx} className="flex items-center gap-4 md:gap-6">
+                        <div className="flex items-center gap-3 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 px-5 py-3 rounded-2xl transition-all duration-300">
+                          <div className="w-6 h-6 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-[10px] font-black text-amber-400 shrink-0">
+                            {idx + 1}
+                          </div>
+                          <span className="text-sm md:text-base font-bold text-white/90">{dest}</span>
+                        </div>
+                        {idx < destinationsCovered.length - 1 && (
+                          <div className="flex items-center justify-center text-white/20 select-none">
+                            <ArrowRight size={18} className="animate-pulse" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* 4. ITINERARY (Sticky Split-Screen / Accordion Timeline) */}
           {((experience.itinerary && experience.itinerary.length > 0) || pdfUrl) && (

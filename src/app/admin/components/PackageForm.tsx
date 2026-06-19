@@ -58,6 +58,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     guests: initialData?.guests || "",
     tagline: initialData?.tagline || "",
     description: initialData?.description || "",
+    destinations_covered: anchor?.destinations_covered || (initialData as any)?.destinations_covered || "",
     highlights: initialData?.highlights || [""],
     inclusions: initialData?.inclusions || [""],
     exclusions: initialData?.exclusions || [""],
@@ -488,7 +489,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       estimate: form.flight_price_estimate,
       tiers: serializedTiers,
       transports: form.transports,
-      pdf_url: form.pdf_url
+      pdf_url: form.pdf_url,
+      destinations_covered: form.destinations_covered
     });
 
     // Sterilize the payload: Remove ALL potential schema-mismatch columns
@@ -503,6 +505,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       tiers: _tiers,
       transports: _transports,
       pdf_url: _pdf_url,
+      destinations_covered: _dest_cov,
       ...safeForm 
     } = form;
 
@@ -772,7 +775,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
               Description
             </h3>
 
-            <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, tagline: v }})} placeholder="e.g. Witness the infinite from the wild" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              <Field label="Visual Tagline" value={form.tagline} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, tagline: v }})} placeholder="e.g. Witness the infinite from the wild" />
+              <Field label="Destinations Covered (Comma Separated)" value={form.destinations_covered} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, destinations_covered: v }})} placeholder="e.g. Zurich, Zermatt, St. Moritz" description="Enter cities/places covered on the tour, separated by commas." />
+            </div>
 
             <div className="space-y-4">
               <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">Experience Narrative</label>

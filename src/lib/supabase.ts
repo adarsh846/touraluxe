@@ -61,6 +61,7 @@ export type Package = {
   flight_price_estimate?: string;
   is_airfare_taxable?: boolean;
   departure_cities?: string[];
+  destinations_covered?: string;
 };
 
 export type Destination = {
