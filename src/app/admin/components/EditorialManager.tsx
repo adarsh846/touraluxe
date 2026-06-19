@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, GripVertical, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+const DEFAULT_ABOUT_STATS = [
+  { label: "Founded", value: "2026" },
+  { label: "Global Reach", value: "120+ Cities" },
+  { label: "Excellence", value: "Premium" },
+  { label: "Execution", value: "Seamless" }
+];
+
 interface EditorialManagerProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<void>;
@@ -325,7 +332,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   </div>
                   <button 
                     onClick={() => {
-                      const current = safeParse(localSettings.about_stats, []);
+                      const current = safeParse(localSettings.about_stats, DEFAULT_ABOUT_STATS);
                       handleChange("about_stats", JSON.stringify([...current, { label: "", value: "" }]));
                     }}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
@@ -336,13 +343,13 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                 </div>
 
                 <div className="space-y-3">
-                  {safeParse(localSettings.about_stats, []).map((stat: any, i: number) => (
+                  {safeParse(localSettings.about_stats, DEFAULT_ABOUT_STATS).map((stat: any, i: number) => (
                     <div key={i} className="flex gap-4 items-center animate-in fade-in slide-in-from-left-4 duration-300">
                       <input 
                         placeholder="Label (e.g. Founded)"
                         value={stat.label}
                         onChange={(e) => {
-                          const stats = safeParse(localSettings.about_stats, []);
+                          const stats = safeParse(localSettings.about_stats, DEFAULT_ABOUT_STATS);
                           stats[i].label = e.target.value;
                           handleChange("about_stats", JSON.stringify(stats));
                         }}
@@ -352,7 +359,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                         placeholder="Value (e.g. 2026)"
                         value={stat.value}
                         onChange={(e) => {
-                          const stats = safeParse(localSettings.about_stats, []);
+                          const stats = safeParse(localSettings.about_stats, DEFAULT_ABOUT_STATS);
                           stats[i].value = e.target.value;
                           handleChange("about_stats", JSON.stringify(stats));
                         }}
@@ -360,7 +367,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                       />
                       <button 
                         onClick={() => {
-                          const stats = safeParse(localSettings.about_stats, []);
+                          const stats = safeParse(localSettings.about_stats, DEFAULT_ABOUT_STATS);
                           stats.splice(i, 1);
                           handleChange("about_stats", JSON.stringify(stats));
                         }}
