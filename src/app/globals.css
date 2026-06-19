@@ -74,37 +74,39 @@ body {
 
 /* Custom small placeholder styling to override global mobile input rules */
 input[type="text"].placeholder-small {
-  font-size: clamp(10px, 2.5vw, 13px) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
 }
 
 input[type="text"].placeholder-small:focus {
-  font-size: 16px !important;
+  font-size: 11px !important;
 }
 
 /* Chrome, Safari, Opera */
 input[type="text"].placeholder-small::-webkit-input-placeholder {
-  font-size: clamp(10px, 2.5vw, 13px) !important;
+  font-size: 11px !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
 }
 
 /* Firefox */
 input[type="text"].placeholder-small::-moz-placeholder {
-  font-size: clamp(10px, 2.5vw, 13px) !important;
+  font-size: 11px !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
 }
 
 /* Internet Explorer/Edge */
 input[type="text"].placeholder-small:-ms-input-placeholder {
-  font-size: clamp(10px, 2.5vw, 13px) !important;
+  font-size: 11px !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
 }
 
 /* Standard */
 input[type="text"].placeholder-small::placeholder {
-  font-size: clamp(10px, 2.5vw, 13px) !important;
+  font-size: 11px !important;
   letter-spacing: 0.15em !important;
   text-transform: uppercase !important;
 }
@@ -112,6 +114,7 @@ input[type="text"].placeholder-small::placeholder {
 @media (min-width: 768px) {
   input[type="text"].placeholder-small {
     font-size: 11px !important;
+    letter-spacing: 0.2em !important;
   }
   input[type="text"].placeholder-small::-webkit-input-placeholder {
     font-size: 11px !important;

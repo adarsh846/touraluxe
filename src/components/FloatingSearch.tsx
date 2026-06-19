@@ -46,8 +46,8 @@ export function FloatingSearch() {
       const mobile = w < 768;
       setIsMobile(mobile);
       if (mobile) {
-        if (w < 350) {
-          setPlaceholder("Where to?");
+        if (w < 400) {
+          setPlaceholder("Search");
         } else {
           setPlaceholder("Search destinations");
         }
@@ -75,7 +75,7 @@ export function FloatingSearch() {
       const vv = window.visualViewport;
       if (!vv) return;
       
-      const keyboardActive = vv.height < initialHeightRef.current * 0.85;
+      const keyboardActive = isFocusedRef.current && (vv.height < initialHeightRef.current * 0.85);
       setIsKeyboardOpen(keyboardActive);
       isKeyboardOpenRef.current = keyboardActive; // Keep ref in sync for scroll guard
 
@@ -109,10 +109,10 @@ export function FloatingSearch() {
     }
 
     const handleScroll = () => {
-      // If the input is focused or keyboard is open, keep the bar visible but do NOT blur it here.
+      // If the input is focused, keep the bar visible but do NOT blur it here.
       // Generic window 'scroll' events trigger on programmatic shifts (e.g. browser keyboard centering).
       // Blurring here would cause instant collapse upon tap.
-      if (isFocusedRef.current || isKeyboardOpenRef.current) {
+      if (isFocusedRef.current) {
         setIsVisible(true);
         return;
       }
@@ -191,7 +191,8 @@ export function FloatingSearch() {
       const minTextWidth = isMobile ? 40 : 60;
 
       const activeBuffer = searchValue ? (isMobile ? 40 : 60) : 0;
-      const naturalWidth = Math.max(textWidth, minTextWidth) + iconWidth + inputPadding + activeBuffer;
+      // Add a 12px safety buffer to account for cross-browser text rendering differences
+      const naturalWidth = Math.max(textWidth, minTextWidth) + iconWidth + inputPadding + activeBuffer + 12;
 
       const vw = window.innerWidth;
       const buttonEl = pillRef.current?.querySelector('button') as HTMLElement | null;
@@ -216,6 +217,12 @@ export function FloatingSearch() {
 
     const raf = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate, { passive: true });
+
+    // Recalculate once custom fonts are loaded to prevent fallback-font measurement mismatch
+    if (typeof document !== "undefined" && (document as any).fonts) {
+      (document as any).fonts.ready.then(calculate);
+    }
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', calculate);
@@ -245,12 +252,10 @@ export function FloatingSearch() {
       >
         <span 
           ref={textMeasureRef} 
-          className={cn(
-            "absolute invisible whitespace-pre font-medium uppercase",
-            searchValue 
-              ? "text-base md:text-[11px] tracking-wider md:tracking-[0.2em]" 
-              : "text-[10px] md:text-[11px] tracking-[0.15em] md:tracking-[0.2em]"
-          )}
+          className="absolute invisible whitespace-pre font-medium uppercase tracking-[0.15em] md:tracking-[0.2em]"
+          style={{
+            fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
+          }}
         >
           {searchValue || placeholder}
         </span>
@@ -283,7 +288,10 @@ export function FloatingSearch() {
               }
             }}
             placeholder={placeholder}
-            className="w-full bg-transparent text-white placeholder-white/50 placeholder-small text-base md:text-[11px] font-medium uppercase tracking-wider md:tracking-[0.2em] outline-none"
+            className="w-full p-0 border-none bg-transparent text-white placeholder-white/50 placeholder-small font-medium uppercase tracking-[0.15em] md:tracking-[0.2em] outline-none"
+            style={{
+              fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
+            }}
           />
         </div>
 

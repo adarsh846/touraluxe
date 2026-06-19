@@ -171,6 +171,14 @@ export class DiscoveryService<T extends { title: string; location: string }> {
     }
 
     return rankedResults
+      .filter(r => {
+        // If it's a pure fuzzy match, only keep it if the score is actually strong (e.g. <= 0.45)
+        if (r.relevanceTier === 'fuzzy') {
+          return r.score <= 0.45;
+        }
+        // General safety cutoff for boosted matches
+        return r.score <= 0.6;
+      })
       .sort((a, b) => {
         const tierWeights = { exact: 0, prefix: 1, substring: 2, fuzzy: 3, none: 4 };
         if (tierWeights[a.relevanceTier] !== tierWeights[b.relevanceTier]) {
