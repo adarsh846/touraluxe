@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useRef, useEffect, useMemo } from "react";
 
 
-export type ModalView = 'SERVICES' | 'BOOKING' | 'ABOUT' | 'CTA' | 'PACKAGE' | 'PORTAL' | null;
+export type ModalView = 'SERVICES' | 'BOOKING' | 'ABOUT' | 'CTA' | 'PACKAGE' | 'PORTAL' | 'CONTACT' | null;
 
 interface PackageData {
   id: string;

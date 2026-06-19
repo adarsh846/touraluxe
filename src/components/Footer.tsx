@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Magnetic } from "./Magnetic";
 import { Heart } from "lucide-react";
+import { useBooking } from "./BookingProvider";
 
 function scrollToSection(id: string, offset: number = 0) {
   const lenis = (window as any).__lenis;
@@ -14,6 +15,8 @@ function scrollToSection(id: string, offset: number = 0) {
 }
 
 export function Footer() {
+  const { openModal } = useBooking();
+
   return (
     <footer className="relative z-20 w-full bg-black py-16 px-6 -mt-[1px]">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
@@ -90,7 +93,7 @@ export function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Company</h4>
             <Magnetic><button onClick={() => scrollToSection("quotes")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Philosophy</button></Magnetic>
             <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
-            <Magnetic><button onClick={() => scrollToSection("contact")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
+            <Magnetic><button onClick={() => openModal('CONTACT', null, 'FOOTER_CONTACT_BTN')} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
             <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Privacy</button></Magnetic>
           </div>
         </div>

@@ -427,6 +427,175 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   isUpdating={isUpdating}
                   placeholder="+1 (555) TOURALUXE"
                 />
+              {/* Offices List Manager Card */}
+              <div className="p-8 rounded-[40px] bg-[#1c1c1e] border border-white/[0.04] col-span-1 lg:col-span-2 space-y-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm font-bold text-white tracking-tight">Our Offices & Map Links</h4>
+                    <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold mt-1">Specify office locations and optional Google Maps links.</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const current = safeParse(localSettings.contact_offices, []);
+                      const list = Array.isArray(current) ? current : [];
+                      handleChange("contact_offices", JSON.stringify([...list, { name: "", mapUrl: "" }]));
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                  >
+                    <Plus size={14} />
+                    Add Office
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const parsed = safeParse(localSettings.contact_offices, []);
+                    const officesList = Array.isArray(parsed) 
+                      ? parsed 
+                      : (typeof localSettings.contact_offices === "string" && localSettings.contact_offices.length > 0)
+                        ? localSettings.contact_offices.split(",").map(o => ({ name: o.trim(), mapUrl: "" }))
+                        : [];
+
+                    return officesList.map((office: any, i: number) => (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-black/20 p-4 rounded-3xl border border-white/[0.02] animate-in fade-in slide-in-from-left-4 duration-300">
+                        <div className="md:col-span-4">
+                          <label className="text-[9px] font-bold uppercase tracking-widest text-[#86868b] block mb-1">Office Name</label>
+                          <input 
+                            placeholder="e.g. Mumbai"
+                            value={office.name || ""}
+                            onChange={(e) => {
+                              const list = [...officesList];
+                              list[i] = { ...list[i], name: e.target.value };
+                              handleChange("contact_offices", JSON.stringify(list));
+                            }}
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                          />
+                        </div>
+                        <div className="md:col-span-7">
+                          <label className="text-[9px] font-bold uppercase tracking-widest text-[#86868b] block mb-1">Google Maps Link (Optional)</label>
+                          <input 
+                            placeholder="e.g. https://maps.google.com/?q=..."
+                            value={office.mapUrl || ""}
+                            onChange={(e) => {
+                              const list = [...officesList];
+                              list[i] = { ...list[i], mapUrl: e.target.value };
+                              handleChange("contact_offices", JSON.stringify(list));
+                            }}
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                          />
+                        </div>
+                        <div className="md:col-span-1 flex justify-end md:justify-center pt-2 md:pt-6">
+                          <button 
+                            onClick={() => {
+                              const list = [...officesList];
+                              list.splice(i, 1);
+                              handleChange("contact_offices", JSON.stringify(list));
+                            }}
+                            className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+
+                <button 
+                  onClick={() => handleSave("contact_offices")}
+                  disabled={isUpdating}
+                  className="w-full py-4 rounded-2xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl font-bold"
+                >
+                  {isUpdating ? "Syncing Offices..." : "Save All Offices"}
+                </button>
+              </div>
+                <InputGroup 
+                  label="Opening Hours (One per line)" 
+                  value={localSettings.contact_hours || ""} 
+                  onChange={(v) => handleChange("contact_hours", v)}
+                  onSave={() => handleSave("contact_hours")}
+                  isUpdating={isUpdating}
+                  placeholder="Mon - Fri: 10 am - 6 pm&#10;Saturday: Holidays&#10;Sunday: Holidays"
+                  isTextArea
+                  hint="Enter hours of operation, one entry per line."
+                />
+                <InputGroup 
+                  label="Headquarters Address" 
+                  value={localSettings.contact_address || ""} 
+                  onChange={(v) => handleChange("contact_address", v)}
+                  onSave={() => handleSave("contact_address")}
+                  isUpdating={isUpdating}
+                  placeholder="TouraLuxe LLC, One World Trade Center, Suite 85, New York, NY 10007"
+                  isTextArea
+                  hint="Optional: Specific detailed Headquarters address."
+                />
+                <InputGroup 
+                  label="Contact Hero Banner Image URL" 
+                  value={localSettings.contact_header_image || ""} 
+                  onChange={(v) => handleChange("contact_header_image", v)}
+                  onSave={() => handleSave("contact_header_image")}
+                  isUpdating={isUpdating}
+                  placeholder="/private_jet_interior_sunset_1777656427557.png"
+                  hint="Direct URL for the top private jet sunset image or alternative."
+                />
+                <InputGroup 
+                  label="Contact Hero Banner Subtitle" 
+                  value={localSettings.contact_header_subtitle || ""} 
+                  onChange={(v) => handleChange("contact_header_subtitle", v)}
+                  onSave={() => handleSave("contact_header_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="TouraLuxe Concierge"
+                />
+                <InputGroup 
+                  label="Contact Hero Banner Title" 
+                  value={localSettings.contact_header_title || ""} 
+                  onChange={(v) => handleChange("contact_header_title", v)}
+                  onSave={() => handleSave("contact_header_title")}
+                  isUpdating={isUpdating}
+                  placeholder="Let's Craft Your Journey"
+                />
+                <InputGroup 
+                  label="Contact Details Column Subtitle" 
+                  value={localSettings.contact_section_subtitle || ""} 
+                  onChange={(v) => handleChange("contact_section_subtitle", v)}
+                  onSave={() => handleSave("contact_section_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="Global Concierge"
+                />
+                <InputGroup 
+                  label="Contact Details Column Title" 
+                  value={localSettings.contact_section_title || ""} 
+                  onChange={(v) => handleChange("contact_section_title", v)}
+                  onSave={() => handleSave("contact_section_title")}
+                  isUpdating={isUpdating}
+                  placeholder="Transcendent Service, Instantly Accessible."
+                  isTextArea
+                />
+                <InputGroup 
+                  label="Contact Details Column Description" 
+                  value={localSettings.contact_section_description || ""} 
+                  onChange={(v) => handleChange("contact_section_description", v)}
+                  onSave={() => handleSave("contact_section_description")}
+                  isUpdating={isUpdating}
+                  placeholder="Whether co-creating a customized travel itinerary or managing a group manifest, our lifestyle curating specialists respond within hours."
+                  isTextArea
+                />
+                <InputGroup 
+                  label="Contact Form Subtitle" 
+                  value={localSettings.contact_form_subtitle || ""} 
+                  onChange={(v) => handleChange("contact_form_subtitle", v)}
+                  onSave={() => handleSave("contact_form_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="Inquiry Manifest"
+                />
+                <InputGroup 
+                  label="Contact Form Title" 
+                  value={localSettings.contact_form_title || ""} 
+                  onChange={(v) => handleChange("contact_form_title", v)}
+                  onSave={() => handleSave("contact_form_title")}
+                  isUpdating={isUpdating}
+                  placeholder="Submit Your Details"
+                />
               </div>
             </div>
           )}

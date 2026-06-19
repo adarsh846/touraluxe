@@ -589,6 +589,25 @@ export const BookingContent = memo(function BookingContent({
     internalPackage?.duration?.match(/(\d+)\s*Night/i),
   );
 
+  const todayStr = React.useMemo(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  // Prevent past dates and maintain valid timeline
+  useEffect(() => {
+    if (startDate && startDate < todayStr) {
+      setStartDate(todayStr);
+    }
+
+    if (endDate) {
+      const minReturn = startDate || todayStr;
+      if (endDate < minReturn) {
+        setEndDate(minReturn);
+      }
+    }
+  }, [startDate, endDate, todayStr]);
+
   useEffect(() => {
     if (startDate && isDurationFixed) {
       const nightsMatch = internalPackage.duration.match(/(\d+)\s*Night/i);
@@ -1027,7 +1046,11 @@ export const BookingContent = memo(function BookingContent({
                         onSubmit={(e) => {
                           e.preventDefault();
                           if (destination.trim().length >= 2) {
-                            askSovereign(destination, manifest);
+                            const cleaned = destination.replace(/[\\/]+$/, "").trim();
+                            if (cleaned !== destination) {
+                              setDestination(cleaned);
+                            }
+                            askSovereign(cleaned || destination, manifest);
                           }
                         }}
                         className="relative group/search"
@@ -1134,15 +1157,32 @@ export const BookingContent = memo(function BookingContent({
                             <Magnetic>
                               <button
                                 onClick={() => {
+                                  // 1. Get validated destination/theme from API or fallback to user input
+                                  const rawDest = (sovereignResponse as any)?.tool_call?.parameters?.destination 
+                                    || (sovereignResponse as any)?.tool_call?.parameters?.theme
+                                    || destination;
+                                  
+                                  // 2. Strip any trailing symbols, slashes, or backslashes
+                                  const validatedDest = rawDest
+                                    .replace(/[\\/!@#$%^&*()_+={}[\]|:;"'<>,.?~`\s]+$/, "")
+                                    .trim();
+                                    
+                                  // 3. Capitalize words properly (e.g. "goa" -> "Goa", "new york" -> "New York")
+                                  const cleanTitle = validatedDest
+                                    .split(' ')
+                                    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                                    .join(' ') || "Custom Journey";
+
                                   const customPkg = {
                                     id: `custom-${Date.now()}`,
-                                    title: destination.charAt(0).toUpperCase() + destination.slice(1),
+                                    title: cleanTitle,
                                     location: "Tailored Experience",
                                     duration: "Custom Duration",
                                     price: 0,
                                     image: dynamicImage || defaultImage || "",
                                     isCustom: true,
                                   };
+                                  setDestination(cleanTitle); // Update state to keep everything synchronized and typo-free
                                   setInternalPackage(customPkg);
                                   setDiscoveryPhase(2);
                                 }}
@@ -1490,6 +1530,7 @@ export const BookingContent = memo(function BookingContent({
                                 ref={startInputRef}
                                 type="date"
                                 value={startDate}
+                                min={todayStr}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
                               />
@@ -1568,6 +1609,7 @@ export const BookingContent = memo(function BookingContent({
                                   ref={endInputRef}
                                   type="date"
                                   value={endDate}
+                                  min={startDate || todayStr}
                                   onChange={(e) => setEndDate(e.target.value)}
                                   className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
                                 />

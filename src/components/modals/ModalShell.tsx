@@ -14,9 +14,9 @@ import { useAuth } from "@/components/AuthProvider";
 import { ServiceContent } from "@/components/modals/ServiceContent";
 import { BookingContent } from "@/components/modals/BookingContent";
 import { AboutContent } from "@/components/modals/AboutContent";
-import { CtaContent } from "@/components/modals/CtaContent";
 import { PackageContent } from "@/components/modals/PackageContent";
 import { PortalContent } from "@/components/modals/PortalContent";
+import { ContactContent } from "@/components/modals/ContactContent";
 
 export function ModalShell() {
   const { user, signOut } = useAuth();
@@ -40,7 +40,7 @@ export function ModalShell() {
 
   // Synchronous state derivation & visited views cache during render (prevents multiple render passes and layout thrashing)
   if (isOpen && view && view !== activeView) {
-    const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1, 'PORTAL': 2 };
+    const viewDepth: Record<string, number> = { 'SERVICES': 1, 'PACKAGE': 2, 'BOOKING': 3, 'ABOUT': 1, 'CTA': 1, 'PORTAL': 2, 'CONTACT': 1 };
     const newDepth = viewDepth[view as string] || 0;
     const oldDepth = viewDepth[activeView as string] || 0;
     
@@ -507,7 +507,19 @@ export function ModalShell() {
                 : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
           >
             {visitedViews['CTA'] && (
-              <CtaContent isActive={activeView === 'CTA'} onScroll={handleScroll} startClosing={startClosing} />
+              <ContactContent isActive={activeView === 'CTA'} onScroll={handleScroll} startClosing={startClosing} />
+            )}
+          </div>
+
+          {/* Contact Layer */}
+          <div 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+              ${activeView === 'CONTACT' 
+                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
+                : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
+          >
+            {visitedViews['CONTACT'] && (
+              <ContactContent isActive={activeView === 'CONTACT'} onScroll={handleScroll} startClosing={startClosing} />
             )}
           </div>
 
