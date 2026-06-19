@@ -161,10 +161,129 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
 
           {activeCategory === "about" && (
             <div className="space-y-6">
-              <SectionHeader title="Brand Story" description="Defining our vision, mission, and heritage." />
+              <SectionHeader title="Brand Story & Heritage" description="Refining all titles, images, vision/mission narratives, and quotes." />
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center px-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#48484a]">About Hero Image Asset</p>
+                  <p className="hidden md:block text-[8px] uppercase tracking-widest text-[#86868b] font-bold">Ultrawide (21:9) or Wide (16:9) recommended</p>
+                </div>
+                <div
+                  onClick={() => document.getElementById('about-upload')?.click()}
+                  className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-[24px] md:rounded-[40px] bg-[#1c1c1e] border-2 border-dashed border-white/[0.04] hover:border-white/10 transition-all cursor-pointer group overflow-hidden flex flex-col items-center justify-center gap-4"
+                >
+                  {localSettings.about_hero_image ? (
+                    <>
+                      <img
+                        src={localSettings.about_hero_image}
+                        alt="About Background"
+                        className="absolute inset-0 w-full h-full object-cover opacity-30 md:opacity-40 group-hover:opacity-60 transition-opacity duration-700"
+                      />
+                      <div className="relative z-10 flex flex-col items-center gap-3 px-6 text-center">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                          {isUploading ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" /> : <Upload className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                        </div>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white shadow-2xl">Replace About Hero Image</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all duration-500">
+                        {isUploading ? <Loader2 className="w-5 h-5 md:w-6 md:h-6 text-white animate-spin" /> : <ImageIcon className="w-5 h-5 md:w-6 md:h-6 text-[#86868b] group-hover:text-white" />}
+                      </div>
+                      <div className="text-center px-6">
+                        <p className="text-xs md:text-sm font-bold text-white tracking-tight">Upload About Hero Background</p>
+                        <p className="text-[9px] md:text-[10px] uppercase tracking-widest text-[#86868b] font-bold mt-1.5 leading-relaxed">Displayed behind the About Us modal header.</p>
+                      </div>
+                    </>
+                  )}
+                  <input
+                    id="about-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploading(true);
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      try {
+                        const token = sessionStorage.getItem("admin_token") || "";
+                        const res = await fetch("/api/upload", { method: "POST", headers: { "x-admin-token": token }, body: formData });
+                        if (res.ok) {
+                          const { url } = await res.json();
+                          handleChange("about_hero_image", url);
+                          await onUpdate("about_hero_image", url);
+                        }
+                      } catch (err) { console.error("About hero upload error:", err); }
+                      finally { setIsUploading(false); }
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <InputGroup 
-                  label="Vision Statement" 
+                  label="About Hero Image URL" 
+                  value={localSettings.about_hero_image || ""} 
+                  onChange={(v) => handleChange("about_hero_image", v)}
+                  onSave={() => handleSave("about_hero_image")}
+                  isUpdating={isUpdating}
+                  placeholder="/about_hero.webp"
+                />
+                <InputGroup 
+                  label="About Hero Subtitle" 
+                  value={localSettings.about_hero_subtitle || ""} 
+                  onChange={(v) => handleChange("about_hero_subtitle", v)}
+                  onSave={() => handleSave("about_hero_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="Luxury Redefined"
+                />
+                <InputGroup 
+                  label="About Hero Title" 
+                  value={localSettings.about_hero_title || ""} 
+                  onChange={(v) => handleChange("about_hero_title", v)}
+                  onSave={() => handleSave("about_hero_title")}
+                  isUpdating={isUpdating}
+                  placeholder="About Us"
+                />
+                <InputGroup 
+                  label="Vision Column Subtitle" 
+                  value={localSettings.about_vision_subtitle || ""} 
+                  onChange={(v) => handleChange("about_vision_subtitle", v)}
+                  onSave={() => handleSave("about_vision_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="Our Vision"
+                />
+                <InputGroup 
+                  label="Vision Column Heading" 
+                  value={localSettings.about_vision_heading || ""} 
+                  onChange={(v) => handleChange("about_vision_heading", v)}
+                  onSave={() => handleSave("about_vision_heading")}
+                  isUpdating={isUpdating}
+                  placeholder="Setting new benchmarks in global travel."
+                  isTextArea
+                />
+                <InputGroup 
+                  label="Mission Column Subtitle" 
+                  value={localSettings.about_mission_subtitle || ""} 
+                  onChange={(v) => handleChange("about_mission_subtitle", v)}
+                  onSave={() => handleSave("about_mission_subtitle")}
+                  isUpdating={isUpdating}
+                  placeholder="Our Mission"
+                />
+                <InputGroup 
+                  label="Mission Column Heading" 
+                  value={localSettings.about_mission_heading || ""} 
+                  onChange={(v) => handleChange("about_mission_heading", v)}
+                  onSave={() => handleSave("about_mission_heading")}
+                  isUpdating={isUpdating}
+                  placeholder="Exceptional services, seamless execution."
+                  isTextArea
+                />
+                <InputGroup 
+                  label="Vision Description Narrative" 
                   value={localSettings.about_vision_text || ""} 
                   onChange={(v) => handleChange("about_vision_text", v)}
                   onSave={() => handleSave("about_vision_text")}
@@ -172,12 +291,29 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   isTextArea
                 />
                 <InputGroup 
-                  label="Mission Statement" 
+                  label="Mission Description Narrative" 
                   value={localSettings.about_mission_text || ""} 
                   onChange={(v) => handleChange("about_mission_text", v)}
                   onSave={() => handleSave("about_mission_text")}
                   isUpdating={isUpdating}
                   isTextArea
+                />
+                <InputGroup 
+                  label="Bottom Quote" 
+                  value={localSettings.about_bottom_quote || ""} 
+                  onChange={(v) => handleChange("about_bottom_quote", v)}
+                  onSave={() => handleSave("about_bottom_quote")}
+                  isUpdating={isUpdating}
+                  placeholder="We don't just sell trips. We craft transcendent experiences."
+                  isTextArea
+                />
+                <InputGroup 
+                  label="Bottom CTA Button Text" 
+                  value={localSettings.about_bottom_button_text || ""} 
+                  onChange={(v) => handleChange("about_bottom_button_text", v)}
+                  onSave={() => handleSave("about_bottom_button_text")}
+                  isUpdating={isUpdating}
+                  placeholder="Explore Our World"
                 />
               </div>
               
