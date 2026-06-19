@@ -185,12 +185,6 @@ export function FloatingSearch() {
     const calculate = () => {
       if (!textMeasureRef.current || !inputAreaRef.current) return;
 
-      if (isMobile) {
-        gsap.killTweensOf(inputAreaRef.current);
-        gsap.set(inputAreaRef.current, { clearProps: "width" });
-        return;
-      }
-
       const textWidth = textMeasureRef.current.scrollWidth;
       const iconWidth = 14 + 8; // icon size + gap-2
       const inputPadding = isMobile ? 24 : 32;
@@ -241,7 +235,7 @@ export function FloatingSearch() {
           triggerSearch();
         }}
         ref={pillRef}
-        className="relative flex md:inline-flex w-full md:w-auto items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
+        className="relative inline-flex w-auto items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
         onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseLeave={handleGlowLeave}
@@ -267,7 +261,7 @@ export function FloatingSearch() {
           style={{ opacity: 0, mixBlendMode: 'screen' }}
         />
 
-        <div ref={inputAreaRef} className="flex-1 md:flex-none flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
+        <div ref={inputAreaRef} className="flex-none flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden">
           <Search className="text-white/50 shrink-0" size={14} />
           <input
             ref={inputRef}
