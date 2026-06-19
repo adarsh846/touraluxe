@@ -95,9 +95,9 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
               </div>
             </div>
 
-            <div className="mt-24 pt-12 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="mt-24 pt-12 border-t border-white/5 flex flex-wrap items-center justify-center gap-x-12 md:gap-x-20 gap-y-8">
               {stats.map((stat: any, i: number) => (
-                <div key={i} className="flex flex-col gap-1">
+                <div key={i} className="flex flex-col gap-1 min-w-[120px] text-center md:text-left">
                   <span className="text-[10px] uppercase tracking-widest text-[#86868b]">{stat.label}</span>
                   <span className="text-xl md:text-2xl font-semibold text-white">{stat.value}</span>
                 </div>
