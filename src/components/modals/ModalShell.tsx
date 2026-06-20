@@ -4,22 +4,22 @@ import { useEffect, useRef, useState, useCallback, useMemo, Fragment } from "rea
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { useBooking, ModalView } from "@/components/BookingProvider";
-import { X, ArrowLeft, AlertCircle, Check, LogOut } from "lucide-react";
+import { X, ArrowLeft, AlertCircle, Check } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/components/AuthProvider";
+
 
 // Placeholder for content components
 import { ServiceContent } from "@/components/modals/ServiceContent";
 import { BookingContent } from "@/components/modals/BookingContent";
 import { AboutContent } from "@/components/modals/AboutContent";
 import { PackageContent } from "@/components/modals/PackageContent";
-import { PortalContent } from "@/components/modals/PortalContent";
+
 import { ContactContent } from "@/components/modals/ContactContent";
 
 export function ModalShell() {
-  const { user, signOut } = useAuth();
+
   const { isOpen, view, data, source, openModal, closeModal, isClosing, startClosing, goBack, canGoBack, history, error, errorTrigger, setError } = useBooking();
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ModalView>(null);
@@ -413,22 +413,7 @@ export function ModalShell() {
                 </div>
               </Magnetic>
             )}
-            {activeView === 'PORTAL' && user && (
-              <Magnetic>
-                <div className="relative group block pointer-events-auto">
-                  {/* iOS 26 Deep Shadow & Glow */}
-                  <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
-                  <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-                  <button 
-                    onClick={() => signOut()}
-                    className="relative px-5 h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-2.5 transition-all duration-500 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 text-white/50 text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
-                  >
-                    <LogOut size={12} />
-                    Logout
-                  </button>
-                </div>
-              </Magnetic>
-            )}
+
             <Magnetic>
               <div className="relative group block pointer-events-auto">
                 {/* iOS 26 Deep Shadow & Glow */}
@@ -544,19 +529,7 @@ export function ModalShell() {
             )}
           </div>
 
-          {/* Traveler Portal Layer */}
-          <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'PORTAL' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : direction === 'forward' 
-                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
-                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
-          >
-            {visitedViews['PORTAL'] && (
-              <PortalContent isActive={activeView === 'PORTAL'} onScroll={handleScroll} />
-            )}
-          </div>
+
         </div>
 
       </div>

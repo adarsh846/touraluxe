@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState, memo, useMemo } from "react";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
-import { useAuth } from "@/components/AuthProvider";
-import { Mail, Phone, MapPin, Send, CheckCircle2, Clock, Navigation } from "lucide-react";
+
+import { Mail, Phone, MapPin, Send, CheckCircle2, Clock, Navigation, ArrowRight } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 
 export const ContactContent = memo(function ContactContent({ isActive, onScroll, startClosing }: { isActive: boolean, onScroll: (scrolled: boolean) => void, startClosing: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { user, profile } = useAuth();
+
   const { settings } = useSettings();
 
   // Parse offices dynamically (handles both JSON array and legacy comma-separated string)
@@ -59,38 +59,11 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
 
-  // Prefill user data if logged in
-  useEffect(() => {
-    if (user) {
-      if (profile?.full_name) setName(profile.full_name);
-      if (user.email) setEmail(user.email);
-      if (profile?.phone) {
-        const rawPhone = profile.phone;
-        const codeMatch = rawPhone.match(/^\+(\d+)\s*/);
-        if (codeMatch) {
-          const matchedCode = `+${codeMatch[1]}`;
-          const cleanPhone = rawPhone.replace(matchedCode, "").trim();
-          setPhone(cleanPhone);
-          const countries = [
-            { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
-            { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
-            { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
-            { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
-            { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
-            { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 }
-          ];
-          const country = countries.find(c => c.code === matchedCode);
-          if (country) setSelectedCountry(country);
-        } else {
-          setPhone(rawPhone);
-        }
-      }
-    }
-  }, [user, profile]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !message) {
+    if (!name || !email || !phone || !message) {
       setError("Please fill in all required fields.");
       return;
     }
@@ -114,7 +87,6 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
           customerEmail: email,
           customerPhone: fullPhone,
           bookingSource: "CONTACT_FORM",
-          userId: user?.id || null
         })
       });
 
@@ -382,7 +354,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
 
                       {/* Phone Input with Country Code Selector */}
                       <div className="flex flex-col gap-2 relative">
-                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Phone Number (Optional)</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Phone Number *</label>
                         <div className="flex items-center gap-3 w-full bg-white/[0.03] border border-white/10 focus-within:border-white/30 rounded-2xl px-5 py-2.5 transition-all">
                           <div className="relative shrink-0">
                             <div 
@@ -426,10 +398,11 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                           </div>
                           <input
                             type="tel"
+                            required
                             value={phone}
                             onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
                             maxLength={selectedCountry.length}
-                            placeholder="Phone number"
+                            placeholder="Enter your phone number"
                             onFocus={() => setCountryMenuOpen(false)}
                             className="flex-1 bg-transparent text-sm text-white placeholder:text-white/20 focus:outline-none py-1"
                           />
@@ -468,13 +441,13 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                         <button 
                           type="submit"
                           disabled={isSubmitting}
-                          className="px-8 py-3.5 bg-white text-black rounded-full text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                          className="group px-8 py-3.5 bg-white text-black rounded-full text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
                         >
                           {isSubmitting ? (
                             <>Transmitting...</>
                           ) : (
                             <>
-                              Send Inquiry <Send size={12} />
+                              Send Inquiry <ArrowRight size={14} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform duration-300" />
                             </>
                           )}
                         </button>

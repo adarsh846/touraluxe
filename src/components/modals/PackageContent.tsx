@@ -10,6 +10,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { usePricing } from "@/hooks/usePricing";
 import { PackageBadges } from "@/components/ui/PackageBadges";
+import { useSettings } from "@/hooks/useSettings";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -150,6 +151,22 @@ export const PackageContent = memo(({
   const actionRef = useRef<HTMLDivElement>(null);
 
   const pricing = useMemo(() => computePrice(experience), [experience, computePrice]);
+
+  const { settings } = useSettings();
+  const whatsappNumber = settings.whatsapp_number || settings.contact_phone || "";
+
+  const getWhatsAppEnquiryUrl = () => {
+    if (!whatsappNumber) return "";
+    const text = `Hi TouraLuxe!
+
+I'm viewing the "${experience?.title || 'Luxury Journey'}" package on your site and would love to receive more details or ask a few questions.
+
+- Package: ${experience?.title || 'Luxury Journey'}
+- Cost: ${pricing.formattedFinal} per person
+
+Could you please share details on availability and custom options? Thank you!`;
+    return `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
+  };
 
   const pdfUrl = useMemo(() => {
     try {
@@ -632,7 +649,7 @@ export const PackageContent = memo(({
               scroller={scrollerEl} 
             />
             
-            <div className="mt-24 flex flex-col items-center">
+            <div className="mt-24 flex flex-col sm:flex-row items-center justify-center gap-12 sm:gap-16">
               <Magnetic intensity={0.2}>
                 <button 
                   onClick={() => openModal('BOOKING', experience)}
@@ -646,6 +663,23 @@ export const PackageContent = memo(({
                   </span>
                 </button>
               </Magnetic>
+              {whatsappNumber && (
+                <Magnetic intensity={0.2}>
+                  <a 
+                    href={getWhatsAppEnquiryUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group/wa-btn flex flex-col items-center gap-6 cursor-pointer"
+                  >
+                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#25D366] text-white flex items-center justify-center group-hover/wa-btn:scale-110 transition-all duration-700 shadow-[0_0_40px_rgba(37,211,102,0.15)] group-hover/wa-btn:shadow-[0_0_60px_rgba(37,211,102,0.3)]">
+                      <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-8 h-8 object-contain" />
+                    </div>
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.6em] transition-all duration-700">
+                      Enquire via WhatsApp
+                    </span>
+                  </a>
+                </Magnetic>
+              )}
             </div>
           </section>
         </div>
@@ -789,7 +823,26 @@ export const PackageContent = memo(({
               </div>
               
               {/* Action Button — icon-only on mobile, full on desktop */}
-              <div ref={actionRef} className="flex items-center justify-end shrink-0 pl-1 md:pl-3">
+              <div ref={actionRef} className="flex items-center justify-end shrink-0 pl-1 md:pl-3 gap-2">
+                {whatsappNumber && (
+                  <Magnetic intensity={0.3}>
+                    <a
+                      href={getWhatsAppEnquiryUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group/wa relative overflow-hidden rounded-full bg-[#25D366] text-black transition-all duration-700 active:scale-95 flex items-center justify-center cursor-pointer
+                        h-10 w-10 md:h-12 md:w-auto md:px-6 shadow-[0_4px_15px_rgba(37,211,102,0.2)]"
+                    >
+                      <div className="relative z-10 flex items-center justify-center gap-1.5">
+                        <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-5 h-5 md:w-4 md:h-4 object-contain shrink-0" />
+                        <span className="hidden md:block text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
+                          Enquire
+                        </span>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#25D366] via-[#35e376] to-[#25D366] opacity-0 group-hover/wa:opacity-100 transition-opacity" />
+                    </a>
+                  </Magnetic>
+                )}
                 <Magnetic intensity={0.3}>
                   <button 
                     onClick={() => openModal('BOOKING', experience)}

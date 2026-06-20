@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 import { usePathname } from "next/navigation";
 import { BookingProvider } from "./BookingProvider";
-import { AuthProvider } from "./AuthProvider";
+
 import { ModalShell } from "./modals/ModalShell";
 import { WhatsAppButton } from "./WhatsAppButton";
 import { getSettings } from "@/lib/settingsCache";
@@ -21,7 +21,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     getSettings().then(data => {
-      if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
+      if (data.whatsapp_number) {
+        setWhatsappNumber(data.whatsapp_number);
+      } else if (data.contact_phone) {
+        setWhatsappNumber(data.contact_phone);
+      }
     });
   }, []);
 
@@ -95,12 +99,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthProvider>
-      <BookingProvider>
-        {children}
-        <ModalShell />
-        {!isAdmin && whatsappNumber && <WhatsAppButton phoneNumber={whatsappNumber} />}
-      </BookingProvider>
-    </AuthProvider>
+    <BookingProvider>
+      {children}
+      <ModalShell />
+      {!isAdmin && whatsappNumber && pathname !== "/" && <WhatsAppButton phoneNumber={whatsappNumber} />}
+    </BookingProvider>
   );
 }

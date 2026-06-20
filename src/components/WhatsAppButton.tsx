@@ -1,25 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Magnetic } from "./Magnetic";
 import { cn } from "@/lib/utils";
+import { useBooking } from "./BookingProvider";
 
 interface WhatsAppButtonProps {
   phoneNumber?: string;
   defaultMessage?: string;
-  /** Delay in ms before the button appears */
   showAfter?: number;
+  isInline?: boolean;
 }
 
 export function WhatsAppButton({
   phoneNumber = "",
-  defaultMessage = "Hi! I'm interested in learning more about your travel experiences.",
-  showAfter = 5000,
+  defaultMessage = "Hi TouraLuxe! I'm ready to write my next travel chapter. Let's plan it.",
+  showAfter = 0,
+  isInline = false,
 }: WhatsAppButtonProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [hasBeenDismissed, setHasBeenDismissed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const { view, data } = useBooking();
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), showAfter);
@@ -28,50 +33,129 @@ export function WhatsAppButton({
 
   useEffect(() => {
     if (isVisible && !hasBeenDismissed) {
-      const tooltipTimer = setTimeout(() => setIsTooltipVisible(true), 2000);
-      const hideTimer = setTimeout(() => setIsTooltipVisible(false), 8000);
+      const tooltipTimer = setTimeout(() => setIsTooltipVisible(true), 1500);
+      const hideTimer = setTimeout(() => setIsTooltipVisible(false), 12000);
       return () => { clearTimeout(tooltipTimer); clearTimeout(hideTimer); };
     }
   }, [isVisible, hasBeenDismissed]);
 
+  useEffect(() => {
+    if (view === "PACKAGE" && data?.title && !hasBeenDismissed) {
+      setIsTooltipVisible(true);
+      const hideTimer = setTimeout(() => setIsTooltipVisible(false), 12000);
+      return () => clearTimeout(hideTimer);
+    }
+  }, [view, data, hasBeenDismissed]);
+
   if (!phoneNumber || !isVisible) return null;
 
-  const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(defaultMessage)}`;
+  const getDynamicMessage = () => {
+    if (view === "PACKAGE" && data?.title)
+      return `Hi TouraLuxe! I'm interested in the "${data.title}" package. Can you help me plan this experience?`;
+    if (view === "BOOKING" && data?.title)
+      return `Hi TouraLuxe! I'm booking the "${data.title}" package and would like some assistance.`;
+    return defaultMessage;
+  };
+
+  const getTooltipText = () => {
+    if ((view === "PACKAGE" || view === "BOOKING") && data?.title)
+      return `Interested in ${data.title}? Talk to us!`;
+    return "Need help in planning? Talk to us!";
+  };
+
+  const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(getDynamicMessage())}`;
+
+  const buttonEl = (
+    <Magnetic intensity={0.25}>
+      <a
+        href={whatsappUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative flex items-center justify-center w-12 h-12 md:w-[62px] md:h-[62px] rounded-full bg-black/80 md:bg-black/90 border border-[#25D366]/30 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_0_20px_rgba(37,211,102,0.15),inset_0_1px_1px_rgba(255,255,255,0.15)] hover:border-[#25D366]/50 transition-all duration-500 hover:scale-[1.08] active:scale-[0.93] z-20"
+      >
+        {/* Subtle green tint overlay default */}
+        <div className="absolute inset-0 rounded-full bg-[#25D366] opacity-[0.08] group-hover:opacity-[0.14] transition-opacity duration-500" />
+        
+        {/* Faint green glow ring default */}
+        <div className="absolute inset-0 rounded-full ring-1 ring-[#25D366]/20 group-hover:ring-[#25D366]/40 transition-all duration-500" />
+
+        {/* Clean transparent white WhatsApp logo png */}
+        <img 
+          src="/assets/whatsapp-logo-white.png" 
+          alt="WhatsApp" 
+          className="w-5.5 h-5.5 md:w-6.5 md:h-6.5 object-contain relative z-10 opacity-90 group-hover:opacity-100 transition-all duration-300"
+        />
+      </a>
+    </Magnetic>
+  );
+
+  const showTooltip = (isTooltipVisible && !hasBeenDismissed) || isHovered;
+
+  const tooltipEl = (
+    <div 
+      className={cn(
+        "absolute bottom-[calc(100%+14px)] z-50 overflow-visible transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "flex items-center gap-2 pl-4 pr-2.5 py-2.5 rounded-full bg-[#0c0c0e]/95 border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8)]",
+        // Position right-aligned on mobile (to prevent overflowing off-screen), centered on desktop
+        "right-0 left-auto translate-x-0 md:left-1/2 md:right-auto md:-translate-x-1/2",
+        showTooltip 
+          ? "opacity-100 translate-y-0 pointer-events-auto" 
+          : "opacity-0 translate-y-2 pointer-events-none"
+      )}
+    >
+      <span className="text-[11px] font-semibold text-white/85 whitespace-nowrap tracking-wide select-none">
+        {getTooltipText()}
+      </span>
+      <button
+        onClick={(e) => { 
+          e.stopPropagation(); 
+          setIsTooltipVisible(false); 
+          setHasBeenDismissed(true); 
+          setIsHovered(false);
+        }}
+        className="w-5 h-5 rounded-full bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.12] transition-colors shrink-0"
+      >
+        <X size={9} strokeWidth={2.5} className="text-white/45" />
+      </button>
+      
+      {/* Speech bubble pointer pointing down to the center of the button */}
+      <div 
+        className="absolute w-2.5 h-2.5 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none right-[19px] md:right-auto md:left-[calc(50%-5px)]"
+        style={{ 
+          bottom: "-5px", 
+          transform: "rotate(45deg)", 
+          zIndex: 10 
+        }} 
+      />
+    </div>
+  );
+
+  if (isInline) {
+    return (
+      <div 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative shrink-0"
+      >
+        {tooltipEl}
+        {buttonEl}
+      </div>
+    );
+  }
 
   return (
-    <div className={cn(
-      "fixed bottom-6 right-6 z-[100] flex items-end gap-3 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
-      isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
-    )}>
-      {/* Tooltip */}
-      {isTooltipVisible && !hasBeenDismissed && (
-        <div className="animate-in fade-in slide-in-from-right-4 duration-500 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#1a1a1c]/90 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] max-w-[200px]">
-          <p className="text-[11px] text-white/70 font-medium leading-tight">
-            Need help planning? Chat with us on WhatsApp
-          </p>
-          <button
-            onClick={() => { setIsTooltipVisible(false); setHasBeenDismissed(true); }}
-            className="shrink-0 w-5 h-5 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-          >
-            <X size={10} strokeWidth={3} className="text-white/40" />
-          </button>
-        </div>
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[100] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
       )}
-
-      {/* Button */}
-      <Magnetic intensity={0.25}>
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] shadow-[0_8px_30px_rgba(37,211,102,0.3)] hover:shadow-[0_12px_40px_rgba(37,211,102,0.5)] transition-all duration-500 hover:scale-110 active:scale-95"
-        >
-          {/* Pulse ring */}
-          <div className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-20" />
-          
-          <MessageCircle size={24} strokeWidth={2} className="text-white relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-        </a>
-      </Magnetic>
+    >
+      <div className="relative">
+        {tooltipEl}
+        {buttonEl}
+      </div>
     </div>
   );
 }

@@ -11,6 +11,21 @@ import { INTENT_MESSAGES } from '@/lib/intentMessages';
  * once API keys are provided.
  */
 
+// Memory caches to avoid hitting database/external APIs on every keystroke
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const dbPackagesCache: { entry: CacheEntry<Package[]> | null } = { entry: null };
+const intentMessagesCache: { entry: CacheEntry<Record<string, string[]>> | null } = { entry: null };
+const chatResponseCache = new Map<string, CacheEntry<any>>();
+const osmGeocodeCache = new Map<string, CacheEntry<any>>();
+
+const CACHE_TTL_DB = 60 * 1000; // 1 minute cache for DB queries
+const CACHE_TTL_CHAT = 5 * 60 * 1000; // 5 minutes cache for duplicate user queries
+const CACHE_TTL_OSM = 60 * 60 * 1000; // 1 hour cache for Nominatim lookups
+
 export async function POST(req: NextRequest) {
   try {
     if (!req.body) {
@@ -18,8 +33,94 @@ export async function POST(req: NextRequest) {
     }
     const { message, manifest } = await req.json();
 
+    const queryClean = (message || '').trim().toLowerCase();
+    const isExploreQuery = queryClean === 'explore' || queryClean === 'explore all' || queryClean === 'all' || queryClean === 'packages' || queryClean === 'show all' || queryClean === '';
+
+    if (isExploreQuery) {
+      // Fetch packages (using cached DB or fallback to manifest)
+      let dbPackages: Package[] = [];
+      const now = Date.now();
+      
+      // Initialize/Fallback Supabase Client if needed
+      let supabaseClient = supabase;
+      let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      let supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseKey) {
+        try {
+          const fs = require('fs');
+          const path = require('path');
+          const envPath = path.join(process.cwd(), '.env.local');
+          if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const urlMatch = envContent.match(/^NEXT_PUBLIC_SUPABASE_URL\s*=\s*(.*)$/m);
+            const keyMatch = envContent.match(/^NEXT_PUBLIC_SUPABASE_ANON_KEY\s*=\s*(.*)$/m);
+            if (urlMatch && urlMatch[1]) supabaseUrl = urlMatch[1].trim();
+            if (keyMatch && keyMatch[1]) supabaseKey = keyMatch[1].trim();
+          }
+        } catch (fsErr) {
+          console.error("Local Supabase env read error in Explore:", fsErr);
+        }
+      }
+      if (supabaseUrl && supabaseKey && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+        try {
+          const { createClient } = require("@supabase/supabase-js");
+          supabaseClient = createClient(supabaseUrl, supabaseKey);
+        } catch (clientErr) {
+          console.error("Failed to dynamically build Supabase client in Explore:", clientErr);
+        }
+      }
+
+      if (dbPackagesCache.entry && (now - dbPackagesCache.entry.timestamp < CACHE_TTL_DB)) {
+        dbPackages = dbPackagesCache.entry.data;
+      } else {
+        try {
+          const { data, error } = await supabaseClient
+            .from("packages")
+            .select("*")
+            .eq("is_published", true)
+            .order("sort_order", { ascending: true });
+          if (!error && data) {
+            dbPackages = data as Package[];
+            dbPackagesCache.entry = { data: dbPackages, timestamp: now };
+          }
+        } catch (dbErr) {
+          console.error("Supabase package fetch error during Explore query:", dbErr);
+        }
+      }
+      const activeManifest = dbPackages.length > 0 ? dbPackages : (manifest || []);
+
+      const enrichedResults = activeManifest.map((pkg: any, idx: number) => ({
+        ...pkg,
+        match_score: 99,
+        match_label: "Featured Escape",
+        authority_type: idx === 0 ? "gold" : "silver",
+        sovereign_reason: "Selected as part of our elite showcase portfolio."
+      }));
+
+      const responseData = {
+        thought_process: "User requested global explore curation. Returning all available packages from our luxury portfolio.",
+        state: "CURATING",
+        ui_message: "Welcome to TouraLuxe. Explore our curated portfolio of luxury escapes and private sanctuaries. Select a journey below to customize your experience.",
+        results: enrichedResults,
+        tool_call: {
+          name: "explore_all_packages",
+          parameters: { query: message },
+          result: enrichedResults.slice(0, 3)
+        }
+      };
+
+      return NextResponse.json(responseData);
+    }
+
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    // L1 Chat Response Cache Check
+    const cacheKey = message.trim().toLowerCase();
+    const cachedChat = chatResponseCache.get(cacheKey);
+    if (cachedChat && Date.now() - cachedChat.timestamp < CACHE_TTL_CHAT) {
+      return NextResponse.json(cachedChat.data);
     }
 
     let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -56,17 +157,28 @@ export async function POST(req: NextRequest) {
 
     // Fetch real-time active products from database to ensure complete product awareness
     let dbPackages: Package[] = [];
-    try {
-      const { data, error } = await supabaseClient
-        .from("packages")
-        .select("*")
-        .eq("is_published", true)
-        .order("sort_order", { ascending: true });
-      if (!error && data) {
-        dbPackages = data as Package[];
+    const now = Date.now();
+    if (dbPackagesCache.entry && (now - dbPackagesCache.entry.timestamp < CACHE_TTL_DB)) {
+      dbPackages = dbPackagesCache.entry.data;
+    } else {
+      try {
+        const { data, error } = await supabaseClient
+          .from("packages")
+          .select("*")
+          .eq("is_published", true)
+          .order("sort_order", { ascending: true });
+        if (!error && data) {
+          dbPackages = data as Package[];
+          dbPackagesCache.entry = { data: dbPackages, timestamp: now };
+        } else if (dbPackagesCache.entry) {
+          dbPackages = dbPackagesCache.entry.data;
+        }
+      } catch (dbErr) {
+        console.error("Supabase package fetch error, using manifest fallback:", dbErr);
+        if (dbPackagesCache.entry) {
+          dbPackages = dbPackagesCache.entry.data;
+        }
       }
-    } catch (dbErr) {
-      console.error("Supabase package fetch error, using manifest fallback:", dbErr);
     }
 
     // Fallback to client manifest if database query returns empty (as a bulletproof measure)
@@ -168,7 +280,7 @@ If the destination is valid but we do not have a direct package in our manifest,
               }));
             }
 
-            return NextResponse.json({
+            const responseData = {
               thought_process: aiResult.thought_process,
               state: aiResult.state,
               ui_message: aiResult.ui_message,
@@ -179,7 +291,9 @@ If the destination is valid but we do not have a direct package in our manifest,
                 parameters: { query: message },
                 result: matchedPackages.slice(0, 3)
               } : null
-            });
+            };
+            chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+            return NextResponse.json(responseData);
           }
         }
       } catch (geminiError) {
@@ -250,47 +364,71 @@ If the destination is valid but we do not have a direct package in our manifest,
     };
 
     if (isGibberish(query)) {
-      return NextResponse.json({
+      const responseData = {
         thought_process: `Input "${message}" flagged as non-geographic or gibberish. Requesting clarification.`,
         ui_message: "Where does your heart long to go? Tell us a mood, a feeling, or a destination, and let's begin your escape.",
         results: [],
         state: 'CLARIFYING'
-      });
+      };
+      chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+      return NextResponse.json(responseData);
     }
 
     let validLoc = validateLocation(query, activeManifest);
     let isGlobalLandmark = false;
     
-    if (!validLoc && query.length >= 3) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+    // Only query Nominatim if we found zero matches in our packages manifest AND it is not a validated local location
+    if (results.length === 0 && !validLoc && query.length >= 3) {
+      // Check OSM Cache
+      const cachedOSM = osmGeocodeCache.get(query);
+      if (cachedOSM && Date.now() - cachedOSM.timestamp < CACHE_TTL_OSM) {
+        if (cachedOSM.data) {
+          validLoc = cachedOSM.data.validLoc;
+          isGlobalLandmark = cachedOSM.data.isGlobalLandmark;
+        }
+      } else {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 800); // Tight 800ms timeout to keep UI fluid
 
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`, {
-          headers: { 'User-Agent': 'TouraLuxe-Sovereign-Agent/1.0' },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-          const result = data[0];
-          const importance = parseFloat(result.importance || "0");
-          const type = result.type || "";
-          const category = result.class || "";
-
-          const validTypes = ['city', 'town', 'village', 'state', 'country', 'continent', 'administrative', 'region', 'island', 'archipelago'];
-          const isPlace = validTypes.includes(type) || category === 'boundary';
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=1`, {
+            headers: { 'User-Agent': 'TouraLuxe-Sovereign-Agent/1.0' },
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          const data = await response.json();
           
-          if (isPlace) {
-            if (importance > 0.4 || hasTravelIntent(message)) {
-              validLoc = result.display_name.split(',')[0];
-              isGlobalLandmark = true;
+          let resolvedLoc = null;
+          let resolvedLandmark = false;
+
+          if (data && data.length > 0) {
+            const result = data[0];
+            const importance = parseFloat(result.importance || "0");
+            const type = result.type || "";
+            const category = result.class || "";
+
+            const validTypes = ['city', 'town', 'village', 'state', 'country', 'continent', 'administrative', 'region', 'island', 'archipelago'];
+            const isPlace = validTypes.includes(type) || category === 'boundary';
+            
+            if (isPlace) {
+              if (importance > 0.4 || hasTravelIntent(message)) {
+                resolvedLoc = result.display_name.split(',')[0];
+                resolvedLandmark = true;
+              }
             }
           }
+          
+          validLoc = resolvedLoc;
+          isGlobalLandmark = resolvedLandmark;
+          
+          // Cache the resolved result (even if null to prevent repeatedly querying nonsense words)
+          osmGeocodeCache.set(query, {
+            data: { validLoc: resolvedLoc, isGlobalLandmark: resolvedLandmark },
+            timestamp: Date.now()
+          });
+        } catch (err) {
+          console.error("OSM Sync Error:", err);
         }
-      } catch (err) {
-        console.error("OSM Sync Error:", err);
       }
     }
 
@@ -317,21 +455,25 @@ If the destination is valid but we do not have a direct package in our manifest,
 
     if (!isVerifiedIntent) {
       if (suggestion && !results.length) {
-        return NextResponse.json({
+        const responseData = {
           thought_process: `Input "${message}" not verified, but found close Atlas match: "${suggestion}". Suggesting correction.`,
           ui_message: `Were you dreaming of ${suggestion}? Let us take you there.`,
           results: [],
           state: 'SUGGESTING',
           suggestion: suggestion
-        });
+        };
+        chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+        return NextResponse.json(responseData);
       }
 
-      return NextResponse.json({
+      const responseData = {
         thought_process: `Input "${message}" lacks sufficient geographic authority or separate travel intent correlation. Staying in CLARIFYING state.`,
         ui_message: "Every great journey begins with a spark. Share a destination, a dream, or how you want to feel, and let us design it.",
         results: [],
         state: 'CLARIFYING'
-      });
+      };
+      chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+      return NextResponse.json(responseData);
     }
 
     const lowerQuery = query.toLowerCase();
@@ -360,13 +502,15 @@ If the destination is valid but we do not have a direct package in our manifest,
       
       if (suggestion && suggestion === topMatch.title && !exactMatch && !isPrefixMatch && queryClean.length > 2) {
         const suggestion = topMatch.title;
-        return NextResponse.json({
+        const responseData = {
           thought_process: `Fuzzy match detected for "${message}". Suggesting "${suggestion}" for editorial clarity.`,
           ui_message: `Were you dreaming of ${suggestion}? Let us take you there.`,
           results: [],
           state: 'SUGGESTING',
           suggestion: suggestion
-        });
+        };
+        chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+        return NextResponse.json(responseData);
       }
 
       if (results.length > 1 && query.length < 5 && !exactMatch && !uiMessage) {
@@ -386,17 +530,28 @@ If the destination is valid but we do not have a direct package in our manifest,
         }
 
         let activeIntentMessages = INTENT_MESSAGES;
-        try {
-          const { data, error } = await supabase.from('intent_messages').select('*');
-          if (!error && data) {
-            const map: Record<string, string[]> = {};
-            data.forEach((row: any) => {
-              map[row.intent_key] = row.messages;
-            });
-            activeIntentMessages = { ...INTENT_MESSAGES, ...map };
+        const nowMsg = Date.now();
+        if (intentMessagesCache.entry && (nowMsg - intentMessagesCache.entry.timestamp < CACHE_TTL_DB)) {
+          activeIntentMessages = { ...INTENT_MESSAGES, ...intentMessagesCache.entry.data };
+        } else {
+          try {
+            const { data, error } = await supabase.from('intent_messages').select('*');
+            if (!error && data) {
+              const map: Record<string, string[]> = {};
+              data.forEach((row: any) => {
+                map[row.intent_key] = row.messages;
+              });
+              activeIntentMessages = { ...INTENT_MESSAGES, ...map };
+              intentMessagesCache.entry = { data: map, timestamp: nowMsg };
+            } else if (intentMessagesCache.entry) {
+              activeIntentMessages = { ...INTENT_MESSAGES, ...intentMessagesCache.entry.data };
+            }
+          } catch (err) {
+            console.error("Failed to fetch intent messages from Supabase, falling back to local file.", err);
+            if (intentMessagesCache.entry) {
+              activeIntentMessages = { ...INTENT_MESSAGES, ...intentMessagesCache.entry.data };
+            }
           }
-        } catch (err) {
-          console.error("Failed to fetch intent messages from Supabase, falling back to local file.", err);
         }
 
         const messages = activeIntentMessages[intent] || activeIntentMessages.fallback;
@@ -480,21 +635,25 @@ If the destination is valid but we do not have a direct package in our manifest,
         parameters: { theme: intent }
       };
     } else {
-      return NextResponse.json({
+      const responseData = {
         thought_process: `Input "${message}" not identified as a valid destination or intent. Requesting clarification.`,
         ui_message: "Every great journey begins with a spark. Share a destination, a dream, or how you want to feel, and let us design it.",
         results: [],
         state: 'CLARIFYING'
-      });
+      };
+      chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+      return NextResponse.json(responseData);
     }
 
-    return NextResponse.json({
+    const responseData = {
       thought_process: thoughtProcess,
       tool_call: toolCall,
       state: state,
       ui_message: uiMessage,
       results: results
-    });
+    };
+    chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Sovereign API Error:', error);

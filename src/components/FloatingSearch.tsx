@@ -1,11 +1,57 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
-import { Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight, MapPin, Compass, Sparkles } from "lucide-react";
 import { useBooking } from "./BookingProvider";
 import { Magnetic } from "./Magnetic";
 import { cn } from "@/lib/utils";
+import { getPackageManifest } from "@/lib/manifestCache";
+import { MAJOR_DESTINATIONS } from "@/lib/geography";
+import { WhatsAppButton } from "./WhatsAppButton";
+
+// Jaro-Winkler helper for typo-tolerant suggest-ahead matching
+function getJaroWinkler(s1: string, s2: string): number {
+  let m = 0;
+  if (s1.length === 0 || s2.length === 0) return 0;
+  if (s1 === s2) return 1;
+
+  const range = Math.floor(Math.max(s1.length, s2.length) / 2) - 1;
+  const s1Matches = new Array(s1.length).fill(false);
+  const s2Matches = new Array(s2.length).fill(false);
+
+  for (let i = 0; i < s1.length; i++) {
+    const low = Math.max(0, i - range);
+    const high = Math.min(i + range + 1, s2.length);
+    for (let j = low; j < high; j++) {
+      if (!s1Matches[i] && !s2Matches[j] && s1[i] === s2[j]) {
+        s1Matches[i] = true;
+        s2Matches[j] = true;
+        m++;
+        break;
+      }
+    }
+  }
+
+  if (m === 0) return 0;
+
+  let t = 0;
+  let k = 0;
+  for (let i = 0; i < s1.length; i++) {
+    if (s1Matches[i]) {
+      while (!s2Matches[k]) k++;
+      if (s1[i] !== s2[k]) t++;
+      k++;
+    }
+  }
+
+  const jaro = (m / s1.length + m / s2.length + (m - t / 2) / m) / 3;
+  const p = 0.1;
+  let l = 0;
+  while (s1[l] === s2[l] && l < 4) l++;
+
+  return jaro + l * p * (1 - jaro);
+}
 
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
@@ -16,10 +62,36 @@ export function FloatingSearch() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const { openBooking, isOpen } = useBooking();
 
+  // Instant autocomplete / Suggest-ahead dropdown state
+  const [packages, setPackages] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [whatsappNumber, setwhatsappNumber] = useState("");
+
+  // Load packages manifest once on mount to warm client index
+  useEffect(() => {
+    getPackageManifest().then(data => {
+      if (data) setPackages(data);
+    }).catch(err => console.warn("Failed to load packages for search index:", err));
+
+    import("@/lib/settingsCache").then(({ getSettings }) => {
+      getSettings().then(data => {
+        if (data.whatsapp_number) {
+          setwhatsappNumber(data.whatsapp_number);
+        } else if (data.contact_phone) {
+          setwhatsappNumber(data.contact_phone);
+        }
+      });
+    });
+  }, []);
+
   // Clear search query when the modal closes (Apple UX standard)
   useEffect(() => {
     if (!isOpen) {
       setSearchValue("");
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
     }
   }, [isOpen]);
 
@@ -28,15 +100,85 @@ export function FloatingSearch() {
   const textMeasureRef = useRef<HTMLSpanElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Generate suggestions list on the client in real-time (< 1ms)
+  const suggestions = useMemo(() => {
+    const query = searchValue.trim().toLowerCase();
+    if (query.length < 2) return [];
+
+    const list = new Map<string, { label: string; type: 'destination' | 'package' | 'theme'; extra?: string }>();
+
+    // 1. Direct and Substring matches in our visual manifest
+    packages.forEach(pkg => {
+      if (pkg.location && pkg.location.toLowerCase().includes(query)) {
+        list.set(`loc:${pkg.location.trim()}`, { label: pkg.location.trim(), type: 'destination', extra: 'Available Escape' });
+      }
+      if (pkg.destination && pkg.destination.toLowerCase().includes(query)) {
+        list.set(`dest:${pkg.destination.trim()}`, { label: pkg.destination.trim(), type: 'destination', extra: 'Destination' });
+      }
+      if (pkg.title && pkg.title.toLowerCase().includes(query)) {
+        list.set(`pkg:${pkg.title.trim()}`, { label: pkg.title.trim(), type: 'package', extra: pkg.location || 'Luxury Experience' });
+      }
+    });
+
+    // 2. Direct match in major worldwide hotspots
+    const matchedGlobals = MAJOR_DESTINATIONS.filter(dest => 
+      dest.toLowerCase().startsWith(query) || (dest.toLowerCase().includes(query) && query.length >= 4)
+    ).slice(0, 4);
+
+    matchedGlobals.forEach(dest => {
+      list.set(`global:${dest.trim()}`, { label: dest.trim(), type: 'destination', extra: 'Global Destination' });
+    });
+
+    // 3. Typo-tolerant suggestion if zero direct matches
+    if (list.size === 0 && query.length >= 3) {
+      const fuzzyGlobals = MAJOR_DESTINATIONS.map(dest => ({
+        dest: dest.trim(),
+        score: getJaroWinkler(query, dest.toLowerCase())
+      }))
+      .filter(item => item.score > 0.8)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+      fuzzyGlobals.forEach(item => {
+        list.set(`fuzzy:${item.dest}`, { label: item.dest, type: 'destination', extra: 'Did you mean?' });
+      });
+    }
+
+    return Array.from(list.values()).slice(0, 5);
+  }, [searchValue, packages]);
+
+  // Click outside to dismiss suggestions dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Update showSuggestions status as query length updates
+  useEffect(() => {
+    if (searchValue.trim().length >= 2 && isFocused) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [searchValue, isFocused]);
   const hasMountedRef = useRef(false);
   const initialHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
 
-  const triggerSearch = useCallback(() => {
+  const triggerSearch = useCallback((valueOverride?: string) => {
     if (inputRef.current) {
       inputRef.current.blur();
     }
-    openBooking(undefined, "FLOATING_SEARCH", searchValue.trim() || "Explore");
+    const finalVal = (valueOverride !== undefined ? valueOverride : searchValue).trim();
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    openBooking(undefined, "FLOATING_SEARCH", finalVal || "Explore");
   }, [searchValue, openBooking]);
 
   // Check mobile & set dynamic placeholder
@@ -231,11 +373,54 @@ export function FloatingSearch() {
 
   return (
     <div
+      ref={searchContainerRef}
       className={cn(
-        "fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[45] w-full max-w-4xl px-4 flex justify-center transition-all duration-700",
+        "fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[45] w-full max-w-4xl px-4 flex items-center justify-center gap-3 transition-all duration-700",
         isVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
       )}
     >
+      {/* Predictive Autocomplete Suggestions Dropdown */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg bg-[#0c0c0e]/95 border border-white/10 backdrop-blur-2xl rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col p-1.5 z-[50]">
+          {suggestions.map((item, idx) => {
+            const isSelected = idx === selectedIndex;
+            return (
+              <button
+                key={idx}
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent input blur on item select
+                  setSearchValue(item.label);
+                  triggerSearch(item.label);
+                }}
+                className={cn(
+                  "w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200",
+                  isSelected ? "bg-white/15 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                {item.type === 'destination' ? (
+                  <MapPin size={13} className="text-white/40 shrink-0" />
+                ) : (
+                  <Sparkles size={13} className="text-white/40 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-[0.1em] uppercase truncate">{item.label}</p>
+                </div>
+                {item.extra && (
+                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/30 px-2 py-0.5 bg-white/5 rounded">
+                    {item.extra}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          
+          <div className="hidden md:flex border-t border-white/5 mt-1.5 pt-1.5 px-3 pb-1 flex justify-between items-center text-[7px] font-black uppercase tracking-[0.15em] text-white/20">
+            <span>Press ↑↓ to navigate</span>
+            <span>Enter to select</span>
+          </div>
+        </div>
+      )}
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -283,8 +468,26 @@ export function FloatingSearch() {
               isFocusedRef.current = false; // Sync ref immediately for scroll guard
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                triggerSearch();
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedIndex(prev => 
+                  prev < suggestions.length - 1 ? prev + 1 : prev
+                );
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                  const val = suggestions[selectedIndex].label;
+                  setSearchValue(val);
+                  triggerSearch(val);
+                } else {
+                  triggerSearch();
+                }
+              } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
+                setSelectedIndex(-1);
               }
             }}
             placeholder={placeholder}
@@ -308,6 +511,10 @@ export function FloatingSearch() {
           </Magnetic>
         </div>
       </form>
+
+      {whatsappNumber && (
+        <WhatsAppButton phoneNumber={whatsappNumber} isInline />
+      )}
     </div>
   );
 }

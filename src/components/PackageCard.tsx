@@ -67,17 +67,18 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
                       {pkg.duration}
                     </span>
-                    {pkg.flights_status === 'included' && (
+                    {pkg.flights_status === 'included' ? (
                       <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 w-fit px-2 py-0.5 rounded-full border border-blue-500/20">
                         <Plane size={8} />
                         <span>Flights Included</span>
                       </div>
-                    )}
-                    {pkg.flights_status === 'on_request' && (
+                    ) : pkg.flights_status === 'on_request' ? (
                       <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-blue-400/80 bg-blue-500/10 w-fit px-2 py-0.5 rounded-full border border-blue-500/20">
                         <Plane size={8} />
                         <span>Flights on Request</span>
                       </div>
+                    ) : (
+                      <div className="h-[18px] w-1" />
                     )}
                   </div>
                   </div>

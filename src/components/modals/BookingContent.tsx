@@ -25,7 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useBooking } from "../BookingProvider";
-import { useAuth } from "@/components/AuthProvider";
+
 import { supabase } from "@/lib/supabase";
 import { getSettings, invalidateSettingsCache, getCachedSettingsSync } from "@/lib/settingsCache";
 import { getDestinationVisualManifest, getCachedDestinationsSync } from "@/lib/manifestCache";
@@ -97,6 +97,49 @@ const UI_CONFIG = {
   }
 };
 
+// Jaro-Winkler helper for typo-tolerant suggest-ahead matching in the search modal
+function getJaroWinkler(s1: string, s2: string): number {
+  let m = 0;
+  if (s1.length === 0 || s2.length === 0) return 0;
+  if (s1 === s2) return 1;
+
+  const range = Math.floor(Math.max(s1.length, s2.length) / 2) - 1;
+  const s1Matches = new Array(s1.length).fill(false);
+  const s2Matches = new Array(s2.length).fill(false);
+
+  for (let i = 0; i < s1.length; i++) {
+    const low = Math.max(0, i - range);
+    const high = Math.min(i + range + 1, s2.length);
+    for (let j = low; j < high; j++) {
+      if (!s1Matches[i] && !s2Matches[j] && s1[i] === s2[j]) {
+        s1Matches[i] = true;
+        s2Matches[j] = true;
+        m++;
+        break;
+      }
+    }
+  }
+
+  if (m === 0) return 0;
+
+  let t = 0;
+  let k = 0;
+  for (let i = 0; i < s1.length; i++) {
+    if (s1Matches[i]) {
+      while (!s2Matches[k]) k++;
+      if (s1[i] !== s2[k]) t++;
+      k++;
+    }
+  }
+
+  const jaro = (m / s1.length + m / s2.length + (m - t / 2) / m) / 3;
+  const p = 0.1;
+  let l = 0;
+  while (s1[l] === s2[l] && l < 4) l++;
+
+  return jaro + l * p * (1 - jaro);
+}
+
 export const BookingContent = memo(function BookingContent({
   data: packageData,
   isActive,
@@ -123,7 +166,7 @@ export const BookingContent = memo(function BookingContent({
   onStepChange?: (step: number) => void;
 }) {
   const { setError, intent, isOpen } = useBooking();
-  const { user, profile } = useAuth();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const prevIntent = useRef<string | undefined>(undefined);
@@ -203,6 +246,10 @@ export const BookingContent = memo(function BookingContent({
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
   const [showGuestScroll, setShowGuestScroll] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState(() => {
+    const cached = getCachedSettingsSync();
+    return cached?.whatsapp_number || cached?.contact_phone || "";
+  });
   const [taxRate, setTaxRate] = useState(() => {
     const cached = getCachedSettingsSync();
     return cached?.tax_percentage ? parseFloat(cached.tax_percentage) : 0;
@@ -213,35 +260,7 @@ export const BookingContent = memo(function BookingContent({
   });
   const curationScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-fill traveler information from active Supabase profile
-  useEffect(() => {
-    if (user) {
-      if (profile?.full_name) setCustomerName(profile.full_name);
-      if (user.email) setCustomerEmail(user.email);
-      if (profile?.phone) {
-        const rawPhone = profile.phone;
-        const codeMatch = rawPhone.match(/^\+(\d+)\s*/);
-        if (codeMatch) {
-          const matchedCode = `+${codeMatch[1]}`;
-          const cleanPhone = rawPhone.replace(matchedCode, "").trim();
-          setCustomerPhone(cleanPhone);
-          const countries = [
-            { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
-            { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
-            { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
-            { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
-            { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
-            { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 }
-          ];
-          const country = countries.find(c => c.code === matchedCode);
-          if (country) setSelectedCountry(country);
-        } else {
-          setCustomerPhone(rawPhone);
-        }
-      }
-      if (profile?.departure_city) setDepartureCity(profile.departure_city);
-    }
-  }, [user, profile]);
+
   const guestScrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -296,6 +315,17 @@ export const BookingContent = memo(function BookingContent({
           return prev !== val ? val : prev;
         });
       }
+      if (data.whatsapp_number) {
+        setWhatsappNumber(prev => {
+          const val = data.whatsapp_number ?? "";
+          return prev !== val ? val : prev;
+        });
+      } else if (data.contact_phone) {
+        setWhatsappNumber(prev => {
+          const val = data.contact_phone ?? "";
+          return prev !== val ? val : prev;
+        });
+      }
       if (data.discovery_default_image) {
         setDefaultImage(prev => {
           const val = data.discovery_default_image ?? null;
@@ -318,6 +348,16 @@ export const BookingContent = memo(function BookingContent({
             invalidateSettingsCache();
             if (payload.new && payload.new.key === 'tax_percentage') {
               setTaxRate(parseFloat(payload.new.value));
+            }
+            if (payload.new && payload.new.key === 'whatsapp_number') {
+              setWhatsappNumber(payload.new.value);
+            }
+            if (payload.new && payload.new.key === 'contact_phone') {
+              getSettings().then(data => {
+                if (!data.whatsapp_number && data.contact_phone) {
+                  setWhatsappNumber(data.contact_phone);
+                }
+              });
             }
             if (payload.new && payload.new.key === 'discovery_default_image') {
               setDefaultImage(payload.new.value);
@@ -433,6 +473,91 @@ export const BookingContent = memo(function BookingContent({
     }
   }, [isOpen, clearSearch]);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const modalSearchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Real-time client-side suggest-ahead list
+  const suggestions = React.useMemo(() => {
+    const query = destination.trim().toLowerCase();
+    if (query.length < 2) return [];
+
+    const list = new Map<string, { label: string; type: 'destination' | 'package'; extra?: string }>();
+
+    // 1. Check local package manifest
+    manifest.forEach(pkg => {
+      if (pkg.location && pkg.location.toLowerCase().includes(query)) {
+        list.set(`loc:${pkg.location.trim()}`, { label: pkg.location.trim(), type: 'destination', extra: 'Available Escape' });
+      }
+      if (pkg.destination && pkg.destination.toLowerCase().includes(query)) {
+        list.set(`dest:${pkg.destination.trim()}`, { label: pkg.destination.trim(), type: 'destination', extra: 'Destination' });
+      }
+      if (pkg.title && pkg.title.toLowerCase().includes(query)) {
+        list.set(`pkg:${pkg.title.trim()}`, { label: pkg.title.trim(), type: 'package', extra: pkg.location || 'Luxury Experience' });
+      }
+    });
+
+    // 2. Direct matches in major worldwide hotspots
+    const matchedGlobals = MAJOR_DESTINATIONS.filter(dest => 
+      dest.toLowerCase().startsWith(query) || (dest.toLowerCase().includes(query) && query.length >= 4)
+    ).slice(0, 4);
+
+    matchedGlobals.forEach(dest => {
+      list.set(`global:${dest.trim()}`, { label: dest.trim(), type: 'destination', extra: 'Global Destination' });
+    });
+
+    // 3. Typo-tolerant matching if no direct matches
+    if (list.size === 0 && query.length >= 3) {
+      const fuzzyGlobals = MAJOR_DESTINATIONS.map(dest => ({
+        dest: dest.trim(),
+        score: getJaroWinkler(query, dest.toLowerCase())
+      }))
+      .filter(item => item.score > 0.8)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+      fuzzyGlobals.forEach(item => {
+        list.set(`fuzzy:${item.dest}`, { label: item.dest, type: 'destination', extra: 'Did you mean?' });
+      });
+    }
+
+    return Array.from(list.values()).slice(0, 5);
+  }, [destination, manifest]);
+
+  // Click outside to dismiss suggestions dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalSearchContainerRef.current && !modalSearchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Update showSuggestions status as query length updates
+  useEffect(() => {
+    if (destination.trim().length >= 2 && searchFocused) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [destination, searchFocused]);
+
+  const triggerModalSearch = useCallback((overrideVal?: string) => {
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+    const finalVal = (overrideVal !== undefined ? overrideVal : destination).trim();
+    
+    // Fall back to "Explore" if empty or short to present the full luxury portfolio
+    const cleaned = finalVal.length < 2 ? "Explore" : finalVal.replace(/[\\/]+$/, "").trim();
+    
+    setDestination(cleaned);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    askSovereign(cleaned, manifest);
+  }, [destination, manifest, askSovereign]);
 
   // Navigation Logic
   const nextPhase = () => setDiscoveryPhase((prev) => Math.min(4, prev + 1));
@@ -868,24 +993,102 @@ export const BookingContent = memo(function BookingContent({
           specialRequests: `Dates: ${startDate} to ${endDate} | Departure Hub: ${departureCity} | Flights: ${includeFlights ? 'Yes' : 'No'} | Notes: ${notes}`,
           bookingSource: bookingSource || "SOVEREIGN_ENGINE",
           totalAmount: Math.round(pricing.finalTotal),
-          userId: user?.id || null, // Traveler lounge integration
-          metadata: { departureCity, includeFlights } // Optional: For future-proof API handling
+          metadata: { departureCity, includeFlights }
         }),
       });
 
       const res = await response.json();
 
       if (response.ok) {
-        setBookingId(res.data?.[0]?.id || "SOV-" + Math.random().toString(36).substr(2, 9).toUpperCase());
+        const generatedId = res.data?.[0]?.id || "SOV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+        setBookingId(generatedId);
+
+        if (whatsappNumber) {
+          const refId = requestId || `${DOSSIER_PROTOCOL.FALLBACKS.REFERENCE_PREFIX}${generatedId.split("-")[0].toUpperCase()}`;
+          const formattedStart = formatDateForDisplay(startDate);
+          const formattedEnd = formatDateForDisplay(endDate);
+          const totalGuests = adults + kids + infants;
+          const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
+
+          const text = `Hi TouraLuxe!
+
+I have successfully submitted my booking inquiry. 
+
+- Reference: ${refId}
+- Package: ${internalPackage?.title || destination || "Tailored Journey"}
+- Dates: ${formattedStart} to ${formattedEnd}
+- Travelers: ${totalGuests} (${guestBreakdown})
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+
+Please confirm my booking. Thank you!`;
+
+          const waUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
+          window.open(waUrl, "_blank");
+        }
+
         setStep(3);
+      } else {
         console.warn("Booking Submission Error:", res.error);
         setError?.(res.error || "Failed to establish journey. Please verify your connection.");
       }
     } catch (err) {
       console.warn("Sovereign Submission Failure:", err);
+      setError?.("Failed to establish journey. Please verify your connection.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getWhatsAppUrl = () => {
+    if (!whatsappNumber) return "";
+    
+    const formattedStart = formatDateForDisplay(startDate);
+    const formattedEnd = formatDateForDisplay(endDate);
+    const totalGuests = adults + kids + infants;
+    const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
+    
+    const text = `Hi TouraLuxe!
+
+I'm interested in booking a luxury journey.
+
+- Package: ${internalPackage?.title || destination || "Tailored Journey"}
+- Dates: ${formattedStart} to ${formattedEnd}
+- Travelers: ${totalGuests} (${guestBreakdown})
+- Flights: ${includeFlights ? "Yes" : "No"}
+- Departure Hub: ${departureCity || "Not Specified"}
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+
+Name: ${customerName}
+Email: ${customerEmail}
+Phone: ${selectedCountry.code} ${customerPhone}
+
+Looking forward to handcrafting this experience!`;
+
+    return `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
+  };
+
+  const getEstablishedWhatsAppUrl = () => {
+    if (!whatsappNumber) return "";
+    
+    const refId = requestId || `${DOSSIER_PROTOCOL.FALLBACKS.REFERENCE_PREFIX}${bookingId?.split("-")[0].toUpperCase()}`;
+    const formattedStart = formatDateForDisplay(startDate);
+    const formattedEnd = formatDateForDisplay(endDate);
+    const totalGuests = adults + kids + infants;
+    const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
+
+    const text = `Hi TouraLuxe!
+
+I have successfully submitted my booking inquiry. 
+
+- Reference: ${refId}
+- Package: ${internalPackage?.title || destination || "Tailored Journey"}
+- Dates: ${formattedStart} to ${formattedEnd}
+- Travelers: ${totalGuests} (${guestBreakdown})
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+
+Please confirm my booking. Thank you!`;
+
+    return `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
   };
 
   const formatDateForDisplay = (dateStr: string, compact = false) => {
@@ -904,12 +1107,12 @@ export const BookingContent = memo(function BookingContent({
     customerName.trim().length >= 3 && 
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
     customerPhone.trim().length === selectedCountry.length &&
-    additionalGuests.every(guest => {
+    (internalPackage?.isCustom || additionalGuests.every(guest => {
       const nameValid = (guest?.name?.trim()?.length || 0) >= 2;
       if (guest.type === 'adult') return nameValid;
       const ageValid = (guest?.age?.trim()?.length || 0) >= 1;
       return nameValid && ageValid;
-    })
+    }))
   );
 
   const isPhaseValid = React.useMemo(() => {
@@ -1011,7 +1214,7 @@ export const BookingContent = memo(function BookingContent({
                 >
                   <div
                     className={cn(
-                      "w-full transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) px-[clamp(1.5rem,6vw,4rem)]",
+                      "w-full transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) px-[clamp(1.5rem,6vw,4rem)] relative z-[100]",
                       searchResults.length > 0 && destination.length > 0
                         ? "opacity-70 scale-[0.85] mb-[clamp(0.5rem,3vh,1.5rem)]"
                         : "opacity-100 scale-100 mb-[clamp(1rem,3vh,2rem)]",
@@ -1035,8 +1238,9 @@ export const BookingContent = memo(function BookingContent({
                     </p>
 
                     <div
+                      ref={modalSearchContainerRef}
                       className={cn(
-                        "transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) mx-auto",
+                        "transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) mx-auto relative z-[100]",
                         (sovereignResponse || isThinking) && destination.length > 0
                           ? "max-w-md"
                           : "max-w-2xl",
@@ -1045,13 +1249,7 @@ export const BookingContent = memo(function BookingContent({
                       <form 
                         onSubmit={(e) => {
                           e.preventDefault();
-                          if (destination.trim().length >= 2) {
-                            const cleaned = destination.replace(/[\\/]+$/, "").trim();
-                            if (cleaned !== destination) {
-                              setDestination(cleaned);
-                            }
-                            askSovereign(cleaned || destination, manifest);
-                          }
+                          triggerModalSearch();
                         }}
                         className="relative group/search"
                       >
@@ -1071,6 +1269,29 @@ export const BookingContent = memo(function BookingContent({
                           onBlur={() =>
                             setTimeout(() => setSearchFocused(false), 200)
                           }
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              setSelectedIndex(prev => 
+                                prev < suggestions.length - 1 ? prev + 1 : prev
+                              );
+                            } else if (e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              setSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+                            } else if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                                const val = suggestions[selectedIndex].label;
+                                setDestination(val);
+                                triggerModalSearch(val);
+                              } else {
+                                triggerModalSearch();
+                              }
+                            } else if (e.key === 'Escape') {
+                              setShowSuggestions(false);
+                              setSelectedIndex(-1);
+                            }
+                          }}
                           placeholder="Where should your journey begin?"
                           autoComplete="off"
                           className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
@@ -1088,6 +1309,49 @@ export const BookingContent = memo(function BookingContent({
                            </button>
                         )}
                       </form>
+
+                      {/* Predictive Autocomplete Dropdown */}
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-3 bg-[#0a0a0b] border border-white/10 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col p-1.5 z-[100] w-full">
+                          {suggestions.map((item, idx) => {
+                            const isSelected = idx === selectedIndex;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault(); // Prevent input blur on item select
+                                  setDestination(item.label);
+                                  triggerModalSearch(item.label);
+                                }}
+                                className={cn(
+                                  "w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200",
+                                  isSelected ? "bg-white/15 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                                )}
+                              >
+                                {item.type === 'destination' ? (
+                                  <MapPin size={13} className="text-white/40 shrink-0" />
+                                ) : (
+                                  <Sparkles size={13} className="text-white/40 shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] font-bold tracking-[0.1em] uppercase truncate">{item.label}</p>
+                                </div>
+                                {item.extra && (
+                                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/30 px-2 py-0.5 bg-white/5 rounded">
+                                    {item.extra}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                          
+                          <div className="hidden md:flex border-t border-white/5 mt-1.5 pt-1.5 px-3 pb-1 flex justify-between items-center text-[7px] font-black uppercase tracking-[0.15em] text-white/20">
+                            <span>Press ↑↓ to navigate</span>
+                            <span>Enter to select</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1290,13 +1554,6 @@ export const BookingContent = memo(function BookingContent({
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
                                     
-                                    {/* Centered Arrow on Hover */}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-all duration-700 pointer-events-none">
-                                      <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center transform scale-90 group-hover/card:scale-100 transition-all duration-500 text-white shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                        <ArrowRight size={24} strokeWidth={2.5} />
-                                      </div>
-                                    </div>
-                                    
                                     <PackageBadges 
                                       pkg={pkg} 
                                       pricing={pkgPricing} 
@@ -1317,7 +1574,7 @@ export const BookingContent = memo(function BookingContent({
                                           </div>
                                         </div>
 
-                                        <div className="pt-4 border-t border-white/10 flex items-end justify-between gap-4">
+                                        <div className="pt-4 flex items-end justify-between gap-4 h-20">
                                           <div className="space-y-1">
                                             <p className="text-base md:text-xl font-bold text-white/90 italic drop-shadow-lg leading-tight">
                                               {pkg.duration.includes('Nights') ? (
@@ -1334,9 +1591,13 @@ export const BookingContent = memo(function BookingContent({
                                           </div>
 
                                           <div className="space-y-0.5 text-right">
-                                            {pkgPricing.hasSavings && (
+                                            {pkgPricing.hasSavings ? (
                                               <span className="text-[10px] font-bold line-through text-white/50 block mb-1 drop-shadow-md">
                                                 {pkgPricing.symbol}{pkgPricing.originalTotal.toLocaleString()}
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] font-bold text-transparent block mb-1 pointer-events-none select-none">
+                                                &nbsp;
                                               </span>
                                             )}
                                             <p className="text-[clamp(1.8rem,4vw,2.25rem)] font-black text-white tracking-tighter leading-none drop-shadow-xl">
@@ -1820,8 +2081,8 @@ export const BookingContent = memo(function BookingContent({
                                   </div>
                                 </div>
 
-                                {/* Section 2: Group Manifesto (If > 1 Guest) */}
-                                {(adults > 1 || kids > 0 || infants > 0) && (
+                                {/* Section 2: Group Manifesto (If > 1 Guest and not custom package) */}
+                                {(adults > 1 || kids > 0 || infants > 0) && !internalPackage?.isCustom && (
                                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
@@ -2212,22 +2473,39 @@ export const BookingContent = memo(function BookingContent({
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  startClosing();
-                  // Reset state for next time
-                  setTimeout(() => {
-                    setStep(1);
-                    setDiscoveryPhase(packageData ? 2 : 1);
-                    setBookingId(null);
-                    setInternalPackage(packageData);
-                    setDestination("");
-                  }, 500);
-                }}
-                className="px-20 py-5 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white/90 hover:bg-[#f5f5f7] hover:text-black transition-all shadow-lg"
-              >
-                {DOSSIER_PROTOCOL.FALLBACKS.CLOSE_ACTION}
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-4 relative z-[220]">
+                {whatsappNumber && (
+                  <Magnetic>
+                    <a
+                      href={getEstablishedWhatsAppUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-10 py-5 bg-[#25D366] hover:bg-[#20ba5a] text-black rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_10px_30px_rgba(37,211,102,0.2)] hover:shadow-[0_15px_40px_rgba(37,211,102,0.4)] hover:scale-105 active:scale-95 inline-flex items-center gap-2 cursor-pointer"
+                    >
+                      <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-4 h-4 object-contain shrink-0" />
+                      Continue on WhatsApp
+                    </a>
+                  </Magnetic>
+                )}
+                <Magnetic>
+                  <button
+                    onClick={() => {
+                      startClosing();
+                      // Reset state for next time
+                      setTimeout(() => {
+                        setStep(1);
+                        setDiscoveryPhase(packageData ? 2 : 1);
+                        setBookingId(null);
+                        setInternalPackage(packageData);
+                        setDestination("");
+                      }, 500);
+                    }}
+                    className="px-10 py-5 border border-white/20 rounded-full text-[10px] font-black uppercase tracking-widest text-white/90 hover:bg-[#f5f5f7] hover:text-black transition-all shadow-lg cursor-pointer"
+                  >
+                    {DOSSIER_PROTOCOL.FALLBACKS.CLOSE_ACTION}
+                  </button>
+                </Magnetic>
+              </div>
             </div>
           )}
         </div>
@@ -2399,25 +2677,38 @@ export const BookingContent = memo(function BookingContent({
                       className={cn(
                         "group/btn relative overflow-hidden h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-auto rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none",
                         isPhaseValid 
-                          ? "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100" 
+                          ? (step === 2
+                              ? "bg-[#25D366] text-black shadow-[0_15px_40px_-10px_rgba(37,211,102,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(37,211,102,0.5)] opacity-100"
+                              : "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100"
+                            )
                           : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
                         discoveryPhase >= 2 && "xl:px-10"
                       )}
                     >
                       <div className="relative z-10 flex items-center justify-center gap-0 xl:gap-2.5">
+                        {step === 2 && (
+                          <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-5 h-5 object-contain shrink-0 mr-1 xl:mr-0" />
+                        )}
                         <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
-                          {step === 2 ? (isSubmitting ? "Orchestrating..." : (internalPackage?.isCustom ? "Submit Inquiry" : "Secure My Journey")) : 
+                          {step === 2 ? (isSubmitting ? "Orchestrating..." : "Book via WhatsApp") : 
                            discoveryPhase === 4 ? (internalPackage?.isCustom ? "Review Details" : "Review Selection") : 
                            discoveryPhase === 3 ? (internalPackage?.isCustom ? "Preferences" : "Define Manifest") : "Next"}
                         </span>
-                        <ChevronRight 
-                          size={20} 
-                          strokeWidth={3} 
-                          className="text-black group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0" 
-                        />
+                        {step !== 2 && (
+                          <ChevronRight 
+                            size={20} 
+                            strokeWidth={3} 
+                            className="text-black group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0" 
+                          />
+                        )}
                       </div>
 
-                      <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                      <div className={cn(
+                        "absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity",
+                        step === 2
+                          ? "bg-gradient-to-r from-[#25D366] via-[#35e376] to-[#25D366]"
+                          : "bg-gradient-to-r from-white via-white/80 to-white"
+                      )} />
                     </button>
                   </Magnetic>
                 )}
