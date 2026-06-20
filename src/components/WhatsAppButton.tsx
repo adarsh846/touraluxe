@@ -91,16 +91,13 @@ export function WhatsAppButton({
 
   const showTooltip = (isTooltipVisible && !hasBeenDismissed) || isHovered;
 
-  const showCloseButton = !isHovered && isTooltipVisible && !hasBeenDismissed;
-
   const tooltipEl = (
     <div 
       className={cn(
         "absolute bottom-[calc(100%+14px)] z-50 overflow-visible transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-        "flex items-center gap-2 py-2.5 rounded-full bg-[#0c0c0e]/95 border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8)]",
+        "flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0c0c0e]/95 border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8)]",
         // Position right-aligned on mobile (to prevent overflowing off-screen), centered on desktop
         "right-0 left-auto translate-x-0 md:left-1/2 md:right-auto md:-translate-x-1/2",
-        showCloseButton ? "pl-4 pr-2.5" : "px-4",
         showTooltip 
           ? "opacity-100 translate-y-0 pointer-events-auto" 
           : "opacity-0 translate-y-2 pointer-events-none"
@@ -109,19 +106,6 @@ export function WhatsAppButton({
       <span className="text-[11px] font-semibold text-white/85 whitespace-nowrap tracking-wide select-none">
         {getTooltipText()}
       </span>
-      {showCloseButton && (
-        <button
-          onClick={(e) => { 
-            e.stopPropagation(); 
-            setIsTooltipVisible(false); 
-            setHasBeenDismissed(true); 
-            setIsHovered(false);
-          }}
-          className="w-5 h-5 rounded-full bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.12] transition-colors shrink-0"
-        >
-          <X size={9} strokeWidth={2.5} className="text-white/45" />
-        </button>
-      )}
       
       {/* Speech bubble pointer pointing down to the center of the button */}
       <div 
