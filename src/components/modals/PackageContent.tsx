@@ -304,7 +304,7 @@ Could you please share details on availability and custom options? Thank you!`;
             trigger: heroMediaRef.current,
             start: "top top",
             end: "bottom top",
-            scrub: true,
+            scrub: 0.5,
           }
         });
       }
@@ -343,8 +343,8 @@ Could you please share details on availability and custom options? Thank you!`;
 
         {/* 1. HERO SECTION (Immersive Edge-to-Edge) */}
         <section className="relative w-full h-[100svh] flex flex-col items-center justify-center overflow-hidden">
-          <div ref={heroMediaRef} className="absolute inset-0 z-0 origin-top">
-             <Image src={experience.image} alt={experience.title} fill className="object-cover opacity-90" priority sizes="100vw" />
+          <div ref={heroMediaRef} className="absolute inset-0 z-0 origin-top transform-gpu">
+             <Image src={experience.image} alt={experience.title} fill className="object-cover opacity-90 will-change-transform" priority sizes="100vw" />
           </div>
           
           {/* Static Gradient Mask for Seamless Bottom Blend */}
