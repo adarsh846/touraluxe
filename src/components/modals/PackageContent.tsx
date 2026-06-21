@@ -351,7 +351,7 @@ Could you please share details on availability and custom options? Thank you!`;
           <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/10 via-black/40 to-[#0a0a0a]" />
           
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 w-full max-w-5xl">
-             <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-bold tracking-tight text-white leading-[0.9] drop-shadow-2xl text-balance mb-6 animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out">
+             <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out">
                {experience.title}
              </h1>
              <div className="flex flex-col items-center gap-6 md:gap-10 pt-8 animate-in fade-in duration-1000 delay-300">
