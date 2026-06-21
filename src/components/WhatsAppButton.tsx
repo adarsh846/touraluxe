@@ -24,7 +24,7 @@ export function WhatsAppButton({
   const [hasBeenDismissed, setHasBeenDismissed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const { view, data } = useBooking();
+  const { view, data, bookingDetails } = useBooking();
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), showAfter);
@@ -50,6 +50,22 @@ export function WhatsAppButton({
   if (!phoneNumber || !isVisible) return null;
 
   const getDynamicMessage = () => {
+    if (view === "BOOKING" && bookingDetails) {
+      const { packageTitle, startDate, endDate, adults, kids, infants, totalInvestment, isCustom } = bookingDetails;
+      const totalGuests = (adults || 0) + (kids || 0) + (infants || 0);
+      const guestBreakdown = `${adults || 1} Adult${(adults || 1) > 1 ? 's' : ''}${kids && kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants && infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
+      
+      return `Hi TouraLuxe!
+
+I'm in the process of planning a luxury journey on the platform.
+
+- Package: ${packageTitle || "Tailored Journey"}
+- Dates: ${startDate && endDate ? `${startDate} to ${endDate}` : "Not Selected"}
+- Travelers: ${totalGuests > 0 ? `${totalGuests} (${guestBreakdown})` : "Not Selected"}
+- Investment: ${isCustom ? "Upon Request" : (totalInvestment || "Upon Request")}
+
+I would love to get some assistance in handcrafting this experience.`;
+    }
     if (view === "PACKAGE" && data?.title)
       return `Hi TouraLuxe! I'm interested in the "${data.title}" package. Can you help me plan this experience?`;
     if (view === "BOOKING" && data?.title)

@@ -165,7 +165,7 @@ export const BookingContent = memo(function BookingContent({
   onPhaseChange?: (phase: number) => void;
   onStepChange?: (step: number) => void;
 }) {
-  const { setError, intent, isOpen } = useBooking();
+  const { setError, intent, isOpen, setBookingDetails } = useBooking();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -754,6 +754,31 @@ export const BookingContent = memo(function BookingContent({
 
   const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
+  // Sync booking details back to global context for WhatsApp dynamic drafting
+  useEffect(() => {
+    setBookingDetails({
+      packageTitle: internalPackage?.title || destination || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      adults,
+      kids,
+      infants,
+      totalInvestment,
+      isCustom: !!internalPackage?.isCustom,
+    });
+  }, [
+    internalPackage?.title,
+    destination,
+    startDate,
+    endDate,
+    adults,
+    kids,
+    infants,
+    totalInvestment,
+    internalPackage?.isCustom,
+    setBookingDetails,
+  ]);
+
   // Haptic Feedback Trigger for Pricing Updates
   const pillRef = useRef<HTMLDivElement>(null);
   const segmentsRef = useRef<HTMLDivElement>(null);
@@ -1018,7 +1043,9 @@ I have successfully submitted my booking inquiry.
 - Package: ${internalPackage?.title || destination || "Tailored Journey"}
 - Dates: ${formattedStart} to ${formattedEnd}
 - Travelers: ${totalGuests} (${guestBreakdown})
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+- Flights: ${includeFlights ? "Yes" : "No"}
+- Departure Hub: ${departureCity || "Not Specified"}
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
 
@@ -1056,7 +1083,7 @@ I'm interested in booking a luxury journey.
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
 - Departure Hub: ${departureCity || "Not Specified"}
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Name: ${customerName}
 Email: ${customerEmail}
@@ -1084,7 +1111,9 @@ I have successfully submitted my booking inquiry.
 - Package: ${internalPackage?.title || destination || "Tailored Journey"}
 - Dates: ${formattedStart} to ${formattedEnd}
 - Travelers: ${totalGuests} (${guestBreakdown})
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+- Flights: ${includeFlights ? "Yes" : "No"}
+- Departure Hub: ${departureCity || "Not Specified"}
+- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
 

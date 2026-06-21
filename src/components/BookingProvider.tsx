@@ -25,6 +25,17 @@ interface ModalState {
   intent?: string;
 }
 
+export interface BookingDetails {
+  packageTitle?: string;
+  startDate?: string;
+  endDate?: string;
+  adults?: number;
+  kids?: number;
+  infants?: number;
+  totalInvestment?: string;
+  isCustom?: boolean;
+}
+
 interface BookingContextType {
   isOpen: boolean;
   view: ModalView;
@@ -45,6 +56,8 @@ interface BookingContextType {
   error: string | null;
   errorTrigger: number;
   setError: (err: string | null) => void;
+  bookingDetails: BookingDetails | null;
+  setBookingDetails: (details: BookingDetails | null) => void;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -81,6 +94,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isClosing, setIsClosing] = useState(false);
   const [modalState, setModalState] = useState<ModalState>({ view: null });
   const [history, setHistory] = useState<ModalState[]>([]);
+
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
 
   // Refs for stable callbacks
   const stateRef = useRef(modalState);
@@ -167,6 +182,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     setModalState({ view: null });
     setHistory([]);
     setErrorState(null);
+    setBookingDetails(null);
   }, []);
 
   // ── popstate: intercept HW back button ────────────────────────────────────
@@ -213,8 +229,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     intent: modalState.intent,
     error,
     errorTrigger,
-    setError
-  }), [isOpen, modalState, isClosing, history, openModal, closeModal, openBooking, startClosing, goBack, error, errorTrigger, setError]);
+    setError,
+    bookingDetails,
+    setBookingDetails
+  }), [isOpen, modalState, isClosing, history, openModal, closeModal, openBooking, startClosing, goBack, error, errorTrigger, setError, bookingDetails, setBookingDetails]);
 
   return (
     <BookingContext.Provider value={contextValue}>
