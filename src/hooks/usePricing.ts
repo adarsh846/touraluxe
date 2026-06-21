@@ -63,7 +63,7 @@ export function useGlobalSettings() {
         return {
           finalTotal: 0, originalTotal: 0, hasSavings: false, discountPercent: 0,
           symbol, taxRate, isInclusive: false, shouldAddTaxLabel: false,
-          formattedFinal: `${symbol}0`, formattedOriginal: "", taxLabel: "",
+          formattedFinal: `From ${symbol}0`, formattedOriginal: "", taxLabel: "",
           perAdultFinal: 0, perChildFinal: 0, perInfantFinal: 0,
           breakdown: { subtotal: 0, taxAmount: 0, baseAmount: 0 }
         };
@@ -213,7 +213,7 @@ export function useGlobalSettings() {
         taxRate,
         isInclusive,
         shouldAddTaxLabel: true,
-        formattedFinal: `${isEstimate ? "From " : ""}${symbol}${finalTotal.toLocaleString("en-IN")}`,
+        formattedFinal: `From ${symbol}${finalTotal.toLocaleString("en-IN")}`,
         formattedOriginal: hasSavings ? `${symbol}${perOriginalFinal.toLocaleString("en-IN")}` : "",
         taxLabel,
         breakdown: {

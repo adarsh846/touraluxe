@@ -212,6 +212,8 @@ export const BookingContent = memo(function BookingContent({
   const [isVisualLoading, setIsVisualLoading] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
   const [additionalGuests, setAdditionalGuests] = React.useState<{ name: string; age: string; type: 'adult' | 'child' | 'infant' }[]>([]);
+  const [hoveredPaxType, setHoveredPaxType] = useState<'adult' | 'child' | 'infant' | null>(null);
+  const [hoveredIslandSegment, setHoveredIslandSegment] = useState<'cost' | 'timeline' | 'guests' | null>(null);
 
 
 
@@ -752,7 +754,7 @@ export const BookingContent = memo(function BookingContent({
     return computePrice(internalPackage || packageData, adults, kids, infants, tier);
   }, [adults, kids, infants, internalPackage, packageData, computePrice]);
 
-  const totalInvestment = `${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
+  const totalInvestment = `From ${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
   // Sync booking details back to global context for WhatsApp dynamic drafting
   useEffect(() => {
@@ -779,8 +781,173 @@ export const BookingContent = memo(function BookingContent({
     setBookingDetails,
   ]);
 
+  const getPaxBreakdown = useCallback((type: 'adult' | 'child' | 'infant') => {
+    const pkg = internalPackage || packageData;
+    if (!pkg || pkg.isCustom) return null;
+
+    const taxRate = pricing.taxRate;
+    const isInclusive = pricing.isInclusive;
+    const symbol = pricing.symbol;
+
+    // 1. Get base land price
+    let base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
+    
+    // TIERED PRICING ARCHITECTURE (same recovery as usePricing.ts)
+    const getAviationAnchor = () => {
+      try {
+        const anchor = pkg.itinerary_url;
+        if (anchor && anchor.includes('{')) {
+          return JSON.parse(anchor);
+        }
+      } catch (e) { return null; }
+      return null;
+    };
+    const anchor = getAviationAnchor();
+    let activeTier: any = null;
+    const selectedTierName = internalPackage?.selectedTier || packageData?.selectedTier;
+    if (anchor?.tiers && Array.isArray(anchor.tiers) && anchor.tiers.length > 0) {
+      if (selectedTierName) {
+        activeTier = anchor.tiers.find((t: any) => t.name === selectedTierName);
+      }
+      if (!activeTier) {
+        activeTier = anchor.tiers[0];
+      }
+    }
+    if (activeTier && activeTier.pax_prices) {
+      const totalPax = adults + kids + infants;
+      const keys = Object.keys(activeTier.pax_prices);
+      let matchedPrice = 0;
+      let matched = false;
+      for (const key of keys) {
+        if (key === String(totalPax)) {
+          matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+          matched = true;
+          break;
+        }
+        if (key.includes('-')) {
+          const [min, max] = key.split('-').map(Number);
+          if (totalPax >= min && totalPax <= max) {
+            matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+            matched = true;
+            break;
+          }
+        }
+      }
+      if (!matched && keys.length > 0) {
+        const parsedKeys = keys.map(k => {
+          if (k.includes('-')) {
+            const [min, max] = k.split('-').map(Number);
+            return { key: k, min, max };
+          }
+          const val = Number(k);
+          return { key: k, min: val, max: val };
+        }).sort((a, b) => a.min - b.min);
+        let found = false;
+        for (const pk of parsedKeys) {
+          if (totalPax <= pk.max) {
+            matchedPrice = parseInt(String(activeTier.pax_prices[pk.key]).replace(/[^0-9]/g, "")) || 0;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const lastKey = parsedKeys[parsedKeys.length - 1].key;
+          matchedPrice = parseInt(String(activeTier.pax_prices[lastKey]).replace(/[^0-9]/g, "")) || 0;
+        }
+      }
+      if (matchedPrice > 0) {
+        base = matchedPrice;
+      }
+    }
+
+    let landBaseRaw = base;
+    if (type === 'child') {
+      landBaseRaw = pkg.child_price && pkg.child_price !== "0"
+        ? (parseInt(String(pkg.child_price).replace(/[^0-9]/g, "")) || 0)
+        : base;
+    } else if (type === 'infant') {
+      landBaseRaw = pkg.infant_price && pkg.infant_price !== "0"
+        ? (parseInt(String(pkg.infant_price).replace(/[^0-9]/g, "")) || 0)
+        : base;
+    }
+
+    // 2. Airfare estimate
+    const currentStatus = anchor?.status || pkg.flights_status;
+    const isExcluded = currentStatus === 'excluded';
+    const rawAdultEstimate = anchor?.estimate || pkg.flight_price_estimate || "0";
+    const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
+
+    let flightFare = 0;
+    if (type === 'adult') {
+      flightFare = flightAdult;
+    } else if (type === 'child') {
+      const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
+      flightFare = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
+    } else if (type === 'infant') {
+      const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
+      flightFare = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
+    }
+
+    // 3. Tax calculations
+    let landNet = 0;
+    let taxAmt = 0;
+    if (isInclusive) {
+      landNet = Math.round(landBaseRaw / (1 + taxRate / 100));
+      taxAmt = landBaseRaw - landNet;
+    } else {
+      landNet = landBaseRaw;
+      taxAmt = Math.round((landBaseRaw * taxRate) / 100);
+    }
+
+    return {
+      landNet,
+      taxAmt,
+      flightFare,
+      total: landNet + taxAmt + flightFare,
+      symbol,
+      pricingNote: anchor?.pricing_note || ""
+    };
+  }, [internalPackage, packageData, pricing, adults, kids, infants]);
+
+  const getGroupBreakdown = useCallback(() => {
+    const pkg = internalPackage || packageData;
+    if (!pkg || pkg.isCustom) return null;
+
+    const taxRate = pricing.taxRate;
+    const isInclusive = pricing.isInclusive;
+    const symbol = pricing.symbol;
+
+    const adultData = getPaxBreakdown('adult');
+    const childData = getPaxBreakdown('child');
+    const infantData = getPaxBreakdown('infant');
+
+    if (!adultData) return null;
+
+    const tourTotal = (adultData.landNet * adults) + 
+                      (childData ? childData.landNet * kids : 0) + 
+                      (infantData ? infantData.landNet * infants : 0);
+                       
+    const flightTotal = (adultData.flightFare * adults) + 
+                        (childData ? childData.flightFare * kids : 0) + 
+                        (infantData ? infantData.flightFare * infants : 0);
+
+    const taxTotal = (adultData.taxAmt * adults) + 
+                     (childData ? childData.taxAmt * kids : 0) + 
+                     (infantData ? infantData.taxAmt * infants : 0);
+
+    return {
+      tourTotal,
+      flightTotal,
+      taxTotal,
+      grandTotal: pricing.finalTotal,
+      symbol,
+      pricingNote: adultData.pricingNote
+    };
+  }, [internalPackage, packageData, pricing, adults, kids, infants, getPaxBreakdown]);
+
   // Haptic Feedback Trigger for Pricing Updates
   const pillRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const segmentsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
@@ -866,7 +1033,7 @@ export const BookingContent = memo(function BookingContent({
 
   // Dynamic Kinetic Mask Engine (Bidirectional Scroll Hints)
   useEffect(() => {
-    const el = segmentsRef.current;
+    const el = scrollContainerRef.current;
     if (!el) return;
 
     const handleScroll = () => {
@@ -877,7 +1044,7 @@ export const BookingContent = memo(function BookingContent({
       }
       
       const isAtStart = scrollLeft <= 5;
-      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 85;
+      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 15;
       
       if (isAtStart) setScrollMask('right');
       else if (isAtEnd) setScrollMask('left');
@@ -890,6 +1057,9 @@ export const BookingContent = memo(function BookingContent({
     // Create a ResizeObserver for the content itself to update masks when segments bud
     const ro = new ResizeObserver(handleScroll);
     ro.observe(el);
+    if (segmentsRef.current) {
+      ro.observe(segmentsRef.current);
+    }
 
     return () => {
       el.removeEventListener('scroll', handleScroll);
@@ -1912,14 +2082,18 @@ Please confirm my booking. Thank you!`;
                       {/* Phase 03: Group */}
                       <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 3 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
                         <div className="w-full flex justify-center px-6 md:px-0">
-                          <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40">
+                          <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-visible group/bar shadow-2xl hover:border-white/40">
                             {[
-                              { id: 'adults', label: adults <= 1 ? "Adult" : "Adults", count: adults, set: setAdults, min: 1 },
-                              { id: 'kids', label: kids <= 1 ? "Child" : "Children", count: kids, set: setKids, min: 0 },
-                              { id: 'infants', label: infants <= 1 ? "Infant" : "Infants", count: infants, set: setInfants, min: 0 },
+                              { id: 'adults', label: adults <= 1 ? "Adult" : "Adults", count: adults, set: setAdults, min: 1, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perAdultFinal.toLocaleString("en-IN")} / Adult` },
+                              { id: 'kids', label: kids <= 1 ? "Child" : "Children", count: kids, set: setKids, min: 0, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perChildFinal.toLocaleString("en-IN")} / Child` },
+                              { id: 'infants', label: infants <= 1 ? "Infant" : "Infants", count: infants, set: setInfants, min: 0, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perInfantFinal.toLocaleString("en-IN")} / Infant` },
                             ].map((t, idx) => (
                               <React.Fragment key={t.id}>
-                                <div className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 group/segment transition-all">
+                                <div 
+                                  onMouseEnter={() => setHoveredPaxType(t.id as any)}
+                                  onMouseLeave={() => setHoveredPaxType(null)}
+                                  className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-6 md:py-0 group/segment transition-all"
+                                >
                                   <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/segment:text-white/70 transition-colors">
                                     {t.label}
                                   </span>
@@ -1940,6 +2114,72 @@ Please confirm my booking. Thank you!`;
                                       +
                                     </button>
                                   </div>
+                                  {t.sub && (
+                                    <span className="text-[8px] md:text-[9px] font-bold text-white/30 tracking-widest uppercase transition-colors group-hover/segment:text-white/50 mt-1">
+                                      {t.sub}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Speech Bubble Popover */}
+                                  {(() => {
+                                    const data = getPaxBreakdown(t.id as any);
+                                    if (!data) return null;
+                                    const isHovered = hoveredPaxType === t.id;
+                                    return (
+                                      <div 
+                                        className={cn(
+                                          "absolute bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[100] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                                          isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+                                        )}
+                                      >
+                                        <div className="space-y-2 text-[10px] text-white/70">
+                                          <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
+                                            <span>{t.id === 'adults' ? 'Adult' : t.id === 'kids' ? 'Child' : 'Infant'} Rate</span>
+                                            <span className="text-white/40">1 Pax</span>
+                                          </div>
+                                          
+                                          <div className="flex justify-between">
+                                            <span>Tour & Services:</span>
+                                            <span className="font-mono text-white/90">{data.symbol}{data.landNet.toLocaleString()}</span>
+                                          </div>
+
+                                          {data.flightFare > 0 && (
+                                            <div className="flex justify-between text-blue-400/90">
+                                              <span>Flight Est:</span>
+                                              <span className="font-mono">{data.symbol}{data.flightFare.toLocaleString()}</span>
+                                            </div>
+                                          )}
+
+                                          <div className="flex justify-between text-emerald-400/90">
+                                            <span>GST / Taxes:</span>
+                                            <span className="font-mono">{data.symbol}{data.taxAmt.toLocaleString()}</span>
+                                          </div>
+
+                                          <div className="flex justify-between font-black border-t border-white/10 pt-1.5 text-white">
+                                            <span>Total:</span>
+                                            <span className="font-mono">{data.symbol}{data.total.toLocaleString()}</span>
+                                          </div>
+
+                                          {data.pricingNote && (
+                                            <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
+                                              <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Note:</span>
+                                              <p className="text-[7.5px] leading-relaxed text-white/50 italic whitespace-normal">{data.pricingNote}</p>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Speech Bubble Pointer */}
+                                        <div 
+                                          className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
+                                          style={{ 
+                                            bottom: "-5px", 
+                                            transform: "rotate(45deg)", 
+                                            zIndex: 10 
+                                          }} 
+                                        />
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 {idx < 2 && (
                                   <>
@@ -2118,7 +2358,7 @@ Please confirm my booking. Thank you!`;
                                         Group Manifesto
                                       </span>
                                       <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
-                                        {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}
+                                        {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}{infants > 0 ? ` • ${infants} ${infants === 1 ? 'INFANT' : 'INFANTS'}` : ''}
                                       </span>
                                     </div>
                                     
@@ -2573,7 +2813,7 @@ Please confirm my booking. Thank you!`;
           <div className="absolute bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
             <div 
               ref={pillRef}
-              className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-hidden"
+              className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-visible"
               style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
               onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
               onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
@@ -2599,14 +2839,17 @@ Please confirm my booking. Thank you!`;
                   SOVEREIGN UNIFIED MANIFEST ENGINE
                   Liquid scaling with horizontal 'Marquee' scroll for extreme narrowness
               */}
-              <div className={cn(
-                "min-w-0 scrollbar-hide scroll-smooth relative z-10 transition-[mask-image]",
-                isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden",
-                isOverflowing && scrollMask === 'right' && "mask-fade-right",
-                isOverflowing && scrollMask === 'left' && "mask-fade-left",
-                isOverflowing && scrollMask === 'both' && "mask-fade-both",
-                (!isOverflowing || scrollMask === 'none') && "mask-none"
-              )}>
+              <div 
+                ref={scrollContainerRef}
+                className={cn(
+                  "min-w-0 flex-grow scrollbar-hide scroll-smooth relative z-10 transition-[mask-image]",
+                  hoveredIslandSegment ? "overflow-visible" : (isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden"),
+                  isOverflowing && scrollMask === 'right' && "mask-fade-right",
+                  isOverflowing && scrollMask === 'left' && "mask-fade-left",
+                  isOverflowing && scrollMask === 'both' && "mask-fade-both",
+                  (!isOverflowing || scrollMask === 'none') && "mask-none"
+                )}
+              >
                 <div 
                   ref={segmentsRef} 
                   className="flex items-center justify-start md:justify-center w-fit"
@@ -2614,10 +2857,14 @@ Please confirm my booking. Thank you!`;
                 >
               
                 {/* Segment 1: Terminal Investment */}
-                <div className={cn(
-                  "flex flex-col items-center justify-center transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 snap-center",
-                  (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
+                <div 
+                  onMouseEnter={() => setHoveredIslandSegment('cost')}
+                  onMouseLeave={() => setHoveredIslandSegment(null)}
+                  className={cn(
+                    "flex flex-col items-center justify-center transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 snap-center relative",
+                    (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                  )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}
+                >
                   <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                     {isMobile ? (internalPackage?.isCustom ? 'Quote' : 'Cost') : (internalPackage?.isCustom ? 'Personalized Pricing' : 'Itinerary Cost')}
                   </span>
@@ -2631,14 +2878,79 @@ Please confirm my booking. Thank you!`;
                       </span>
                     )}
                   </div>
+
+                  {/* Tooltip for Cost */}
+                  {(() => {
+                    const groupData = getGroupBreakdown();
+                    if (!groupData) return null;
+                    const isHovered = hoveredIslandSegment === 'cost';
+                    return (
+                      <div 
+                        className={cn(
+                          "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[200px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
+                          isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+                        )}
+                      >
+                        <div className="space-y-2 text-[10px] text-white/70">
+                          <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
+                            <span>Group Pricing</span>
+                            <span className="text-white/40">Total</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span>Tour Base:</span>
+                            <span className="font-mono text-white/90">{groupData.symbol}{groupData.tourTotal.toLocaleString()}</span>
+                          </div>
+
+                          {groupData.flightTotal > 0 && (
+                            <div className="flex justify-between text-blue-400/90">
+                              <span>Flights:</span>
+                              <span className="font-mono">{groupData.symbol}{groupData.flightTotal.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between text-emerald-400/90">
+                            <span>GST / Taxes:</span>
+                            <span className="font-mono">{groupData.symbol}{groupData.taxTotal.toLocaleString()}</span>
+                          </div>
+
+                          <div className="flex justify-between font-black border-t border-white/10 pt-1.5 text-white">
+                            <span>Grand Total:</span>
+                            <span className="font-mono">{groupData.symbol}{groupData.grandTotal.toLocaleString()}</span>
+                          </div>
+
+                          {groupData.pricingNote && (
+                            <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
+                              <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Note:</span>
+                              <p className="text-[7.5px] leading-relaxed text-white/50 italic whitespace-normal">{groupData.pricingNote}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Speech Bubble Pointer */}
+                        <div 
+                          className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
+                          style={{ 
+                            bottom: "-5px", 
+                            transform: "rotate(45deg)", 
+                            zIndex: 10 
+                          }} 
+                        />
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Segment 2: Timeline Spawning */}
                 {startDate && endDate && (
-                  <div className={cn(
-                    "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center",
-                    discoveryPhase === 2 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                  )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(2px, 0.5vw, 6px)' }}>
+                  <div 
+                    onMouseEnter={() => setHoveredIslandSegment('timeline')}
+                    onMouseLeave={() => setHoveredIslandSegment(null)}
+                    className={cn(
+                      "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center relative",
+                      discoveryPhase === 2 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                    )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(2px, 0.5vw, 6px)' }}
+                  >
                     <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                       Timeline
                     </span>
@@ -2659,29 +2971,151 @@ Please confirm my booking. Thank you!`;
                         </span>
                       );
                     })()}
+
+                    {/* Tooltip for Timeline */}
+                    {(() => {
+                      const isHovered = hoveredIslandSegment === 'timeline';
+                      const nights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
+                      return (
+                        <div 
+                          className={cn(
+                            "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
+                            isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+                          )}
+                        >
+                          <div className="space-y-2 text-[10px] text-white/70">
+                            <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
+                              <span>Itinerary Duration</span>
+                            </div>
+                            
+                            <div className="flex justify-between">
+                              <span>Start Date:</span>
+                              <span className="text-white/90">{formatDateForDisplay(startDate, false)}</span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>End Date:</span>
+                              <span className="text-white/90">{formatDateForDisplay(endDate, false)}</span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>Total Nights:</span>
+                              <span className="text-white/95 font-mono">{nights} Nights</span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>Total Days:</span>
+                              <span className="text-white/95 font-mono">{nights + 1} Days</span>
+                            </div>
+                          </div>
+
+                          {/* Speech Bubble Pointer */}
+                          <div 
+                            className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
+                            style={{ 
+                              bottom: "-5px", 
+                              transform: "rotate(45deg)", 
+                              zIndex: 10 
+                            }} 
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {/* Segment 3: Manifest Spawning */}
                 {discoveryPhase >= 3 && (
-                  <div className={cn(
-                    "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center",
-                    discoveryPhase === 3 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
-                  )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}>
+                  <div 
+                    onMouseEnter={() => setHoveredIslandSegment('guests')}
+                    onMouseLeave={() => setHoveredIslandSegment(null)}
+                    className={cn(
+                      "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center relative",
+                      discoveryPhase === 3 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                    )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}
+                  >
                     <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                       Guests
                     </span>
                     <div className="flex items-center justify-center whitespace-nowrap" style={{ gap: 'clamp(3px, 1vw, 12px)' }}>
                       <span className="font-bold text-white/95 tracking-tighter leading-none uppercase text-center" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
                         {adults} {adults <= 1 ? "Adult" : "Adults"}
-                        {(kids > 0 || infants > 0) && (
+                        {kids > 0 && (
                           <>
                             <span className="mx-1 text-white/20">|</span>
-                            {kids + infants} {kids + infants === 1 ? "Child" : "Children"}
+                            {kids} {kids === 1 ? "Child" : "Children"}
+                          </>
+                        )}
+                        {infants > 0 && (
+                          <>
+                            <span className="mx-1 text-white/20">|</span>
+                            {infants} {infants === 1 ? "Infant" : "Infants"}
                           </>
                         )}
                       </span>
                     </div>
+
+                    {/* Tooltip for Guests */}
+                    {(() => {
+                      const isHovered = hoveredIslandSegment === 'guests';
+                      return (
+                        <div 
+                          className={cn(
+                            "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
+                            isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
+                          )}
+                        >
+                          <div className="space-y-2 text-[10px] text-white/70">
+                            <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
+                              <span>Travelers</span>
+                              <span className="text-white/40">Total: {adults + kids + infants}</span>
+                            </div>
+                            
+                            <div className="flex justify-between">
+                              <span>Adults:</span>
+                              <span className="font-mono text-white/90">{adults}</span>
+                            </div>
+
+                            {kids > 0 && (
+                              <div className="flex justify-between">
+                                <span>Children:</span>
+                                <span className="font-mono text-white/90">{kids}</span>
+                              </div>
+                            )}
+
+                            {infants > 0 && (
+                              <div className="flex justify-between">
+                                <span>Infants:</span>
+                                <span className="font-mono text-white/90">{infants}</span>
+                              </div>
+                            )}
+
+                            {additionalGuests.some(g => g.name.trim() !== "") && (
+                              <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
+                                <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Guest Manifest:</span>
+                                <ul className="text-[7.5px] leading-relaxed text-white/50 italic space-y-0.5">
+                                  {additionalGuests
+                                    .filter(g => g.name.trim() !== "")
+                                    .map((g, i) => (
+                                      <li key={i}>• {g.name} ({g.type})</li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Speech Bubble Pointer */}
+                          <div 
+                            className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
+                            style={{ 
+                              bottom: "-5px", 
+                              transform: "rotate(45deg)", 
+                              zIndex: 10 
+                            }} 
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
                 </div>

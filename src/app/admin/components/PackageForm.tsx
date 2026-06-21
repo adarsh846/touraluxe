@@ -106,6 +106,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     })) || [],
     transports: anchor?.transports || [],
     pdf_url: anchor?.pdf_url || ((initialData as any)?.itinerary_url && !(initialData as any)?.itinerary_url.startsWith('{') ? (initialData as any).itinerary_url : ""),
+    pricing_note: anchor?.pricing_note || "",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -490,7 +491,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       tiers: serializedTiers,
       transports: form.transports,
       pdf_url: form.pdf_url,
-      destinations_covered: form.destinations_covered
+      destinations_covered: form.destinations_covered,
+      pricing_note: form.pricing_note
     });
 
     // Sterilize the payload: Remove ALL potential schema-mismatch columns
@@ -506,6 +508,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       transports: _transports,
       pdf_url: _pdf_url,
       destinations_covered: _dest_cov,
+      pricing_note: _pn,
       ...safeForm 
     } = form;
 
@@ -1218,6 +1221,27 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 pt-8 border-t border-white/[0.02]">
               <Field label="Child Price" value={form.child_price} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, child_price: v }})} placeholder="Optional" />
               <Field label="Infant Price" value={form.infant_price} onChange={(v) => setForm((p) => { setIsDirty(true); return { ...p, infant_price: v }})} placeholder="Optional" />
+            </div>
+
+            {/* Pricing Terms & Notes */}
+            <div className="pt-8 border-t border-white/[0.02] space-y-4">
+              <div>
+                <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">
+                  Pricing Terms & Notes
+                </label>
+                <p className="text-[11px] text-white/50 leading-relaxed italic pt-1">
+                  Add optional terms & conditions or helper notes for this package's pricing breakdown (e.g. tax statements, inclusions details). This displays in the Speech Bubble details popover.
+                </p>
+              </div>
+              <textarea
+                className="w-full h-24 bg-white/[0.03] border border-white/10 rounded-2xl p-5 text-[13px] text-white focus:border-white/20 transition-all outline-none resize-none"
+                placeholder="e.g. Flight estimates are subject to airline fare fluctuations. Land rate is inclusive of 5% GST."
+                value={form.pricing_note || ""}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setForm((p) => ({ ...p, pricing_note: e.target.value }));
+                }}
+              />
             </div>
 
             {/* Unified Tax Policy Selector */}
