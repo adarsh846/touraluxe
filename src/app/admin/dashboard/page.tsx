@@ -213,7 +213,6 @@ export default function AdminDashboard() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
-  const [localTax, setLocalTax] = useState("");
   const [localTripTypes, setLocalTripTypes] = useState("");
   const [localDifficulties, setLocalDifficulties] = useState("");
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
@@ -254,12 +253,8 @@ export default function AdminDashboard() {
       if (setRes.ok) {
         const data = await setRes.json();
         setSettings(data);
-        // Initialize localTax from DB only if it's currently empty
-        if (!localTax) {
-          setLocalTax(data.tax_percentage || "0");
-          setLocalTripTypes(data.available_trip_types || "Group, Private, Custom");
-          setLocalDifficulties(data.available_difficulties || "Easy, Moderate, Challenging");
-        }
+        setLocalTripTypes(data.available_trip_types || "Group, Private, Custom");
+        setLocalDifficulties(data.available_difficulties || "Easy, Moderate, Challenging");
       }
     } catch (err) { console.error("Fetch error:", err); }
     setLoading(false);
@@ -276,11 +271,6 @@ export default function AdminDashboard() {
       })
       .on('postgres_changes', { event: '*', table: 'packages', schema: 'public' }, () => {
         fetchData();
-      })
-      .on('postgres_changes', { event: 'UPDATE', table: 'site_settings', schema: 'public', filter: 'key=eq.tax_percentage' }, (payload: any) => {
-        if (payload.new && payload.new.value) {
-          setSettings(prev => ({ ...prev, tax_percentage: payload.new.value }));
-        }
       })
       .subscribe();
 
@@ -332,30 +322,7 @@ export default function AdminDashboard() {
     setIsUpdatingSettings(false);
   };
 
-  const handleUpdateTax = async () => {
-    const token = getToken();
-    if (!token) return;
-    setIsUpdatingSettings(true);
-    try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-admin-token": token },
-        body: JSON.stringify({ key: "tax_percentage", value: localTax })
-      });
-      const result = await res.json();
-      if (res.ok) {
-        setSettings(prev => ({ ...prev, tax_percentage: localTax }));
-        await fetchData();
-        addNotification("Tax policy updated successfully.", "success");
-      } else {
-        addNotification(`Update failed: ${result.error || "Unknown error"}`, "error");
-      }
-    } catch (err) { 
-      console.error("Settings update error:", err);
-      addNotification("A network error occurred while updating the policy.", "error");
-    }
-    setIsUpdatingSettings(false);
-  };
+
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"?`)) return;
@@ -476,40 +443,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Global Configuration Segment */}
-        <div className="mb-10 md:mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          <div className="p-4 md:p-8 rounded-[20px] md:rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <h3 className="text-[15px] md:text-lg font-bold text-white tracking-tight italic">Global Tax Control</h3>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] md:text-[9px] font-black uppercase tracking-widest">
-                  Live: {settings.tax_percentage || "0"}%
-                </span>
-              </div>
-              <p className="text-[9px] md:text-[11px] uppercase tracking-widest text-[#86868b] font-bold">Governs tax-enabled journeys</p>
-            </div>
-            
-            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
-              <div className="relative group flex-1 md:flex-none">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[8px] font-black text-white/20 uppercase tracking-widest">GST</span>
-                <input 
-                  type="number" 
-                  value={localTax} 
-                  onChange={(e) => setLocalTax(e.target.value)}
-                  className="bg-black/40 border border-white/10 rounded-xl py-2.5 md:py-4 pl-12 md:pl-20 pr-7 md:pr-10 text-[12px] md:text-sm font-bold text-white w-full md:w-40 focus:outline-none focus:border-white/30 transition-all text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-white/40 uppercase tracking-widest">%</span>
-              </div>
-              <button 
-                onClick={handleUpdateTax}
-                disabled={isUpdatingSettings}
-                className="px-4 md:px-8 py-2.5 md:py-4 rounded-xl md:rounded-2xl bg-white text-black text-[9px] md:text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] active:scale-95 transition-all disabled:opacity-50"
-              >
-                Sync
-              </button>
-            </div>
-          </div>
-        </div>
+
 
         {view === "catalog" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -524,6 +458,17 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 gap-4">
               {packages.map((pkg) => {
                 const isExclusive = pkg.tax_status === "Exclusive of Taxes";
+                const getAviationAnchor = () => {
+                  try {
+                    const anchor = pkg.itinerary_url;
+                    if (anchor && anchor.includes('{')) {
+                      return JSON.parse(anchor);
+                    }
+                  } catch (e) {}
+                  return null;
+                };
+                const anchor = getAviationAnchor();
+                const taxRate = parseFloat(anchor?.tax_percentage ?? "0");
                 return (
                   <div key={pkg.id} className="flex flex-col md:flex-row md:items-center gap-4 p-4 md:p-5 rounded-[24px] bg-[#1c1c1e] border border-white/[0.04] group hover:border-white/[0.08] transition-all">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -535,24 +480,23 @@ export default function AdminDashboard() {
                         <p className="text-[12px] md:text-[13px] text-[#86868b]">
                           {pkg.location} · {(() => {
                             const base = parseInt(pkg.price.replace(/[^0-9]/g, "")) || 0;
-                            const taxRate = parseFloat(settings.tax_percentage || "0");
                             // MASTER REFLECTION: Dashboard must show the SAME price as the live site.
                             const finalPrice = isExclusive && taxRate > 0 ? base + (base * taxRate / 100) : base;
                             return `${pkg.currency || "₹"}${Math.round(finalPrice).toLocaleString('en-IN')}`;
                           })()}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {Array.isArray(pkg.category) ? pkg.category.map((cat) => (
-                          <span key={cat} className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{cat}</span>
-                        )) : (
-                          <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{pkg.category || "Uncategorized"}</span>
-                        )}
-                        <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${isExclusive ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
-                          {isExclusive ? "+ TAX" : "INCL. TAX"}
-                        </span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {Array.isArray(pkg.category) ? pkg.category.map((cat) => (
+                            <span key={cat} className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{cat}</span>
+                          )) : (
+                            <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/40">{pkg.category || "Uncategorized"}</span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${isExclusive ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
+                            {isExclusive ? `+ ${taxRate}% GST` : "INCL. TAX"}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
                   <div className="flex items-center gap-2 pt-2 md:pt-0 border-t border-white/5 md:border-0">
                     <button onClick={() => handleTogglePublish(pkg)} className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-[11px] font-bold transition-all border ${pkg.is_published ? "bg-white/5 border-white/10 text-white/60" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>{pkg.is_published ? "Unpublish" : "Publish"}</button>
                     <button onClick={() => router.push(`/admin/packages/${pkg.id}/edit`)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold">Edit</button>

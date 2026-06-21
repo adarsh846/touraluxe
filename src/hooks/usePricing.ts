@@ -56,7 +56,19 @@ export function useGlobalSettings() {
 
   const computePrice = useCallback(
     (pkg: any, adultCount: number = 1, childCount: number = 0, infantCount: number = 0, selectedTierName?: string) => {
-      const taxRate = parseFloat(settings.tax_percentage || "0");
+      // ── Aviation Anchor Recovery ──
+      const getAviationAnchor = () => {
+        try {
+          const anchor = pkg?.itinerary_url;
+          if (anchor && anchor.includes('{')) {
+            return JSON.parse(anchor);
+          }
+        } catch (e) { return null; }
+        return null;
+      };
+      const anchor = getAviationAnchor();
+
+      const taxRate = parseFloat(pkg?.tax_percentage ?? anchor?.tax_percentage ?? "0");
       const symbol = settings.currency_symbol || pkg?.currency || "₹";
 
       if (!pkg?.price) {
@@ -71,18 +83,6 @@ export function useGlobalSettings() {
 
       // ── PARSE RAW INPUTS ──
       let base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
-
-      // ── Aviation Anchor Recovery ──
-      const getAviationAnchor = () => {
-        try {
-          const anchor = pkg.itinerary_url;
-          if (anchor && anchor.includes('{')) {
-            return JSON.parse(anchor);
-          }
-        } catch (e) { return null; }
-        return null;
-      };
-      const anchor = getAviationAnchor();
 
       // ── TIERED PRICING ARCHITECTURE ──
       let activeTier: any = null;

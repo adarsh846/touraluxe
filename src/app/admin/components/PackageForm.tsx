@@ -71,6 +71,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     is_published: initialData?.is_published ?? false,
     sort_order: initialData?.sort_order ?? 99,
     tax_status: initialData?.tax_status || "Inclusive of Taxes",
+    tax_percentage: anchor?.tax_percentage || "0",
     currency: initialData?.currency || "₹",
     season: initialData?.season || "",
     // ── Operational Fields ──
@@ -492,7 +493,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       transports: form.transports,
       pdf_url: form.pdf_url,
       destinations_covered: form.destinations_covered,
-      pricing_note: form.pricing_note
+      pricing_note: form.pricing_note,
+      tax_percentage: form.tax_percentage
     });
 
     // Sterilize the payload: Remove ALL potential schema-mismatch columns
@@ -509,6 +511,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       pdf_url: _pdf_url,
       destinations_covered: _dest_cov,
       pricing_note: _pn,
+      tax_percentage: _tp,
       ...safeForm 
     } = form;
 
@@ -1245,8 +1248,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             </div>
 
             {/* Unified Tax Policy Selector */}
-            <div className="pt-8 border-t border-white/[0.02]">
-              <div className="p-6 md:p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-6 group relative overflow-hidden">
+            <div className="pt-8 border-t border-white/[0.02] grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 p-6 md:p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col md:flex-row items-center gap-6 group relative overflow-hidden">
                 <div className={cn(
                   "absolute inset-0 opacity-[0.03] transition-colors duration-1000",
                   form.tax_status === "Exclusive of Taxes" ? "bg-emerald-500" : "bg-blue-500"
@@ -1264,7 +1267,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                         ? "bg-emerald-500/5 border-emerald-500/10 text-emerald-500/60" 
                         : "bg-blue-500/5 border-blue-500/10 text-blue-500/60"
                     )}>
-                      {form.tax_status === "Exclusive of Taxes" ? `+ ${settings.tax_percentage}% GST` : "FINAL PRICE"}
+                      {form.tax_status === "Exclusive of Taxes" ? `+ ${form.tax_percentage || "0"}% GST` : "FINAL PRICE"}
                     </span>
                   </div>
                   <p className="text-[11px] text-white/80 leading-relaxed max-w-sm font-medium italic">
@@ -1292,6 +1295,31 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                     <div className={`absolute top-1 w-6 h-6 rounded-full bg-white/80 shadow-2xl transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${form.tax_status === "Exclusive of Taxes" ? "left-[33px]" : "left-1"}`} />
                   </button>
                 </div>
+              </div>
+
+              {/* Tax Percentage Config */}
+              <div className="p-6 md:p-8 rounded-[2rem] bg-white/[0.01] border border-white/[0.03] flex flex-col justify-center space-y-3">
+                <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/80">Package Tax Rate (GST %)</label>
+                <div className="relative group">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30 uppercase tracking-widest">GST</span>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={form.tax_percentage} 
+                    onChange={(e) => {
+                      setIsDirty(true);
+                      setForm((p) => ({ ...p, tax_percentage: e.target.value }));
+                    }}
+                    className="bg-black/40 border border-white/10 rounded-xl py-3 pl-12 pr-10 text-xs font-bold text-white w-full focus:outline-none focus:border-white/30 transition-all text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="e.g. 5"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/40 uppercase tracking-widest">%</span>
+                </div>
+                <p className="text-[10px] text-white/40 font-medium italic">
+                  Configures the GST rate applied for pricing and breakdown calculations.
+                </p>
               </div>
             </div>
           </section>
