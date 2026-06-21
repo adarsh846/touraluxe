@@ -142,6 +142,7 @@ export const PackageContent = memo(({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollerEl, setScrollerEl] = useState<HTMLElement | null>(null);
+  const [isPillHovered, setIsPillHovered] = useState(false);
 
 
   const pillRef = useRef<HTMLDivElement>(null);
@@ -379,7 +380,7 @@ Could you please share details on availability and custom options? Thank you!`;
              </div>
           </div>
           
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50">
+          <div className="absolute bottom-24 md:bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50">
              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/50 drop-shadow-md">Scroll</span>
              <ChevronRight size={16} className="text-white/40 rotate-90" strokeWidth={2.5} />
           </div>
@@ -488,9 +489,9 @@ Could you please share details on availability and custom options? Thank you!`;
                     <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Route</span>
                     <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight leading-none">Destinations Covered</h3>
                   </div>
-                  <div className="flex flex-wrap items-center gap-4 md:gap-6 pt-4">
+                  <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-3 md:gap-6 pt-4 justify-center md:justify-start w-full">
                     {destinationsCovered.map((dest: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-4 md:gap-6">
+                      <div key={idx} className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
                         <div className="flex items-center gap-3 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 px-5 py-3 rounded-2xl transition-all duration-300">
                           <div className="w-6 h-6 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-[10px] font-black text-amber-400 shrink-0">
                             {idx + 1}
@@ -498,8 +499,9 @@ Could you please share details on availability and custom options? Thank you!`;
                           <span className="text-sm md:text-base font-bold text-white/90">{dest}</span>
                         </div>
                         {idx < destinationsCovered.length - 1 && (
-                          <div className="flex items-center justify-center text-white/20 select-none">
-                            <ArrowRight size={18} className="animate-pulse" />
+                          <div className="flex items-center justify-center text-white/20 select-none py-1 md:py-0">
+                            <ArrowRight size={18} className="hidden md:block animate-pulse" />
+                            <ArrowRight size={18} className="block md:hidden rotate-90 animate-pulse" />
                           </div>
                         )}
                       </div>
@@ -700,20 +702,163 @@ Could you please share details on availability and custom options? Thank you!`;
           </svg>
 
           <div className="fixed bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
-        <div 
-          ref={pillRef}
-          onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
-          onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
-          onMouseLeave={handleGlowLeave}
-          onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-          onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-          onTouchEnd={handleGlowLeave}
-          className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-full md:w-fit max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
-        >
+            <div className="relative flex flex-col items-center w-full md:w-fit pointer-events-none">
+              
+              {/* Speech Bubble Popover */}
+              <div 
+                className={cn(
+                  "absolute bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[340px] md:w-[460px] max-w-[calc(100vw-32px)] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom",
+                  isPillHovered 
+                    ? "opacity-100 scale-100 translate-y-0" 
+                    : "opacity-0 scale-95 translate-y-4"
+                )}
+              >
+                <div className={cn(
+                  "relative p-5 md:p-7 rounded-[2rem] bg-black/95 backdrop-blur-[35px] border border-white/[0.12] shadow-[0_30px_70px_rgba(0,0,0,0.95),0_0_50px_rgba(255,255,255,0.02)] overflow-hidden flex flex-col gap-4 md:gap-5",
+                  isPillHovered ? "pointer-events-auto" : "pointer-events-none"
+                )}>
+                  
+                  {/* Ambient inner gold glow */}
+                  <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+
+                  {/* Header info */}
+                  <div className="relative z-10 flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-400/90 block leading-none">Journey Summary</span>
+                      <h4 className="text-[13px] md:text-[16px] font-bold text-white tracking-tight leading-none font-sans">{experience.title}</h4>
+                      {experience.tagline && (
+                        <p className="text-[9.5px] md:text-[10.5px] text-white/40 italic font-medium leading-none mt-1.5 font-sans">{experience.tagline}</p>
+                      )}
+                    </div>
+                    <span className="shrink-0 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 leading-none">
+                      {experience.duration}
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-full h-px bg-white/10 relative z-10" />
+
+                  {/* Natural Prose Introduction */}
+                  <div className="relative z-10 space-y-1.5">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">The Soul of the Journey</span>
+                    <p className="text-[10px] md:text-[11px] leading-relaxed text-white/70 font-medium">
+                      Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400/90 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
+                    </p>
+                  </div>
+
+                  {/* Route Timeline (Descriptive Flow) */}
+                  {destinationsCovered.length > 0 && (
+                    <>
+                      <div className="w-full h-px bg-white/10 relative z-10" />
+                      <div className="relative z-10 space-y-1.5">
+                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Destination Covered</span>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] md:text-[11px] font-bold text-white/80">
+                          {destinationsCovered.map((dest: string, i: number) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9.5px] font-medium text-white/80">{dest}</span>
+                              {i < destinationsCovered.length - 1 && (
+                                <span className="text-white/20 text-[8px] font-light">/</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Curated Highlights & Inclusions Summary */}
+                  {((experience.highlights && experience.highlights.length > 0) || (experience.inclusions && experience.inclusions.length > 0)) && (
+                    <>
+                      <div className="w-full h-px bg-white/10 relative z-10" />
+                      <div className="relative z-10 grid grid-cols-2 gap-4">
+                        {experience.highlights && experience.highlights.length > 0 && (
+                          <div className="space-y-1.5">
+                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Highlights</span>
+                            <div className="space-y-1">
+                              {experience.highlights.slice(0, 2).map((h: string, i: number) => (
+                                <div key={i} className="flex items-start gap-1.5 text-[9.5px] md:text-[10px] text-white/60 leading-tight">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 mt-[5px] shrink-0" />
+                                  <span>{h}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {experience.inclusions && experience.inclusions.length > 0 && (
+                          <div className="space-y-1.5">
+                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Inclusions</span>
+                            <div className="space-y-1">
+                              {experience.inclusions.slice(0, 2).map((inc: string, i: number) => (
+                                <div key={i} className="flex items-start gap-1.5 text-[9.5px] md:text-[10px] text-white/60 leading-tight">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40 mt-[5px] shrink-0" />
+                                  <span>{inc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Financial Investment Callout */}
+                  <div className="w-full h-px bg-white/10 relative z-10" />
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Investment Total</span>
+                      <span className="text-[10px] md:text-[11px] font-medium text-white/40 italic">Subject to tier options</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] md:text-[16px] font-black text-emerald-400 tabular-nums">
+                        {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")} <span className="text-[8.5px] md:text-[9px] text-white/40 font-normal font-sans">/ traveler</span>
+                      </p>
+                      <p className="text-[7.5px] md:text-[8px] font-bold text-white/30 uppercase tracking-widest leading-none mt-0.5">
+                        {pricing.taxLabel}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Speech Bubble Pointer */}
+                <div 
+                  className="absolute w-3.5 h-3.5 bg-black/95 border-r border-b border-white/[0.12] pointer-events-none"
+                  style={{ 
+                    bottom: "-7px", 
+                    left: "calc(50% - 7px)", 
+                    transform: "rotate(45deg)", 
+                    zIndex: 120 
+                  }} 
+                />
+              </div>
+
+              {/* Pill Container */}
+              <div 
+                ref={pillRef}
+                onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
+                onMouseEnter={(e) => {
+                  handleGlowMove(e.clientX, e.clientY);
+                  setIsPillHovered(true);
+                }}
+                onMouseLeave={() => {
+                  handleGlowLeave();
+                  setIsPillHovered(false);
+                }}
+                onTouchStart={(e) => {
+                  handleGlowMove(e.touches[0].clientX, e.touches[0].clientY);
+                  setIsPillHovered(true);
+                }}
+                onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+                onTouchEnd={() => {
+                  handleGlowLeave();
+                  setIsPillHovered(false);
+                }}
+                className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-full md:w-fit max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
+              >
           {/* ════ PHYSICAL JELLY SHELL ════ */}
           <div 
             ref={jellyRef}
-            className="relative flex items-center justify-between py-2.5 pl-6 pr-3 md:p-2 transform-gpu w-full"
+            className="relative flex items-center justify-between py-2 pl-5 pr-3 md:p-2 transform-gpu w-full"
           >
             {/* Background Layer */}
             <div className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
@@ -735,29 +880,21 @@ Could you please share details on availability and custom options? Thank you!`;
                   <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/30 leading-none">Investment</span>
                   
                   {/* Primary Price Area */}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[1.35rem] font-black text-white leading-none tabular-nums tracking-tighter">
-                      {pricing.formattedFinal}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-white/40 border-l border-white/10 pl-2 leading-none">
+                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/40 border-l border-white/10 pl-1.5 leading-none">
                       / Person
                     </span>
                   </div>
                   
                   {/* Info Row: savings + flight + tax */}
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {pricing.hasSavings && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[8px] font-medium text-white/25 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                        <span className="text-[7.5px] font-medium text-white/25 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
                         <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
-                      </div>
-                    )}
-                    {(experience.flights_status === 'included' || experience.flights_status === 'on_request') && (
-                      <div className="flex items-center gap-1 text-blue-400">
-                        <Plane size={8} />
-                        <span className="text-[7px] font-black uppercase tracking-wide">
-                          {experience.flights_status === 'included' ? 'Flights Incl.' : 'On Request'}
-                        </span>
                       </div>
                     )}
                     {(pricing.taxLabel) && (
@@ -777,7 +914,7 @@ Could you please share details on availability and custom options? Thank you!`;
                       Investment
                     </span>
                     <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)]">
-                      {pricing.formattedFinal}
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </p>
                   </div>
 
@@ -803,15 +940,6 @@ Could you please share details on availability and custom options? Thank you!`;
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      {(experience.flights_status === 'included' || experience.flights_status === 'on_request') && (
-                        <div className="flex items-center gap-1 text-blue-400">
-                          <Plane size={9} />
-                          <span className="text-[7px] font-black uppercase tracking-wider">
-                            {experience.flights_status === 'included' ? 'Flights Incl.' : 'Flights Req.'}
-                          </span>
-                          <div className="w-px h-2 bg-white/20" />
-                        </div>
-                      )}
                       {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
                         <span className="font-bold uppercase tracking-wider text-white/40 leading-none whitespace-nowrap text-[7px]">
                           {pricing.taxLabel}
@@ -863,6 +991,7 @@ Could you please share details on availability and custom options? Thank you!`;
                 </Magnetic>
               </div>
             </div>
+          </div>
           </div>
           </div>
       </div>
