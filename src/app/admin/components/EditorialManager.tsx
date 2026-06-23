@@ -813,14 +813,46 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
 
                       <div className="space-y-2 md:col-span-2">
                         <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">
-                          Division Highlights (Comma-separated)
+                          Division Highlights
                         </label>
-                        <textarea
-                          value={srv.highlights ? srv.highlights.join(", ") : ""}
-                          onChange={(e) => handleServiceFieldChange(srv.id, "highlights", e.target.value.split(",").map((s: string) => s.trim()))}
-                          placeholder="e.g. Personalized Itineraries, Premium Property Access"
-                          className="w-full h-20 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
-                        />
+                        <div className="space-y-3 mt-2">
+                          {(srv.highlights || []).map((h: string, i: number) => (
+                            <div key={i} className="flex gap-2">
+                              <input
+                                type="text"
+                                value={h}
+                                onChange={(e) => {
+                                  const newHighlights = [...(srv.highlights || [])];
+                                  newHighlights[i] = e.target.value;
+                                  handleServiceFieldChange(srv.id, "highlights", newHighlights);
+                                }}
+                                className="flex-1 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                              />
+                              {(srv.highlights || []).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newHighlights = (srv.highlights || []).filter((_: any, idx: number) => idx !== i);
+                                    handleServiceFieldChange(srv.id, "highlights", newHighlights);
+                                  }}
+                                  className="p-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500 rounded-2xl transition-all"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newHighlights = [...(srv.highlights || []), ""];
+                              handleServiceFieldChange(srv.id, "highlights", newHighlights);
+                            }}
+                            className="w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Plus size={14} /> Add Highlight
+                          </button>
+                        </div>
                       </div>
                     </div>
 
