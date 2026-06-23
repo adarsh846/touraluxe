@@ -152,8 +152,31 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
         setAvailableDestinations(data.filter(d => d.is_published).map(d => ({ name: d.name, slug: d.slug })));
       })
       .catch(() => {});
-
   }, []);
+
+  // --- Load Draft from sessionStorage ---
+  useEffect(() => {
+    try {
+      const key = isEditing ? `touraluxe_edit_package_draft_${initialData?.id}` : "touraluxe_new_package_draft";
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setForm(prev => ({ ...prev, ...parsed }));
+      }
+    } catch (e) {
+      console.warn("Failed to load draft from sessionStorage:", e);
+    }
+  }, [isEditing, initialData?.id]);
+
+  // --- Save Draft to sessionStorage ---
+  useEffect(() => {
+    try {
+      const key = isEditing ? `touraluxe_edit_package_draft_${initialData?.id}` : "touraluxe_new_package_draft";
+      sessionStorage.setItem(key, JSON.stringify(form));
+    } catch (e) {
+      console.warn("Failed to save draft to sessionStorage:", e);
+    }
+  }, [form, isEditing, initialData?.id]);
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
@@ -170,6 +193,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   }, [isDirty, router]);
 
   const confirmDiscard = () => {
+    try {
+      const key = isEditing ? `touraluxe_edit_package_draft_${initialData?.id}` : "touraluxe_new_package_draft";
+      sessionStorage.removeItem(key);
+    } catch (e) {}
     setShowDiscardConfirm(false);
     if (window.history.length > 1) {
       router.back();
@@ -182,10 +209,111 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     return sessionStorage.getItem("admin_token") || "";
   }, []);
 
+  const validateStep = (step: number): boolean => {
+    if (step === 0) {
+      if (!form.title || !form.title.trim()) {
+        setToast({ show: true, message: "Package Title is required.", type: "error" });
+        return false;
+      }
+      if (!form.location || !form.location.trim()) {
+        setToast({ show: true, message: "Location Tag is required.", type: "error" });
+        return false;
+      }
+      if (!form.category || form.category.length === 0) {
+        setToast({ show: true, message: "At least one Service Category is required.", type: "error" });
+        return false;
+      }
+      if (!form.description || !form.description.trim()) {
+        setToast({ show: true, message: "Experience Narrative description is required.", type: "error" });
+        return false;
+      }
+      const numDays = parseInt(String(form.days)) || 0;
+      const numNights = parseInt(String(form.nights)) || 0;
+      if (numDays <= 0 || numNights <= 0) {
+        setToast({ show: true, message: "Please specify valid Days and Nights.", type: "error" });
+        return false;
+      }
+      if (!form.destination || !form.destination.trim()) {
+        setToast({ show: true, message: "Destination Card is required. Please select a destination.", type: "error" });
+        return false;
+      }
+    }
 
+    if (step === 1) {
+      if (!form.image || !form.image.trim()) {
+        setToast({ show: true, message: "Main background image asset is required.", type: "error" });
+        return false;
+      }
+      const validHighlights = form.highlights.filter(h => h && h.trim());
+      if (validHighlights.length === 0) {
+        setToast({ show: true, message: "At least one valid Journey Highlight is required.", type: "error" });
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      if (form.flights_status !== "excluded") {
+        if (!form.departure_cities || form.departure_cities.length === 0) {
+          setToast({ show: true, message: "At least one departure hub/city is required.", type: "error" });
+          return false;
+        }
+        if (!form.route_start || !form.route_start.trim()) {
+          setToast({ show: true, message: "Starting City/Airport is required.", type: "error" });
+          return false;
+        }
+        if (!form.route_end || !form.route_end.trim()) {
+          setToast({ show: true, message: "Ending City/Airport is required.", type: "error" });
+          return false;
+        }
+        const invalidSegment = form.flight_segments.some((seg: any) => !seg.label?.trim() || !seg.price?.trim());
+        if (invalidSegment) {
+          setToast({ show: true, message: "All flight segments must have a valid origin/destination and price.", type: "error" });
+          return false;
+        }
+      }
+      if (!form.tiers || form.tiers.length === 0) {
+        setToast({ show: true, message: "At least one pricing tier must be defined.", type: "error" });
+        return false;
+      }
+      const invalidTierName = form.tiers.some((t: any) => !t.name || !t.name.trim());
+      if (invalidTierName) {
+        setToast({ show: true, message: "All pricing tiers must have a valid name.", type: "error" });
+        return false;
+      }
+    }
+
+    if (step === 3) {
+      if (!form.itinerary || form.itinerary.length === 0) {
+        setToast({ show: true, message: "At least one itinerary day must be configured.", type: "error" });
+        return false;
+      }
+      const invalidItinerary = form.itinerary.some((item: any) => !item.title?.trim() || !item.description?.trim());
+      if (invalidItinerary) {
+        setToast({ show: true, message: "All itinerary days must have a title and description.", type: "error" });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep(activeStep)) {
+      setActiveStep(p => p + 1);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate all steps first
+    for (let s = 0; s < 4; s++) {
+      if (!validateStep(s)) {
+        setActiveStep(s);
+        return;
+      }
+    }
+
     setSaving(true);
 
     const token = getToken();
@@ -280,6 +408,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
 
       if (res.ok) {
         setIsDirty(false);
+        try {
+          const key = isEditing ? `touraluxe_edit_package_draft_${initialData?.id}` : "touraluxe_new_package_draft";
+          sessionStorage.removeItem(key);
+        } catch (e) {}
         setToast({ show: true, message: isEditing ? "Journey refined successfully." : "New journey forged successfully.", type: "success" });
         setTimeout(() => router.push("/admin/dashboard"), 1500);
       } else {
@@ -521,7 +653,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
                 <button
                   key="next-step-btn"
                   type="button"
-                  onClick={() => setActiveStep(p => p + 1)}
+                  onClick={handleNextStep}
                   className="px-12 py-4 rounded-2xl bg-white text-black font-bold text-[13px] tracking-wider uppercase transition-all hover:bg-white/90 active:scale-[0.98] shadow-[0_0_30px_rgba(255,255,255,0.1)]"
                 >
                   Next Step
@@ -567,7 +699,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
             <button 
               key="mobile-next-btn"
               type="button" 
-              onClick={() => setActiveStep(p => p + 1)} 
+              onClick={handleNextStep} 
               className="flex-[2] h-12 rounded-[18px] bg-white text-black text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all"
             >
               Next

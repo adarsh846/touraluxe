@@ -303,7 +303,15 @@ export function FinancialArchitecturePanel({ form, setForm, setIsDirty }: PanelP
                         <button
                           key={preset}
                           type="button"
-                          onClick={() => setForm(p => ({ ...p, flight_type: preset }))}
+                          onClick={() => {
+                            const isRoundTrip = preset.toLowerCase().includes("round");
+                            setForm(p => ({
+                              ...p,
+                              flight_type: preset,
+                              route_end: isRoundTrip ? p.route_start : p.route_end
+                            }));
+                            setIsDirty(true);
+                          }}
                           className={cn(
                             "text-[9px] font-black uppercase tracking-widest transition-all",
                             form.flight_type === preset ? "text-blue-400" : "text-white/70 hover:text-white/90"
@@ -318,7 +326,16 @@ export function FinancialArchitecturePanel({ form, setForm, setIsDirty }: PanelP
                     className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl px-5 text-[13px] text-white focus:border-white/20 transition-all outline-none"
                     placeholder="e.g. Round-Trip, Incl. 2 Hops"
                     value={form.flight_type}
-                    onChange={(e) => setForm((p) => ({ ...p, flight_type: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const isRoundTrip = val.toLowerCase().includes("round");
+                      setForm((p) => ({
+                        ...p,
+                        flight_type: val,
+                        route_end: isRoundTrip ? p.route_start : p.route_end
+                      }));
+                      setIsDirty(true);
+                    }}
                   />
                 </div>
 

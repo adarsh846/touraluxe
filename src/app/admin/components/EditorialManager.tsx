@@ -570,6 +570,23 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   isUpdating={isUpdating}
                   placeholder="+1 (555) TOURALUXE"
                 />
+                <InputGroup 
+                  label="WhatsApp Contact Number" 
+                  value={localSettings.whatsapp_number || ""} 
+                  onChange={(v) => handleChange("whatsapp_number", v)}
+                  onSave={() => handleSave("whatsapp_number")}
+                  isUpdating={isUpdating}
+                  placeholder="+1 (555) TOURALUXE"
+                  hint="For floating chat button & booking assistance."
+                />
+                <InputGroup 
+                  label="Instagram Profile Link" 
+                  value={localSettings.instagram_url || ""} 
+                  onChange={(v) => handleChange("instagram_url", v)}
+                  onSave={() => handleSave("instagram_url")}
+                  isUpdating={isUpdating}
+                  placeholder="https://instagram.com/touraluxe"
+                />
               {/* Offices List Manager Card */}
               <div className="p-8 rounded-[40px] bg-[#1c1c1e] border border-white/[0.04] col-span-1 lg:col-span-2 space-y-6">
                 <div className="flex justify-between items-center">
@@ -668,7 +685,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   onChange={(v) => handleChange("contact_address", v)}
                   onSave={() => handleSave("contact_address")}
                   isUpdating={isUpdating}
-                  placeholder="TouraLuxe LLC, One World Trade Center, Suite 85, New York, NY 10007"
+                  placeholder="Enter headquarters details..."
                   isTextArea
                   hint="Optional: Specific detailed Headquarters address."
                 />
