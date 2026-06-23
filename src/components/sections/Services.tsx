@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
@@ -127,6 +127,26 @@ export function Services() {
   const { openModal } = useBooking();
   const { settings } = useSettings();
 
+  const servicesList = useMemo(() => {
+    if (settings.services_data) {
+      try {
+        const parsed = JSON.parse(settings.services_data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: any) => {
+            const original = SERVICES.find(s => s.id === item.id);
+            return {
+              ...item,
+              icon: original?.icon || null
+            };
+          });
+        }
+      } catch (e) {
+        console.error("Failed to parse services_data in Services.tsx:", e);
+      }
+    }
+    return SERVICES;
+  }, [settings.services_data]);
+
   useEffect(() => {
     const ctx = gsap.context(() => {
       // Pre-promote header children to GPU layers before animation
@@ -158,7 +178,7 @@ export function Services() {
   useEffect(() => {
     const handleRemoteOpen = (e: any) => {
       const serviceId = e.detail?.serviceId;
-      const service = SERVICES.find(s => s.id === serviceId);
+      const service = servicesList.find(s => s.id === serviceId);
       if (service) {
         openModal('SERVICES', service);
       }
@@ -166,7 +186,7 @@ export function Services() {
 
     window.addEventListener('open-service-modal', handleRemoteOpen);
     return () => window.removeEventListener('open-service-modal', handleRemoteOpen);
-  }, [openModal]);
+  }, [openModal, servicesList]);
 
   return (
     <section ref={containerRef} id="services" className="scroll-mt-20 pt-[clamp(2.5rem,5vw,4rem)] pb-[clamp(5rem,8vw,8rem)] px-[clamp(1.5rem,4vw,4rem)] w-full bg-black text-foreground flex flex-col items-center">
@@ -179,9 +199,9 @@ export function Services() {
         <div 
           className="flex flex-row overflow-x-auto lg:overflow-visible snap-x snap-mandatory scrollbar-hide gap-[clamp(1.25rem,3vw,2rem)] pt-[clamp(2.5rem,5vw,3rem)] pb-[clamp(2.5rem,5vw,3rem)] px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-4 lg:gap-[clamp(1.5rem,3vw,2rem)] lg:pb-[clamp(2.5rem,5vw,3rem)]"
         >
-          {SERVICES.map((service, index) => (
+          {servicesList.map((service, index) => (
             <div 
-              key={service.title} 
+              key={service.id} 
               ref={(el) => { cardsRef.current[index] = el; }} 
               className="opacity-0 shrink-0 w-[80vw] sm:w-[45vw] lg:w-auto h-auto snap-center snap-always" 
               onClick={() => openModal('SERVICES', service)}

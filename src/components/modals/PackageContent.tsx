@@ -156,6 +156,27 @@ export const PackageContent = memo(({
   const { settings } = useSettings();
   const whatsappNumber = settings.whatsapp_number || settings.contact_phone || "";
 
+  const servicesList = useMemo(() => {
+    const { SERVICES } = require('../sections/Services');
+    if (settings.services_data) {
+      try {
+        const parsed = JSON.parse(settings.services_data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: any) => {
+            const original = SERVICES.find((s: any) => s.id === item.id);
+            return {
+              ...item,
+              icon: original?.icon || null
+            };
+          });
+        }
+      } catch (e) {
+        console.error("Failed to parse services_data in PackageContent.tsx:", e);
+      }
+    }
+    return SERVICES;
+  }, [settings.services_data]);
+
   const getWhatsAppEnquiryUrl = () => {
     if (!whatsappNumber) return "";
     const isCustomPrice = !!(experience?.isCustom || !experience?.price || experience?.price === 0 || experience?.price === "0");
@@ -380,8 +401,7 @@ Could you please share details on availability and custom options? Thank you!`;
                    <Magnetic key={i} intensity={0.2}>
                      <button 
                        onClick={() => {
-                         const { SERVICES } = require('../sections/Services');
-                         const matchingService = SERVICES.find((s: any) => s.title === cat);
+                         const matchingService = servicesList.find((s: any) => s.title === cat);
                          if (matchingService) openModal('SERVICES', matchingService);
                        }}
                        className="group/badge relative text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/70 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"

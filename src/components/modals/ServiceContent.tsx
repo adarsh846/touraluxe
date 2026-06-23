@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, memo } from "react";
+import { useEffect, useRef, useState, memo, useMemo } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 import { supabase } from "@/lib/supabase";
@@ -28,13 +28,30 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
     const fetchDiscovery = async () => {
       setIsDiscoveryLoading(true);
       try {
-        const { data, error } = await supabase
+        const ORIGINAL_CATEGORIES: Record<number, string> = {
+          1: "Luxury Tours",
+          2: "Group Trips",
+          3: "Adventure Tours",
+          4: "Luxury Honeymoons",
+          5: "MICE Events",
+          6: "Custom Journeys",
+          7: "AI Travel Planner"
+        };
+        const originalCategory = ORIGINAL_CATEGORIES[service.id];
+        
+        let query = supabase
           .from('packages')
           .select('*')
-          .contains('category', [service.title])
           .eq('is_published', true)
           .limit(6);
-        
+
+        if (originalCategory && originalCategory !== service.title) {
+          query = query.or(`category.cs.{"${service.title}"},category.cs.{"${originalCategory}"}`);
+        } else {
+          query = query.contains('category', [service.title]);
+        }
+
+        const { data, error } = await query;
         if (data) setLivePackages(data);
       } catch (err) {
         console.error("Discovery Engine Stall:", err);
@@ -74,7 +91,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden">
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#0a0a0b]">
       <div 
         ref={scrollRef} 
         onScroll={(e) => onScroll(e.currentTarget.scrollTop > 30)}
@@ -83,8 +100,8 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
       >
         {!service ? null : (
           <div 
-          className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
-        >
+            className={`w-full flex flex-col transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] transform-gpu ${isActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-[0.98]'}`}
+          >
             {service.id === 7 ? (
               <div className="flex-1 flex flex-col items-center justify-center min-h-[85vh] bg-[#0a0a0b] px-6 pt-28 pb-16 md:pt-36 md:pb-24 text-center relative overflow-hidden">
                 {/* Glow Background */}
@@ -125,52 +142,74 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col">
-                {/* Hero */}
-                <div className="relative w-full aspect-[16/9] md:aspect-[2.4/1] overflow-hidden bg-[#0a0a0b]">
-                  <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-70 grayscale-[0.2]" priority decoding="async" />
-                  {/* Hyper-Smooth Progressive Blend */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#0a0a0b]" />
-                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/80 to-transparent" />
+              <div className="flex flex-col w-full">
+                
+                {/* Cinematic Fullscreen Hero Banner */}
+                <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0b] flex-shrink-0">
+                  <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-[0.65] grayscale-[0.1]" priority decoding="async" />
+                  
+                  {/* Progressive Atmospheric Gradient & Vignette */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-black/25 to-black/50" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0b]/80 via-transparent to-transparent" />
 
-                  <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50 transition-all duration-700`}>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white drop-shadow-md">Scroll</span>
-                    <svg className="w-5 h-5 text-white drop-shadow-md" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6l4 4 4-4" /></svg>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div ref={contentRef} className="relative z-10 px-8 md:px-10 pb-24 -mt-8 bg-[#0a0a0b] rounded-t-3xl">
-                  <div className="mb-8 mt-8">
-                    <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Our Specialization</span>
-                    <h3 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mt-2">{service.title}</h3>
-                    <p className="text-lg md:text-xl text-[#86868b] font-medium tracking-tight mt-2 italic">{service.tagline}</p>
-                  </div>
-
-                  <div className="mb-10">
-                    <p className="text-[17px] leading-[1.65] text-[#a1a1a6]">{service.fullDesc}</p>
-                  </div>
-
-                  <div className="mb-10">
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b] mb-5">Division Highlights</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                      {service.highlights?.map((item: string, i: number) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="mt-[6px] w-[6px] h-[6px] rounded-full bg-white/40 flex-shrink-0" />
-                          <span className="text-[15px] text-white/70">{item}</span>
-                        </div>
-                      ))}
+                  {/* Title and Tagline overlay inside the Hero viewport */}
+                  <div className="absolute inset-0 flex flex-col justify-end px-[clamp(1.5rem,6vw,4rem)] pb-24 z-25 max-w-7xl mx-auto w-full">
+                    <div className="space-y-4 max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]">
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] text-white/50 block">
+                        Our Specialization
+                      </span>
+                      <h2 className="text-[clamp(2.25rem,6vw,4.5rem)] font-extrabold tracking-tighter text-white leading-none">
+                        {service.title}
+                      </h2>
+                      <p className="text-base md:text-xl text-white/70 font-medium tracking-tight italic">
+                        {service.tagline}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Scroll Indicator */}
+                  <div className="absolute bottom-10 right-[clamp(1.5rem,6vw,4rem)] flex items-center gap-3 animate-pulse pointer-events-none z-30 opacity-60">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white">Scroll</span>
+                    <svg className="w-3.5 h-3.5 text-white animate-bounce" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 6l4 4 4-4" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Content Container */}
+                <div ref={contentRef} className="relative z-10 px-[clamp(1.5rem,6vw,4rem)] py-12 md:py-16 max-w-7xl mx-auto w-full bg-[#0a0a0b]">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start mb-12">
+                    
+                    {/* Left Column: Full Description */}
+                    <div className="lg:col-span-7">
+                      <p className="text-base md:text-[18px] leading-[1.7] text-[#a1a1a6] font-medium">
+                        {service.fullDesc}
+                      </p>
+                    </div>
+
+                    {/* Right Column: Highlights styled as a premium card */}
+                    <div className="lg:col-span-5 bg-white/[0.02] border border-white/5 p-6 md:p-8 rounded-3xl backdrop-blur-xl">
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#86868b] mb-5">Division Highlights</h4>
+                      <div className="space-y-4">
+                        {service.highlights?.map((item: string, i: number) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0" />
+                            <span className="text-xs md:text-sm text-white/70 font-semibold leading-relaxed">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+
                   {/* Discovery Section */}
-                  <div className="mb-12 pt-10 border-t border-white/[0.1]">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="mb-12 pt-12 border-t border-white/[0.08]">
+                    <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-4">
-                        <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Best destinations for {service.title}</h4>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#86868b]">Best destinations for {service.title}</h4>
                       </div>
                       {!isDiscoveryLoading && livePackages.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/20 text-[9px] font-black text-white/60 uppercase tracking-widest animate-pulse">Live</span>
+                        <span className="px-3 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/50 uppercase tracking-widest animate-pulse whitespace-nowrap shrink-0">Live Catalog</span>
                       )}
                     </div>
 
@@ -251,12 +290,13 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                     <Magnetic>
                       <button 
                         onClick={() => openModal('BOOKING', undefined, `SERVICES_CUSTOM_${service.title.toUpperCase().replace(/\s+/g, '_')}`)}
-                        className="whitespace-nowrap px-[clamp(1.5rem,3vw,2.5rem)] py-[clamp(0.75rem,2vw,1.25rem)] rounded-full bg-white text-black text-[clamp(9px,1.5vw,11px)] font-black uppercase tracking-widest hover:bg-white/90 transition-all duration-500 shadow-xl"
+                        className="whitespace-nowrap px-[clamp(1.5rem,3vw,2.5rem)] py-[clamp(0.75rem,2vw,1.25rem)] rounded-full bg-white text-black text-[clamp(9px,1.5vw,11px)] font-black uppercase tracking-widest hover:bg-white/90 transition-all duration-500 shadow-xl font-bold"
                       >
                         Design Your Own Journey
                       </button>
                     </Magnetic>
                   </div>
+
                 </div>
               </div>
             )}
@@ -266,3 +306,4 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
     </div>
   );
 });
+ServiceContent.displayName = "ServiceContent";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2, GripVertical, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -11,6 +11,79 @@ const DEFAULT_ABOUT_STATS = [
   { label: "Execution", value: "Seamless" }
 ];
 
+const DEFAULT_SERVICES = [
+  {
+    id: 1,
+    title: "Luxury Tours",
+    tagline: "Exclusive global access.",
+    desc: "Bespoke luxury journeys across the world’s most exclusive destinations.",
+    fullDesc: "We curate bespoke luxury journeys across the world’s most exclusive destinations—combining personalized itineraries, premium stays, and unforgettable experiences. From secluded Mediterranean villas to private island escapes, every journey is a masterpiece of comfort and discovery.",
+    image: "/luxury_villa_secluded_1777655165196.webp",
+    highlights: ["Personalized Itineraries", "Premium Property Access", "Luxury Urban Transfers", "Visa Concierge Support"],
+    cta: "Book Your Journey"
+  },
+  {
+    id: 2,
+    title: "Group Trips",
+    tagline: "Travel together, luxuriously.",
+    desc: "Luxury backpacking and group journeys for those who seek connection and adventure.",
+    fullDesc: "Inspired by the community spirit of the world's leading group travel sites, our Group Expeditions redefine collective travel. We combine the raw thrill of backpacking with the refinement of TouraLuxe. From shared villas in the Swiss Alps to curated group treks in Patagonia, we ensure you never travel alone while maintaining absolute comfort.",
+    image: "/assets/services/group.png",
+    highlights: ["Fixed-Date Departures", "Curated Group Villas", "Adventure Curation", "Community Events"],
+    cta: "Join an Expedition"
+  },
+  {
+    id: 3,
+    title: "Adventure Tours",
+    tagline: "Luxury at the edge.",
+    desc: "High-altitude trekking, specialized biking, and elite survival experiences.",
+    fullDesc: "For those who demand more than a vacation. Our Extreme division manages the logistics for high-risk, high-reward adventures. Whether it's a private biking expedition across the Spiti Valley or a guided ascent of a 6,000m peak, our precision planning keeps you safe at the edge of the world.",
+    image: "/assets/services/extreme.png",
+    highlights: ["Specialized Gear Logistics", "Elite Mountain Guides", "Off-Road Expeditions", "Satellite Comms Support"],
+    cta: "Start Your Adventure"
+  },
+  {
+    id: 4,
+    title: "Luxury Honeymoons",
+    tagline: "Absolute romantic perfection.",
+    desc: "Choreographed romantic immersions where every detail is executed to achieve flawlessness.",
+    fullDesc: "We craft the perfect beginning to your forever. Every detail—from the precise thread count of your linens to the timing of a private sunset dinner on a deserted sandbank—is choreographed to achieve absolute romantic perfection. Our Eternal Escapes are more than trips; they are immortal immersions in love, curated for those who demand nothing less than a flawless reality.",
+    image: "/assets/services/honeymoon.png",
+    highlights: ["Overwater Villas", "Private Island Dining", "Couples' Wellness", "Bespoke Romance Concierge"],
+    cta: "Plan Your Honeymoon"
+  },
+  {
+    id: 5,
+    title: "MICE Events",
+    tagline: "Corporate excellence redefined.",
+    desc: "World-class Meetings, Incentives, Conferences, and Events across global destinations.",
+    fullDesc: "Our MICE division delivers seamless, high-impact corporate programs that go beyond logistics. From executive board meetings and large-scale global summits to achievement-based incentive travel and gala events, we blend strategic expertise with elevated luxury to create meaningful, results-driven experiences.",
+    image: "/corporate_event_exotic_1777655212281.webp",
+    highlights: ["Global Summit Curation", "Executive Board Meetings", "Corporate Incentive Programs", "Event Management Solutions"],
+    cta: "Plan Your Event"
+  },
+  {
+    id: 6,
+    title: "Custom Journeys",
+    tagline: "Luxury tailored to you.",
+    desc: "Fully customized journeys tailored to your specific preferences and travel style.",
+    fullDesc: "Taking the 'Customized Tours' from our heritage and elevating them to art. We design fully bespoke journeys that reflect your unique interests. From vintage car tours through the Italian countryside to private museum access, we deliver seamless, luxurious experiences crafted just for you.",
+    image: "/assets/services/bespoke.png",
+    highlights: ["Tailored Itineraries", "Private Access Tours", "Boutique Stays", "Personalized Welcome"],
+    cta: "Design Your Tour"
+  },
+  {
+    id: 7,
+    title: "AI Travel Planner",
+    tagline: "Instant luxe itineraries.",
+    desc: "Instant, AI-driven travel planning that learns from your desires.",
+    fullDesc: "Taking the innovation of TouraLuxe to the digital frontier. Our AI Travel Planner uses generative intelligence to build complex itineraries in real-time. Simply describe your mood, and our system will bank the aircraft towards your next dream destination, presenting a fully-costed plan in seconds.",
+    image: "/assets/services/ai.png",
+    highlights: ["Generative Planning", "Instant Price Breakdown", "Dynamic Scenic Sync", "24/7 AI Support"],
+    cta: "Start Planning"
+  }
+];
+
 interface EditorialManagerProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<void>;
@@ -18,11 +91,76 @@ interface EditorialManagerProps {
   addNotification?: (message: string, type: "success" | "error" | "info") => void;
 }
 
+// Helper to parse JSON safely
+const safeParse = (str: string, fallback: any) => {
+  try {
+    return str ? JSON.parse(str) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
+
 export function EditorialManager({ settings, onUpdate, isUpdating, addNotification }: EditorialManagerProps) {
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
   const [activeCategory, setActiveCategory] = useState<"hero" | "about" | "quotes" | "services" | "cta" | "contact" | "discovery" | "portal" | "intelligence">("hero");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useState<HTMLInputElement | null>(null);
+
+  const [selectedServiceId, setSelectedServiceId] = useState(1);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+
+  const currentServicesList = useMemo(() => {
+    return safeParse(localSettings.services_data, DEFAULT_SERVICES);
+  }, [localSettings.services_data]);
+  const handleServiceFieldChange = (serviceId: number, field: string, value: any) => {
+    const list = [...currentServicesList];
+    const index = list.findIndex(s => s.id === serviceId);
+    if (index !== -1) {
+      list[index] = {
+        ...list[index],
+        [field]: value
+      };
+      handleChange("services_data", JSON.stringify(list));
+    }
+  };
+
+  const handleAddDivision = () => {
+    const nextId = currentServicesList.length > 0 
+      ? Math.max(...currentServicesList.map((s: any) => s.id)) + 1 
+      : 1;
+    const newService = {
+      id: nextId,
+      title: `New Division ${nextId}`,
+      tagline: "Exclusive global access.",
+      desc: "A brief description of this new division.",
+      fullDesc: "An immersive description of this new division for the modal view.",
+      image: "/luxury_villa_secluded_1777655165196.webp",
+      highlights: ["Personalized Itineraries", "Premium Access"],
+      cta: "Explore Division"
+    };
+    const list = [...currentServicesList, newService];
+    handleChange("services_data", JSON.stringify(list));
+    setSelectedServiceId(nextId);
+    if (addNotification) {
+      addNotification("New service division added locally. Click 'Sync Division Settings' to persist.", "info");
+    }
+  };
+
+  const handleDeleteDivision = (serviceId: number) => {
+    const list = currentServicesList.filter((s: any) => s.id !== serviceId);
+    handleChange("services_data", JSON.stringify(list));
+    if (list.length > 0) {
+      setSelectedServiceId(list[0].id);
+    }
+    if (addNotification) {
+      addNotification("Service division removed locally. Click 'Sync Division Settings' to persist.", "info");
+    }
+  };
 
   // Discovery Intelligence State
   const [synonyms, setSynonyms] = useState<any[]>([]);
@@ -106,14 +244,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
     { id: "intelligence", label: "Discovery Intelligence" },
   ];
 
-  // Helper to parse JSON safely
-  const safeParse = (str: string, fallback: any) => {
-    try {
-      return str ? JSON.parse(str) : fallback;
-    } catch (e) {
-      return fallback;
-    }
-  };
+
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -496,6 +627,216 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                   isTextArea
                 />
               </div>
+
+              <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-white italic tracking-tight">Service Divisions</h3>
+                  <p className="text-[10px] uppercase tracking-widest text-[#86868b] font-bold">
+                    Edit title, tagline, description, cover image, and highlights for each specialized division.
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleAddDivision}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-amber-400 border border-amber-400/20 bg-amber-400/5 hover:bg-amber-400/10 hover:border-amber-400 transition-all shrink-0 active:scale-[0.98]"
+                >
+                  <Plus size={12} />
+                  Add Category
+                </button>
+              </div>
+
+              {/* Division Selectors */}
+              <div className="flex flex-wrap items-center gap-2 p-2 bg-black/40 rounded-3xl border border-white/[0.05]">
+                {currentServicesList.map((srv: any) => (
+                  <button
+                    key={srv.id}
+                    type="button"
+                    onClick={() => setSelectedServiceId(srv.id)}
+                    className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                      selectedServiceId === srv.id
+                        ? "bg-white text-black shadow-lg scale-[1.02]"
+                        : "text-[#86868b] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {srv.title || `Division ${srv.id}`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Service Form */}
+              {(() => {
+                const srv = currentServicesList.find((s: any) => s.id === selectedServiceId) || currentServicesList[0];
+                if (!srv) return null;
+                return (
+                  <div className="p-6 md:p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.04] space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-4 gap-4">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                          Configure: {srv.title} (Division {srv.id})
+                        </h4>
+                        <span className="text-[9px] uppercase tracking-widest text-[#86868b] font-bold block">
+                          Unsaved edits stay local until synced
+                        </span>
+                      </div>
+                      
+                      {currentServicesList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDialog({
+                            isOpen: true,
+                            title: "Delete Service Category",
+                            message: `Are you sure you want to delete "${srv.title}"? This action will remove the division locally. You will need to sync settings to persist the changes.`,
+                            onConfirm: () => handleDeleteDivision(srv.id)
+                          })}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-red-500/20 hover:border-red-500 bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-[9px] font-black uppercase tracking-widest transition-all"
+                        >
+                          <Trash2 size={12} />
+                          Delete Category
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">Division Title</label>
+                        <input
+                          type="text"
+                          value={srv.title || ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "title", e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">Division Tagline</label>
+                        <input
+                          type="text"
+                          value={srv.tagline || ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "tagline", e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">Short Card Description</label>
+                        <textarea
+                          value={srv.desc || ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "desc", e.target.value)}
+                          className="w-full h-20 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">Full Immersive Description (Modal)</label>
+                        <textarea
+                          value={srv.fullDesc || ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "fullDesc", e.target.value)}
+                          className="w-full h-28 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">Cover Image Path / URL</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={srv.image || ""}
+                            onChange={(e) => handleServiceFieldChange(srv.id, "image", e.target.value)}
+                            placeholder="/luxury_villa_secluded_1777655165196.webp"
+                            className="flex-1 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById(`service-image-upload-${srv.id}`)?.click()}
+                            className="px-5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0"
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5" />
+                            )}
+                            <span>Upload</span>
+                          </button>
+                        </div>
+                        <input
+                          id={`service-image-upload-${srv.id}`}
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsUploading(true);
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            try {
+                              const token = sessionStorage.getItem("admin_token") || "";
+                              const res = await fetch("/api/upload", { 
+                                method: "POST", 
+                                headers: { "x-admin-token": token }, 
+                                body: formData 
+                              });
+                              if (res.ok) {
+                                const { url } = await res.json();
+                                handleServiceFieldChange(srv.id, "image", url);
+                                if (addNotification) {
+                                  addNotification("Image uploaded successfully. Save changes to sync.", "success");
+                                }
+                              } else {
+                                if (addNotification) {
+                                  addNotification("Upload failed.", "error");
+                                }
+                              }
+                            } catch (err) { 
+                              console.error("Service image upload error:", err); 
+                              if (addNotification) {
+                                addNotification("Upload error.", "error");
+                              }
+                            } finally {
+                              setIsUploading(false);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">CTA Button Text</label>
+                        <input
+                          type="text"
+                          value={srv.cta || ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "cta", e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#48484a] block">
+                          Division Highlights (Comma-separated)
+                        </label>
+                        <textarea
+                          value={srv.highlights ? srv.highlights.join(", ") : ""}
+                          onChange={(e) => handleServiceFieldChange(srv.id, "highlights", e.target.value.split(",").map((s: string) => s.trim()))}
+                          placeholder="e.g. Personalized Itineraries, Premium Property Access"
+                          className="w-full h-20 bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => handleSave("services_data")}
+                        disabled={isUpdating}
+                        className="px-8 py-3.5 rounded-full bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-neutral-200 transition-all active:scale-[0.98]"
+                      >
+                        {isUpdating ? "Saving Divisions..." : "Sync Division Settings"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -974,11 +1315,15 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                             </div>
                           </div>
                           <button 
-                            onClick={async () => {
-                              if (!confirm("Delete this synonym mapping?")) return;
-                              const { error } = await supabase.from("search_synonyms").delete().eq("id", row.id);
-                              if (!error) fetchIntelligence();
-                            }}
+                            onClick={() => setConfirmDialog({
+                              isOpen: true,
+                              title: "Delete Synonym Mapping",
+                              message: `Are you sure you want to delete the synonym mapping for "${row.word}"?`,
+                              onConfirm: async () => {
+                                const { error } = await supabase.from("search_synonyms").delete().eq("id", row.id);
+                                if (!error) fetchIntelligence();
+                              }
+                            })}
                             className="p-2 text-[#48484a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                           >
                             <Trash2 size={16} />
@@ -1068,15 +1413,25 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
                               <div key={idx} className="flex justify-between items-start gap-2 text-[12px] text-white/70 bg-white/5 p-2 rounded-lg group">
                                 <p className="leading-relaxed flex-1">"{msg}"</p>
                                 <button 
-                                  onClick={async () => {
+                                  onClick={() => {
                                     const updatedMessages = row.messages.filter((_: string, i: number) => i !== idx);
                                     if (updatedMessages.length === 0) {
-                                      if (!confirm("This will delete the entire intent category. Proceed?")) return;
-                                      await supabase.from("intent_messages").delete().eq("id", row.id);
+                                      setConfirmDialog({
+                                        isOpen: true,
+                                        title: "Delete Intent Category",
+                                        message: `This will delete the entire intent category "${row.intent_key}". Proceed?`,
+                                        onConfirm: async () => {
+                                          await supabase.from("intent_messages").delete().eq("id", row.id);
+                                          fetchIntelligence();
+                                        }
+                                      });
                                     } else {
-                                      await supabase.from("intent_messages").update({ messages: updatedMessages }).eq("id", row.id);
+                                      const performUpdate = async () => {
+                                        await supabase.from("intent_messages").update({ messages: updatedMessages }).eq("id", row.id);
+                                        fetchIntelligence();
+                                      };
+                                      performUpdate();
                                     }
-                                    fetchIntelligence();
                                   }}
                                   className="text-[#48484a] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                                 >
@@ -1095,6 +1450,36 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
             </div>
           )}
         </div>
+        {confirmDialog && confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
+            <div className="w-full max-w-md p-8 rounded-[32px] bg-[#1c1c1e] border border-white/[0.08] shadow-[0_24px_64px_rgba(0,0,0,0.8)] mx-4 transform animate-in zoom-in-95 duration-300 ease-out space-y-6">
+              <div className="space-y-2">
+                <h4 className="text-lg font-bold text-white tracking-tight">{confirmDialog.title}</h4>
+                <p className="text-xs text-white/50 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-6 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:bg-white/5 text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await confirmDialog.onConfirm();
+                    setConfirmDialog(null);
+                  }}
+                  className="px-6 py-2.5 rounded-full bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
