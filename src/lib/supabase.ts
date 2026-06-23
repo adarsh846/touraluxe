@@ -59,9 +59,10 @@ export type Package = {
   itinerary_url?: string;
   flights_status?: 'included' | 'excluded' | 'on_request';
   flight_price_estimate?: string;
-  is_airfare_taxable?: boolean;
   departure_cities?: string[];
   destinations_covered?: string;
+  // Note: flights_status, flight_price_estimate, departure_cities, and destinations_covered 
+  // are serialized inside the itinerary_url JSON column in the database.
 };
 
 export type Destination = {

@@ -146,6 +146,14 @@ export function Navbar() {
           {/* Desktop Action Buttons */}
           <div className="hidden xl:flex items-center gap-4">
             <Magnetic>
+              <button
+                onClick={() => openModal('PORTAL')}
+                className="text-[11px] font-semibold tracking-[0.15em] uppercase transition-all hover:text-white bg-transparent border-none outline-none cursor-none opacity-60 hover:opacity-100 mr-2"
+              >
+                Track Your Booking
+              </button>
+            </Magnetic>
+            <Magnetic>
               <div className="relative group">
                 <div className="absolute inset-0 bg-black/60 blur-xl rounded-full translate-y-2 scale-90 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <button
@@ -222,7 +230,7 @@ export function Navbar() {
 
             <div
               className={cn(
-                "mt-[clamp(2.5rem,6vw,5rem)] pt-[clamp(2rem,4vw,4rem)] border-t border-white/10 transition-all duration-500 flex flex-col gap-[clamp(1rem,3vw,2rem)]",
+                "mt-[clamp(2.5rem,6vw,5rem)] pt-[clamp(2rem,4vw,4rem)] border-t border-white/10 transition-all duration-500 flex flex-col sm:flex-row gap-4",
                 isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
               style={{ transitionDelay: isMobileMenuOpen ? "320ms" : "0ms" }}
@@ -230,9 +238,17 @@ export function Navbar() {
               <Magnetic>
                 <button
                   onClick={() => { openBooking(undefined, "NAVBAR_MOBILE_CTA"); setIsMobileMenuOpen(false); }}
-                  className="rounded-full bg-white px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11px,1.5vw,16px)] font-bold uppercase tracking-wider text-black transition-transform hover:scale-105"
+                  className="flex-1 rounded-full bg-white px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-black transition-transform hover:scale-105 text-center"
                 >
                   Book Now
+                </button>
+              </Magnetic>
+              <Magnetic>
+                <button
+                  onClick={() => { openModal('PORTAL'); setIsMobileMenuOpen(false); }}
+                  className="flex-1 rounded-full bg-white/5 border border-white/10 px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-white/70 transition-transform hover:scale-105 text-center hover:bg-white/15 hover:text-white"
+                >
+                  Track Your Booking
                 </button>
               </Magnetic>
             </div>

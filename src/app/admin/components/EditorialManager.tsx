@@ -102,7 +102,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
     { id: "cta", label: "Final CTA" },
     { id: "contact", label: "Contact & Footer" },
     { id: "discovery", label: "Discovery Atmosphere" },
-    { id: "portal", label: "Traveler Portal" },
+    { id: "portal", label: "Track Your Booking" },
     { id: "intelligence", label: "Discovery Intelligence" },
   ];
 
@@ -806,7 +806,7 @@ export function EditorialManager({ settings, onUpdate, isUpdating, addNotificati
 
           {activeCategory === "portal" && (
             <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <SectionHeader title="Traveler Portal" description="The visual backdrop of the authenticated traveler experience." />
+              <SectionHeader title="Track Your Booking" description="The visual backdrop of the authenticated traveler experience." />
               <div className="grid grid-cols-1 gap-6 md:gap-8">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center px-1">

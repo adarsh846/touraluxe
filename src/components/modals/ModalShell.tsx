@@ -17,6 +17,7 @@ import { AboutContent } from "@/components/modals/AboutContent";
 import { PackageContent } from "@/components/modals/PackageContent";
 
 import { ContactContent } from "@/components/modals/ContactContent";
+import { PortalContent } from "@/components/modals/PortalContent";
 
 export function ModalShell() {
 
@@ -505,6 +506,23 @@ export function ModalShell() {
           >
             {visitedViews['CONTACT'] && (
               <ContactContent isActive={activeView === 'CONTACT'} onScroll={handleScroll} startClosing={startClosing} />
+            )}
+          </div>
+
+          {/* Portal Layer */}
+          <div 
+            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
+              ${activeView === 'PORTAL' 
+                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
+                : direction === 'forward' 
+                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
+                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
+          >
+            {visitedViews['PORTAL'] && (
+              <PortalContent 
+                isActive={activeView === 'PORTAL'} 
+                onScroll={handleScroll} 
+              />
             )}
           </div>
 

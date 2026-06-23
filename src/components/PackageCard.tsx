@@ -23,6 +23,7 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
   const pricing = computePrice(pkg);
   const difficulty = (pkg as any).difficulty_level;
   const routeStart = (pkg as any).route_start;
+  const routeEnd = (pkg as any).route_end;
 
   return (
     <Magnetic intensity={0.08} className="block w-full">
@@ -47,7 +48,7 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
           
           {/* Status Badges Layer */}
           <PackageBadges pkg={pkg} pricing={pricing} size="sm" />
-
+ 
           {/* Core Content Overlay */}
           <div className="absolute inset-0 p-5 md:p-6 pb-6 md:pb-8 flex flex-col justify-end">
             <div className="flex items-end justify-between gap-4">
@@ -60,7 +61,7 @@ export function PackageCard({ pkg, onClick, index = 0 }: PackageCardProps) {
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <MapPin size={10} className="shrink-0" />
                       <p className="text-[9px] font-black uppercase tracking-[0.2em] truncate">
-                        {routeStart || pkg.location}
+                        {routeStart ? `${routeStart}${routeEnd ? ` ➔ ${routeEnd}` : ""}` : pkg.location}
                       </p>
                     </div>
                   <div className="flex flex-col gap-1.5">

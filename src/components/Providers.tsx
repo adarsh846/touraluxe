@@ -11,7 +11,6 @@ import { usePathname } from "next/navigation";
 import { BookingProvider } from "./BookingProvider";
 
 import { ModalShell } from "./modals/ModalShell";
-import { WhatsAppButton } from "./WhatsAppButton";
 import { getSettings } from "@/lib/settingsCache";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -102,7 +101,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <BookingProvider>
       {children}
       <ModalShell />
-      {!isAdmin && whatsappNumber && pathname !== "/" && <WhatsAppButton phoneNumber={whatsappNumber} />}
     </BookingProvider>
   );
 }

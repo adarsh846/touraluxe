@@ -68,7 +68,13 @@ export function useGlobalSettings() {
       };
       const anchor = getAviationAnchor();
 
-      const taxRate = parseFloat(pkg?.tax_percentage ?? anchor?.tax_percentage ?? "0");
+      // ── SAFE INT PARSER — never returns NaN ──
+      const safeInt = (val: any): number => {
+        const n = parseInt(String(val ?? "").replace(/[^0-9]/g, ""));
+        return isNaN(n) ? 0 : n;
+      };
+
+      const taxRate = parseFloat(pkg?.tax_percentage ?? anchor?.tax_percentage ?? "0") || 0;
       const symbol = settings.currency_symbol || pkg?.currency || "₹";
 
       if (!pkg?.price) {
@@ -82,7 +88,7 @@ export function useGlobalSettings() {
       }
 
       // ── PARSE RAW INPUTS ──
-      let base = parseInt(String(pkg.price).replace(/[^0-9]/g, "")) || 0;
+      let base = safeInt(pkg.price);
 
       // ── TIERED PRICING ARCHITECTURE ──
       let activeTier: any = null;
@@ -104,14 +110,14 @@ export function useGlobalSettings() {
         
         for (const key of keys) {
           if (key === String(totalPax)) {
-            matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+            matchedPrice = safeInt(activeTier.pax_prices[key]);
             matched = true;
             break;
           }
           if (key.includes('-')) {
             const [min, max] = key.split('-').map(Number);
             if (totalPax >= min && totalPax <= max) {
-              matchedPrice = parseInt(String(activeTier.pax_prices[key]).replace(/[^0-9]/g, "")) || 0;
+              matchedPrice = safeInt(activeTier.pax_prices[key]);
               matched = true;
               break;
             }
@@ -131,14 +137,14 @@ export function useGlobalSettings() {
           let found = false;
           for (const pk of parsedKeys) {
             if (totalPax <= pk.max) {
-              matchedPrice = parseInt(String(activeTier.pax_prices[pk.key]).replace(/[^0-9]/g, "")) || 0;
+              matchedPrice = safeInt(activeTier.pax_prices[pk.key]);
               found = true;
               break;
             }
           }
           if (!found) {
             const lastKey = parsedKeys[parsedKeys.length - 1].key;
-            matchedPrice = parseInt(String(activeTier.pax_prices[lastKey]).replace(/[^0-9]/g, "")) || 0;
+            matchedPrice = safeInt(activeTier.pax_prices[lastKey]);
           }
         }
         
@@ -147,16 +153,15 @@ export function useGlobalSettings() {
         }
       }
 
-      // No hardcoded fallbacks: Default to full adult rate if specific tier pricing is missing
       const childBase = pkg.child_price && pkg.child_price !== "0"
-        ? (parseInt(String(pkg.child_price).replace(/[^0-9]/g, "")) || 0)
+        ? safeInt(pkg.child_price)
         : base;
         
       const infantBase = pkg.infant_price && pkg.infant_price !== "0"
-        ? (parseInt(String(pkg.infant_price).replace(/[^0-9]/g, "")) || 0)
+        ? safeInt(pkg.infant_price)
         : base;
 
-      const originalBase = parseInt(String(pkg.original_price || "0").replace(/[^0-9]/g, "")) || 0;
+      const originalBase = safeInt(pkg.original_price || "0");
 
       // ── RESILIENT STATUS CHECK ──
       const taxStatus = String(pkg?.tax_status || "").toLowerCase();
@@ -174,13 +179,13 @@ export function useGlobalSettings() {
       const isExcluded = currentStatus === 'excluded';
       
       const rawAdultEstimate = anchor?.estimate || pkg.flight_price_estimate || "0";
-      const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
+      const flightAdult = isExcluded ? 0 : safeInt(rawAdultEstimate);
       
       const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
       const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
 
-      const flightChild = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
-      const flightInfant = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
+      const flightChild = isExcluded ? 0 : (rawChildFare ? safeInt(rawChildFare) : flightAdult);
+      const flightInfant = isExcluded ? 0 : (rawInfantFare ? safeInt(rawInfantFare) : flightAdult);
 
       const perAdultFinal = landAdult + flightAdult;
       const perChildFinal = landChild + flightChild;

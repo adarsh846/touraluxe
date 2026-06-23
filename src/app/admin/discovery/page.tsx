@@ -181,7 +181,7 @@ export default function DiscoveryAdmin() {
             onClick={() => router.push("/admin/dashboard")} 
             className="px-5 py-2 rounded-full bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-[#f5f5f7] transition-all active:scale-95"
           >
-            ← Dashboard
+            ← Back
           </button>
         </div>
       </header>

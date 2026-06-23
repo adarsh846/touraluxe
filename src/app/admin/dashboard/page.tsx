@@ -403,13 +403,17 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2 md:gap-8 min-w-0">
             <nav className="flex items-center bg-[#1c1c1e] p-0.5 rounded-full border border-white/[0.05] shadow-inner sm:max-w-none">
-              {["catalog", "bookings", "content"].map((v) => (
+              {[
+                { value: "catalog", label: "catalog" },
+                { value: "bookings", label: "bookings" },
+                { value: "content", label: "customisation" }
+              ].map((tab) => (
                 <button 
-                  key={v} 
-                  onClick={() => setView(v as any)} 
-                  className={`px-2.5 md:px-6 py-1 md:py-2 rounded-full text-[8.5px] md:text-[13px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${view === v ? "bg-white text-black shadow-2xl scale-[1.02]" : "text-[#86868b] hover:text-white"}`}
+                  key={tab.value} 
+                  onClick={() => setView(tab.value as any)} 
+                  className={`px-2.5 md:px-6 py-1 md:py-2 rounded-full text-[8.5px] md:text-[13px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${view === tab.value ? "bg-white text-black shadow-2xl scale-[1.02]" : "text-[#86868b] hover:text-white"}`}
                 >
-                  {v}
+                  {tab.label}
                 </button>
               ))}
             </nav>
@@ -425,31 +429,36 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-[1200px] mx-auto px-4 md:px-8 pt-24 md:pt-32 pb-16">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-16 animate-in fade-in duration-700">
-          {view === "catalog" ? (
-            <>
-              <StatCard label="Total Journeys" value={packages.length} />
-              <StatCard label="Live on Site" value={packages.filter(p => p.is_published).length} />
-              <StatCard label="Draft Items" value={packages.filter(p => !p.is_published).length} />
-              <StatCard label="Destinations" value={new Set(packages.map(p => p.location)).size} />
-            </>
-          ) : (
-            <>
-              <StatCard label="Total Bookings" value={bookings.length} />
-              <StatCard label="Confirmed" value={bookings.filter(b => b.status === 'confirmed').length} />
-              <StatCard label="Gross Revenue" value={`₹${bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0).toLocaleString()}`} />
-              <StatCard label="Total Travelers" value={bookings.reduce((sum, b) => sum + (b.traveler_count || 0), 0)} />
-            </>
-          )}
-        </div>
+        {view !== "content" && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-16 animate-in fade-in duration-700">
+            {view === "catalog" ? (
+              <>
+                <StatCard label="Total Journeys" value={packages.length} />
+                <StatCard label="Live on Site" value={packages.filter(p => p.is_published).length} />
+                <StatCard label="Draft Items" value={packages.filter(p => !p.is_published).length} />
+                <StatCard label="Destinations" value={new Set(packages.map(p => p.destination).filter(Boolean)).size} />
+              </>
+            ) : (
+              <>
+                <StatCard label="Total Bookings" value={bookings.length} />
+                <StatCard label="Confirmed" value={bookings.filter(b => b.status === 'confirmed').length} />
+                <StatCard label="Gross Revenue" value={`₹${bookings.reduce((sum, b) => sum + (Number(b.total_amount) || 0), 0).toLocaleString()}`} />
+                <StatCard label="Total Travelers" value={bookings.reduce((sum, b) => sum + (b.traveler_count || 0), 0)} />
+              </>
+            )}
+          </div>
+        )}
 
 
 
         {view === "catalog" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight italic">Experience Catalog</h2>
-              <div className="flex items-center gap-1.5 md:gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-12">
+              <div>
+                <h1 className="text-3xl md:text-5xl font-semibold tracking-tight mb-2">Manage Packages</h1>
+                <p className="text-white/30 text-sm">Create, publish, edit, and manage tour itineraries.</p>
+              </div>
+              <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
                 <button onClick={() => router.push("/admin/destinations")} className="flex-1 sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] md:text-[13px] font-bold hover:bg-white/10 transition-all whitespace-nowrap">Destinations</button>
                 <button onClick={() => router.push("/admin/batch-dates")} className="flex-1 sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] md:text-[13px] font-bold hover:bg-white/10 transition-all whitespace-nowrap">Batches</button>
                 <button onClick={() => router.push("/admin/packages/new")} className="flex-[1.2] sm:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-full bg-white text-black text-[10px] md:text-[13px] font-bold whitespace-nowrap">+ New</button>
@@ -509,7 +518,10 @@ export default function AdminDashboard() {
           </div>
         ) : view === "bookings" ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight italic uppercase mb-8">Flight Manifests</h2>
+            <div className="mb-12">
+              <h1 className="text-3xl md:text-5xl font-semibold tracking-tight mb-2">Bookings</h1>
+              <p className="text-white/30 text-sm">Track customer booking status, travelers, and payment transactions.</p>
+            </div>
             
             {/* Mobile Manifest Cards (sm only) */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
@@ -590,32 +602,38 @@ export default function AdminDashboard() {
             </div>
           </div>
         ) : (
-          <EditorialManager 
-            settings={settings} 
-            isUpdating={isUpdatingSettings} 
-            addNotification={addNotification}
-            onUpdate={async (key, value) => {
-              const token = getToken();
-              if (!token) return;
-              setIsUpdatingSettings(true);
-              try {
-                const res = await fetch("/api/settings", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json", "x-admin-token": token },
-                  body: JSON.stringify({ key, value })
-                });
-                if (res.ok) {
-                  setSettings(prev => ({ ...prev, [key]: value }));
-                  addNotification(`${key.replace(/_/g, ' ')} updated successfully.`, "success");
-                } else {
-                  addNotification("Failed to update setting.", "error");
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-12">
+              <h1 className="text-3xl md:text-5xl font-semibold tracking-tight mb-2">UI Customisation Studio</h1>
+              <p className="text-white/30 text-sm">Manage editorial copy, brand stories, quotes, and atmosphere assets.</p>
+            </div>
+            <EditorialManager 
+              settings={settings} 
+              isUpdating={isUpdatingSettings} 
+              addNotification={addNotification}
+              onUpdate={async (key, value) => {
+                const token = getToken();
+                if (!token) return;
+                setIsUpdatingSettings(true);
+                try {
+                  const res = await fetch("/api/settings", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json", "x-admin-token": token },
+                    body: JSON.stringify({ key, value })
+                  });
+                  if (res.ok) {
+                    setSettings(prev => ({ ...prev, [key]: value }));
+                    addNotification(`${key.replace(/_/g, ' ')} updated successfully.`, "success");
+                  } else {
+                    addNotification("Failed to update setting.", "error");
+                  }
+                } catch (err) {
+                  addNotification("Network error occurred.", "error");
                 }
-              } catch (err) {
-                addNotification("Network error occurred.", "error");
-              }
-              setIsUpdatingSettings(false);
-            }}
-          />
+                setIsUpdatingSettings(false);
+              }}
+            />
+          </div>
         )}
       </main>
 

@@ -20,7 +20,8 @@ import {
   Diamond,
   LockKeyhole,
   ChevronDown,
-  ShieldCheck
+  ShieldCheck,
+  Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -244,6 +245,7 @@ export const BookingContent = memo(function BookingContent({
   const [notes, setNotes] = useState("");
   const [departureCity, setDepartureCity] = useState("");
   const [includeFlights, setIncludeFlights] = useState(false);
+  const [showFlightDetails, setShowFlightDetails] = useState(false);
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
@@ -766,10 +768,12 @@ export const BookingContent = memo(function BookingContent({
       kids,
       infants,
       totalInvestment,
-      isCustom: !!internalPackage?.isCustom,
+      isCustom: !!(internalPackage?.isCustom || !internalPackage?.price || internalPackage?.price === 0 || internalPackage?.price === "0"),
     });
   }, [
     internalPackage?.title,
+    internalPackage?.price,
+    internalPackage?.isCustom,
     destination,
     startDate,
     endDate,
@@ -777,9 +781,25 @@ export const BookingContent = memo(function BookingContent({
     kids,
     infants,
     totalInvestment,
-    internalPackage?.isCustom,
     setBookingDetails,
   ]);
+
+  const getFlightTerms = useCallback(() => {
+    const pkg = internalPackage || packageData;
+    if (!pkg) return null;
+    try {
+      const anchor = pkg.itinerary_url;
+      if (anchor && anchor.includes('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed?.flight_terms && parsed.flight_terms.trim()) {
+          return parsed.flight_terms.trim() as string;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing flight terms:", e);
+    }
+    return null;
+  }, [internalPackage, packageData]);
 
   const getPaxBreakdown = useCallback((type: 'adult' | 'child' | 'infant') => {
     const pkg = internalPackage || packageData;
@@ -1204,6 +1224,9 @@ export const BookingContent = memo(function BookingContent({
           const formattedEnd = formatDateForDisplay(endDate);
           const totalGuests = adults + kids + infants;
           const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
+          
+          const isCustomPrice = !!(internalPackage?.isCustom || !internalPackage?.price || internalPackage?.price === 0 || internalPackage?.price === "0");
+          const investmentText = isCustomPrice ? "Upon Request" : totalInvestment;
 
           const text = `Hi TouraLuxe!
 
@@ -1215,7 +1238,7 @@ I have successfully submitted my booking inquiry.
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
 - Departure Hub: ${departureCity || "Not Specified"}
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
+- Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
 
@@ -1244,6 +1267,9 @@ Please confirm my booking. Thank you!`;
     const totalGuests = adults + kids + infants;
     const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
     
+    const isCustomPrice = !!(internalPackage?.isCustom || !internalPackage?.price || internalPackage?.price === 0 || internalPackage?.price === "0");
+    const investmentText = isCustomPrice ? "Upon Request" : totalInvestment;
+
     const text = `Hi TouraLuxe!
 
 I'm interested in booking a luxury journey.
@@ -1253,7 +1279,7 @@ I'm interested in booking a luxury journey.
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
 - Departure Hub: ${departureCity || "Not Specified"}
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
+- Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Name: ${customerName}
 Email: ${customerEmail}
@@ -1273,6 +1299,9 @@ Looking forward to handcrafting this experience!`;
     const totalGuests = adults + kids + infants;
     const guestBreakdown = `${adults} Adult${adults > 1 ? 's' : ''}${kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
 
+    const isCustomPrice = !!(internalPackage?.isCustom || !internalPackage?.price || internalPackage?.price === 0 || internalPackage?.price === "0");
+    const investmentText = isCustomPrice ? "Upon Request" : totalInvestment;
+
     const text = `Hi TouraLuxe!
 
 I have successfully submitted my booking inquiry. 
@@ -1283,7 +1312,7 @@ I have successfully submitted my booking inquiry.
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
 - Departure Hub: ${departureCity || "Not Specified"}
-- Investment: ${internalPackage?.isCustom ? "Upon Request" : totalInvestment}${notes ? `\n- Special Requests: ${notes}` : ""}
+- Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
 
@@ -2236,56 +2265,6 @@ Please confirm my booking. Thank you!`;
                                       </div>
                                     </div>
 
-                                    {/* Section 1.5: Flight Concierge Details */}
-                                    {(internalPackage?.flights_status === 'included' || internalPackage?.flights_status === 'on_request') && (
-                                      <div className="space-y-6 md:space-y-8 p-6 rounded-3xl bg-white/[0.03] border border-white/[0.06] animate-in fade-in slide-in-from-top-4 duration-700">
-                                        <div className="flex items-center justify-between">
-                                          <div className="space-y-1">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Flight Concierge</span>
-                                            <p className="text-[9px] text-white/40 uppercase tracking-widest">Help us find the best routes for you</p>
-                                          </div>
-                                          <button 
-                                            type="button"
-                                            onClick={() => setIncludeFlights(!includeFlights)}
-                                            className={cn(
-                                              "px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all",
-                                              includeFlights ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white/5 border-white/10 text-white/40"
-                                            )}
-                                          >
-                                            {includeFlights ? "Assistance Requested" : "Land Only"}
-                                          </button>
-                                        </div>
-
-                                        {includeFlights && (
-                                          <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                                            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/50">Departure City / Hub</span>
-                                            <div className="flex flex-wrap gap-2">
-                                              {internalPackage?.departure_cities?.map((city: string) => (
-                                                <button
-                                                  key={city}
-                                                  type="button"
-                                                  onClick={() => setDepartureCity(city)}
-                                                  className={cn(
-                                                    "px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all",
-                                                    departureCity === city ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30"
-                                                  )}
-                                                >
-                                                  {city}
-                                                </button>
-                                              ))}
-                                              <input
-                                                type="text"
-                                                value={internalPackage?.departure_cities?.includes(departureCity) ? "" : departureCity}
-                                                onChange={(e) => setDepartureCity(e.target.value)}
-                                                placeholder={internalPackage?.departure_cities?.length ? "Other city..." : "Enter departure city"}
-                                                className="bg-transparent border-b border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 px-2 min-w-[150px]"
-                                              />
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
                                     <div className="space-y-4 group/contact min-w-0">
                                       <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
                                         Contact Information
@@ -2300,15 +2279,11 @@ Please confirm my booking. Thank you!`;
                                             className="w-full bg-transparent text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
                                           />
                                         </div>
-                                        
                                         {/* Contact Number with Country Selector */}
                                         <div className="flex-1 flex items-center gap-3 h-10 border-b border-white/20 group/phone focus-within:border-white/50 transition-all relative w-full">
                                           <div className="relative mb-1">
-                                            <div 
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCountryMenuOpen(!countryMenuOpen);
-                                              }}
+                                            <div
+                                              onClick={(e) => { e.stopPropagation(); setCountryMenuOpen(!countryMenuOpen); }}
                                               className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all active:scale-95 bg-white/5"
                                             >
                                               <span className="text-xs">{selectedCountry.flag}</span>
@@ -2349,6 +2324,74 @@ Please confirm my booking. Thank you!`;
                                     </div>
                                   </div>
                                 </div>
+
+                                  {/* Section 1.5: Flight Concierge — full-width row */}
+                                  {internalPackage && (
+                                    <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        {internalPackage?.flights_status === 'included' ? (
+                                          <>
+                                            <div className="space-y-0.5">
+                                              <h4 className="text-xs md:text-sm font-semibold tracking-tight text-white/95">Flight Concierge</h4>
+                                              <p className="text-[11px] md:text-xs text-emerald-400/80 font-light leading-relaxed">Return flights are fully included in this package price</p>
+                                            </div>
+                                            <div className="relative flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                                              <div className="h-8 px-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest select-none whitespace-nowrap flex items-center justify-center">Included</div>
+                                              {getFlightTerms() && (
+                                                <>
+                                                  <button type="button" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
+                                                  {showFlightDetails && (
+                                                    <div className="absolute right-0 top-full mt-3 w-72 p-4 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-[200] animate-in fade-in slide-in-from-top-2 duration-300 text-left">
+                                                      <div className="absolute -top-1.5 right-[10px] w-3 h-3 bg-[#0a0a0c] border-t border-l border-white/10 rotate-45" />
+                                                      <div className="space-y-2.5"><span className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[9.5px] leading-relaxed text-white/60">{getFlightTerms()!.split('\n').filter((l:string)=>l.trim()).map((l:string,i:number)=><p key={i}>{l.startsWith('•')||l.startsWith('-')?l:`• ${l}`}</p>)}</div></div>
+                                                    </div>
+                                                  )}
+                                                </>
+                                              )}
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="space-y-0.5">
+                                              <h4 className="text-xs md:text-sm font-semibold tracking-tight text-white/95">Flight Concierge</h4>
+                                              <p className="text-[11px] md:text-xs text-white/40 font-light leading-relaxed">{internalPackage?.flights_status === 'on_request' ? "Flights can be arranged upon request" : "Flights are optional and can be added to your booking"}</p>
+                                            </div>
+                                            <div className="relative flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
+                                              <div className="flex p-1 rounded-full bg-white/5 border border-white/10 items-center">
+                                                <button type="button" onClick={() => { setIncludeFlights(false); setDepartureCity(""); }} className={cn("h-7 px-3.5 rounded-full text-[8.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center", !includeFlights ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60")}>Land Only</button>
+                                                <button type="button" onClick={() => setIncludeFlights(true)} className={cn("h-7 px-3.5 rounded-full text-[8.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center", includeFlights ? "bg-emerald-500 text-black shadow-sm" : "text-white/40 hover:text-white/60")}>Add Flights</button>
+                                              </div>
+                                              {getFlightTerms() && (
+                                                <>
+                                                  <button type="button" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
+                                                  {showFlightDetails && (
+                                                    <div className="absolute right-0 top-full mt-3 w-72 p-4 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-[200] animate-in fade-in slide-in-from-top-2 duration-300 text-left">
+                                                      <div className="absolute -top-1.5 right-[10px] w-3 h-3 bg-[#0a0a0c] border-t border-l border-white/10 rotate-45" />
+                                                      <div className="space-y-2.5"><span className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[9.5px] leading-relaxed text-white/60">{getFlightTerms()!.split('\n').filter((l:string)=>l.trim()).map((l:string,i:number)=><p key={i}>{l.startsWith('•')||l.startsWith('-')?l:`• ${l}`}</p>)}</div></div>
+                                                    </div>
+                                                  )}
+                                                </>
+                                              )}
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                      {/* Departure city smooth expand */}
+                                      <div className={cn("grid transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]", includeFlights ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                                        <div className="overflow-hidden">
+                                          <div className="space-y-3 pt-4">
+                                            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/50">Where will you be flying from?</span>
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                              {internalPackage?.departure_cities?.map((city: string) => (
+                                                <button key={city} type="button" onClick={() => setDepartureCity(city)} className={cn("px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all", departureCity === city ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30")}>{city}</button>
+                                              ))}
+                                              <input type="text" value={departureCity} onChange={(e) => setDepartureCity(e.target.value)} placeholder="Enter departure city..." className="bg-transparent border-b border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 px-2 py-1 min-w-[150px]" />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
 
                                 {/* Section 2: Group Manifesto (If > 1 Guest and not custom package) */}
                                 {(adults > 1 || kids > 0 || infants > 0) && !internalPackage?.isCustom && (
@@ -3138,10 +3181,14 @@ Please confirm my booking. Thank you!`;
                       }}
                       disabled={isSubmitting || !isPhaseValid}
                       className={cn(
-                        "group/btn relative overflow-hidden h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-auto rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none",
+                        "group/btn relative overflow-hidden h-10 md:h-12 xl:h-14 rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none",
+                        (internalPackage?.isCustom || step === 2) ? "w-auto px-6 md:px-8 xl:px-10" : "w-10 h-10 md:h-12 md:w-12 xl:h-14 xl:w-auto",
                         isPhaseValid 
                           ? (step === 2
-                              ? "bg-[#25D366] text-black shadow-[0_15px_40px_-10px_rgba(37,211,102,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(37,211,102,0.5)] opacity-100"
+                              ? (internalPackage?.isCustom 
+                                  ? "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100"
+                                  : "bg-[#25D366] text-black shadow-[0_15px_40px_-10px_rgba(37,211,102,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(37,211,102,0.5)] opacity-100"
+                                )
                               : "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100"
                             )
                           : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
@@ -3149,11 +3196,17 @@ Please confirm my booking. Thank you!`;
                       )}
                     >
                       <div className="relative z-10 flex items-center justify-center gap-0 xl:gap-2.5">
-                        {step === 2 && (
+                        {step === 2 && !internalPackage?.isCustom && (
                           <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-5 h-5 object-contain shrink-0 mr-1 xl:mr-0" />
                         )}
-                        <span className="hidden xl:block text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700">
-                          {step === 2 ? (isSubmitting ? "Orchestrating..." : "Book via WhatsApp") : 
+                        <span className={cn(
+                          "text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700",
+                          !(internalPackage?.isCustom || step === 2) && "hidden xl:block"
+                        )}>
+                          {step === 2 ? 
+                           (isSubmitting ? "Orchestrating..." : 
+                            (internalPackage?.isCustom ? `Inquire for ${internalPackage?.title || destination} Journey` : "Book via WhatsApp")
+                           ) : 
                            discoveryPhase === 4 ? (internalPackage?.isCustom ? "Review Details" : "Review Selection") : 
                            discoveryPhase === 3 ? (internalPackage?.isCustom ? "Preferences" : "Define Manifest") : "Next"}
                         </span>
@@ -3168,7 +3221,7 @@ Please confirm my booking. Thank you!`;
 
                       <div className={cn(
                         "absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity",
-                        step === 2
+                        (step === 2 && !internalPackage?.isCustom)
                           ? "bg-gradient-to-r from-[#25D366] via-[#35e376] to-[#25D366]"
                           : "bg-gradient-to-r from-white via-white/80 to-white"
                       )} />

@@ -94,6 +94,7 @@ export function Footer() {
             <Magnetic><button onClick={() => scrollToSection("quotes")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Philosophy</button></Magnetic>
             <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
             <Magnetic><button onClick={() => openModal('CONTACT', null, 'FOOTER_CONTACT_BTN')} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
+            <Magnetic><button onClick={() => openModal('PORTAL')} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Track Your Booking</button></Magnetic>
             <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Terms & Conditions</button></Magnetic>
           </div>
         </div>

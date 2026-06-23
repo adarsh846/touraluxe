@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         route_end: body.route_end || null,
         difficulty_level: body.difficulty_level || "Easy",
         min_group_size: body.min_group_size ?? 1,
-        max_group_size: body.max_group_size ?? 20,
+        max_group_size: body.max_group_size != null ? Math.min(20, Math.max(1, Number(body.max_group_size))) : null,
         gallery: body.gallery || [],
         faq: body.faq || [],
         tags: body.tags || [],

@@ -1,799 +1,570 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth, Profile } from "@/components/AuthProvider";
+import { useEffect, useRef, useState, memo, useMemo } from "react";
+import Image from "next/image";
+import { Magnetic } from "../Magnetic";
 import { 
-  User, Mail, Phone, MapPin, Utensils, Crown, LogOut, 
-  Loader2, Check, Compass, Calendar, AlertCircle, FileText, Send,
-  Globe, Heart, ChevronDown
+  Search, 
+  Compass, 
+  Lock, 
+  User, 
+  Calendar, 
+  MapPin, 
+  CreditCard, 
+  ArrowRight, 
+  Clock, 
+  Plane, 
+  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  RotateCcw,
+  MessageSquare
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { getSettings } from "@/lib/settingsCache";
-import { cn } from "@/lib/utils";
+import { useSettings } from "@/hooks/useSettings";
 
-export function PortalContent({ isActive, onScroll }: { isActive: boolean; onScroll: (scrolled: boolean) => void }) {
-  const { user, profile, loading: authLoading, signInWithOtp, signInWithGoogle, signOut, updateProfile } = useAuth();
-  const [email, setEmail] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+interface TrackingBooking {
+  id: string;
+  created_at: string;
+  package_name: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  traveler_count: number;
+  total_amount: number;
+  status: string;
+  special_requests: string;
+  booking_source: string;
+}
 
-  // Traveler preferences form state
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [departureCity, setDepartureCity] = useState("");
-  const [dietary, setDietary] = useState("");
-  const [travelClass, setTravelClass] = useState<'Economy' | 'Premium Economy' | 'Business' | 'First'>("Economy");
+export const PortalContent = memo(function PortalContent({ 
+  isActive 
+}: { 
+  isActive: boolean; 
+  onScroll?: (scrolled: boolean) => void;
+}) {
+  const { settings } = useSettings();
+
+  // Search Credentials States
+  const [referenceId, setReferenceId] = useState("TRX-");
+  const [verificationType, setVerificationType] = useState<"email" | "phone">("email");
+  const [verificationValue, setVerificationValue] = useState("");
   
-  // Standard travel industry states
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("");
-  const [passportNumber, setPassportNumber] = useState("");
-  const [passportExpiry, setPassportExpiry] = useState("");
-  const [nationality, setNationality] = useState("");
-  const [emergencyContactName, setEmergencyContactName] = useState("");
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  // Phone inputs flag helper
+  const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
 
-  // Bookings list state
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [bookingsLoading, setBookingsLoading] = useState(false);
+  // Flow control states
+  const [loading, setLoading] = useState(false);
+  const [booking, setBooking] = useState<TrackingBooking | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Background image from admin
-  const [bgImage, setBgImage] = useState<string | null>(null);
-  const [bgLoaded, setBgLoaded] = useState(false);
-
-  // Sync preferences state when profile loads
-  useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || "");
-      setPhone(profile.phone || "");
-      setDepartureCity(profile.departure_city || "");
-      setDietary(profile.dietary_preferences || "");
-      setTravelClass(profile.travel_class || "Economy");
-      setDateOfBirth(profile.date_of_birth || "");
-      setGender(profile.gender || "");
-      setPassportNumber(profile.passport_number || "");
-      setPassportExpiry(profile.passport_expiry || "");
-      setNationality(profile.nationality || "");
-      setEmergencyContactName(profile.emergency_contact_name || "");
-      setEmergencyContactPhone(profile.emergency_contact_phone || "");
-    }
-  }, [profile]);
-
-  // Fetch bookings when user logs in and subscribe to real-time changes
-  useEffect(() => {
-    let isMounted = true;
-    let fallbackTimeout: NodeJS.Timeout;
-
-    const fetchUserBookings = async (isBackgroundRefresh = false) => {
-      if (!user) return;
-      
-      // Only show the hard loading spinner if we don't already have data
-      if (!isBackgroundRefresh) {
-        setBookingsLoading(true);
-        // Safety fallback: if Supabase hangs for more than 5 seconds, forcefully clear loading state
-        fallbackTimeout = setTimeout(() => {
-          if (isMounted) setBookingsLoading(false);
-        }, 5000);
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select("*")
-          .or(`user_id.eq.${user.id},customer_email.eq.${user.email}`)
-          // Cache-buster: Use a TEXT column (customer_name) to avoid Postgres UUID casting crashes
-          .neq("customer_name", `CACHE_BUST_${Date.now()}`)
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.warn("Fetch bookings error from Supabase:", error);
-        } else if (data && isMounted) {
-          setBookings(data);
-        }
-      } catch (err) {
-        console.warn("Fetch bookings unexpected error:", err);
-      } finally {
-        if (!isBackgroundRefresh && isMounted) {
-          clearTimeout(fallbackTimeout);
-          setBookingsLoading(false);
-        }
-      }
-    };
-
-    let channel: any = null;
-
-    if (user && isActive) {
-      fetchUserBookings(false);
-
-      // Realtime Authority 1: Subscribe to any changes in bookings (broad scope, relies on RLS)
-      channel = supabase
-        .channel('portal_bookings_changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'bookings'
-          }, 
-          () => {
-            fetchUserBookings(true); // Silent background refresh
-          }
-        )
-        .subscribe();
-
-      // Realtime Authority 2: Apple-tier fallback background sync
-      // Guarantee UI is never stale even if WebSockets drop or Postgres publications are disabled
-      const syncInterval = setInterval(() => {
-        if (isMounted) fetchUserBookings(true);
-      }, 10000); // 10s silent polling
-
-      // Realtime Authority 3: Instantly sync when the user switches back to this tab
-      const handleVisibilityChange = () => {
-        if (!document.hidden && isMounted) {
-          fetchUserBookings(true);
-        }
-      };
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-
-      return () => {
-        isMounted = false;
-        clearTimeout(fallbackTimeout);
-        clearInterval(syncInterval);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-        if (channel) {
-          supabase.removeChannel(channel);
-        }
-      };
-    }
-
-    return () => {
-      isMounted = false;
-      clearTimeout(fallbackTimeout);
-    };
-  }, [user, isActive]);
-
-  // Fetch admin-controlled portal background
-  useEffect(() => {
-    const cached = localStorage.getItem('tr_portal_atmosphere');
-    if (cached) setBgImage(cached);
-
-    getSettings()
-      .then(data => {
-        if (data.portal_default_image) {
-          setBgImage(data.portal_default_image);
-          localStorage.setItem('tr_portal_atmosphere', data.portal_default_image);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Track scroll position to update headers
-  useEffect(() => {
-    const container = document.getElementById("portal-scroll-container");
-    if (!container) return;
-
-    const handleScrollEvent = () => {
-      onScroll(container.scrollTop > 10);
-    };
-
-    container.addEventListener("scroll", handleScrollEvent, { passive: true });
-    return () => container.removeEventListener("scroll", handleScrollEvent);
-  }, [isActive, onScroll]);
-
-  // Handle Login OTP submission
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    const { error: otpError } = await signInWithOtp(email);
-    setLoading(false);
-
-    if (otpError) {
-      setError(otpError.message || "Failed to send magic link");
-    } else {
-      setOtpSent(true);
-      setSuccess("Magic link has been dispatched to your inbox!");
-    }
+  const resetPortal = () => {
+    setBooking(null);
+    setError(null);
+    setReferenceId("TRX-");
+    setVerificationValue("");
   };
 
-  // Handle Google Login submission
-  const handleGoogleLogin = async () => {
+  // Dynamic clock for high-end airport/lounge feel
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to parse dates and details from special requests column
+  const parsedDetails = useMemo(() => {
+    if (!booking?.special_requests) return null;
+    const parts = booking.special_requests.split('|') || [];
+    
+    let rawDates = parts.find(p => p.includes('Dates:'))?.replace('Dates:', '').trim() || "";
+    if (!rawDates) {
+      const depPart = parts.find(p => p.includes('Departure:'));
+      if (depPart) {
+        rawDates = depPart
+          .replace('Departure:', '')
+          .replace('Return:', 'to')
+          .replace(',', '')
+          .trim();
+      }
+    }
+    
+    // Format all YYYY-MM-DD dates to DD-MM-YYYY
+    const formattedDates = rawDates.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, "$3-$2-$1");
+    
+    const departureHub = parts.find(p => p.includes('Departure Hub:'))?.replace('Departure Hub:', '').trim() || "";
+    const flights = parts.find(p => p.includes('Flights:'))?.replace('Flights:', '').trim() || "";
+    const notes = parts.find(p => p.includes('Notes:'))?.replace('Notes:', '').trim() || "";
+    
+    return { dates: formattedDates, departureHub, flights, notes };
+  }, [booking]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!referenceId.trim()) {
+      setError("Booking Reference ID is required.");
+      return;
+    }
+    if (!verificationValue.trim()) {
+      setError(`Verified ${verificationType === "email" ? "email address" : "phone number"} is required.`);
+      return;
+    }
+
     setLoading(true);
-    setError("");
-    setSuccess("");
+    setError(null);
 
     try {
-      const { error: googleError } = await signInWithGoogle();
-      if (googleError) {
-        setError(googleError.message || "Failed to initiate Google sign-in");
+      const normalizedRef = referenceId.trim().toLowerCase().replace(/^trx-/, "");
+      
+      let queryUrl = `/api/bookings/track?id=${normalizedRef}`;
+      if (verificationType === "email") {
+        queryUrl += `&email=${encodeURIComponent(verificationValue.trim())}`;
+      } else {
+        const fullPhone = `${selectedCountry.code}${verificationValue.trim()}`;
+        queryUrl += `&phone=${encodeURIComponent(fullPhone)}`;
       }
+
+      const res = await fetch(queryUrl);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Verification failed. Check reference ID and contact details.");
+      }
+
+      setBooking(data.booking);
     } catch (err: any) {
-      setError(err?.message || "An unexpected error occurred during Google sign-in");
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Save Preferences
-  const handleSavePreferences = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    const { error: updateError } = await updateProfile({
-      full_name: fullName,
-      phone,
-      departure_city: departureCity,
-      dietary_preferences: dietary,
-      travel_class: travelClass,
-      date_of_birth: dateOfBirth || null,
-      gender: gender || null,
-      passport_number: passportNumber || null,
-      passport_expiry: passportExpiry || null,
-      nationality: nationality || null,
-      emergency_contact_name: emergencyContactName || null,
-      emergency_contact_phone: emergencyContactPhone || null,
-    });
-
-    setLoading(false);
-
-    if (updateError) {
-      setError(updateError.message || "Failed to save preferences");
-    } else {
-      setSuccess("Your preferences have been securely saved!");
-      setTimeout(() => setSuccess(""), 4000);
-    }
+  const getWhatsAppSupportUrl = () => {
+    if (!booking) return "";
+    const prefix = "TRX-" + booking.id.slice(0, 8).toUpperCase();
+    const whatsappNum = settings.whatsapp_number || "919870103022";
+    const text = `Hi TouraLuxe! I am checking in on my active booking Reference ID: ${prefix} (${booking.package_name}). Please share the latest status update. Thank you.`;
+    return `https://wa.me/${whatsappNum.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
   };
 
-  if (!isActive) return null;
+  // User-friendly Status mapping timeline
+  const workflowSteps = useMemo(() => {
+    if (!booking) return [];
+    
+    const status = booking.status?.toLowerCase() || "pending";
+    
+    if (status === "cancelled") {
+      return [
+        { title: "Inquiry Received", desc: "We received your booking request.", status: "completed" },
+        { title: "Booking Cancelled", desc: "This request has been cancelled.", status: "error" }
+      ];
+    }
+
+    return [
+      { 
+        title: "Inquiry Received", 
+        desc: "We have received your booking request.", 
+        status: "completed" 
+      },
+      { 
+        title: "Designing Itinerary", 
+        desc: "Crafting your personalized route and options.", 
+        status: status === "pending" ? "active" : "completed" 
+      },
+      { 
+        title: "Proposal Ready", 
+        desc: "Reviewing flight logistics and hotel quotes.", 
+        status: status === "pending" ? "pending" : (status === "confirmed" ? "completed" : "pending") 
+      },
+      { 
+        title: "Confirmed & Finalized", 
+        desc: "All details confirmed. Travel vouchers ready.", 
+        status: status === "confirmed" ? "active" : (status === "archived" ? "completed" : "pending") 
+      }
+    ];
+  }, [booking]);
 
   return (
-    <div 
-      id="portal-scroll-container"
-      className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide text-white selection:bg-white/20 selection:text-white"
-    >
-      {/* ADMIN-CONTROLLED CINEMATIC BACKGROUND */}
-      {bgImage && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <img
-            src={bgImage}
-            onLoad={() => setBgLoaded(true)}
-            alt=""
-            className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-[opacity,filter] duration-[1400ms] ease-out brightness-[0.55] transform-gpu",
-              bgLoaded ? "opacity-100 blur-0" : "opacity-0 blur-xl"
-            )}
-            style={{ transform: "translate3d(0,0,0)" }}
-          />
-          {/* Luxury vignette overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-[#020202] opacity-90" />
-          {/* Grain */}
-          <div className="absolute inset-0 opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
-        </div>
-      )}
-      {/* Dark fallback when no image */}
-      {!bgImage && <div className="fixed inset-0 z-0 bg-[#020202] pointer-events-none" />}
+    <div className="relative w-full h-full min-h-screen overflow-hidden bg-black flex flex-col font-sans">
+      
+      {/* --- Fullscreen Backdrop --- */}
+      <div className="absolute inset-0 z-0 select-none pointer-events-none">
+        <Image 
+          src={settings.portal_default_image || "/private_jet_interior_sunset_1777656427557.png"} 
+          alt="Ambient Background" 
+          fill
+          priority
+          className="object-cover scale-[1.01] opacity-[0.35] blur-[2px] transition-all duration-1000" 
+        />
+        {/* Dynamic Vignette Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
+        <div className="absolute inset-0 bg-radial-vignette" />
+      </div>
 
-      {/* Scrollable content above background */}
-      <div className="relative z-10 pt-28 pb-20 px-6 sm:px-12 md:px-20">
-      <div className="max-w-[1100px] mx-auto space-y-16 animate-in fade-in duration-700">
-        
-        {/* Loading Spinner during session checkout */}
-        {authLoading ? (
-          <div key="loading-view" className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
-            <Loader2 className="w-10 h-10 text-white/40 animate-spin" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Syncing with database...</p>
+      {/* --- Custom Top Header Bar --- */}
+      <div className="relative z-20 w-full px-6 py-4 flex items-center justify-between border-b border-white/[0.03] backdrop-blur-[3px] shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="relative w-20 h-6">
+            <Image
+              src="/assets/logo-transparent.webp"
+              alt="TouraLuxe"
+              fill
+              className="object-contain translate-y-[2px]"
+            />
           </div>
-        ) : !user ? (
-          
-          /* ═════════════════════════════════════════════════════════════════════════════
-             🔓 VIEW: CUSTOMER LOGIN GATEWAY
-             ═════════════════════════════════════════════════════════════════════════════ */
-          <div key="login-view" className="min-h-[65vh] flex flex-col justify-center items-center max-w-md mx-auto space-y-12 py-10">
-            <div className="text-center space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 block">Access the Lounge</span>
-              <h2 className="text-[clamp(2.5rem,7vw,4rem)] text-balance font-black text-white tracking-tighter leading-none">Traveler Portal.</h2>
-              <p className="text-white/50 text-sm font-medium tracking-tight leading-relaxed">
-                Log in securely via Magic Link to access your active concierge manifests, travel vouchers, and preferences.
+          <span className="hidden sm:inline-block text-[9px] font-black uppercase tracking-[0.3em] text-white/30 border-l border-white/10 pl-4 py-0.5">
+            Booking Tracker
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          {time && (
+            <div className="text-[10px] font-mono tracking-widest text-white/40 uppercase hidden sm:block">
+              GMT {time}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- Main Centered App Window --- */}
+      <div className="flex-1 w-full max-w-6xl mx-auto flex items-center justify-center p-4 md:p-8 relative z-10 overflow-hidden">
+        
+        {!booking ? (
+          /* --- SIMPLIFIED SEARCH VIEW CARD --- */
+          <div className="w-full max-w-md bg-black/40 backdrop-blur-2xl border border-white/[0.08] rounded-[24px] p-6 md:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-500 space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white uppercase italic">
+                Track Your Booking
+              </h2>
+              <p className="text-xs text-white/50 leading-relaxed max-w-sm mx-auto">
+                Enter your booking ID and email or phone number to view your live travel itinerary and status.
               </p>
             </div>
 
-            {otpSent ? (
-              <div className="w-full p-8 rounded-3xl bg-white/[0.02] border border-emerald-500/20 text-center space-y-6">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                  <Send className="w-6 h-6 text-emerald-400" />
+            <form onSubmit={handleSearch} className="space-y-5">
+              {error && (
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-start gap-2.5">
+                  <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                  <span className="leading-tight">{error}</span>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-white tracking-tight">Check Your Inbox</h3>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    We have dispatched a secure, one-click sign-in link to <span className="text-white font-bold">{email}</span>. Click it to log in instantly.
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setOtpSent(false)}
-                  className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
-                >
-                  ✕ Re-enter Email
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleLogin} className="w-full space-y-6">
-                <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white/60 transition-colors">
-                    <Mail size={18} />
-                  </div>
-                  <input
-                    type="email"
+              )}
+
+              {/* Reference ID input */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Booking Reference ID *</label>
+                <div className="relative flex items-center">
+                  <Search size={13} className="absolute left-4.5 text-white/25" />
+                  <input 
+                    type="text" 
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ENTER YOUR EMAIL ADDRESS"
-                    className="w-full pl-14 pr-6 py-4.5 rounded-2xl bg-black/40 backdrop-blur-md border border-white/[0.15] text-white text-[15px] placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all shadow-inner"
+                    value={referenceId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.toUpperCase().startsWith("TRX-")) {
+                        setReferenceId("TRX-" + val.slice(4));
+                      } else {
+                        setReferenceId("TRX-");
+                      }
+                    }}
+                    placeholder="e.g. TRX-XXXXXXXX" 
+                    className="w-full bg-white/[0.03] border border-white/10 focus:border-white/25 rounded-xl pl-11 pr-5 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all uppercase"
                   />
                 </div>
+              </div>
 
-                {error && (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">
-                    <AlertCircle size={14} className="shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4.5 rounded-2xl bg-white text-black font-black text-[11px] uppercase tracking-[0.2em] transition-all hover:bg-[#f5f5f7] disabled:opacity-30 disabled:grayscale active:scale-[0.98] shadow-2xl flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Dispatching Link...
-                    </>
-                  ) : "Send Magic Link"}
-                </button>
-
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-white/[0.12]" />
-                  <span className="flex-shrink mx-4 text-[8px] font-black uppercase tracking-[0.3em] text-white/40">or sign in with</span>
-                  <div className="flex-grow border-t border-white/[0.12]" />
+              {/* Verification Control */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Verify Using *</label>
+                <div className="flex w-full p-0.5 h-9 rounded-lg bg-[#121214] border border-white/[0.05] relative">
+                  {(["email", "phone"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setVerificationType(type);
+                        setVerificationValue("");
+                      }}
+                      className={`flex-1 h-full flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all duration-300 rounded-md z-10 ${
+                        verificationType === type
+                          ? "bg-white text-black shadow-md"
+                          : "text-white/30 hover:text-white"
+                      }`}
+                    >
+                      {type === "email" ? "Email Address" : "Phone Number"}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleGoogleLogin()}
-                  className="w-full py-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/[0.15] hover:bg-white/[0.06] hover:border-white/[0.25] text-white font-bold text-[13px] tracking-tight transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                    </svg>
-                  )}
-                  {loading ? "Initializing Google..." : "Sign In with Google"}
-                </button>
-              </form>
-            )}
+              {/* Dynamic Contact Field */}
+              {verificationType === "email" ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Registered Email *</label>
+                  <input 
+                    type="email" 
+                    required
+                    value={verificationValue}
+                    onChange={(e) => setVerificationValue(e.target.value)}
+                    placeholder="your@email.com" 
+                    className="w-full bg-white/[0.03] border border-white/10 focus:border-white/25 rounded-xl px-5 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5 relative">
+                  <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Registered Phone *</label>
+                  <div className="flex items-center gap-3 w-full bg-white/[0.03] border border-white/10 focus-within:border-white/25 rounded-xl px-4 py-2 transition-all">
+                    <div className="relative shrink-0">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCountryMenuOpen(!countryMenuOpen);
+                        }}
+                        className="flex items-center gap-1 px-1.5 py-1 cursor-pointer hover:bg-white/10 rounded bg-white/5 border border-white/5 transition-all"
+                      >
+                        <span className="text-xs">{selectedCountry.flag}</span>
+                        <span className="text-[9px] font-bold text-white/60">{selectedCountry.code}</span>
+                      </div>
+                      {countryMenuOpen && (
+                        <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#121214] border border-white/10 rounded-xl shadow-2xl z-[150] scrollbar-hide">
+                          {[
+                            { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
+                            { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
+                            { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
+                            { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
+                            { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
+                            { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 },
+                          ].map((c) => (
+                            <div 
+                              key={c.name} 
+                              onClick={() => { 
+                                setSelectedCountry(c); 
+                                setVerificationValue(""); 
+                                setCountryMenuOpen(false); 
+                              }} 
+                              className="flex items-center justify-between px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs">{c.flag}</span>
+                                <span className="text-[9px] font-bold text-white/70">{c.name}</span>
+                              </div>
+                              <span className="text-[9px] font-black text-white/30">{c.code}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={verificationValue}
+                      onChange={(e) => setVerificationValue(e.target.value.replace(/[^0-9]/g, ""))}
+                      maxLength={selectedCountry.length}
+                      placeholder="Phone digits"
+                      onFocus={() => setCountryMenuOpen(false)}
+                      className="flex-1 bg-transparent text-xs text-white placeholder:text-white/20 focus:outline-none py-0.5"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-[9px] text-white/20">* Required fields</span>
+                <Magnetic>
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="group px-7 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? "Verifying..." : (
+                      <>
+                        Track Booking <ArrowRight size={12} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </Magnetic>
+              </div>
+            </form>
           </div>
         ) : (
-          
-          /* ═════════════════════════════════════════════════════════════════════════════
-             🔒 VIEW: traveler PROFILE & CONCIERGE LOUNGE
-             ═════════════════════════════════════════════════════════════════════════════ */
-          <div key="auth-view" className="space-y-16">
+          /* --- DETAILED VIEW CARD --- */
+          <div className="w-full max-h-[85vh] bg-black/40 backdrop-blur-2xl border border-white/[0.08] rounded-[32px] overflow-hidden flex flex-col md:flex-row shadow-[0_24px_80px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-500">
             
-            {/* Header / Profile Info */}
-            <div className="border-b border-white/[0.05] pb-8">
-              <div className="space-y-3">
-                <h2 className="text-[clamp(2rem,6vw,4rem)] text-balance font-light tracking-tight text-white leading-none">
-                  Welcome, <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-white/95 to-white/30">{fullName ? fullName.split(' ')[0] : "Traveler"}</span>.
-                </h2>
-                <p className="text-[#86868b] text-[10px] font-black uppercase tracking-[0.2em]">{user.email}</p>
+            {/* Left Column (Booking Info Summary) */}
+            <div className="w-full md:w-[42%] bg-white/[0.01] border-b md:border-b-0 md:border-r border-white/[0.05] p-6 md:p-10 flex flex-col justify-between shrink-0">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#86868b]">
+                    Booking Active
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#86868b] block mb-1">Your Package</span>
+                  <h2 className="text-2xl md:text-[26px] font-bold text-white tracking-tight italic uppercase leading-tight line-clamp-2">
+                    {booking.package_name}
+                  </h2>
+                  <p className="text-xs text-white/45">
+                    Booking ID: <span className="font-mono text-white/70">TRX-{booking.id.slice(0, 8).toUpperCase()}</span>
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/[0.05]">
+                    <div>
+                      <span className="text-[8px] font-bold uppercase tracking-widest text-[#86868b] block mb-0.5">Travelers</span>
+                      <span className="text-xs font-bold text-white/90">{booking.traveler_count || 1} Guests</span>
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-bold uppercase tracking-widest text-[#86868b] block mb-0.5">Total Value</span>
+                      <span className="text-xs font-bold text-white/90">
+                        {booking.total_amount && booking.total_amount > 0 
+                          ? `₹${Number(booking.total_amount).toLocaleString()}` 
+                          : "Curating Proposal"
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Security Note */}
+              <div className="hidden md:flex flex-col gap-2 pt-6 border-t border-white/[0.03]">
+                <div className="flex gap-2 items-center">
+                  <Lock size={11} className="text-white/30" />
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">Secure Access</span>
+                </div>
+                <p className="text-[9px] text-white/30 leading-normal">
+                  Your details are secure. Identity verification ensures only authorized guests can view active travel itineraries.
+                </p>
               </div>
             </div>
 
-            {/* STACKED FULL-WIDTH SECTION LIST */}
-            <div className="space-y-16">
-              
-              {/* 1. ACTIVE BOOKINGS MANIFESTS (FULL ROW WITH 2-COLUMN CARDS) */}
-              <div className="space-y-8">
-                <div className="flex items-center gap-3">
-                  <Compass size={16} className="text-white/60" />
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">My Bookings</h3>
-                </div>
+            {/* Right Column (Timeline details) */}
+            <div className="flex-1 p-6 md:p-10 flex flex-col justify-center overflow-y-auto max-h-[60vh] md:max-h-[85vh] custom-scrollbar">
+              <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300 flex flex-col justify-between h-full">
+                
+                {/* Timeline & Details */}
+                <div className="space-y-6 pl-3">
+                  
+                  {/* Stepper timeline */}
+                  <div className="relative pl-5 py-1 border-l border-white/5 space-y-6">
+                    {workflowSteps.map((step, idx) => (
+                      <div key={idx} className="relative flex flex-col space-y-0.5">
+                        {/* Dot indicator */}
+                        <div className={`absolute -left-[26px] w-[9px] h-[9px] rounded-full border-2 bg-black ${
+                          step.status === "completed" ? "border-emerald-500 bg-emerald-500/10 scale-100" :
+                          step.status === "active" ? "border-amber-400 bg-amber-400/20 animate-pulse scale-125" :
+                          step.status === "error" ? "border-red-500 bg-red-500/10 scale-110" :
+                          "border-white/10 bg-black scale-95"
+                        }`} />
 
-                {bookingsLoading && bookings.length === 0 ? (
-                  <div className="p-12 rounded-3xl bg-white/[0.02] border border-white/[0.05] flex flex-col items-center justify-center gap-3">
-                    <Loader2 className="w-5 h-5 text-white/40 animate-spin" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Loading bookings...</span>
-                  </div>
-                ) : bookings.length === 0 ? (
-                  <div className="p-12 rounded-3xl bg-white/[0.01] border border-white/[0.04] flex flex-col items-center justify-center gap-3 text-center">
-                    <AlertCircle className="w-5 h-5 text-white/30" />
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70">No Bookings Found</p>
-                      <p className="text-[10px] text-white/40 max-w-xs leading-relaxed">
-                        You don&apos;t have any active custom bookings with this account yet.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {bookings.map((booking) => (
-                      <div 
-                        key={booking.id} 
-                        className="p-6 sm:p-7 rounded-3xl bg-white/[0.01] border border-white/[0.04] hover:border-white/[0.08] relative overflow-hidden group space-y-6 transition-all duration-500 shadow-2xl animate-in fade-in slide-in-from-bottom-4"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                        
-                        {/* Booking Header */}
-                        <div className="flex justify-between items-start gap-4 relative z-10">
-                          <div className="space-y-1">
-                            <h4 className="text-lg font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors duration-300">
-                              {booking.package_name}
-                            </h4>
-                            <div className="flex flex-wrap items-center gap-2.5 text-[8px] font-black text-white/40 uppercase tracking-widest">
-                              <span>{booking.traveler_count} {booking.traveler_count === 1 ? 'Guest' : 'Guests'}</span>
-                              <span>•</span>
-                              <span>{new Date(booking.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                            </div>
-                          </div>
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border shrink-0",
-                            booking.status === 'pending' ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-                            booking.status === 'confirmed' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
-                            "bg-white/5 border-white/10 text-white/40"
-                          )}>
-                            {booking.status}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[11px] font-bold ${
+                            step.status === "completed" ? "text-white/80" :
+                            step.status === "active" ? "text-white" :
+                            step.status === "error" ? "text-red-400" :
+                            "text-white/20"
+                          }`}>
+                            {step.title}
                           </span>
+                          {step.status === "completed" && <CheckCircle2 size={10} className="text-emerald-500/80" />}
                         </div>
 
-                        {/* HIGH-END BOOKING TRACKING TIMELINE */}
-                        <div className="relative pt-6 border-t border-white/[0.04]">
-                          <div className="absolute left-2 top-[34px] bottom-[18px] w-[1.5px] bg-white/5" />
-                          
-                          <div className="space-y-5">
-                            {[
-                              { label: "Booking Request Received", desc: "Your booking request has been received and is under review by our design team.", completed: true },
-                              { label: "Flights & Accommodations Booking", desc: "We are currently securing your premium flights and room allotments.", completed: booking.status === 'confirmed' || booking.status === 'completed' },
-                              { label: "Travel Documents & Vouchers", desc: "Your flight tickets, hotel vouchers, and custom itinerary are ready.", completed: booking.status === 'completed' }
-                            ].map((step, idx) => (
-                              <div key={idx} className="flex gap-4 relative">
-                                <div className={cn(
-                                  "w-4 h-4 rounded-full border-2 flex items-center justify-center relative z-10 shrink-0",
-                                  step.completed 
-                                    ? "bg-emerald-500 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.4)]" 
-                                    : "bg-black border-white/20"
-                                )}>
-                                  {step.completed && <Check size={8} className="text-black" strokeWidth={4} />}
-                                </div>
-                                <div className="space-y-1">
-                                  <span className={cn(
-                                    "text-[9px] font-black uppercase tracking-wider block",
-                                    step.completed ? "text-white" : "text-white/30"
-                                  )}>
-                                    {step.label}
-                                  </span>
-                                  <span className="text-[10px] text-white/40 leading-relaxed block max-w-md">
-                                    {step.desc}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
+                        <p className={`text-[9.5px] leading-relaxed ${
+                          step.status === "completed" ? "text-white/35" :
+                          step.status === "active" ? "text-white/55" :
+                          "text-white/15"
+                        }`}>
+                          {step.desc}
+                        </p>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
 
-              {/* 2. TRAVELER PREFERENCES (SPLIT MULTI-COLUMN CARD SYSTEM ON DESKTOP) */}
-              <div className="space-y-8">
-                <div className="flex items-center gap-3">
-                  <User size={16} className="text-white/60" />
-                  <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">Traveler Profile</h3>
-                </div>
-
-                <form onSubmit={handleSavePreferences} className="space-y-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                  {/* Summary stats */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/[0.05]">
                     
-                    {/* LEFT COLUMN: IDENTITY & IMMIGRATION */}
-                    <div className="space-y-8">
-                      
-                      {/* Category 1: Personal Details */}
-                      <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Personal Details</span>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Full Name */}
-                          <div className="space-y-2 col-span-1 sm:col-span-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Full Name (as in Passport)</label>
-                            <div className="relative group">
-                              <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                required
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                placeholder="ENTER FULL NAME"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Date of Birth */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Date of Birth</label>
-                            <div className="relative group">
-                              <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors pointer-events-none" />
-                              <input
-                                type="date"
-                                required
-                                value={dateOfBirth}
-                                onChange={(e) => setDateOfBirth(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-white text-xs focus:outline-none focus:border-white/20 transition-all cursor-pointer dark:[color-scheme:dark]"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Gender */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Gender</label>
-                            <div className="relative group">
-                              <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <select
-                                required
-                                value={gender}
-                                onChange={(e) => setGender(e.target.value)}
-                                className="w-full pl-11 pr-10 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs focus:outline-none focus:border-white/40 transition-all appearance-none cursor-pointer"
-                              >
-                                <option value="" className="bg-[#0a0a0b] text-white/50">Select Gender</option>
-                                <option value="Male" className="bg-[#0a0a0b] text-white">Male</option>
-                                <option value="Female" className="bg-[#0a0a0b] text-white">Female</option>
-                                <option value="Other" className="bg-[#0a0a0b] text-white">Other</option>
-                                <option value="Undisclosed" className="bg-[#0a0a0b] text-white">Undisclosed</option>
-                              </select>
-                              <ChevronDown size={12} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none group-focus-within:text-white/60 transition-colors" />
-                            </div>
-                          </div>
-                        </div>
+                    {/* Travel Dates */}
+                    <div className="flex items-center gap-3 bg-white/[0.01] border border-white/[0.04] p-3 rounded-xl">
+                      <Calendar size={13} className="text-white/30" />
+                      <div>
+                        <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block">Travel Dates</span>
+                        <span className="text-[11px] font-bold text-white/70">
+                          {parsedDetails?.dates && parsedDetails.dates !== "to" ? parsedDetails.dates : "Flexible"}
+                        </span>
                       </div>
-
-                      {/* Category 2: Passport Details */}
-                      <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Passport Details</span>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Passport Number */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Passport Number</label>
-                            <div className="relative group">
-                              <FileText size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                required
-                                value={passportNumber}
-                                onChange={(e) => setPassportNumber(e.target.value)}
-                                placeholder="ENTER PASSPORT NUMBER"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-white/20 transition-all uppercase"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Passport Expiry */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Passport Expiration Date</label>
-                            <div className="relative group">
-                              <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors pointer-events-none" />
-                              <input
-                                type="date"
-                                required
-                                value={passportExpiry}
-                                onChange={(e) => setPassportExpiry(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-white text-xs focus:outline-none focus:border-white/20 transition-all cursor-pointer dark:[color-scheme:dark]"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Nationality */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Nationality</label>
-                            <div className="relative group">
-                              <Globe size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                required
-                                value={nationality}
-                                onChange={(e) => setNationality(e.target.value)}
-                                placeholder="ENTER NATIONALITY"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Departure City */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Departure City</label>
-                            <div className="relative group">
-                              <MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                required
-                                value={departureCity}
-                                onChange={(e) => setDepartureCity(e.target.value)}
-                                placeholder="ENTER DEPARTURE CITY"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
                     </div>
 
-                    {/* RIGHT COLUMN: PREFERENCES & EMERGENCY */}
-                    <div className="space-y-8">
-                      
-                      {/* Category 3: Preferences */}
-                      <div className="p-6 md:p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/[0.12] space-y-6">
-                        <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/60 block border-b border-white/[0.10] pb-2">Preferences</span>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {/* Phone Number */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Phone Number</label>
-                            <div className="relative group">
-                              <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="tel"
-                                required
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value.replace(/[^\d\s\-\+\(\)]/g, ''))}
-                                placeholder="ENTER PHONE NUMBER"
-                                maxLength={20}
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Flight Class */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Flight Class Preference</label>
-                            <div className="relative group">
-                              <Crown size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <select
-                                required
-                                value={travelClass}
-                                onChange={(e: any) => setTravelClass(e.target.value)}
-                                className="w-full pl-11 pr-10 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs focus:outline-none focus:border-white/40 transition-all appearance-none cursor-pointer"
-                              >
-                                <option value="Economy" className="bg-[#0a0a0b] text-white">Economy Class</option>
-                                <option value="Premium Economy" className="bg-[#0a0a0b] text-white">Premium Economy</option>
-                                <option value="Business" className="bg-[#0a0a0b] text-white">Business Class</option>
-                                <option value="First" className="bg-[#0a0a0b] text-white">First Class Suite</option>
-                              </select>
-                              <ChevronDown size={12} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none group-focus-within:text-white/60 transition-colors" />
-                            </div>
-                          </div>
-
-                          {/* Dietary Preferences */}
-                          <div className="space-y-2 col-span-1 sm:col-span-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Dietary Preferences</label>
-                            <div className="relative group">
-                              <Utensils size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                value={dietary}
-                                onChange={(e) => setDietary(e.target.value)}
-                                placeholder="ENTER DIETARY PREFERENCES (E.G. VEGETARIAN, GLUTEN FREE)"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
+                    {/* Departure City */}
+                    <div className="flex items-center gap-3 bg-white/[0.01] border border-white/[0.04] p-3 rounded-xl">
+                      <Plane size={13} className="text-white/30" />
+                      <div>
+                        <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block">Departure City</span>
+                        <span className="text-[11px] font-bold text-white/70 font-mono">
+                          {parsedDetails?.departureHub && parsedDetails.departureHub !== "Not Specified" ? parsedDetails.departureHub : "To Be Confirmed"}
+                        </span>
                       </div>
-
-                      {/* Category 4: Emergency Contact */}
-                      <div className="p-6 md:p-8 rounded-3xl bg-black/40 border border-red-500/20 hover:border-red-500/25 backdrop-blur-xl transition-all duration-500 space-y-4 pt-5">
-                        <div className="flex items-center gap-2.5 text-white/40">
-                          <Heart size={12} className="text-[#ef4444] animate-pulse" />
-                          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/75">Emergency Contact</span>
-                        </div>
-                        <p className="text-[10px] text-white/65 leading-relaxed">
-                          Please provide an emergency contact for peace of mind during your travels.
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                          {/* Emergency Contact Name */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Contact Name</label>
-                            <div className="relative group">
-                              <User size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="text"
-                                required
-                                value={emergencyContactName}
-                                onChange={(e) => setEmergencyContactName(e.target.value)}
-                                placeholder="ENTER CONTACT NAME"
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Emergency Contact Phone */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-white/75">Emergency Phone</label>
-                            <div className="relative group">
-                              <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors" />
-                              <input
-                                type="tel"
-                                required
-                                value={emergencyContactPhone}
-                                onChange={(e) => setEmergencyContactPhone(e.target.value.replace(/[^\d\s\-\+\(\)]/g, ''))}
-                                placeholder="ENTER EMERGENCY PHONE NUMBER"
-                                maxLength={20}
-                                className="w-full pl-11 pr-4 py-3 rounded-xl bg-black/40 border border-white/[0.15] text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Alerts & Save Actions */}
-                      <div className="space-y-4 pt-2">
-                        {error && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-bold">
-                            <AlertCircle size={12} className="shrink-0" />
-                            <span>{error}</span>
-                          </div>
-                        )}
-
-                        {success && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold">
-                            <Check size={12} className="shrink-0" />
-                            <span>{success}</span>
-                          </div>
-                        )}
-
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className="w-full py-4 rounded-xl bg-white hover:bg-[#f5f5f7] text-black font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-300 disabled:opacity-30 disabled:grayscale active:scale-[0.98] shadow-2xl flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] cursor-pointer"
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              Saving to Manifest...
-                            </>
-                          ) : "Save Preferences"}
-                        </button>
-                      </div>
-
                     </div>
 
                   </div>
-                </form>
-              </div>
 
+                  {/* Special requests */}
+                  {parsedDetails?.notes && (
+                    <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-lg">
+                      <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block mb-0.5">Special Requests</span>
+                      <p className="text-[10px] text-white/40 leading-relaxed italic">"{parsedDetails.notes}"</p>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Operations Footer */}
+                <div className="pt-4 border-t border-white/[0.05] flex gap-3 shrink-0">
+                  <Magnetic>
+                    <button 
+                      onClick={resetPortal}
+                      className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[9px] font-bold uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5"
+                    >
+                      <RotateCcw size={11} />
+                      Check Another
+                    </button>
+                  </Magnetic>
+                  <Magnetic>
+                    <a 
+                      href={getWhatsAppSupportUrl()} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="group/wa relative overflow-hidden flex-1 px-6 py-2.5 rounded-full bg-[#25D366] text-black text-[9.5px] font-black uppercase tracking-wider transition-all duration-700 active:scale-95 text-center flex items-center justify-center cursor-pointer shadow-[0_4px_15px_rgba(37,211,102,0.2)]"
+                    >
+                      <div className="relative z-10 flex items-center justify-center gap-1.5">
+                        <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-3.5 h-3.5 object-contain shrink-0" />
+                        <span>Chat on WhatsApp</span>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#25D366] via-[#35e376] to-[#25D366] opacity-0 group-hover/wa:opacity-100 transition-opacity duration-500" />
+                    </a>
+                  </Magnetic>
+                </div>
+
+              </div>
             </div>
 
           </div>
         )}
 
       </div>
-      </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 9px; }
+        .bg-radial-vignette {
+          background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.6) 80%);
+        }
+      `}</style>
+
     </div>
   );
-}
+});

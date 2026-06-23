@@ -454,8 +454,7 @@ export default function DestinationStudio() {
 
           <div className="flex items-center gap-3 md:gap-4">
             <button onClick={safeBack} className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] hover:text-white transition-colors">
-              <span className="hidden sm:inline">Dashboard</span>
-              <span className="sm:hidden">Back</span>
+              Back
             </button>
             <button onClick={handleNew} className="px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-white text-black text-[10px] md:text-[12px] font-bold uppercase tracking-wider hover:bg-[#f5f5f7] active:scale-95 transition-all shadow-2xl">
               <span className="hidden sm:inline">+ New Destination</span>

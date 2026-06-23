@@ -195,8 +195,7 @@ function BatchDateManagerInner() {
 
           <div className="flex items-center gap-3 md:gap-4">
             <button onClick={safeBack} className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#86868b] hover:text-white transition-colors">
-              <span className="hidden sm:inline">Dashboard</span>
-              <span className="sm:hidden text-[10px]">Back</span>
+              Back
             </button>
           </div>
         </div>

@@ -55,6 +55,7 @@ export function WhatsAppButton({
       const totalGuests = (adults || 0) + (kids || 0) + (infants || 0);
       const guestBreakdown = `${adults || 1} Adult${(adults || 1) > 1 ? 's' : ''}${kids && kids > 0 ? `, ${kids} Child${kids > 1 ? 'ren' : ''}` : ''}${infants && infants > 0 ? `, ${infants} Infant${infants > 1 ? 's' : ''}` : ''}`;
       
+      const isCustomPrice = !!(isCustom || !totalInvestment || (totalInvestment.includes("0") && totalInvestment.replace(/[^0-9]/g, "") === "0"));
       return `Hi TouraLuxe!
 
 I'm in the process of planning a luxury journey on the platform.
@@ -62,7 +63,7 @@ I'm in the process of planning a luxury journey on the platform.
 - Package: ${packageTitle || "Tailored Journey"}
 - Dates: ${startDate && endDate ? `${startDate} to ${endDate}` : "Not Selected"}
 - Travelers: ${totalGuests > 0 ? `${totalGuests} (${guestBreakdown})` : "Not Selected"}
-- Investment: ${isCustom ? "Upon Request" : (totalInvestment || "Upon Request")}
+- Investment: ${isCustomPrice ? "Upon Request" : totalInvestment}
 
 I would love to get some assistance in handcrafting this experience.`;
     }

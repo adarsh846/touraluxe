@@ -158,12 +158,14 @@ export const PackageContent = memo(({
 
   const getWhatsAppEnquiryUrl = () => {
     if (!whatsappNumber) return "";
+    const isCustomPrice = !!(experience?.isCustom || !experience?.price || experience?.price === 0 || experience?.price === "0");
+    const costText = isCustomPrice ? "Upon Request" : `${pricing.formattedFinal} per person`;
     const text = `Hi TouraLuxe!
 
 I'm viewing the "${experience?.title || 'Luxury Journey'}" package on your site and would love to receive more details or ask a few questions.
 
 - Package: ${experience?.title || 'Luxury Journey'}
-- Cost: ${pricing.formattedFinal} per person
+- Cost: ${costText}
 
 Could you please share details on availability and custom options? Thank you!`;
     return `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
@@ -351,6 +353,18 @@ Could you please share details on availability and custom options? Thank you!`;
           <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/10 via-black/40 to-[#0a0a0a]" />
           
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 w-full max-w-5xl">
+             {experience.route_start && experience.route_end && experience.route_start.trim().toLowerCase() !== experience.route_end.trim().toLowerCase() && (
+               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out">
+                 <span>{experience.route_start}</span>
+                 <span className="text-amber-400 font-extrabold mx-1">➔</span>
+                 <span>{experience.route_end}</span>
+               </div>
+             )}
+             {experience.route_start && !experience.route_end && (
+               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out">
+                 <span>{experience.route_start}</span>
+               </div>
+             )}
              <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out">
                {experience.title}
              </h1>
@@ -404,7 +418,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 auto-rows-min">
               
               {/* Top Row: Quick Stats */}
-              <div className="md:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <div className="md:col-span-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
                  {experience.duration && (
                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
                      <Clock className="text-white/40 mb-1" size={22} />
@@ -421,7 +435,7 @@ Could you please share details on availability and custom options? Thank you!`;
                  )}
                  {experience.guests && (
                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                     <Users className="text-white/40 mb-1" size={22} />
+                     <Sparkles className="text-white/40 mb-1" size={22} />
                      <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Ideal For</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.guests}</span>
                    </div>
@@ -433,6 +447,15 @@ Could you please share details on availability and custom options? Thank you!`;
                        {experience.flights_status === 'included' ? "Included" : experience.flights_status === 'on_request' ? "On Request" : "Excluded"}
                      </span>
                  </div>
+                 {experience.max_group_size != null && (
+                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
+                       <Users className="text-amber-400/50 mb-1" size={22} />
+                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Group Size</span>
+                       <span className="text-sm md:text-base font-bold text-white tracking-tight">
+                         {experience.min_group_size ?? 1} - {experience.max_group_size} Pax
+                       </span>
+                   </div>
+                 )}
               </div>
 
               {/* Middle Row: Highlights & Inclusions */}
@@ -517,7 +540,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
                  <div className="text-center md:text-left">
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Chronicle</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">Itinerary</span>
                    <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Day by Day Plan.</h2>
                  </div>
                  {pdfUrl && (
