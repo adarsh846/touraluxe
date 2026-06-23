@@ -228,6 +228,21 @@ export function Navbar() {
               </Magnetic>
             ))}
 
+            <Magnetic>
+              <button
+                className={cn(
+                  "text-[clamp(2.5rem,8vw,7rem)] leading-none font-semibold tracking-tight text-white transition-all duration-500 bg-transparent border-none outline-none text-left",
+                  isMobileMenuOpen
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-6"
+                )}
+                style={{ transitionDelay: isMobileMenuOpen ? `${80 + NAV_LINKS.length * 60}ms` : "0ms" }}
+                onClick={() => { openModal('PORTAL'); setIsMobileMenuOpen(false); }}
+              >
+                Track Your Booking
+              </button>
+            </Magnetic>
+
             <div
               className={cn(
                 "mt-[clamp(2.5rem,6vw,5rem)] pt-[clamp(2rem,4vw,4rem)] border-t border-white/10 transition-all duration-500 flex flex-col sm:flex-row gap-4",
@@ -241,14 +256,6 @@ export function Navbar() {
                   className="flex-1 rounded-full bg-white px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-black transition-transform hover:scale-105 text-center"
                 >
                   Book Now
-                </button>
-              </Magnetic>
-              <Magnetic>
-                <button
-                  onClick={() => { openModal('PORTAL'); setIsMobileMenuOpen(false); }}
-                  className="flex-1 rounded-full bg-white/5 border border-white/10 px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-white/70 transition-transform hover:scale-105 text-center hover:bg-white/15 hover:text-white"
-                >
-                  Track Your Booking
                 </button>
               </Magnetic>
             </div>
