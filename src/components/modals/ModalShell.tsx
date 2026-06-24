@@ -114,6 +114,34 @@ export function ModalShell() {
     setMounted(true);
   }, []);
 
+  // Dynamic navigation-stack transition class provider
+  const getTransitionClass = useCallback((viewName: string, layerDepth: number) => {
+    // Determine booking depth dynamically: Search (no bookingData) is 2, Booking Form (with bookingData) is 4
+    const bookingDepth = bookingData ? 4 : 2;
+    
+    const activeViewDepth = { 
+      'SERVICES': 1, 
+      'ABOUT': 1, 
+      'CTA': 1, 
+      'CONTACT': 1,
+      'BOOKING': bookingDepth, 
+      'PORTAL': 2, 
+      'PACKAGE': 3 
+    }[activeView as string] || 1;
+
+    const currentLayerDepth = viewName === 'BOOKING' ? bookingDepth : layerDepth;
+
+    if (activeView === viewName) {
+      return 'opacity-100 translate-y-0 scale-100 z-10 visible pointer-events-auto';
+    }
+    
+    if (currentLayerDepth < activeViewDepth) {
+      return 'opacity-0 scale-[0.96] z-0 invisible pointer-events-none';
+    } else {
+      return 'opacity-0 translate-y-[10vh] scale-[0.98] z-20 invisible pointer-events-none';
+    }
+  }, [activeView, bookingData]);
+
   // Sync active states with provider
   useEffect(() => {
     if (isOpen) {
@@ -442,12 +470,7 @@ export function ModalShell() {
         <div className="relative flex-1 w-full h-full overflow-hidden will-change-transform transform-gpu">
           {/* Services Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'SERVICES' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : direction === 'forward' 
-                  ? 'opacity-0 -translate-x-12 z-0 pointer-events-none scale-[0.98]' 
-                  : 'opacity-0 translate-x-12 z-0 pointer-events-none scale-[1.02]'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('SERVICES', 1)}`}
           >
             {visitedViews['SERVICES'] && (
               <ServiceContent data={servicesData} isActive={activeView === 'SERVICES'} onScroll={handleScroll} openModal={openModal} />
@@ -456,12 +479,7 @@ export function ModalShell() {
 
           {/* Booking Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'BOOKING' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : direction === 'forward' 
-                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
-                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('BOOKING', 2)}`}
           >
             {visitedViews['BOOKING'] && (
               <BookingContent 
@@ -482,10 +500,7 @@ export function ModalShell() {
 
           {/* About Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'ABOUT' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('ABOUT', 1)}`}
           >
             {visitedViews['ABOUT'] && (
               <AboutContent isActive={activeView === 'ABOUT'} onScroll={handleScroll} startClosing={startClosing} />
@@ -494,10 +509,7 @@ export function ModalShell() {
 
           {/* CTA Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'CTA' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('CTA', 1)}`}
           >
             {visitedViews['CTA'] && (
               <ContactContent isActive={activeView === 'CTA'} onScroll={handleScroll} startClosing={startClosing} />
@@ -506,10 +518,7 @@ export function ModalShell() {
 
           {/* Contact Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'CONTACT' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : 'opacity-0 translate-x-24 z-0 pointer-events-none'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('CONTACT', 1)}`}
           >
             {visitedViews['CONTACT'] && (
               <ContactContent isActive={activeView === 'CONTACT'} onScroll={handleScroll} startClosing={startClosing} />
@@ -518,12 +527,7 @@ export function ModalShell() {
 
           {/* Portal Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'PORTAL' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : direction === 'forward' 
-                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
-                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('PORTAL', 2)}`}
           >
             {visitedViews['PORTAL'] && (
               <PortalContent 
@@ -535,12 +539,7 @@ export function ModalShell() {
 
           {/* Package Detail Layer */}
           <div 
-            className={`absolute inset-0 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] transform-gpu will-change-[opacity,transform] 
-              ${activeView === 'PACKAGE' 
-                ? 'opacity-100 translate-x-0 z-10 pointer-events-auto scale-100' 
-                : direction === 'forward' 
-                  ? 'opacity-0 translate-x-24 z-0 pointer-events-none scale-[1.05]' 
-                  : 'opacity-0 -translate-x-24 z-0 pointer-events-none scale-[0.95]'}`}
+            className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('PACKAGE', 3)}`}
           >
             {visitedViews['PACKAGE'] && (
               <PackageContent 

@@ -108,16 +108,32 @@ export function FloatingSearch() {
 
     const list = new Map<string, { label: string; type: 'destination' | 'package' | 'theme'; extra?: string }>();
 
+    const getPriority = (extra?: string) => {
+      if (extra === 'Available Escape') return 5;
+      if (extra === 'Destination') return 4;
+      if (extra === 'Global Destination') return 2;
+      if (extra === 'Did you mean?') return 1;
+      return 3; // Packages / default
+    };
+
+    const addSuggestion = (item: { label: string; type: 'destination' | 'package' | 'theme'; extra?: string }) => {
+      const key = item.label.trim().toLowerCase();
+      const existing = list.get(key);
+      if (!existing || getPriority(item.extra) > getPriority(existing.extra)) {
+        list.set(key, item);
+      }
+    };
+
     // 1. Direct and Substring matches in our visual manifest
     packages.forEach(pkg => {
-      if (pkg.location && pkg.location.toLowerCase().includes(query)) {
-        list.set(`loc:${pkg.location.trim()}`, { label: pkg.location.trim(), type: 'destination', extra: 'Available Escape' });
-      }
-      if (pkg.destination && pkg.destination.toLowerCase().includes(query)) {
-        list.set(`dest:${pkg.destination.trim()}`, { label: pkg.destination.trim(), type: 'destination', extra: 'Destination' });
+      if (pkg.destination && (
+        pkg.destination.toLowerCase().includes(query) || 
+        (pkg.location && pkg.location.toLowerCase().includes(query))
+      )) {
+        addSuggestion({ label: pkg.destination.trim(), type: 'destination', extra: 'Available Escape' });
       }
       if (pkg.title && pkg.title.toLowerCase().includes(query)) {
-        list.set(`pkg:${pkg.title.trim()}`, { label: pkg.title.trim(), type: 'package', extra: pkg.location || 'Luxury Experience' });
+        addSuggestion({ label: pkg.title.trim(), type: 'package', extra: pkg.destination || 'Luxury Experience' });
       }
     });
 
@@ -127,7 +143,7 @@ export function FloatingSearch() {
     ).slice(0, 4);
 
     matchedGlobals.forEach(dest => {
-      list.set(`global:${dest.trim()}`, { label: dest.trim(), type: 'destination', extra: 'Global Destination' });
+      addSuggestion({ label: dest.trim(), type: 'destination', extra: 'Global Destination' });
     });
 
     // 3. Typo-tolerant suggestion if zero direct matches
@@ -141,7 +157,7 @@ export function FloatingSearch() {
       .slice(0, 3);
 
       fuzzyGlobals.forEach(item => {
-        list.set(`fuzzy:${item.dest}`, { label: item.dest, type: 'destination', extra: 'Did you mean?' });
+        addSuggestion({ label: item.dest, type: 'destination', extra: 'Did you mean?' });
       });
     }
 

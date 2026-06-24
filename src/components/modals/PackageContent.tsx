@@ -143,6 +143,8 @@ export const PackageContent = memo(({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [scrollerEl, setScrollerEl] = useState<HTMLElement | null>(null);
   const [isPillHovered, setIsPillHovered] = useState(false);
+  const [renderHeavyContent, setRenderHeavyContent] = useState(false);
+  const [isHeroLoaded, setIsHeroLoaded] = useState(false);
 
 
   const pillRef = useRef<HTMLDivElement>(null);
@@ -311,6 +313,18 @@ Could you please share details on availability and custom options? Thank you!`;
     };
   }, [isActive]);
 
+  // Defer rendering of content below the fold to keep the entry transition 100% fluid
+  useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        setRenderHeavyContent(true);
+      }, 450); // 450ms matches the 600ms graceful transition
+      return () => clearTimeout(timer);
+    } else {
+      setRenderHeavyContent(false);
+    }
+  }, [isActive]);
+
   const heroMediaRef = useRef<HTMLDivElement>(null);
   
   // Hero Parallax Effect
@@ -367,7 +381,18 @@ Could you please share details on availability and custom options? Thank you!`;
         {/* 1. HERO SECTION (Immersive Edge-to-Edge) */}
         <section className="relative w-full h-[100svh] flex flex-col items-center justify-center overflow-hidden">
           <div ref={heroMediaRef} className="absolute inset-0 z-0 origin-top transform-gpu">
-             <Image src={experience.image} alt={experience.title} fill className="object-cover opacity-90 will-change-transform" priority sizes="100vw" />
+             <Image 
+               src={experience.image} 
+               alt={experience.title} 
+               fill 
+               className={cn(
+                 "object-cover will-change-[opacity,transform] transition-opacity duration-700 ease-out",
+                 isHeroLoaded ? "opacity-90" : "opacity-0"
+               )}
+               priority 
+               sizes="100vw" 
+               onLoad={() => setIsHeroLoaded(true)}
+             />
           </div>
           
           {/* Static Gradient Mask for Seamless Bottom Blend */}
@@ -421,7 +446,8 @@ Could you please share details on availability and custom options? Thank you!`;
         </section>
 
         {/* CONTENT WRAPPER */}
-        <div className="relative z-20 bg-[#0a0a0a] w-full mx-auto flex flex-col gap-24 md:gap-32 pb-32">
+        {renderHeavyContent && (
+          <div className="relative z-20 bg-[#0a0a0a] w-full mx-auto flex flex-col gap-24 md:gap-32 pb-32">
           
           {/* 2. THE VISION (Scrub Text Animation) */}
           <section className="max-w-5xl mx-auto text-center px-6 md:px-12 pt-16 md:pt-24">
@@ -728,6 +754,7 @@ Could you please share details on availability and custom options? Thank you!`;
             </div>
           </section>
         </div>
+        )}
       </div>
 
 

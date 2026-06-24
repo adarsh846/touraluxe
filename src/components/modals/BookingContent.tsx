@@ -507,16 +507,32 @@ export const BookingContent = memo(function BookingContent({
 
     const list = new Map<string, { label: string; type: 'destination' | 'package'; extra?: string }>();
 
+    const getPriority = (extra?: string) => {
+      if (extra === 'Available Escape') return 5;
+      if (extra === 'Destination') return 4;
+      if (extra === 'Global Destination') return 2;
+      if (extra === 'Did you mean?') return 1;
+      return 3; // Packages / default
+    };
+
+    const addSuggestion = (item: { label: string; type: 'destination' | 'package'; extra?: string }) => {
+      const key = item.label.trim().toLowerCase();
+      const existing = list.get(key);
+      if (!existing || getPriority(item.extra) > getPriority(existing.extra)) {
+        list.set(key, item);
+      }
+    };
+
     // 1. Check local package manifest
     manifest.forEach(pkg => {
-      if (pkg.location && pkg.location.toLowerCase().includes(query)) {
-        list.set(`loc:${pkg.location.trim()}`, { label: pkg.location.trim(), type: 'destination', extra: 'Available Escape' });
-      }
-      if (pkg.destination && pkg.destination.toLowerCase().includes(query)) {
-        list.set(`dest:${pkg.destination.trim()}`, { label: pkg.destination.trim(), type: 'destination', extra: 'Destination' });
+      if (pkg.destination && (
+        pkg.destination.toLowerCase().includes(query) || 
+        (pkg.location && pkg.location.toLowerCase().includes(query))
+      )) {
+        addSuggestion({ label: pkg.destination.trim(), type: 'destination', extra: 'Available Escape' });
       }
       if (pkg.title && pkg.title.toLowerCase().includes(query)) {
-        list.set(`pkg:${pkg.title.trim()}`, { label: pkg.title.trim(), type: 'package', extra: pkg.location || 'Luxury Experience' });
+        addSuggestion({ label: pkg.title.trim(), type: 'package', extra: pkg.destination || 'Luxury Experience' });
       }
     });
 
@@ -526,7 +542,7 @@ export const BookingContent = memo(function BookingContent({
     ).slice(0, 4);
 
     matchedGlobals.forEach(dest => {
-      list.set(`global:${dest.trim()}`, { label: dest.trim(), type: 'destination', extra: 'Global Destination' });
+      addSuggestion({ label: dest.trim(), type: 'destination', extra: 'Global Destination' });
     });
 
     // 3. Typo-tolerant matching if no direct matches
@@ -540,7 +556,7 @@ export const BookingContent = memo(function BookingContent({
       .slice(0, 3);
 
       fuzzyGlobals.forEach(item => {
-        list.set(`fuzzy:${item.dest}`, { label: item.dest, type: 'destination', extra: 'Did you mean?' });
+        addSuggestion({ label: item.dest, type: 'destination', extra: 'Did you mean?' });
       });
     }
 
@@ -628,43 +644,34 @@ export const BookingContent = memo(function BookingContent({
 
   useEffect(() => {
     // ════ SOVEREIGN VISUAL ENGINE ════
-    // Clear previous visual buffer instantly to prevent "Atmospheric Ghosting"
-    // If we have an internal package, we keep its visual authority
-    if (!internalPackage) {
-      setDynamicImage(defaultImage);
-    }
-    setDynamicVideo(null);
-    setIsImgLoaded(false);
-
-    // 1. ATMOSPHERE SYNC: If search is empty or too short, adopt administrative atmosphere
+    // 1. Determine target image based on query search
+    let targetImage = defaultImage;
     const rawQuery = (destination || "").trim();
-    if (rawQuery.length < 2) {
-      if (!internalPackage && defaultImage) setDynamicImage(defaultImage);
-      return;
-    }
     
-    // 2. INSTANT MANIFEST MATCH: Check the high-speed local cache for destination visual
-    const queryKey = rawQuery.toUpperCase().trim();
-    const manifestMatch = visualManifest[queryKey];
-
-    if (manifestMatch) {
-      setDynamicImage(manifestMatch);
-      setIsVisualLoading(false);
-      return; // Absolute zero-latency match found
+    if (rawQuery.length >= 2) {
+      const queryKey = rawQuery.toUpperCase().trim();
+      const manifestMatch = visualManifest[queryKey];
+      if (manifestMatch) {
+        targetImage = manifestMatch;
+      } else {
+        const fuzzyMatch = Object.keys(visualManifest).find(key => key.includes(queryKey));
+        if (fuzzyMatch) {
+          targetImage = visualManifest[fuzzyMatch];
+        }
+      }
     }
 
-    // 3. FUZZY MANIFEST MATCH: Check for partial name matches in local cache
-    const fuzzyMatch = Object.keys(visualManifest).find(key => key.includes(queryKey));
-    if (fuzzyMatch) {
-      setDynamicImage(visualManifest[fuzzyMatch]);
-      setIsVisualLoading(false);
-      return;
+    // 2. Only update if the image URL actually changed to prevent continuous layout thrashing during typing
+    if (!internalPackage) {
+      if (dynamicImage !== targetImage) {
+        setDynamicImage(targetImage);
+      }
     }
 
-    // 4. FALLBACK: Revert to the administrative atmosphere instantly
-    setDynamicImage(defaultImage);
-    setIsVisualLoading(false);
-  }, [destination, internalPackage?.title, defaultImage, internalPackage, visualManifest]);
+    if (dynamicVideo) {
+      setDynamicVideo(null);
+    }
+  }, [destination, internalPackage?.title, defaultImage, internalPackage, visualManifest, dynamicImage, dynamicVideo]);
 
   const handlePackageSelect = (pkg: any) => {
     // Dismiss virtual keyboard on mobile devices immediately before modal transition
@@ -676,8 +683,6 @@ export const BookingContent = memo(function BookingContent({
     }
 
     // Open the full package details view
-    setIsImgLoaded(false);
-    setDynamicImage(null); // Purge search buffer on selection
     openModal?.("PACKAGE", pkg, bookingSource);
   };
 
@@ -1389,18 +1394,11 @@ Please confirm my booking. Thank you!`;
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const isScrolled = e.currentTarget.scrollTop > UI_CONFIG.THRESHOLDS.SCROLL_MIN;
     onScroll(isScrolled);
-    
-    // Apple UX Standard: Auto-blur search input and collapse virtual keyboard on scroll gesture
-    if (searchFocused && searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
   };
 
   const handleHorizontalScroll = useCallback(() => {
-    if (searchFocused && searchInputRef.current) {
-      searchInputRef.current.blur();
-    }
-  }, [searchFocused]);
+    // Left empty: prevent synthetic layout scroll events from dropping keyboard focus on mobile
+  }, []);
 
   return (
     <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden">
@@ -1429,8 +1427,8 @@ Please confirm my booking. Thank you!`;
             playsInline
             onLoadedData={() => setIsVisualLoading(false)}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity,filter] duration-[1200ms] ease-out brightness-[0.7] transform-gpu",
-              isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
+              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity] duration-[700ms] ease-out brightness-[0.7] transform-gpu",
+              isVisualLoading ? "scale-105 opacity-0" : "scale-100 opacity-40"
             )}
             style={{ transform: "translate3d(0,0,0)" }}
           >
@@ -1441,8 +1439,8 @@ Please confirm my booking. Thank you!`;
             src={internalPackage?.image || dynamicImage}
             onLoad={() => setIsVisualLoading(false)}
             className={cn(
-              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity,filter] duration-[1200ms] ease-out brightness-[0.7] transform-gpu",
-              isVisualLoading ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-40"
+              "absolute inset-0 w-full h-full object-cover transition-[transform,opacity] duration-[700ms] ease-out brightness-[0.7] transform-gpu",
+              isVisualLoading ? "scale-105 opacity-0" : "scale-100 opacity-40"
             )}
             alt={internalPackage?.title || destination}
             style={{ transform: "translate3d(0,0,0)" }}
@@ -1481,7 +1479,7 @@ Please confirm my booking. Thank you!`;
                     >
                       <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center sm:whitespace-nowrap text-balance">
                         <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
-                        <span className="text-white/20 font-light italic tracking-tight">
+                        <span className="text-white/30 font-light italic tracking-tight">
                           new horizons.
                         </span>
                       </h2>
@@ -1554,7 +1552,7 @@ Please confirm my booking. Thank you!`;
                           }}
                           placeholder="Where should your journey begin?"
                           autoComplete="off"
-                          className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/5 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
+                          className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/30 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                         />
                         {destination.length > 0 && (
                            <button
@@ -1799,7 +1797,7 @@ Please confirm my booking. Thank you!`;
                                 <div
                                   onClick={() => handlePackageSelect(pkg)}
                                     className={cn(
-                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02]",
+                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02] active:scale-[0.98] active:translate-y-0 active:duration-150",
                                       (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_10px_40px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_15px_50px_-5px_rgba(251,191,36,0.3)]" :
                                       (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_10px_30px_-5px_rgba(255,255,255,0.05)] hover:shadow-[0_15px_40px_-5px_rgba(255,255,255,0.1)]" :
                                       "border-white/[0.03] hover:border-white/10 hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)]"
@@ -1917,7 +1915,7 @@ Please confirm my booking. Thank you!`;
                               <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
                                 <button
                                   onClick={() => handlePackageSelect(pkg)}
-                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
+                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)] active:scale-[0.98] active:translate-y-0 active:duration-150"
                                 >
                                   <img
                                   src={pkg.image}
