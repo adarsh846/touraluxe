@@ -1,192 +1,213 @@
-import Fuse from 'fuse.js';
 import { SYNONYM_MAP } from '@/lib/synonyms';
 import { supabase } from '@/lib/supabase';
 
-export interface SearchResult<T> {
+export interface SearchProfile<T> {
   item: T;
-  score: number;
-  relevanceTier: 'exact' | 'prefix' | 'substring' | 'fuzzy' | 'none';
+  exactKeys: Set<string>;      // Lowercase tokens of Title, Location, Destination, tags, categories
+  expansionKeys: Set<string>;  // Synonym expansions of the main attributes
+  searchBlob: string;          // Flat string for substring fallbacks
 }
 
 export class DiscoveryService<T extends { title: string; location: string }> {
-  private fuse: Fuse<T> | null = null;
   private manifest: T[] = [];
+  private searchProfiles: SearchProfile<T>[] = [];
+  private dynamicSynonyms: Record<string, string[]> = {};
+  private synonymsLoaded = false;
+  private useServerFallback = false;
 
   constructor(data: T[]) {
     this.manifest = data;
-    this.initializeEngine(data);
-  }
-
-  private initializeEngine(data: T[]) {
-    this.fuse = new Fuse(data, {
-      keys: [
-        { name: 'title', weight: 0.9 },
-        { name: 'destination', weight: 0.8 },
-        { name: 'category', weight: 0.7 },
-        { name: 'tags', weight: 0.7 },
-        { name: 'location', weight: 0.5 },
-        { name: 'trip_type', weight: 0.4 }
-      ],
-      threshold: 0.35,
-      distance: 100,
-      includeScore: true,
-      useExtendedSearch: true,
-      ignoreLocation: false
-    });
-  }
-
-  private synonymsLoaded = false;
-  private dynamicSynonyms: Record<string, string[]> = {};
-
-  /**
-   * The "Neural-Pattern" Search Algorithm
-   * Performs deep semantic analysis and token-set intersection.
-   */
-  public async search(query: string): Promise<T[]> {
-    if (!query.trim() || !this.fuse) return [];
-
-    const rawQuery = query.toLowerCase().trim();
-    // Advanced Tokenization: Filter out common conversational noise and verbal stems
-    const noiseWords = new Set(['i', 'want', 'to', 'go', 'find', 'show', 'me', 'a', 'the', 'for', 'my', 'trip', 'travel', 'holiday', 'vacation', 'wan', 'look', 'looking', 'need', 'needs', 'place', 'places', 'to', 'go', 'at', 'with']);
-    const tokens = rawQuery.split(/\s+/)
-      .filter(t => t.length > 1 && !noiseWords.has(t));
-    
-    // Lazy load synonyms from Supabase
-    if (!this.synonymsLoaded) {
-      try {
-        const { data, error } = await supabase.from('search_synonyms').select('*');
-        if (!error && data) {
-          const map: Record<string, string[]> = {};
-          data.forEach((row: any) => {
-            map[row.word] = row.synonyms;
-          });
-          this.dynamicSynonyms = map;
-        }
-      } catch (err) {
-        console.error("Failed to fetch synonyms from Supabase, falling back to local file.", err);
-      }
-      this.synonymsLoaded = true;
+    // If the dataset scales beyond 2000 items, flag for server delegation fallback
+    if (data.length > 2000) {
+      this.useServerFallback = true;
+    } else {
+      this.buildLocalIndex();
     }
+    // Eagerly prefetch dynamic database synonyms on startup (non-blocking)
+    this.prewarmSynonyms();
+  }
 
-    const activeSynonyms = { ...SYNONYM_MAP, ...this.dynamicSynonyms };
-    
-    // Synonym Expansion
-    const expandedTokens = [...tokens];
-    tokens.forEach(token => {
-      if (activeSynonyms[token]) {
-        expandedTokens.push(...activeSynonyms[token]);
-      }
-    });
-    
-    // 1. Initial High-Recall Fetch
-    const fuseResults = this.fuse.search(rawQuery);
-    
-    // Stage 2: Intent Extraction & Re-Ranking
-    const rankedResults: SearchResult<T>[] = fuseResults.map(result => {
-      const item = result.item;
-      const title = item.title.toLowerCase();
-      const location = item.location.toLowerCase();
-      let relevanceTier: SearchResult<T>['relevanceTier'] = 'fuzzy';
-      let boost = 0;
-
-      // Exact Title Match (Highest Confidence)
-      if (title === rawQuery) {
-        relevanceTier = 'exact';
-        boost = 1.0;
-      }
-      // Direct Prefix Match
-      else if (title.startsWith(rawQuery)) {
-        relevanceTier = 'prefix';
-        boost = 0.8;
-      }
-      // Token Intersection (Handling "I want to go Bali")
-      else {
-        const titleMatchCount = expandedTokens.filter(t => title.includes(t)).length;
-        const locationMatchCount = expandedTokens.filter(t => location.includes(t)).length;
-        
-        const categories = ((item as any).category || []).map((c: string) => c.toLowerCase());
-        const tags = ((item as any).tags || []).map((tg: string) => tg.toLowerCase());
-        const destination = ((item as any).destination || "").toLowerCase();
-        
-        const categoryMatchCount = expandedTokens.filter(t => categories.some((c: string) => c.includes(t))).length;
-        const tagsMatchCount = expandedTokens.filter(t => tags.some((tg: string) => tg.includes(t))).length;
-        const destinationMatchCount = expandedTokens.filter(t => destination.includes(t)).length;
-        
-        if (titleMatchCount > 0) {
-          relevanceTier = 'substring';
-          boost = (titleMatchCount / tokens.length) * 0.8;
-        } else if (destinationMatchCount > 0) {
-          relevanceTier = 'substring';
-          boost = (destinationMatchCount / tokens.length) * 0.7;
-        } else if (categoryMatchCount > 0) {
-          relevanceTier = 'substring';
-          boost = (categoryMatchCount / tokens.length) * 0.6;
-        } else if (tagsMatchCount > 0) {
-          relevanceTier = 'substring';
-          boost = (tagsMatchCount / tokens.length) * 0.6;
-        } else if (locationMatchCount > 0) {
-          relevanceTier = 'substring';
-          boost = (locationMatchCount / tokens.length) * 0.5;
+  private async prewarmSynonyms() {
+    try {
+      const { data, error } = await supabase.from('search_synonyms').select('*');
+      if (!error && data) {
+        const map: Record<string, string[]> = {};
+        data.forEach((row: any) => {
+          map[row.word.toLowerCase().trim()] = (row.synonyms || []).map((s: string) => s.toLowerCase().trim());
+        });
+        this.dynamicSynonyms = map;
+        this.synonymsLoaded = true;
+        // Rebuild local search profiles with the loaded database synonyms
+        if (!this.useServerFallback) {
+          this.buildLocalIndex();
         }
       }
+    } catch (err) {
+      console.error("Failed to prewarm synonyms from database, using local mapping:", err);
+    }
+  }
 
-      const baseScore = result.score ?? 1;
-      const finalScore = Math.max(0, baseScore - boost);
+  private buildLocalIndex() {
+    const activeSynonyms = { ...SYNONYM_MAP, ...this.dynamicSynonyms };
+
+    this.searchProfiles = this.manifest.map(item => {
+      const title = (item.title || "").toLowerCase().trim();
+      const location = (item.location || "").toLowerCase().trim();
+      const destination = ((item as any).destination || "").toLowerCase().trim();
+      const categories = (((item as any).category || []) as string[]).map(c => c.toLowerCase().trim());
+      const tags = (((item as any).tags || []) as string[]).map(t => t.toLowerCase().trim());
+
+      // Helper to split a string into unique lowercase tokens
+      const tokenize = (str: string): string[] => {
+        return str.split(/[\s,.\-\/]+/).filter(t => t.length > 0);
+      };
+
+      const titleTokens = tokenize(title);
+      const locationTokens = tokenize(location);
+      const destinationTokens = tokenize(destination);
+      const categoryTokens = categories.flatMap(tokenize);
+      const tagTokens = tags.flatMap(tokenize);
+
+      // Create core exact keys set
+      const exactKeys = new Set([
+        ...titleTokens,
+        ...locationTokens,
+        ...destinationTokens,
+        ...categoryTokens,
+        ...tagTokens
+      ]);
+
+      // Create synonym expansion keys set
+      const expansionKeys = new Set<string>();
+      exactKeys.forEach(key => {
+        if (activeSynonyms[key]) {
+          activeSynonyms[key].forEach((syn: string) => expansionKeys.add(syn.toLowerCase().trim()));
+        }
+      });
+
+      // Combined flat string search blob for fallback substring inclusion
+      const searchBlob = `${title} ${location} ${destination} ${categories.join(" ")} ${tags.join(" ")}`.toLowerCase();
 
       return {
         item,
-        score: finalScore,
-        relevanceTier
+        exactKeys,
+        expansionKeys,
+        searchBlob
       };
     });
+  }
 
-    // 3. Deep Manifest Scan (Industry Standard Fallback)
-    // If Fuse missed a perfect token match due to low fuzzy score, we force-find it here.
-    const seenIds = new Set(rankedResults.map(r => (r.item as any).id));
-    
-    if (tokens.length > 0) {
-      this.manifest.forEach(item => {
-        if (seenIds.has((item as any).id)) return;
-        
-        const title = item.title.toLowerCase();
-        const location = item.location.toLowerCase();
-        const categories = ((item as any).category || []).map((c: string) => c.toLowerCase());
-        const tags = ((item as any).tags || []).map((tg: string) => tg.toLowerCase());
-        const destination = ((item as any).destination || "").toLowerCase();
-        
-        const matchedTitle = expandedTokens.filter(t => t.length < 3 ? title.startsWith(t) : title.includes(t)).length;
-        const matchedLocation = expandedTokens.filter(t => t.length < 3 ? location.startsWith(t) : location.includes(t)).length;
-        const matchedDestination = expandedTokens.filter(t => destination.includes(t)).length;
-        const matchedCategory = expandedTokens.filter(t => categories.some((c: string) => c.includes(t))).length;
-        const matchedTag = expandedTokens.filter(t => tags.some((tg: string) => tg.includes(t))).length;
+  public async search(query: string): Promise<T[]> {
+    const cleanQuery = query.toLowerCase().trim();
+    if (!cleanQuery) return [];
 
-        if (matchedTitle > 0 || matchedDestination > 0 || matchedCategory > 0 || matchedTag > 0 || matchedLocation > 0) {
-          rankedResults.push({
-            item,
-            score: 0.1, // High priority for manual token match
-            relevanceTier: (matchedTitle > 0 || matchedDestination > 0) ? 'prefix' : 'substring'
-          });
+    if (this.useServerFallback) {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(cleanQuery)}`);
+        if (res.ok) {
+          return await res.json();
         }
-      });
+      } catch (err) {
+        console.error("Server-side search request failed, falling back to local:", err);
+      }
     }
 
-    return rankedResults
-      .filter(r => {
-        // If it's a pure fuzzy match, only keep it if the score is actually strong (e.g. <= 0.45)
-        if (r.relevanceTier === 'fuzzy') {
-          return r.score <= 0.45;
+    // Advanced tokenization of user query
+    const noiseWords = new Set(['i', 'want', 'to', 'go', 'find', 'show', 'me', 'a', 'the', 'for', 'my', 'trip', 'travel', 'holiday', 'vacation', 'wan', 'look', 'looking', 'need', 'needs', 'place', 'places', 'at', 'with']);
+    const queryTokens = cleanQuery.split(/[\s,.\-\/]+/)
+      .filter(t => t.length > 0 && !noiseWords.has(t));
+
+    if (queryTokens.length === 0) return [];
+
+    const scoredResults: { item: T; score: number }[] = [];
+
+    // Sub-millisecond evaluation matching via Set operations
+    for (const profile of this.searchProfiles) {
+      let score = 0;
+      let exactMatches = 0;
+      let synonymMatches = 0;
+
+      queryTokens.forEach(token => {
+        if (profile.exactKeys.has(token)) {
+          exactMatches++;
+        } else if (profile.expansionKeys.has(token)) {
+          synonymMatches++;
         }
-        // General safety cutoff for boosted matches
-        return r.score <= 0.6;
-      })
-      .sort((a, b) => {
-        const tierWeights = { exact: 0, prefix: 1, substring: 2, fuzzy: 3, none: 4 };
-        if (tierWeights[a.relevanceTier] !== tierWeights[b.relevanceTier]) {
-          return tierWeights[a.relevanceTier] - tierWeights[b.relevanceTier];
+      });
+
+      if (exactMatches > 0 || synonymMatches > 0) {
+        // Boost for perfect matching
+        if (exactMatches === queryTokens.length) {
+          score += 100;
+        } else {
+          score += (exactMatches * 10) + (synonymMatches * 2);
         }
-        return a.score - b.score;
-      })
+        
+        // Additional boost if query is contained directly in the title
+        if (profile.item.title.toLowerCase().includes(cleanQuery)) {
+          score += 20;
+        }
+        // Additional boost if query is contained directly in the location
+        if (profile.item.location.toLowerCase().includes(cleanQuery)) {
+          score += 15;
+        }
+      } else {
+        // Fallback 1: Direct substring inclusion in the metadata search blob
+        const includesAllTokens = queryTokens.every(token => profile.searchBlob.includes(token));
+        if (includesAllTokens) {
+          score += 5;
+        } else {
+          // Fallback 2: Typo-tolerance using a lightweight Levenshtein check
+          let typoMatch = false;
+          queryTokens.forEach(token => {
+            if (token.length > 3) { // Only check typos for words with length > 3
+              for (const key of profile.exactKeys) {
+                if (Math.abs(key.length - token.length) <= 1) {
+                  const dist = this.levenshtein(token, key);
+                  if (dist <= 1) { // Max 1 character typo
+                    typoMatch = true;
+                    break;
+                  }
+                }
+              }
+            }
+          });
+          if (typoMatch) {
+            score += 2;
+          }
+        }
+      }
+
+      if (score > 0) {
+        scoredResults.push({ item: profile.item, score });
+      }
+    }
+
+    // Sort descending by relevance score
+    return scoredResults
+      .sort((a, b) => b.score - a.score)
       .map(r => r.item);
+  }
+
+  // Fast iterative Levenshtein distance implementation
+  private levenshtein(a: string, b: string): number {
+    const tmp: number[][] = [];
+    for (let i = 0; i <= a.length; i++) {
+      tmp[i] = [i];
+    }
+    for (let j = 0; j <= b.length; j++) {
+      tmp[0][j] = j;
+    }
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        tmp[i][j] = Math.min(
+          tmp[i - 1][j] + 1,
+          tmp[i][j - 1] + 1,
+          tmp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+    }
+    return tmp[a.length][b.length];
   }
 
   public getManifest(): T[] {
