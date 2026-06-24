@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, memo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, memo } from "react";
 import { 
   X, 
   ArrowLeft,
@@ -442,6 +442,27 @@ export const BookingContent = memo(function BookingContent({
     state: sovereignState
   } = useSovereign();
 
+  const displayResults = useMemo(() => {
+    if (destination.trim().length >= 2 && searchResults.length > 0) {
+      return searchResults.map((pkg, idx) => {
+        const isGold = idx === 0;
+        return {
+          ...pkg,
+          match_score: Math.min(99, 95 - (idx * 5)),
+          match_label: isGold ? "Prime Alignment" : "Strong Correlation",
+          authority_type: isGold ? "gold" : "silver",
+          sovereign_reason: "Selected from TouraLuxe's elite catalog."
+        };
+      });
+    }
+    return sovereignResponse?.results || [];
+  }, [destination, searchResults, sovereignResponse?.results]);
+
+  // Run client-side local search instantly on query updates
+  useEffect(() => {
+    search(destination);
+  }, [destination, search]);
+
   // Sovereign Portal Intent Synchronization
   useEffect(() => {
     if (intent && discoveryPhase === 1 && step === 1 && intent !== prevIntent.current) {
@@ -454,9 +475,7 @@ export const BookingContent = memo(function BookingContent({
       const finalDest = cleanedDestination || "Luxury";
       setDestination(finalDest);
       prevIntent.current = intent;
-      if (manifest.length > 0) {
-        askSovereign(intent, manifest);
-      }
+      askSovereign(intent, manifest);
     }
   }, [intent, manifest, discoveryPhase, step, askSovereign]);
 
@@ -1435,35 +1454,37 @@ Please confirm my booking. Thank you!`;
                 <div
                   className={cn(
                     "w-full h-full flex flex-col transition-all duration-[1.2s] cubic-bezier(0.23,1,0.32,1)",
-                    searchResults.length > 0 && destination.length > 0
+                    displayResults.length > 0 && destination.length > 0
                       ? "pt-[clamp(5rem,10vh,6rem)]"
                       : "pt-[clamp(6.5rem,12vh,8rem)]",
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-full transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) px-[clamp(1.5rem,6vw,4rem)] relative z-[100]",
-                      searchResults.length > 0 && destination.length > 0
-                        ? "opacity-70 scale-[0.85] mb-[clamp(0.5rem,3vh,1.5rem)]"
-                        : "opacity-100 scale-100 mb-[clamp(1rem,3vh,2rem)]",
-                    )}
-                  >
-                    <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center sm:whitespace-nowrap text-balance">
-                      <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
-                      <span className="text-white/20 font-light italic tracking-tight">
-                        new horizons.
-                      </span>
-                    </h2>
-                    <p
+                  <div className="w-full px-[clamp(1.5rem,6vw,4rem)] relative z-[100] mb-[clamp(1rem,3vh,2rem)]">
+                    <div
                       className={cn(
-                        "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 sm:whitespace-nowrap text-balance",
-                        (sovereignResponse || isThinking) && destination.length > 0
-                          ? "opacity-0 h-0 overflow-hidden"
-                          : "opacity-100 mb-[clamp(1.5rem,4vh,2.5rem)]",
+                        "transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) origin-center",
+                        displayResults.length > 0 && destination.length > 0
+                          ? "opacity-50 scale-[0.8] mb-[clamp(0.5rem,2vh,1rem)]"
+                          : "opacity-100 scale-100 mb-[clamp(1.5rem,4vh,2.5rem)]"
                       )}
                     >
-                      Search your destination
-                    </p>
+                      <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center sm:whitespace-nowrap text-balance">
+                        <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
+                        <span className="text-white/20 font-light italic tracking-tight">
+                          new horizons.
+                        </span>
+                      </h2>
+                      <p
+                        className={cn(
+                          "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 sm:whitespace-nowrap text-balance",
+                          (sovereignResponse || isThinking) && destination.length > 0
+                            ? "opacity-0 h-0 overflow-hidden"
+                            : "opacity-100",
+                        )}
+                      >
+                        Search your destination
+                      </p>
+                    </div>
 
                     <div
                       ref={modalSearchContainerRef}
@@ -1730,21 +1751,21 @@ Please confirm my booking. Thank you!`;
                           </div>
                         </div>
                       </div>
-                    ) : sovereignResponse && sovereignResponse.results?.length > 0 && destination.length > 0 ? (
+                    ) : displayResults.length > 0 && destination.length > 0 ? (
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         onScroll={handleHorizontalScroll}
                         className={cn(
                           "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0",
-                          sovereignResponse.results?.length === 1 ? "justify-center" : "justify-start"
+                          displayResults.length === 1 ? "justify-center" : "justify-start"
                         )}
                       >
-                        {(sovereignResponse.results?.length ?? 0) > 1 && (
+                        {displayResults.length > 1 && (
                           <div className="w-1 md:w-4 flex-shrink-0" />
                         )}
                         
-                        {sovereignResponse.results.map((pkg, idx) => {
+                        {displayResults.map((pkg: any, idx: number) => {
                           const pkgPricing = computePrice(pkg, 1, 0, 0);
                           return (
                             <motion.div 
@@ -1846,7 +1867,7 @@ Please confirm my booking. Thank you!`;
 
 
                         {/* Visual Spacer for Horizontal End */}
-                        {(sovereignResponse.results?.length ?? 0) > 1 && (
+                        {displayResults.length > 1 && (
                           <div className="flex-shrink-0 w-8 md:w-32 h-1" />
                         )}
                       </motion.div>
