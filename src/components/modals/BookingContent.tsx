@@ -176,9 +176,9 @@ export const BookingContent = memo(function BookingContent({
   const [step, setStep] = useState(1);
   const [discoveryPhase, setDiscoveryPhase] = useState(packageData ? 2 : 1);
 
-  // Focus search input only when the modal sheet has fully settled and there is no pre-existing search intent.
+  // Focus search input only when the modal sheet has fully settled, the view is active, and there is no pre-existing search intent.
   useEffect(() => {
-    if (isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1 && !intent) {
+    if (isActive && isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1 && !intent) {
       // 100ms delay to make sure browser layout calculations and GSAP clearProps are done,
       // and virtual keyboard behaves correctly.
       const timer = setTimeout(() => {
@@ -186,7 +186,7 @@ export const BookingContent = memo(function BookingContent({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isSettled, discoveryPhase, step, intent]);
+  }, [isActive, isSettled, discoveryPhase, step, intent]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
