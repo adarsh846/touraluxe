@@ -667,15 +667,26 @@ export const BookingContent = memo(function BookingContent({
   }, [destination, internalPackage?.title, defaultImage, internalPackage, visualManifest]);
 
   const handlePackageSelect = (pkg: any) => {
+    // Dismiss virtual keyboard on mobile devices immediately before modal transition
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+
     // Open the full package details view
     setIsImgLoaded(false);
     setDynamicImage(null); // Purge search buffer on selection
     openModal?.("PACKAGE", pkg, bookingSource);
   };
 
-  // Sync state with props (Essential for seamless flow between Discovery and Details)
-  // We rely exclusively on the onLoad event of the image for visual authority.
-
+  // Automatically dismiss mobile virtual keyboard on discoveryPhase or step change
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [step, discoveryPhase]);
 
   useEffect(() => {
     if (packageData) {

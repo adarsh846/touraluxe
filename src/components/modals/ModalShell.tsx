@@ -86,6 +86,13 @@ export function ModalShell() {
     goBack();
   }, [goBack]);
 
+  // Automatically dismiss mobile virtual keyboard on modal view changes or close
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [view, isClosing]);
+
   useEffect(() => {
     if (error && alertRef.current) {
       const element = alertRef.current;
