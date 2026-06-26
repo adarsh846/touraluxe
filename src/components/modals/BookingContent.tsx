@@ -187,7 +187,14 @@ export const BookingContent = memo(function BookingContent({
 
   // Focus search input only when the modal sheet has fully settled, the view is active, and there is no pre-existing search intent.
   useEffect(() => {
-    if (isActive && isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1 && !intent) {
+    // Avoid programmatic autofocus on mobile/touch devices to prevent virtual keyboard collapse glitches.
+    const isMobileDevice = typeof window !== "undefined" && (
+      window.innerWidth < 768 ||
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints !== undefined && navigator.maxTouchPoints > 0)
+    );
+
+    if (isActive && isSettled && searchInputRef.current && discoveryPhase === 1 && step === 1 && !intent && !isMobileDevice) {
       // 100ms delay to make sure browser layout calculations and GSAP clearProps are done,
       // and virtual keyboard behaves correctly.
       const timer = setTimeout(() => {
