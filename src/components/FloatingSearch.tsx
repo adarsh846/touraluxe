@@ -53,6 +53,15 @@ function getJaroWinkler(s1: string, s2: string): number {
   return jaro + l * p * (1 - jaro);
 }
 
+// Capitalization helper to keep search inputs beautifully formatted in title case
+function capitalizeWords(str: string): string {
+  if (!str) return "";
+  return str
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -120,7 +129,7 @@ export function FloatingSearch() {
       const key = item.label.trim().toLowerCase();
       const existing = list.get(key);
       if (!existing || getPriority(item.extra) > getPriority(existing.extra)) {
-        list.set(key, item);
+        list.set(key, { ...item, label: capitalizeWords(item.label) });
       }
     };
 
@@ -241,9 +250,8 @@ export function FloatingSearch() {
         setIsVisible(true);
       } else {
         // Auto-blur input when keyboard is dismissed to reset focus state correctly
-        if (document.activeElement instanceof HTMLInputElement && 
-            document.activeElement.placeholder.includes("Search")) {
-          document.activeElement.blur();
+        if (document.activeElement === inputRef.current) {
+          inputRef.current?.blur();
         }
       }
     };

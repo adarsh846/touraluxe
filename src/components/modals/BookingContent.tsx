@@ -489,7 +489,7 @@ export const BookingContent = memo(function BookingContent({
       }
       
       const finalDest = cleanedDestination || "Luxury";
-      setDestination(finalDest);
+      setDestination(capitalizeWords(finalDest));
       prevIntent.current = intent;
       askSovereign(intent, manifest);
     }
@@ -535,7 +535,7 @@ export const BookingContent = memo(function BookingContent({
       const key = item.label.trim().toLowerCase();
       const existing = list.get(key);
       if (!existing || getPriority(item.extra) > getPriority(existing.extra)) {
-        list.set(key, item);
+        list.set(key, { ...item, label: capitalizeWords(item.label) });
       }
     };
 
