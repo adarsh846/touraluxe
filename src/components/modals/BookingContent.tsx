@@ -1720,7 +1720,7 @@ Please confirm my booking. Thank you!`;
                   </div>
 
                   {/* ADAPTIVE KINETIC COLLECTION (HORIZONTAL) */}
-                  <div className="w-full flex-1 flex flex-col overflow-y-hidden overflow-x-hidden scrollbar-hide min-h-0 relative">
+                  <div className="w-full flex-1 flex flex-col scrollbar-hide min-h-0 relative">
                     {isThinking ? (
                       <div className="w-full h-40 flex flex-col items-center justify-center gap-4 text-white/20">
                         <div className="flex items-center gap-8 mb-2">
@@ -1766,14 +1766,10 @@ Please confirm my booking. Thank you!`;
                         animate={{ opacity: 1 }}
                         onScroll={handleHorizontalScroll}
                         className={cn(
-                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0",
+                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
                           displayResults.length === 1 ? "justify-center" : "justify-start"
                         )}
                       >
-                        {displayResults.length > 1 && (
-                          <div className="w-1 md:w-4 flex-shrink-0" />
-                        )}
-                        
                         {displayResults.map((pkg: any, idx: number) => {
                           const pkgPricing = computePrice(pkg, 1, 0, 0);
                           return (
@@ -1791,7 +1787,7 @@ Please confirm my booking. Thank you!`;
                                   delay: idx * 0.08
                                 }
                               }}
-                              className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full transform-gpu"
+                              className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full transform-gpu"
                             >
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
@@ -1901,18 +1897,15 @@ Please confirm my booking. Thank you!`;
                         <div
                           onScroll={handleHorizontalScroll}
                           className={cn(
-                            "flex-1 flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 transition-all duration-1000 min-h-0",
+                            "flex-1 flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 transition-all duration-1000 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
                             destination.length > 0
                               ? "opacity-30 blur-sm scale-[0.98] pointer-events-none"
                               : "opacity-100 blur-0 scale-100",
                           )}
                         >
-                          {/* Anti-Clip Spacer */}
-                          <div className="w-1 md:w-4 flex-shrink-0" />
-
                           {trending.map((pkg) => {
                             return (
-                              <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-start w-[75vw] sm:w-[60vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
+                              <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
                                 <button
                                   onClick={() => handlePackageSelect(pkg)}
                                   className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)] active:scale-[0.98] active:translate-y-0 active:duration-150"
