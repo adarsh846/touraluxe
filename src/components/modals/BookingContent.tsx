@@ -1787,13 +1787,13 @@ Please confirm my booking. Thank you!`;
                                   delay: idx * 0.08
                                 }
                               }}
-                              className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full transform-gpu"
+                              className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full"
                             >
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
                                   onClick={() => handlePackageSelect(pkg)}
                                     className={cn(
-                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl transform-gpu hover:translate-y-[-12px] hover:scale-[1.02] active:scale-[0.98] active:translate-y-0 active:duration-150",
+                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl hover:translate-y-[-12px] hover:scale-[1.02] active:scale-[0.98] active:translate-y-0 active:duration-150",
                                       (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_10px_40px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_15px_50px_-5px_rgba(251,191,36,0.3)]" :
                                       (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_10px_30px_-5px_rgba(255,255,255,0.05)] hover:shadow-[0_15px_40px_-5px_rgba(255,255,255,0.1)]" :
                                       "border-white/[0.03] hover:border-white/10 hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)]"
@@ -1908,7 +1908,7 @@ Please confirm my booking. Thank you!`;
                               <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
                                 <button
                                   onClick={() => handlePackageSelect(pkg)}
-                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl transform-gpu hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)] active:scale-[0.98] active:translate-y-0 active:duration-150"
+                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)] active:scale-[0.98] active:translate-y-0 active:duration-150"
                                 >
                                   <img
                                   src={pkg.image}
