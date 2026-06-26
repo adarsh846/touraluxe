@@ -1,9 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import Image from "next/image";
 import { Magnetic } from "./Magnetic";
 import { Heart } from "lucide-react";
 import { useBooking } from "./BookingProvider";
+import { useSettings } from "@/hooks/useSettings";
+import { SERVICES } from "./sections/Services";
 
 function scrollToSection(id: string, offset: number = 0) {
   const lenis = (window as any).__lenis;
@@ -16,6 +19,21 @@ function scrollToSection(id: string, offset: number = 0) {
 
 export function Footer() {
   const { openModal } = useBooking();
+  const { settings } = useSettings();
+
+  const servicesList = useMemo(() => {
+    if (settings.services_data) {
+      try {
+        const parsed = JSON.parse(settings.services_data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error("Failed to parse services_data in Footer.tsx:", e);
+      }
+    }
+    return SERVICES;
+  }, [settings.services_data]);
 
   return (
     <footer className="relative z-20 w-full bg-black py-16 px-6 -mt-[1px]">
@@ -43,50 +61,19 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row gap-10 sm:gap-24">
           <div className="flex flex-col items-start gap-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Services</h4>
-            <Magnetic>
-              <button 
-                onClick={() => {
-                  scrollToSection("services", -80);
-                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 1 } }));
-                }} 
-                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
-              >
-                Luxury Travel
-              </button>
-            </Magnetic>
-            <Magnetic>
-              <button 
-                onClick={() => {
-                  scrollToSection("services", -80);
-                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 2 } }));
-                }} 
-                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
-              >
-                Sports Tours
-              </button>
-            </Magnetic>
-            <Magnetic>
-              <button 
-                onClick={() => {
-                  scrollToSection("services", -80);
-                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 3 } }));
-                }} 
-                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
-              >
-                MICE Events
-              </button>
-            </Magnetic>
-            <Magnetic>
-              <button 
-                onClick={() => {
-                  scrollToSection("services", -80);
-                  window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: 4 } }));
-                }} 
-                className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
-              >
-                Global Retreats
-              </button>
-            </Magnetic>
+            {servicesList.map((item) => (
+              <Magnetic key={item.id}>
+                <button 
+                  onClick={() => {
+                    scrollToSection("services", -80);
+                    window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: item.id } }));
+                  }} 
+                  className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+                >
+                  {item.title}
+                </button>
+              </Magnetic>
+            ))}
           </div>
           
           <div className="flex flex-col items-start gap-3">
