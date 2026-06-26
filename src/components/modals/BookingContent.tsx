@@ -98,6 +98,15 @@ const UI_CONFIG = {
   }
 };
 
+// Capitalization helper to keep destination inputs beautifully formatted in title case
+function capitalizeWords(str: string): string {
+  if (!str) return "";
+  return str
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 // Jaro-Winkler helper for typo-tolerant suggest-ahead matching in the search modal
 function getJaroWinkler(s1: string, s2: string): number {
   let m = 0;
@@ -589,13 +598,13 @@ export const BookingContent = memo(function BookingContent({
     }
     const finalVal = (overrideVal !== undefined ? overrideVal : destination).trim();
     
-    // Fall back to "Explore" if empty or short to present the full luxury portfolio
     const cleaned = finalVal.length < 2 ? "Explore" : finalVal.replace(/[\\/]+$/, "").trim();
+    const formatted = cleaned === "Explore" ? "Explore" : capitalizeWords(cleaned);
     
-    setDestination(cleaned);
+    setDestination(formatted);
     setShowSuggestions(false);
     setSelectedIndex(-1);
-    askSovereign(cleaned, manifest);
+    askSovereign(formatted, manifest);
   }, [destination, manifest, askSovereign]);
 
   // Navigation Logic
@@ -1464,7 +1473,7 @@ Please confirm my booking. Thank you!`;
                   className={cn(
                     "w-full h-full flex flex-col transition-all duration-[1.2s] cubic-bezier(0.23,1,0.32,1)",
                     displayResults.length > 0 && destination.length > 0
-                      ? "pt-[clamp(5rem,10vh,6rem)]"
+                      ? "pt-[clamp(4.2rem,10vh,6rem)]"
                       : "pt-[clamp(6.5rem,12vh,8rem)]",
                   )}
                 >
@@ -1473,13 +1482,13 @@ Please confirm my booking. Thank you!`;
                       className={cn(
                         "transition-all duration-1000 cubic-bezier(0.23,1,0.32,1) origin-center",
                         displayResults.length > 0 && destination.length > 0
-                          ? "opacity-50 scale-[0.8] mb-[clamp(0.5rem,2vh,1rem)]"
-                          : "opacity-100 scale-100 mb-[clamp(1.5rem,4vh,2.5rem)]"
+                          ? "opacity-85 scale-[0.8] mb-[clamp(0.5rem,2vh,1rem)] mt-4 md:mt-0"
+                          : "opacity-100 scale-100 mb-[clamp(1.5rem,4vh,2.5rem)] mt-0"
                       )}
                     >
                       <h2 className="text-[clamp(1.5rem,7vw,8rem)] font-black tracking-[-0.07em] leading-none mb-[clamp(0.8rem,3vh,1.2rem)] text-center sm:whitespace-nowrap text-balance">
                         <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 pr-[0.05em] pl-[0.02em]">Explore</span>{" "}
-                        <span className="text-white/30 font-light italic tracking-tight">
+                        <span className="text-white/45 font-light italic tracking-tight">
                           new horizons.
                         </span>
                       </h2>
@@ -1513,10 +1522,9 @@ Please confirm my booking. Thank you!`;
                       >
                         <Search
                           className={cn(
-                            "absolute left-6 top-1/2 -translate-y-1/2 transition-all duration-500 z-10",
+                            "absolute left-4 md:left-6 top-1/2 -translate-y-1/2 transition-all duration-500 z-10 w-[18px] h-[18px] md:w-[22px] md:h-[22px]",
                             searchFocused ? "text-white/80" : "text-white/20",
                           )}
-                          size={22}
                         />
                         <input
                           ref={searchInputRef}
@@ -1550,9 +1558,9 @@ Please confirm my booking. Thank you!`;
                               setSelectedIndex(-1);
                             }
                           }}
-                          placeholder="Where should your journey begin?"
+                          placeholder={isMobile ? "Search destination..." : "Where should your journey begin?"}
                           autoComplete="off"
-                          className="w-full py-3.5 md:py-5 pl-14 pr-12 text-lg md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/30 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
+                          className="w-full py-3.5 md:py-5 pl-11 pr-10 md:pl-14 md:pr-12 text-sm sm:text-base md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/30 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                         />
                         {destination.length > 0 && (
                            <button
@@ -1561,9 +1569,9 @@ Please confirm my booking. Thank you!`;
                                setDestination("");
                                clearSearch();
                              }}
-                             className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full z-10"
+                             className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors p-1.5 md:p-2 hover:bg-white/10 rounded-full z-10"
                            >
-                             <X size={16} />
+                             <X className="w-3.5 h-3.5 md:w-4 md:h-4" />
                            </button>
                         )}
                       </form>
@@ -1616,7 +1624,7 @@ Please confirm my booking. Thank you!`;
                   {/* SEARCH MANIFEST & STATUS BAR */}
                   <div
                     className={cn(
-                      "w-full px-[clamp(1rem,6vw,3rem)] mb-6 md:mb-8 flex items-center justify-center transition-opacity duration-700",
+                      "w-full px-[clamp(1rem,6vw,3rem)] mb-2 md:mb-8 flex items-center justify-center transition-opacity duration-700",
                       (sovereignResponse || isThinking) && destination.length > 0
                         ? "opacity-100"
                         : "opacity-0 pointer-events-none",
@@ -1624,11 +1632,11 @@ Please confirm my booking. Thank you!`;
                   >
                     <div className="flex items-center justify-center gap-6 w-full">
                       {sovereignResponse && !isThinking && (
-                        <div className="flex flex-col items-center gap-6 animate-in fade-in duration-700 w-full justify-center text-center">
+                        <div className="flex flex-col items-center gap-4 md:gap-6 animate-in fade-in duration-700 w-full justify-center text-center">
                           <div className="flex flex-col items-center gap-2">
                             <Sparkles size={12} className="text-amber-400 shrink-0 animate-pulse" />
-                            <div className="max-w-[280px] md:max-w-none">
-                              <span className="text-[10px] md:text-xs font-medium tracking-wide text-white/50 md:text-white/90 leading-relaxed block text-center">
+                            <div className="max-w-[310px] sm:max-w-md md:max-w-none">
+                              <span className="text-[11px] md:text-xs font-medium tracking-wide text-white/60 md:text-white/80 leading-relaxed block text-center">
                                 {sovereignState === 'SUGGESTING' && (sovereignResponse as any).suggestion ? (
                                   <>
                                     I couldn't find an exact match for "{destination}". Did you mean{" "}
@@ -1766,7 +1774,7 @@ Please confirm my booking. Thank you!`;
                         animate={{ opacity: 1 }}
                         onScroll={handleHorizontalScroll}
                         className={cn(
-                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
+                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-6 md:pb-8 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
                           displayResults.length === 1 ? "justify-center" : "justify-start"
                         )}
                       >
@@ -1792,8 +1800,8 @@ Please confirm my booking. Thank you!`;
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
                                   onClick={() => handlePackageSelect(pkg)}
-                                    className={cn(
-                                      "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-[1.2s] shadow-2xl hover:translate-y-[-12px] hover:scale-[1.02] active:scale-[0.98] active:translate-y-0 active:duration-150",
+                                  className={cn(
+                                    "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-700 shadow-2xl lg:hover:translate-y-[-8px] lg:hover:scale-[1.01]",
                                       (pkg as any).authority_type === 'gold' ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_10px_40px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_15px_50px_-5px_rgba(251,191,36,0.3)]" :
                                       (pkg as any).authority_type === 'silver' ? "border-white/10 hover:border-white/20 shadow-[0_10px_30px_-5px_rgba(255,255,255,0.05)] hover:shadow-[0_15px_40px_-5px_rgba(255,255,255,0.1)]" :
                                       "border-white/[0.03] hover:border-white/10 hover:shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)]"
@@ -1908,7 +1916,7 @@ Please confirm my booking. Thank you!`;
                               <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
                                 <button
                                   onClick={() => handlePackageSelect(pkg)}
-                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl hover:translate-y-[-4px] hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)] active:scale-[0.98] active:translate-y-0 active:duration-150"
+                                  className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl lg:hover:translate-y-[-4px] lg:hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
                                 >
                                   <img
                                   src={pkg.image}
