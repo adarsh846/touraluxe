@@ -613,6 +613,23 @@ If the destination is valid but we do not have a direct package in our manifest,
       results = enrichedResults;
     } else if (validLoc) {
       const formattedDest = validLoc.charAt(0).toUpperCase() + validLoc.slice(1);
+      
+      // Check if it's an exact match (ignoring case & accents)
+      const cleanInput = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const cleanResolved = validLoc.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      
+      if (cleanInput !== cleanResolved) {
+        const responseData = {
+          thought_process: `Fuzzy global location detected for "${message}". Suggesting "${formattedDest}" for user validation.`,
+          ui_message: `Were you dreaming of ${formattedDest}? Let us take you there.`,
+          results: [],
+          state: 'SUGGESTING',
+          suggestion: formattedDest
+        };
+        chatResponseCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+        return NextResponse.json(responseData);
+      }
+
       thoughtProcess = `Intent "${message}" verified as ${formattedDest}. No direct manifest match found. Initiating Custom Design.`;
       uiMessage = `A journey to ${formattedDest} is a beautiful dream. Although we don't have a package ready, let's co-create your custom escape together right now.`;
       state = "ESCALATING";
