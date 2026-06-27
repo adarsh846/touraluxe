@@ -1499,16 +1499,23 @@ Please confirm my booking. Thank you!`;
                           new horizons.
                         </span>
                       </h2>
-                      <p
-                        className={cn(
-                          "text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white/40 text-center transition-all duration-700 sm:whitespace-nowrap text-balance",
-                          (sovereignResponse || isThinking) && destination.length > 0
-                            ? "opacity-0 h-0 overflow-hidden"
-                            : "opacity-100",
-                        )}
+                      <motion.p
+                        initial={{ opacity: 0.4, height: "auto", scale: 1 }}
+                        animate={{
+                          opacity: (sovereignResponse || isThinking) && destination.length > 0 ? 0 : 0.4,
+                          height: (sovereignResponse || isThinking) && destination.length > 0 ? 0 : "auto",
+                          scale: (sovereignResponse || isThinking) && destination.length > 0 ? 0.95 : 1,
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 100,
+                          damping: 18,
+                          mass: 0.8
+                        }}
+                        className="text-[clamp(0.55rem,1.5vw,0.8rem)] font-medium uppercase tracking-[0.2em] md:tracking-[0.4em] text-white text-center sm:whitespace-nowrap text-balance overflow-hidden"
                       >
                         Search your destination
-                      </p>
+                      </motion.p>
                     </div>
 
                     <div
@@ -1780,10 +1787,7 @@ Please confirm my booking. Thank you!`;
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         onScroll={handleHorizontalScroll}
-                        className={cn(
-                          "flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-6 md:pb-8 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
-                          displayResults.length === 1 ? "justify-center" : "justify-start"
-                        )}
+                        className="flex-1 flex gap-6 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-6 md:pb-8 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12"
                       >
                         {displayResults.map((pkg: any, idx: number) => {
                           const pkgPricing = computePrice(pkg, 1, 0, 0);
@@ -1802,7 +1806,7 @@ Please confirm my booking. Thank you!`;
                                   delay: idx * 0.08
                                 }
                               }}
-                              className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full"
+                              className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[320px] md:max-w-[450px] h-full first:ml-auto last:mr-auto"
                             >
                               <Magnetic intensity={0.04} className="w-full h-full block">
                                 <div
@@ -1886,10 +1890,10 @@ Please confirm my booking. Thank you!`;
                           })}
 
 
-                        {/* Visual Spacer for Horizontal End */}
-                        {displayResults.length > 1 && (
-                          <div className="flex-shrink-0 w-8 md:w-32 h-1" />
-                        )}
+                          {/* Visual Spacer for Horizontal End */}
+                          {displayResults.length > 3 && (
+                            <div className="flex-shrink-0 w-8 md:w-32 h-1" />
+                          )}
                       </motion.div>
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
@@ -1912,7 +1916,7 @@ Please confirm my booking. Thank you!`;
                         <div
                           onScroll={handleHorizontalScroll}
                           className={cn(
-                            "flex-1 flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 transition-all duration-1000 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12 lg:mx-0 lg:px-0",
+                            "flex-1 flex gap-4 md:gap-8 overflow-x-auto snap-x snap-mandatory scrollbar-hide pt-6 pb-8 transition-all duration-1000 min-h-0 px-6 -mx-6 md:px-12 md:-mx-12",
                             destination.length > 0
                               ? "opacity-30 blur-sm scale-[0.98] pointer-events-none"
                               : "opacity-100 blur-0 scale-100",
@@ -1920,7 +1924,7 @@ Please confirm my booking. Thank you!`;
                         >
                           {trending.map((pkg) => {
                             return (
-                              <Magnetic key={pkg.id} intensity={0.08} className="flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full">
+                              <Magnetic key={pkg.id} intensity={0.08} className="block flex-shrink-0 snap-center snap-always w-[80vw] sm:w-[45vw] md:w-auto md:flex-1 md:min-w-[280px] md:max-w-[420px] h-full first:ml-auto last:mr-auto">
                                 <button
                                   onClick={() => handlePackageSelect(pkg)}
                                   className="group/mini relative w-full h-full rounded-[2rem] overflow-hidden border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl lg:hover:translate-y-[-4px] lg:hover:shadow-[0_20px_60px_-20px_rgba(255,255,255,0.06)]"
@@ -1955,8 +1959,10 @@ Please confirm my booking. Thank you!`;
                             </Magnetic>
                           );
                         })}
-                          {/* Visual Spacer for Horizontal End */}
-                          <div className="flex-shrink-0 w-8 md:w-32 h-1" />
+                            {/* Visual Spacer for Horizontal End */}
+                            {trending.length > 3 && (
+                              <div className="flex-shrink-0 w-8 md:w-32 h-1" />
+                            )}
                         </div>
                       </div>
                     )}

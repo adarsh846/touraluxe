@@ -155,7 +155,7 @@ export function Magnetic({
       {/* Inner visual element that translates independently */}
       <div 
         ref={innerRef} 
-        className={cn("relative z-10 will-change-transform inline-block w-fit", className)}
+        className="relative z-10 will-change-transform w-full h-full"
       >
         {children}
       </div>
