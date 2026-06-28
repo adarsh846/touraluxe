@@ -145,6 +145,7 @@ export const PackageContent = memo(({
   const [isPillHovered, setIsPillHovered] = useState(false);
   const [renderHeavyContent, setRenderHeavyContent] = useState(false);
   const [isHeroLoaded, setIsHeroLoaded] = useState(false);
+  const [expandedSeasons, setExpandedSeasons] = useState<Record<number, boolean>>({ 0: true });
 
 
   const pillRef = useRef<HTMLDivElement>(null);
@@ -234,6 +235,52 @@ Could you please share details on availability and custom options? Thank you!`;
     }
     return [];
   }, [experience]);
+
+  const addons = useMemo(() => {
+    try {
+      const anchor = experience?.itinerary_url;
+      if (anchor && anchor.startsWith('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed.addons && Array.isArray(parsed.addons)) {
+          return parsed.addons;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing addons:", e);
+    }
+    return [];
+  }, [experience]);
+
+  const seasonsList = useMemo(() => {
+    try {
+      const anchor = experience?.itinerary_url;
+      if (anchor && anchor.startsWith('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed.seasons_list && Array.isArray(parsed.seasons_list)) {
+          return parsed.seasons_list;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing seasons_list:", e);
+    }
+    return [];
+  }, [experience]);
+
+  const soulOfJourney = useMemo(() => {
+    try {
+      const anchor = experience?.itinerary_url;
+      if (anchor && anchor.startsWith('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed.soul_of_journey) {
+          return parsed.soul_of_journey;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing soul_of_journey:", e);
+    }
+    return "";
+  }, [experience]);
+
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
     if (!pillRef.current || !glowRef.current) return;
     const rect = pillRef.current.getBoundingClientRect();
@@ -459,12 +506,26 @@ Could you please share details on availability and custom options? Thank you!`;
             />
           </section>
 
+          {experience.guests && (
+            <div className="max-w-5xl mx-auto text-center px-6 -mt-12 md:-mt-16 animate-in fade-in slide-in-from-bottom-2 duration-700">
+              <div className="inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 px-6 py-3 rounded-full bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all duration-300">
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">Best For:</span>
+                {experience.guests.split(",").map((g: string, idx: number) => (
+                  <span key={idx} className="flex items-center gap-2.5 text-xs md:text-sm font-bold text-white tracking-tight">
+                    {idx > 0 && <span className="text-white/20 font-light">•</span>}
+                    {g.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 3. BENTO BOX OVERVIEW */}
           <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 auto-rows-min">
               
               {/* Top Row: Quick Stats */}
-              <div className="md:col-span-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
+              <div className="md:col-span-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                  {experience.duration && (
                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
                      <Clock className="text-white/40 mb-1" size={22} />
@@ -479,20 +540,15 @@ Could you please share details on availability and custom options? Thank you!`;
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.season}</span>
                    </div>
                  )}
-                 {experience.guests && (
+                 {experience.flights_status && experience.flights_status !== "excluded" && (
                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                     <Sparkles className="text-white/40 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Ideal For</span>
-                     <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.guests}</span>
-                   </div>
-                 )}
-                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
                      <Plane className="text-blue-400/50 mb-1" size={22} />
                      <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Flights</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">
-                       {experience.flights_status === 'included' ? "Included" : experience.flights_status === 'on_request' ? "On Request" : "Excluded"}
+                       {experience.flights_status === 'included' ? "Included" : "On Request"}
                      </span>
-                 </div>
+                   </div>
+                 )}
                  {experience.max_group_size != null && (
                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
                        <Users className="text-amber-400/50 mb-1" size={22} />
@@ -545,6 +601,154 @@ Could you please share details on availability and custom options? Thank you!`;
                    </div>
                  )}
               </div>
+
+              {/* Optional Add-Ons Summary */}
+              {addons && addons.length > 0 && (
+                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] rounded-[2rem] p-8 md:p-10 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Optional Enhancements</span>
+                  </div>
+                  <p className="text-xs md:text-sm text-white/50 leading-relaxed italic max-w-2xl">
+                    Enhance your itinerary with these curated excursions and custom services, available to select during booking.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                    {addons.map((addon: any, idx: number) => {
+                      const priceNum = parseInt(addon.price) || 0;
+                      let priceStr = "";
+                      if (addon.type === "per_pax") {
+                        priceStr = `${pricing.symbol}${priceNum.toLocaleString()} / traveler`;
+                      } else if (addon.type === "per_day") {
+                        priceStr = `${pricing.symbol}${priceNum.toLocaleString()} / day (${addon.days || 1} days)`;
+                      } else {
+                        priceStr = `${pricing.symbol}${priceNum.toLocaleString()} total`;
+                      }
+                      
+                      return (
+                        <div key={idx} className="p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 transition-all duration-300 flex flex-col justify-between gap-4 group/addon">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-bold text-white/90 group-hover/addon:text-white transition-colors">{addon.name}</h4>
+                            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.25em]">{addon.type.replace('_', ' ')}</span>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-white/[0.03] pt-3">
+                            <span className="text-[10px] text-white/40 uppercase tracking-wider">Est. Cost</span>
+                            <span className="text-xs font-mono font-bold text-amber-400">{priceStr}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Best Time to Visit */}
+              {seasonsList && seasonsList.length > 0 && (
+                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] rounded-[2rem] p-8 md:p-10 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Best Time to Visit</span>
+                  </div>
+                  <p className="text-xs md:text-sm text-white/50 leading-relaxed italic max-w-2xl">
+                    Gain deep insight into the regional weather, pricing tiers, and unique cultural events across travel seasons.
+                  </p>
+                  
+                  {/* Glassmorphic Accordion List */}
+                  <div className="space-y-4 pt-2">
+                    {seasonsList.map((item: any, idx: number) => {
+                      const isExpanded = !!expandedSeasons[idx];
+                      const seasonType = item.type || "Optimal Season";
+                      
+                      // Accent Style Mapping
+                      let badgeColors = "bg-blue-500/10 border-blue-500/20 text-blue-400";
+                      let glowShadow = "shadow-[0_0_15px_rgba(59,130,246,0.05)]";
+                      
+                      const typeLower = seasonType.toLowerCase();
+                      if (typeLower.includes("peak")) {
+                        badgeColors = "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+                        glowShadow = "shadow-[0_0_15px_rgba(16,185,129,0.05)]";
+                      } else if (typeLower.includes("moderate") || typeLower.includes("shoulder")) {
+                        badgeColors = "bg-amber-500/10 border-amber-500/20 text-amber-300";
+                        glowShadow = "shadow-[0_0_15px_rgba(245,158,11,0.05)]";
+                      } else if (typeLower.includes("off") || typeLower.includes("low")) {
+                        badgeColors = "bg-rose-500/10 border-rose-500/20 text-rose-400";
+                        glowShadow = "shadow-[0_0_15px_rgba(244,63,94,0.05)]";
+                      }
+                      
+                      // Split highlights by newline to render as bullets
+                      const bulletPoints = (item.highlights || "")
+                        .split("\n")
+                        .map((line: string) => line.trim())
+                        .filter((line: string) => line.length > 0);
+
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-[1.5rem] overflow-hidden transition-all duration-300 ${glowShadow}`}
+                        >
+                          {/* Accordion Header */}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedSeasons(prev => ({ ...prev, [idx]: !isExpanded }))}
+                            className="w-full flex items-center justify-between p-5 md:p-6 text-left focus:outline-none"
+                          >
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                              <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border leading-none shrink-0 ${badgeColors}`}>
+                                {item.season}
+                              </span>
+                              <span className="text-sm font-bold text-white tracking-tight">
+                                is {seasonType}
+                              </span>
+                            </div>
+                            <svg 
+                              width="16" 
+                              height="16" 
+                              viewBox="0 0 24 24" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2.5"
+                              className={`text-white/40 transition-transform duration-300 shrink-0 ml-4 ${isExpanded ? "rotate-180" : ""}`}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          
+                          {/* Accordion Panel */}
+                          <div 
+                            className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                              isExpanded ? "max-h-[500px] border-t border-white/[0.04]" : "max-h-0"
+                            } overflow-hidden`}
+                          >
+                            <div className="p-5 md:p-6 space-y-4">
+                              <div className="space-y-1">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                                  What To Expect
+                                </span>
+                              </div>
+                              {bulletPoints.length > 0 ? (
+                                <ul className="space-y-3">
+                                  {bulletPoints.map((point: string, pIdx: number) => {
+                                    const cleanedPoint = point.replace(/^[-*•\s]+/, "");
+                                    return (
+                                      <li key={pIdx} className="flex items-start gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80 mt-1.5 shrink-0" />
+                                        <span className="text-xs md:text-[13px] text-white/60 leading-relaxed font-medium">
+                                          {cleanedPoint}
+                                        </span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              ) : (
+                                <p className="text-xs md:text-[13px] text-white/40 italic leading-relaxed">
+                                  No specific highlights listed for this season.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -726,10 +930,12 @@ Could you please share details on availability and custom options? Thank you!`;
                   onClick={() => openModal('BOOKING', experience)}
                   className="group/btn flex flex-col items-center gap-6"
                 >
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white text-black flex items-center justify-center group-hover/btn:scale-110 transition-all duration-700 shadow-[0_0_40px_rgba(255,255,255,0.15)] group-hover/btn:shadow-[0_0_60px_rgba(255,255,255,0.3)]">
-                    <ChevronRight size={32} strokeWidth={2} className="group-hover/btn:translate-x-1 transition-transform duration-500" />
+                  <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/10 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/btn:border-white/30 group-hover/btn:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+                    <div className="w-full h-full rounded-full bg-gradient-to-b from-white via-neutral-100 to-neutral-200 text-black flex items-center justify-center shadow-[0_10px_30px_rgba(255,255,255,0.1)] transition-transform duration-500 group-hover/btn:scale-95">
+                      <ChevronRight size={32} strokeWidth={2} className="group-hover/btn:translate-x-0.5 transition-transform duration-500" />
+                    </div>
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/btn:text-white group-hover/btn:tracking-[0.6em] transition-all duration-700">
+                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/btn:text-white group-hover/btn:tracking-[0.5em] transition-all duration-700 select-none">
                     Reserve This Journey
                   </span>
                 </button>
@@ -742,10 +948,12 @@ Could you please share details on availability and custom options? Thank you!`;
                     rel="noopener noreferrer"
                     className="group/wa-btn flex flex-col items-center gap-6 cursor-pointer"
                   >
-                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#25D366] text-white flex items-center justify-center group-hover/wa-btn:scale-110 transition-all duration-700 shadow-[0_0_40px_rgba(37,211,102,0.15)] group-hover/wa-btn:shadow-[0_0_60px_rgba(37,211,102,0.3)]">
-                      <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-8 h-8 object-contain" />
+                    <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/10 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/wa-btn:border-[#25D366]/30 group-hover/wa-btn:shadow-[0_0_30px_rgba(37,211,102,0.05)]">
+                      <div className="w-full h-full rounded-full bg-gradient-to-b from-[#25D366] to-[#128C7E] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.15)] transition-transform duration-500 group-hover/wa-btn:scale-95">
+                        <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-8 h-8 object-contain" />
+                      </div>
                     </div>
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.6em] transition-all duration-700">
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.5em] transition-all duration-700 select-none">
                       Enquire via WhatsApp
                     </span>
                   </a>
@@ -761,6 +969,12 @@ Could you please share details on availability and custom options? Thank you!`;
 
       {isActive && (
         <>
+          {isPillHovered && (
+            <div 
+              className="fixed inset-0 z-[115] bg-transparent md:hidden pointer-events-auto"
+              onClick={() => setIsPillHovered(false)}
+            />
+          )}
           <svg className="hidden">
             <defs>
               <filter id="pill-goo">
@@ -784,7 +998,7 @@ Could you please share details on availability and custom options? Thank you!`;
                 )}
               >
                 <div className={cn(
-                  "relative p-5 md:p-7 rounded-[2rem] bg-black/95 backdrop-blur-[35px] border border-white/[0.12] shadow-[0_30px_70px_rgba(0,0,0,0.95),0_0_50px_rgba(255,255,255,0.02)] overflow-hidden flex flex-col gap-4 md:gap-5",
+                  "relative p-5 md:p-7 rounded-[2rem] bg-black/95 backdrop-blur-[35px] border border-white/[0.12] shadow-[0_30px_70px_rgba(0,0,0,0.95),0_0_50px_rgba(255,255,255,0.02)] overflow-y-auto scrollbar-hide max-h-[calc(100vh-140px)] md:max-h-[none] overscroll-contain flex flex-col gap-4 md:gap-5",
                   isPillHovered ? "pointer-events-auto" : "pointer-events-none"
                 )}>
                   
@@ -810,10 +1024,14 @@ Could you please share details on availability and custom options? Thank you!`;
                   <div className="w-full h-px bg-white/10 relative z-10" />
 
                   {/* Natural Prose Introduction */}
-                  <div className="relative z-10 space-y-1.5">
+                  <div className="relative z-10 space-y-1.5 font-sans">
                     <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">The Soul of the Journey</span>
-                    <p className="text-[10px] md:text-[11px] leading-relaxed text-white/70 font-medium">
-                      Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400/90 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
+                    <p className="text-[10.5px] md:text-[11.5px] leading-relaxed text-white/70 font-medium whitespace-pre-line">
+                      {soulOfJourney || (
+                        <>
+                          Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400/90 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
+                        </>
+                      )}
                     </p>
                   </div>
 
@@ -905,23 +1123,32 @@ Could you please share details on availability and custom options? Thank you!`;
               {/* Pill Container */}
               <div 
                 ref={pillRef}
-                onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
+                onMouseMove={(e) => {
+                  if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+                    handleGlowMove(e.clientX, e.clientY);
+                  }
+                }}
                 onMouseEnter={(e) => {
-                  handleGlowMove(e.clientX, e.clientY);
-                  setIsPillHovered(true);
+                  if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+                    handleGlowMove(e.clientX, e.clientY);
+                    setIsPillHovered(true);
+                  }
                 }}
                 onMouseLeave={() => {
-                  handleGlowLeave();
-                  setIsPillHovered(false);
+                  if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) {
+                    handleGlowLeave();
+                    setIsPillHovered(false);
+                  }
                 }}
                 onTouchStart={(e) => {
                   handleGlowMove(e.touches[0].clientX, e.touches[0].clientY);
-                  setIsPillHovered(true);
                 }}
                 onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
                 onTouchEnd={() => {
                   handleGlowLeave();
-                  setIsPillHovered(false);
+                }}
+                onTouchCancel={() => {
+                  handleGlowLeave();
                 }}
                 className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-full md:w-fit max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
               >
@@ -944,13 +1171,22 @@ Could you please share details on availability and custom options? Thank you!`;
             <div className="relative z-10 flex items-center justify-between w-full h-full gap-2 md:gap-4 lg:gap-6">
 
               {/* ── MOBILE LAYOUT (< md): Full info + icon-only Reserve ── */}
-              <div className="flex md:hidden items-center gap-3 flex-1 min-w-0">
+              <div 
+                className="flex md:hidden items-center gap-3 flex-1 min-w-0 cursor-pointer select-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPillHovered(prev => !prev);
+                }}
+              >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   {/* Label */}
                   <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/30 leading-none">Investment</span>
                   
                   {/* Primary Price Area */}
                   <div className="flex items-baseline gap-1">
+                    <span className="font-black uppercase tracking-widest text-white/45 text-[8px] mr-0.5 select-none leading-none">
+                      From
+                    </span>
                     <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
@@ -983,7 +1219,10 @@ Could you please share details on availability and custom options? Thank you!`;
                     <span className="font-black uppercase text-white/50 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
                       Investment
                     </span>
-                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)]">
+                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)] flex items-baseline justify-center">
+                      <span className="font-black uppercase tracking-widest text-white/45 text-[9px] mr-1.5 select-none leading-none">
+                        From
+                      </span>
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </p>
                   </div>

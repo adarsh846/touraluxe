@@ -261,6 +261,7 @@ export const BookingContent = memo(function BookingContent({
   const [notes, setNotes] = useState("");
   const [departureCity, setDepartureCity] = useState("");
   const [includeFlights, setIncludeFlights] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [showFlightDetails, setShowFlightDetails] = useState(false);
   const [countryMenuOpen, setCountryMenuOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState({ flag: "🇮🇳", code: "+91", name: "India", length: 10 });
@@ -636,6 +637,7 @@ export const BookingContent = memo(function BookingContent({
     
     // Auto-select flight assistance for 'Included' or 'On Request' packages
     setIncludeFlights(pkg?.flights_status === 'on_request' || pkg?.flights_status === 'included');
+    setSelectedAddons([]);
     
     // Generate TRX ID (Prompt Section III.2 - Idempotency)
     // We do this instantly now to keep the flow snappy
@@ -804,8 +806,8 @@ export const BookingContent = memo(function BookingContent({
   const { computePrice } = usePricing();
   const pricing = React.useMemo(() => {
     const tier = internalPackage?.selectedTier || packageData?.selectedTier;
-    return computePrice(internalPackage || packageData, adults, kids, infants, tier);
-  }, [adults, kids, infants, internalPackage, packageData, computePrice]);
+    return computePrice(internalPackage || packageData, adults, kids, infants, tier, selectedAddons);
+  }, [adults, kids, infants, internalPackage, packageData, computePrice, selectedAddons]);
 
   const totalInvestment = `From ${pricing.symbol}${pricing.finalTotal.toLocaleString()}`;
 
@@ -850,6 +852,23 @@ export const BookingContent = memo(function BookingContent({
       console.warn("Error parsing flight terms:", e);
     }
     return null;
+  }, [internalPackage, packageData]);
+
+  const getAddons = useCallback(() => {
+    const pkg = internalPackage || packageData;
+    if (!pkg) return [];
+    try {
+      const anchor = pkg.itinerary_url;
+      if (anchor && anchor.includes('{')) {
+        const parsed = JSON.parse(anchor);
+        if (parsed?.addons && Array.isArray(parsed.addons)) {
+          return parsed.addons;
+        }
+      }
+    } catch (e) {
+      console.warn("Error parsing addons:", e);
+    }
+    return [];
   }, [internalPackage, packageData]);
 
   const getPaxBreakdown = useCallback((type: 'adult' | 'child' | 'infant') => {
@@ -1256,10 +1275,10 @@ export const BookingContent = memo(function BookingContent({
           customerName,
           customerEmail,
           customerPhone: `${selectedCountry.code}${customerPhone}`,
-          specialRequests: `Dates: ${startDate} to ${endDate} | Departure Hub: ${departureCity} | Flights: ${includeFlights ? 'Yes' : 'No'} | Notes: ${notes}`,
+          specialRequests: `Dates: ${startDate} to ${endDate} | Departure Hub: ${departureCity} | Flights: ${includeFlights ? 'Yes' : 'No'} | Selected Addons: ${selectedAddons.join(", ")} | Notes: ${notes}`,
           bookingSource: bookingSource || "SOVEREIGN_ENGINE",
           totalAmount: Math.round(pricing.finalTotal),
-          metadata: { departureCity, includeFlights }
+          metadata: { departureCity, includeFlights, selectedAddons }
         }),
       });
 
@@ -1288,7 +1307,7 @@ I have successfully submitted my booking inquiry.
 - Dates: ${formattedStart} to ${formattedEnd}
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
-- Departure Hub: ${departureCity || "Not Specified"}
+- Departure Hub: ${departureCity || "Not Specified"}${selectedAddons.length > 0 ? `\n- Selected Add-Ons: ${selectedAddons.map(id => getAddons().find((a: any) => a.id === id)?.name || id).join(", ")}` : ""}
 - Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
@@ -1329,7 +1348,7 @@ I'm interested in booking a luxury journey.
 - Dates: ${formattedStart} to ${formattedEnd}
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
-- Departure Hub: ${departureCity || "Not Specified"}
+- Departure Hub: ${departureCity || "Not Specified"}${selectedAddons.length > 0 ? `\n- Selected Add-Ons: ${selectedAddons.map(id => getAddons().find((a: any) => a.id === id)?.name || id).join(", ")}` : ""}
 - Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Name: ${customerName}
@@ -1362,7 +1381,7 @@ I have successfully submitted my booking inquiry.
 - Dates: ${formattedStart} to ${formattedEnd}
 - Travelers: ${totalGuests} (${guestBreakdown})
 - Flights: ${includeFlights ? "Yes" : "No"}
-- Departure Hub: ${departureCity || "Not Specified"}
+- Departure Hub: ${departureCity || "Not Specified"}${selectedAddons.length > 0 ? `\n- Selected Add-Ons: ${selectedAddons.map(id => getAddons().find((a: any) => a.id === id)?.name || id).join(", ")}` : ""}
 - Investment: ${investmentText}${notes ? `\n- Special Requests: ${notes}` : ""}
 
 Please confirm my booking. Thank you!`;
@@ -2437,6 +2456,70 @@ Please confirm my booking. Thank you!`;
                                     </div>
                                   )}
 
+                                  {/* Section 1.8: Optional Experience Customizations */}
+                                  {getAddons().length > 0 && (
+                                    <div className="w-full p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-4">
+                                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                        <h4 className="text-xs md:text-sm font-semibold tracking-tight text-white/95 flex items-center gap-2">
+                                          <span>✨</span> Optional Enhancements
+                                        </h4>
+                                        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+                                          Select Add-ons
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                        {getAddons().map((addon: any) => {
+                                          const isSelected = selectedAddons.includes(addon.id);
+                                          const addPrice = parseInt(addon.price) || 0;
+                                          let priceLabel = "";
+                                          if (addon.type === "per_pax") {
+                                            priceLabel = `${pricing.symbol}${addPrice.toLocaleString()} / traveler`;
+                                          } else if (addon.type === "per_day") {
+                                            priceLabel = `${pricing.symbol}${addPrice.toLocaleString()} / day (${addon.days || 1} days)`;
+                                          } else {
+                                            priceLabel = `${pricing.symbol}${addPrice.toLocaleString()} total`;
+                                          }
+                                          
+                                          return (
+                                            <button
+                                              key={addon.id}
+                                              type="button"
+                                              onClick={() => {
+                                                setSelectedAddons(prev => 
+                                                  prev.includes(addon.id) 
+                                                    ? prev.filter(id => id !== addon.id) 
+                                                    : [...prev, addon.id]
+                                                );
+                                              }}
+                                              className={cn(
+                                                "p-4 rounded-xl border text-left transition-all duration-300 flex items-center justify-between gap-4 scale-[0.99] active:scale-95",
+                                                isSelected 
+                                                  ? "bg-emerald-500/10 border-emerald-500/30 text-white" 
+                                                  : "bg-white/[0.02] border-white/10 hover:border-white/20 text-white/60 hover:text-white/80"
+                                              )}
+                                            >
+                                              <div className="space-y-1">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider block">{addon.name}</span>
+                                                <span className="text-[10px] text-white/40 font-mono block">{priceLabel}</span>
+                                              </div>
+                                              
+                                              <div className={cn(
+                                                "w-5 h-5 rounded-full border flex items-center justify-center transition-all shrink-0",
+                                                isSelected 
+                                                  ? "bg-emerald-500 border-emerald-400 text-black shadow-[0_0_10px_rgba(52,211,153,0.4)]" 
+                                                  : "border-white/25 bg-transparent"
+                                              )}>
+                                                {isSelected && (
+                                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M20 6L9 17l-5-5"/></svg>
+                                                )}
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
                                 {/* Section 2: Group Manifesto (If > 1 Guest and not custom package) */}
                                 {(adults > 1 || kids > 0 || infants > 0) && !internalPackage?.isCustom && (
                                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -2778,6 +2861,12 @@ Please confirm my booking. Thank you!`;
                               <div className="flex flex-col items-center md:items-start gap-0.5">
                                 <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Final Airfare</span>
                                 <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{(pricing.breakdown?.flightNet || 0).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {(pricing.breakdown?.addonsTotal || 0) > 0 && (
+                              <div className="flex flex-col items-center md:items-start gap-0.5">
+                                <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Add-Ons</span>
+                                <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{(pricing.breakdown?.addonsTotal || 0).toLocaleString()}</span>
                               </div>
                             )}
                           </div>

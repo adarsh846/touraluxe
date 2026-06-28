@@ -25,7 +25,6 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
     duration: [],
     budget: [],
     tripType: [],
-    difficulty: [],
     region: [],
     theme: [],
     flights: [],
@@ -118,10 +117,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       });
     }
 
-    // Difficulty Filter (OR within category)
-    if (filters.difficulty.length > 0) {
-      result = result.filter(pkg => filters.difficulty.includes(pkg.difficulty_level || ""));
-    }
+
 
     // Region Filter (OR within category)
     if (filters.region.length > 0) {
@@ -239,7 +235,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6"><MapPin size={24} className="text-white/20" /></div>
               <h3 className="text-xl font-semibold text-white mb-2">No Journeys Match</h3>
               <p className="text-white/40 text-sm">Try adjusting your filters.</p>
-              <button onClick={() => setFilters({ duration: [], budget: [], tripType: [], difficulty: [], region: [], theme: [], flights: [], sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
+              <button onClick={() => setFilters({ duration: [], budget: [], tripType: [], region: [], theme: [], flights: [], sort: "" })} className="mt-6 px-6 py-2.5 rounded-full bg-white/10 text-white text-xs font-bold uppercase tracking-wider hover:bg-white hover:text-black transition-colors">Clear Filters</button>
             </div>
           )}
         </div>

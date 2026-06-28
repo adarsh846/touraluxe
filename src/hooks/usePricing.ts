@@ -55,7 +55,7 @@ export function useGlobalSettings() {
   }, []);
 
   const computePrice = useCallback(
-    (pkg: any, adultCount: number = 1, childCount: number = 0, infantCount: number = 0, selectedTierName?: string) => {
+    (pkg: any, adultCount: number = 1, childCount: number = 0, infantCount: number = 0, selectedTierName?: string, selectedAddons: string[] = []) => {
       // ── Aviation Anchor Recovery ──
       const getAviationAnchor = () => {
         try {
@@ -192,7 +192,39 @@ export function useGlobalSettings() {
       const perInfantFinal = landInfant + flightInfant;
       const perOriginalFinal = landOriginal + (flightAdult > 0 ? flightAdult : 0);
 
-      const finalTotal = (perAdultFinal * adultCount) + (perChildFinal * childCount) + (perInfantFinal * infantCount);
+      // ── Optional Add-Ons Calculator ──
+      let addonsTotal = 0;
+      const computedAddonsList: Array<{ name: string; price: number; type: string; qty: number; total: number }> = [];
+      if (anchor?.addons && Array.isArray(anchor.addons) && selectedAddons.length > 0) {
+        anchor.addons.forEach((addon: any) => {
+          if (selectedAddons.includes(addon.id)) {
+            const addPrice = safeInt(addon.price);
+            let qty = 1;
+            let total = 0;
+            if (addon.type === "per_pax") {
+              qty = adultCount + childCount;
+              total = addPrice * qty;
+            } else if (addon.type === "per_day") {
+              qty = safeInt(addon.days || "1");
+              total = addPrice * qty;
+            } else {
+              qty = 1;
+              total = addPrice;
+            }
+            addonsTotal += total;
+            computedAddonsList.push({
+              name: addon.name,
+              price: addPrice,
+              type: addon.type,
+              qty,
+              total
+            });
+          }
+        });
+      }
+
+      const baseFinalTotal = (perAdultFinal * adultCount) + (perChildFinal * childCount) + (perInfantFinal * infantCount);
+      const finalTotal = baseFinalTotal + addonsTotal;
       
       const hasSavings = perOriginalFinal > 0 && perOriginalFinal > perAdultFinal;
       const discountPercent = hasSavings ? Math.round(((perOriginalFinal - perAdultFinal) / perOriginalFinal) * 100) : 0;
@@ -230,7 +262,9 @@ export function useGlobalSettings() {
             : (landAdult - base) * adultCount,
           flightNet: (flightAdult * adultCount) + (flightChild * childCount) + (flightInfant * infantCount),
           flight_segments: anchor?.segments || (Array.isArray(pkg.flight_segments) ? pkg.flight_segments : (pkg.flight_segments as any)?.segments || []),
-          total: perAdultFinal
+          total: perAdultFinal,
+          addons: computedAddonsList,
+          addonsTotal
         }
       };
     },

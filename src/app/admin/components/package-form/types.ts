@@ -12,6 +12,7 @@ export interface PackageFormState {
   guests: string;
   tagline: string;
   description: string;
+  soul_of_journey?: string;
   destinations_covered: string;
   highlights: string[];
   inclusions: string[];
@@ -31,7 +32,6 @@ export interface PackageFormState {
   is_featured: boolean;
   route_start: string;
   route_end: string;
-  difficulty_level: string;
   min_group_size: number;
   max_group_size: number | null;
   tags: string[];
@@ -56,6 +56,18 @@ export interface PackageFormState {
   pdf_url: string;
   pricing_note: string;
   flight_terms?: string;
+  addons?: Array<{
+    id: string;
+    name: string;
+    price: string;
+    type: "per_pax" | "per_day" | "flat";
+    days?: string;
+  }>;
+  seasons_list?: Array<{
+    season: string;
+    type?: string;
+    highlights: string;
+  }>;
 }
 
 export interface PanelProps {

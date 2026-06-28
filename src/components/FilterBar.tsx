@@ -9,7 +9,6 @@ export interface FilterState {
   duration: string[];
   budget: string[];
   tripType: string[];
-  difficulty: string[];
   region: string[];
   theme: string[];
   flights: string[];
@@ -27,7 +26,6 @@ const FILTER_LABELS: Record<keyof FilterState, string> = {
   duration: "Duration",
   budget: "Budget",
   tripType: "Type",
-  difficulty: "Level",
   region: "Region",
   theme: "Theme",
   flights: "Flights",
@@ -41,7 +39,6 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
   const optionsMap = useMemo(() => {
     // Extract unique values from actual packages
     const uniqueTypes = Array.from(new Set(packages.flatMap(p => p.trip_type?.split(",") || []).filter(Boolean)));
-    const uniqueDifficulties = Array.from(new Set(packages.map(p => p.difficulty_level).filter(Boolean)));
     const uniqueRegions = Array.from(new Set(packages.map(p => p.region).filter(Boolean)));
     const uniqueThemes = Array.from(new Set(packages.flatMap(p => p.tags || []).filter(Boolean)));
 
@@ -71,7 +68,6 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
       ],
       region: [{ label: "Any Region", value: "" }, ...uniqueRegions.map(r => ({ label: r!, value: r! }))],
       tripType: [{ label: "Any Type", value: "" }, ...uniqueTypes.map(t => ({ label: t!.charAt(0).toUpperCase() + t!.slice(1), value: t!.toLowerCase() }))],
-      difficulty: [{ label: "Any Level", value: "" }, ...uniqueDifficulties.map(d => ({ label: d!, value: d! }))],
       theme: [{ label: "Any Theme", value: "" }, ...uniqueThemes.map(t => ({ label: t!, value: t! }))],
       sort: [
         { label: "Recommended", value: "" },
@@ -119,7 +115,6 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
       duration: [],
       budget: [],
       tripType: [],
-      difficulty: [],
       region: [],
       theme: [],
       flights: [],
@@ -232,7 +227,6 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                                 return false;
                               }).length}
                               {key === 'tripType' && packages.filter(p => p.trip_type?.toLowerCase().split(",").includes(opt.value)).length}
-                              {key === 'difficulty' && packages.filter(p => p.difficulty_level === opt.value).length}
                               {key === 'region' && packages.filter(p => p.region === opt.value).length}
                               {key === 'theme' && packages.filter(p => p.tags?.includes(opt.value)).length}
                               {key === 'flights' && packages.filter(p => p.flights_status === opt.value).length}

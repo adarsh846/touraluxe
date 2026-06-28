@@ -156,6 +156,17 @@ export function BasicInfoPanel({ form, setForm, setIsDirty, mode }: PanelProps) 
               className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" 
             />
           </section>
+
+          <section className="space-y-4 pt-4">
+            <label className="block text-[11px] md:text-[12px] font-bold uppercase tracking-[0.2em] text-white/90">The Soul of the Journey</label>
+            <textarea 
+              value={form.soul_of_journey || ""} 
+              onChange={(e) => setForm((p) => { setIsDirty(true); return { ...p, soul_of_journey: e.target.value }})} 
+              placeholder="e.g. Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder..." 
+              rows={4} 
+              className="w-full px-6 py-6 rounded-2xl md:rounded-3xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-[#3a3a3c] focus:outline-none focus:border-white/20 transition-all resize-none leading-relaxed" 
+            />
+          </section>
         </>
       )}
 

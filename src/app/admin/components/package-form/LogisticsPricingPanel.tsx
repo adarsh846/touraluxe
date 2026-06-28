@@ -36,19 +36,116 @@ export function LogisticsPricingPanel({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
               <Field 
-                label="Ideal Guests" 
+                label="Best For (Interests / Themes)" 
                 value={form.guests} 
                 onChange={(v: string) => setForm((p) => { setIsDirty(true); return { ...p, guests: v }; })} 
-                placeholder="e.g. Couples, Families, Solo Travelers" 
-                description="Describe who this trip is best suited for (e.g. Couples, Families)." 
+                placeholder="e.g. Culture, Food, Nature, Families, Solo Travelers" 
+                description="Comma-separated interests/themes suited for this trip (displays dynamically on the front-end)." 
               />
-              <Field 
-                label="Best Travel Season" 
-                value={form.season} 
-                onChange={(v: string) => setForm((p) => { setIsDirty(true); return { ...p, season: v }; })} 
-                placeholder="e.g. October — March" 
-                description="Months or season when destination weather is optimal." 
-              />
+              <div className="relative group">
+                <Field 
+                  label="Best Travel Season" 
+                  value={form.season} 
+                  onChange={(v: string) => setForm((p) => { setIsDirty(true); return { ...p, season: v }; })} 
+                  placeholder="e.g. October — March" 
+                  description={
+                    form.seasons_list && form.seasons_list.length > 0 
+                      ? "Auto-calculated based on detailed seasons below."
+                      : "Months or season when destination weather is optimal."
+                  }
+                  disabled={form.seasons_list && form.seasons_list.length > 0}
+                />
+                {form.seasons_list && form.seasons_list.length > 0 && (
+                  <span className="absolute top-0.5 right-0 text-[8px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 select-none pointer-events-none">
+                    Auto-Sync
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Multi Best Time to Visit */}
+            <div className="space-y-4 pt-6 border-t border-white/[0.03] col-span-full">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-white/90">Best Time to Visit (Detailed Seasons)</label>
+                  <span className="text-[10px] text-white/30 font-normal">Configure detailed seasonal highlights (e.g. Dec-May | Peak Season | Expect dry and mild weather...)</span>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setForm(p => ({ ...p, seasons_list: [...(p.seasons_list || []), { season: "", type: "Peak Season", highlights: "" }] }))}
+                  className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 hover:text-white transition-colors"
+                >
+                  + Add Season
+                </button>
+              </div>
+
+              {form.seasons_list && form.seasons_list.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {form.seasons_list.map((item, idx) => (
+                    <div key={idx} className="flex gap-4 items-start bg-white/[0.01] border border-white/[0.03] p-5 rounded-[2rem] relative group">
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-white/40">Season / Month Range</label>
+                            <input 
+                              type="text"
+                              value={item.season}
+                              onChange={(e) => {
+                                const newSeasons = [...(form.seasons_list || [])];
+                                newSeasons[idx].season = e.target.value;
+                                setForm(p => ({ ...p, seasons_list: newSeasons }));
+                                setIsDirty(true);
+                              }}
+                              placeholder="e.g. Dec-May"
+                              className="w-full h-11 bg-black/45 border border-white/10 rounded-xl px-4 text-xs font-bold text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-white/40">Season Category</label>
+                            <select 
+                              value={item.type || "Peak Season"}
+                              onChange={(e) => {
+                                const newSeasons = [...(form.seasons_list || [])];
+                                newSeasons[idx].type = e.target.value;
+                                setForm(p => ({ ...p, seasons_list: newSeasons }));
+                                setIsDirty(true);
+                              }}
+                              className="w-full h-11 bg-black/45 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all appearance-none cursor-pointer"
+                            >
+                              <option value="Peak Season">Peak Season</option>
+                              <option value="Moderate Season">Moderate Season</option>
+                              <option value="Off Season">Off Season</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-white/40">What to Expect (Detailed Bullet Points, one per line)</label>
+                          <textarea 
+                            value={item.highlights}
+                            onChange={(e) => {
+                              const newSeasons = [...(form.seasons_list || [])];
+                              newSeasons[idx].highlights = e.target.value;
+                              setForm(p => ({ ...p, seasons_list: newSeasons }));
+                              setIsDirty(true);
+                            }}
+                            placeholder="e.g. Expect dry and mild weather...&#10;Hotel prices are at peak...&#10;Lunar New Year celebrations..."
+                            className="w-full h-24 bg-black/45 border border-white/10 rounded-xl p-4 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, seasons_list: (p.seasons_list || []).filter((_, i) => i !== idx) }))}
+                        className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all duration-300 mt-7"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
@@ -143,20 +240,13 @@ export function LogisticsPricingPanel({
       {(!mode || mode === "logistics") && (
         <section className="space-y-8">
           <h3 className="text-[13px] md:text-[14px] font-bold tracking-[0.2em] text-white/80 uppercase border-b border-white/5 pb-5">
-            Difficulty &amp; Group Capacity
+            Group Capacity
           </h3>
 
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-end">
-              <SegmentedControl 
-                label="Difficulty Level" 
-                value={form.difficulty_level} 
-                onChange={(v: string) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }; })} 
-                options={[{ label: "Easy", value: "Easy" }, { label: "Moderate", value: "Moderate" }, { label: "Challenging", value: "Challenging" }]} 
-              />
-
-              {/* Group Size Toggle + Inputs spanning 2 cols */}
-              <div className="md:col-span-2 space-y-4">
+            <div className="grid grid-cols-1 gap-6 lg:gap-8 items-end">
+              {/* Group Size Toggle + Inputs */}
+              <div className="space-y-4">
                 {/* Toggle Header */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -331,43 +421,6 @@ export function LogisticsPricingPanel({
               </div>
             </div>
 
-            <div className={cn("col-span-full pt-8 border-t border-white/[0.02] transition-all duration-500", !form.difficulty_level && "opacity-80")}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="space-y-1">
-                  <label className="block text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-white/90">Intensity Level</label>
-                  <p className="text-[10px] text-white/30 italic font-medium leading-tight">Rate the physical demand of this journey.</p>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => setForm(p => {
-                    setIsDirty(true);
-                    return { ...p, difficulty_level: p.difficulty_level ? "" : "Easy" };
-                  })} 
-                  className={`relative w-14 h-7 rounded-full transition-all duration-700 shadow-lg ${
-                    form.difficulty_level 
-                      ? "bg-emerald-500/20 border border-emerald-500/40" 
-                      : "bg-red-500/20 border border-red-500/40"
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-5.5 h-5.5 rounded-full shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                    form.difficulty_level 
-                      ? "left-[31px] bg-emerald-400" 
-                      : "left-0.5 bg-red-400"
-                  }`} />
-                </button>
-              </div>
-              
-              {form.difficulty_level && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-                  <SegmentedControl 
-                    label="" 
-                    value={form.difficulty_level} 
-                    onChange={(v: string) => setForm(p => { setIsDirty(true); return { ...p, difficulty_level: v }; })} 
-                    options={dynamicOptions.difficulties.map(d => ({ label: d, value: d }))} 
-                  />
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Discovery Themes & Tags */}

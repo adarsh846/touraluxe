@@ -360,6 +360,13 @@ export function FinancialArchitecturePanel({ form, setForm, setIsDirty }: PanelP
                           }
                         }
                       }}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val && !form.departure_cities.includes(val)) {
+                          setForm(p => ({ ...p, departure_cities: [...p.departure_cities, val] }));
+                          e.target.value = "";
+                        }
+                      }}
                       placeholder="Add hub (Enter)..." 
                       className="bg-transparent border-none text-[10px] font-bold text-white/90 focus:outline-none focus:text-white w-24"
                     />
@@ -823,6 +830,167 @@ export function FinancialArchitecturePanel({ form, setForm, setIsDirty }: PanelP
                 ))}
               </div>
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── SECTION: DYNAMIC OPTIONAL ADD-ONS CONFIGURATOR ── */}
+      <section className="space-y-8 pt-12 border-t border-white/[0.03]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-[10px] font-black tracking-[0.3em] text-white/90 uppercase">
+              Dynamic Optional Add-Ons Configurator
+            </h3>
+            <p className="text-[11px] text-white/50 leading-relaxed italic pt-1">
+              Configure optional services, sightseeing activities, or custom upgrades available for purchase.
+            </p>
+          </div>
+          
+          <button 
+            type="button" 
+            onClick={() => {
+              setIsDirty(true);
+              if (!form.addons || form.addons.length === 0) {
+                setForm(p => ({
+                  ...p,
+                  addons: [
+                    {
+                      id: "optional_cruise",
+                      name: "Chao Phraya Dinner Cruise",
+                      price: "3500",
+                      type: "per_pax"
+                    }
+                  ]
+                }));
+              } else {
+                setForm(p => ({ ...p, addons: [] }));
+              }
+            }}
+            className={cn(
+              "px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border",
+              form.addons && form.addons.length > 0
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                : "bg-white/5 border-white/10 text-white/70 hover:text-white/90"
+            )}
+          >
+            {form.addons && form.addons.length > 0 ? "Remove All Add-Ons" : "+ Initialize Dynamic Add-Ons"}
+          </button>
+        </div>
+
+        {form.addons && form.addons.length > 0 && (
+          <div className="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            {form.addons.map((addon: any, idx: number) => (
+              <div key={idx} className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 space-y-6 relative group/addon">
+                <div className="flex justify-between items-center pb-4 border-b border-white/[0.03]">
+                  <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.25em]">Add-On #{idx + 1}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsDirty(true);
+                      setForm(p => ({ ...p, addons: (p.addons || []).filter((_: any, i: number) => i !== idx) }));
+                    }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center bg-red-500/[0.05] hover:bg-red-500/10 border border-red-500/10 text-red-400/80 hover:text-red-400 transition-all active:scale-95 text-lg"
+                    title="Remove Add-On"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Name */}
+                  <div className="space-y-2">
+                    <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Add-On Name</label>
+                    <input 
+                      className="w-full h-11 px-4 bg-white/[0.03] border border-white/10 rounded-xl text-[13px] text-white font-bold transition-all outline-none"
+                      value={addon.name}
+                      onChange={(e) => {
+                        setIsDirty(true);
+                        const nextAddons = [...(form.addons || [])];
+                        nextAddons[idx].name = e.target.value;
+                        const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+                        nextAddons[idx].id = slug || addon.id;
+                        setForm(p => ({ ...p, addons: nextAddons }));
+                      }}
+                      placeholder="e.g. Chao Phraya Dinner Cruise"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div className="space-y-2">
+                    <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Base Cost (₹)</label>
+                    <input 
+                      className="w-full h-11 px-4 bg-white/[0.03] border border-white/10 rounded-xl text-[13px] text-white font-bold transition-all outline-none font-mono"
+                      value={addon.price}
+                      onChange={(e) => {
+                        setIsDirty(true);
+                        const nextAddons = [...(form.addons || [])];
+                        nextAddons[idx].price = e.target.value.replace(/[^0-9]/g, "");
+                        setForm(p => ({ ...p, addons: nextAddons }));
+                      }}
+                      placeholder="e.g. 3500"
+                    />
+                  </div>
+
+                  {/* Calculation Type */}
+                  <div className="space-y-2">
+                    <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Pricing Model</label>
+                    <select
+                      className="w-full h-11 px-4 bg-[#1c1c1e] border border-white/10 rounded-xl text-[13px] text-white font-bold transition-all outline-none"
+                      value={addon.type}
+                      onChange={(e) => {
+                        setIsDirty(true);
+                        const nextAddons = [...(form.addons || [])];
+                        nextAddons[idx].type = e.target.value as any;
+                        if (e.target.value !== "per_day") {
+                          delete nextAddons[idx].days;
+                        } else {
+                          nextAddons[idx].days = "1";
+                        }
+                        setForm(p => ({ ...p, addons: nextAddons }));
+                      }}
+                    >
+                      <option value="per_pax">Per Pax (per Traveler)</option>
+                      <option value="per_day">Per Day (Multiplied by days)</option>
+                      <option value="flat">Flat Rate (one-off fee)</option>
+                    </select>
+                  </div>
+
+                  {/* Days (if per_day) */}
+                  {addon.type === "per_day" && (
+                    <div className="space-y-2 animate-in fade-in zoom-in-95 duration-300">
+                      <label className="block text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Duration (Days)</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        className="w-full h-11 px-4 bg-white/[0.03] border border-white/10 rounded-xl text-[13px] text-white font-bold transition-all outline-none text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={addon.days || "1"}
+                        onChange={(e) => {
+                          setIsDirty(true);
+                          const nextAddons = [...(form.addons || [])];
+                          nextAddons[idx].days = e.target.value;
+                          setForm(p => ({ ...p, addons: nextAddons }));
+                        }}
+                        placeholder="e.g. 9"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsDirty(true);
+                setForm(p => ({
+                  ...p,
+                  addons: [...(p.addons || []), { id: "", name: "", price: "", type: "per_pax" }]
+                }));
+              }}
+              className="w-full h-[56px] rounded-[2rem] border border-dashed border-white/10 hover:border-white/20 text-[11px] font-black uppercase tracking-widest text-white/40 hover:text-white/60 transition-all flex items-center justify-center gap-2"
+            >
+              + Add New Optional Service / Add-On
+            </button>
           </div>
         )}
       </section>

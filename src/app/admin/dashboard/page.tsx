@@ -211,6 +211,7 @@ export default function AdminDashboard() {
   const [view, setView] = useState<"catalog" | "bookings" | "content">("catalog");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -325,8 +326,11 @@ export default function AdminDashboard() {
 
 
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return;
+  const handleDelete = (id: string, title: string) => {
+    setDeleteConfirm({ id, title });
+  };
+
+  const executeDelete = async (id: string, title: string) => {
     const token = getToken();
     if (!token) return;
     setDeleting(id);
@@ -639,6 +643,45 @@ export default function AdminDashboard() {
       </main>
 
       {selectedBooking && <BookingDetailModal booking={selectedBooking} isUpdating={isUpdating} onClose={() => setSelectedBooking(null)} onUpdate={handleUpdateBooking} />}
+
+      {/* Glassmorphic Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-sm bg-[#1c1c1e] border border-white/10 rounded-[28px] overflow-hidden shadow-2xl p-6 md:p-8 space-y-6 flex flex-col items-center text-center animate-in zoom-in-95 duration-350 ease-[cubic-bezier(0.16,1,0.3,1)]">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-black uppercase tracking-[0.25em] text-white">Confirm Removal</h3>
+              <p className="text-xs text-white/50 leading-relaxed">
+                Are you sure you want to permanently delete <span className="text-white font-bold italic">"{deleteConfirm.title}"</span>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 w-full pt-2">
+              <button 
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all text-[#86868b] hover:text-white"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  const { id, title } = deleteConfirm;
+                  setDeleteConfirm(null);
+                  executeDelete(id, title);
+                }}
+                className="flex-1 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-[10px] font-black uppercase tracking-widest transition-all text-white border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dynamic Island Notification System */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none w-full max-w-[400px] md:max-w-[480px] px-4">

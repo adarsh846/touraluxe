@@ -57,6 +57,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     guests: initialData?.guests || "",
     tagline: initialData?.tagline || "",
     description: initialData?.description || "",
+    soul_of_journey: anchor?.soul_of_journey || "",
     destinations_covered: anchor?.destinations_covered || (initialData as any)?.destinations_covered || "",
     highlights: initialData?.highlights || [""],
     inclusions: initialData?.inclusions || [""],
@@ -79,9 +80,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     is_featured: (initialData as any)?.is_featured ?? false,
     route_start: (initialData as any)?.route_start || "",
     route_end: (initialData as any)?.route_end || "",
-    difficulty_level: (initialData as any)?.difficulty_level || "Easy",
     min_group_size: (initialData as any)?.min_group_size ?? 1,
-    max_group_size: (initialData as any)?.max_group_size ?? 20,
+    max_group_size: (initialData as any)?.max_group_size === null ? null : ((initialData as any)?.max_group_size ?? 20),
     tags: (initialData as any)?.tags || [],
     destination: (initialData as any)?.destination || "",
     region: (initialData as any)?.region || "",
@@ -90,8 +90,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       : ((initialData as any)?.trip_type || "group").split(",").filter(Boolean),
     itinerary_url: (initialData as any)?.itinerary_url || "",
     flights_status: anchor?.status || (initialData as any)?.flights_status || "excluded",
-    flight_price_estimate: (initialData as any)?.flight_price_estimate || "",
-    departure_cities: (initialData as any)?.departure_cities || [],
+    flight_price_estimate: anchor?.estimate || (initialData as any)?.flight_price_estimate || "",
+    departure_cities: anchor?.hubs || anchor?.departure_cities || (initialData as any)?.departure_cities || [],
     flight_type: anchor?.type || (initialData as any)?.flight_type || "Round-Trip",
     flight_segments: anchor?.segments || (Array.isArray((initialData as any)?.flight_segments) 
       ? (initialData as any)?.flight_segments 
@@ -108,6 +108,8 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     pdf_url: anchor?.pdf_url || ((initialData as any)?.itinerary_url && !(initialData as any)?.itinerary_url.startsWith('{') ? (initialData as any).itinerary_url : ""),
     pricing_note: anchor?.pricing_note || "",
     flight_terms: anchor?.flight_terms || "",
+    addons: anchor?.addons || [],
+    seasons_list: anchor?.seasons_list || [],
   });
 
   const [saving, setSaving] = useState(false);
@@ -178,6 +180,16 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
     }
   }, [form, isEditing, initialData?.id]);
 
+  // Synchronize main season summary with detailed seasons list
+  useEffect(() => {
+    if (form.seasons_list && form.seasons_list.length > 0) {
+      const summary = form.seasons_list.map(s => s.season).filter(Boolean).join(" & ");
+      if (form.season !== summary) {
+        setForm(p => ({ ...p, season: summary }));
+      }
+    }
+  }, [form.seasons_list, form.season]);
+
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   const safeBack = useCallback(() => {
@@ -215,85 +227,7 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
         setToast({ show: true, message: "Package Title is required.", type: "error" });
         return false;
       }
-      if (!form.location || !form.location.trim()) {
-        setToast({ show: true, message: "Location Tag is required.", type: "error" });
-        return false;
-      }
-      if (!form.category || form.category.length === 0) {
-        setToast({ show: true, message: "At least one Service Category is required.", type: "error" });
-        return false;
-      }
-      if (!form.description || !form.description.trim()) {
-        setToast({ show: true, message: "Experience Narrative description is required.", type: "error" });
-        return false;
-      }
-      const numDays = parseInt(String(form.days)) || 0;
-      const numNights = parseInt(String(form.nights)) || 0;
-      if (numDays <= 0 || numNights <= 0) {
-        setToast({ show: true, message: "Please specify valid Days and Nights.", type: "error" });
-        return false;
-      }
-      if (!form.destination || !form.destination.trim()) {
-        setToast({ show: true, message: "Destination Card is required. Please select a destination.", type: "error" });
-        return false;
-      }
     }
-
-    if (step === 1) {
-      if (!form.image || !form.image.trim()) {
-        setToast({ show: true, message: "Main background image asset is required.", type: "error" });
-        return false;
-      }
-      const validHighlights = form.highlights.filter(h => h && h.trim());
-      if (validHighlights.length === 0) {
-        setToast({ show: true, message: "At least one valid Journey Highlight is required.", type: "error" });
-        return false;
-      }
-    }
-
-    if (step === 2) {
-      if (form.flights_status !== "excluded") {
-        if (!form.departure_cities || form.departure_cities.length === 0) {
-          setToast({ show: true, message: "At least one departure hub/city is required.", type: "error" });
-          return false;
-        }
-        if (!form.route_start || !form.route_start.trim()) {
-          setToast({ show: true, message: "Starting City/Airport is required.", type: "error" });
-          return false;
-        }
-        if (!form.route_end || !form.route_end.trim()) {
-          setToast({ show: true, message: "Ending City/Airport is required.", type: "error" });
-          return false;
-        }
-        const invalidSegment = form.flight_segments.some((seg: any) => !seg.label?.trim() || !seg.price?.trim());
-        if (invalidSegment) {
-          setToast({ show: true, message: "All flight segments must have a valid origin/destination and price.", type: "error" });
-          return false;
-        }
-      }
-      if (!form.tiers || form.tiers.length === 0) {
-        setToast({ show: true, message: "At least one pricing tier must be defined.", type: "error" });
-        return false;
-      }
-      const invalidTierName = form.tiers.some((t: any) => !t.name || !t.name.trim());
-      if (invalidTierName) {
-        setToast({ show: true, message: "All pricing tiers must have a valid name.", type: "error" });
-        return false;
-      }
-    }
-
-    if (step === 3) {
-      if (!form.itinerary || form.itinerary.length === 0) {
-        setToast({ show: true, message: "At least one itinerary day must be configured.", type: "error" });
-        return false;
-      }
-      const invalidItinerary = form.itinerary.some((item: any) => !item.title?.trim() || !item.description?.trim());
-      if (invalidItinerary) {
-        setToast({ show: true, message: "All itinerary days must have a title and description.", type: "error" });
-        return false;
-      }
-    }
-
     return true;
   };
 
@@ -357,7 +291,10 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       destinations_covered: form.destinations_covered,
       pricing_note: form.pricing_note,
       tax_percentage: form.tax_percentage,
-      flight_terms: form.flight_terms
+      flight_terms: form.flight_terms,
+      addons: form.addons,
+      seasons_list: form.seasons_list,
+      soul_of_journey: form.soul_of_journey
     });
 
     // Sterilize the payload: Remove ALL potential schema-mismatch columns
@@ -376,6 +313,9 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
       pricing_note: _pn,
       tax_percentage: _tp,
       flight_terms: _fit,
+      addons: _addons,
+      seasons_list: _seasons_list,
+      soul_of_journey: _soj,
       ...safeForm 
     } = form;
 
@@ -797,7 +737,6 @@ export function PackageForm({ initialData, isEditing }: PackageFormProps) {
   );
 }
 
-/* ── Reusable Field Component ── */
 export function Field({
   label,
   value,
@@ -805,6 +744,7 @@ export function Field({
   placeholder,
   required,
   description,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -812,6 +752,7 @@ export function Field({
   placeholder?: string;
   required?: boolean;
   description?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-2">
@@ -824,7 +765,10 @@ export function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all"
+        disabled={disabled}
+        className={`w-full h-[56px] px-4 rounded-xl md:rounded-2xl bg-[#1c1c1e] border border-white/[0.06] text-white text-[15px] placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-all ${
+          disabled ? "opacity-50 cursor-not-allowed select-none bg-black/20" : ""
+        }`}
       />
       {description && (
         <p className="text-[10px] text-white/50 italic font-medium leading-tight px-1">{description}</p>
