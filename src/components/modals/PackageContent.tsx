@@ -77,49 +77,112 @@ const ScrubText = ({
 };
 
 // --- HELPER: ITINERARY DAY ACCORDION ---
+// --- HELPER: SMOOTH HEIGHT TRANSITION WRAPPER ---
+const SmoothHeight = ({ isOpen, children, className }: { isOpen: boolean, children: any, className?: string }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | string>(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      const scrollHeight = contentRef.current?.scrollHeight || 0;
+      setHeight(scrollHeight);
+      const timer = setTimeout(() => {
+        setHeight("auto");
+        ScrollTrigger.refresh();
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      const scrollHeight = contentRef.current?.scrollHeight || 0;
+      setHeight(scrollHeight);
+      const timer1 = setTimeout(() => {
+        setHeight(0);
+      }, 20);
+      const timer2 = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 520);
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [isOpen]);
+
+  return (
+    <div 
+      style={{ height: height }}
+      className={cn(
+        "overflow-hidden transition-[height] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", 
+        className
+      )}
+    >
+      <div ref={contentRef}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// --- HELPER: ITINERARY DAY ACCORDION ---
 const ItineraryDay = ({ day, index }: { day: any, index: number }) => {
   const [isOpen, setIsOpen] = useState(index === 1); 
 
   return (
-    <div className="group/accordion bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.05] hover:border-white/10 rounded-[2rem] overflow-hidden transition-all duration-500">
+    <div 
+      className={cn(
+        "group/accordion border rounded-[2rem] overflow-hidden transition-all duration-500",
+        isOpen 
+          ? "bg-white/[0.07] border-white/35 shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_0px_rgba(255,255,255,0.1)]" 
+          : "bg-white/[0.04] hover:bg-white/[0.06] border-white/20 hover:border-amber-400/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)]"
+      )}
+    >
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-5 md:p-8 flex items-center gap-4 md:gap-6 text-left"
       >
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70">
+        <div className={cn(
+          "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0 text-[10px] md:text-xs font-black uppercase tracking-widest border transition-all duration-500",
+          isOpen 
+            ? "bg-gradient-to-br from-amber-400/20 to-amber-500/10 border-amber-400/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.15)]" 
+            : "bg-white/10 border-white/20 text-white/90 group-hover/accordion:border-amber-400/30 group-hover/accordion:text-amber-300"
+        )}>
           D{index}
         </div>
-        <h4 className="flex-1 text-lg md:text-2xl font-bold text-white tracking-tight">{day.title}</h4>
-        <div className={cn("w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 transition-transform duration-500 shrink-0", isOpen ? "bg-white/10 text-white" : "")}>
+        <h4 className="flex-1 text-lg md:text-2xl font-bold text-white tracking-tight group-hover/accordion:text-white transition-colors duration-300">{day.title}</h4>
+        <div className={cn(
+          "w-8 h-8 rounded-full border flex items-center justify-center text-white/60 transition-all duration-500 shrink-0", 
+          isOpen 
+            ? "border-amber-400/35 bg-amber-400/10 text-amber-300" 
+            : "border-white/20 group-hover/accordion:border-white/40 group-hover/accordion:text-white"
+        )}>
           <ChevronRight size={16} className={cn("transition-transform duration-500", isOpen ? "-rotate-90" : "rotate-90")} />
         </div>
       </button>
-      <div 
-        onTransitionEnd={(e) => {
-          if (e.propertyName === 'max-height') {
-            ScrollTrigger.refresh();
-          }
-        }}
-        className={cn("px-6 md:px-8 overflow-hidden transition-all duration-500 ease-in-out", isOpen ? "max-h-[1000px] pb-8 opacity-100" : "max-h-0 opacity-0")}
-      >
-        <div className="pl-[3.5rem] md:pl-[4.5rem] flex flex-col gap-6">
+      
+      <SmoothHeight isOpen={isOpen} className="px-6 md:px-8">
+        <div className="pl-[3.5rem] md:pl-[4.5rem] flex flex-col gap-6 pb-8">
           {day.image && (
-            <div className="relative w-full h-48 md:h-72 rounded-2xl md:rounded-[2rem] overflow-hidden bg-white/5 border border-white/10 shrink-0">
-              <Image src={day.image} alt={day.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+            <div className="group/img relative w-full h-48 md:h-72 rounded-2xl md:rounded-[2rem] overflow-hidden bg-white/10 border border-white/20 shrink-0">
+              <Image 
+                src={day.image} 
+                alt={day.title} 
+                fill 
+                className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/img:scale-[1.04]" 
+                sizes="(max-width: 768px) 100vw, 50vw" 
+              />
             </div>
           )}
           <div className="flex flex-col gap-4">
             {day.description?.split('\n').filter((line: string) => line.trim() !== '').map((point: string, idx: number) => (
               <div key={idx} className="flex items-start gap-4 group/point">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-400/30 group-hover/point:bg-amber-400 mt-2.5 shrink-0 transition-all duration-300 group-hover/point:shadow-[0_0_12px_rgba(251,191,36,0.8)]" />
-                <p className="text-white/60 group-hover/point:text-white/90 leading-relaxed font-medium transition-colors duration-300">
+                <div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400/30 bg-transparent group-hover/point:border-amber-400 group-hover/point:bg-amber-400 mt-2 shrink-0 transition-all duration-300 group-hover/point:shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
+                <p className="text-white/85 group-hover/point:text-white leading-relaxed font-medium transition-colors duration-300">
                   {point.trim()}
                 </p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </SmoothHeight>
     </div>
   );
 };
@@ -153,6 +216,8 @@ export const PackageContent = memo(({
   const jellyRef = useRef<HTMLDivElement>(null);
   const segmentsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLDivElement>(null);
+  const islandContainerRef = useRef<HTMLDivElement>(null);
+  const islandInnerRef = useRef<HTMLDivElement>(null);
 
   const pricing = useMemo(() => computePrice(experience), [experience, computePrice]);
 
@@ -293,12 +358,12 @@ Could you please share details on availability and custom options? Thank you!`;
       radial-gradient(ellipse 800px 500px at ${x}px ${y}px, rgba(255,255,255,0.01), transparent 80%)
     `;
     glowRef.current.style.opacity = '1';
-    pillRef.current.style.borderColor = 'rgba(255,255,255,0.35)';
+    pillRef.current.style.borderColor = 'rgba(255,255,255,0.45)';
   }, []);
 
   const handleGlowLeave = useCallback(() => {
     if (glowRef.current) glowRef.current.style.opacity = '0';
-    if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.2)';
+    if (pillRef.current) pillRef.current.style.borderColor = 'rgba(255,255,255,0.28)';
   }, []);
 
   // ═══ JELLY INTERACTION ENGINE ═══
@@ -312,15 +377,101 @@ Could you please share details on availability and custom options? Thank you!`;
 
     gsap.killTweensOf(jellyRef.current, "scaleX,scaleY");
     gsap.to(jellyRef.current, {
-      scaleY: 0.82, scaleX: 1.08, duration: 0.1, ease: "power2.out",
+      scaleY: 0.82, scaleX: 1.08, duration: 0.1, ease: "power2.out", force3D: true,
       onComplete: () => {
         gsap.to(jellyRef.current, {
-          scaleY: 1, scaleX: 1, duration: 0.8, ease: "elastic.out(1, 0.3)",
+          scaleY: 1, scaleX: 1, duration: 0.8, ease: "elastic.out(1, 0.3)", force3D: true,
           clearProps: "scaleX,scaleY"
         });
       }
     });
   }, [pricing.finalTotal]);
+
+  // ═══ APPLE-STYLE ISLAND ENTRANCE CHOREOGRAPHY ═══
+  const islandAnimatedRef = useRef(false);
+  useEffect(() => {
+    if (!isActive) {
+      islandAnimatedRef.current = false;
+      return;
+    }
+    if (islandAnimatedRef.current) return;
+    
+    // Defer to next frame so React has time to commit the conditional DOM
+    const rafId = requestAnimationFrame(() => {
+      if (!islandContainerRef.current || !islandInnerRef.current) return;
+      if (islandAnimatedRef.current) return;
+      
+      islandAnimatedRef.current = true;
+      const container = islandContainerRef.current;
+      const inner = islandInnerRef.current;
+      const segments = segmentsRef.current;
+      const action = actionRef.current;
+      
+      // Set initial state: compressed seed pill
+      gsap.set(container, {
+        y: 80,
+        opacity: 0,
+        scale: 0.3,
+      });
+      gsap.set(inner, {
+        scaleX: 0.45,
+        scaleY: 0.75,
+      });
+      if (segments) gsap.set(segments, { opacity: 0, x: 20 });
+      if (action) gsap.set(action, { opacity: 0, scale: 0.6 });
+      
+      // Build optimized choreographed timeline with force3D hardware acceleration
+      const tl = gsap.timeline({ delay: 0.85 });
+      
+      // Phase 1: Seed rises from bottom
+      tl.to(container, {
+        y: 0,
+        opacity: 1,
+        scale: 1,
+        duration: 0.6,
+        ease: 'expo.out',
+        force3D: true,
+        clearProps: 'scale,y,opacity',
+      })
+      // Phase 2: Inner shell elastically expands to full width
+      .to(inner, {
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.9,
+        ease: 'elastic.out(1.1, 0.45)',
+        force3D: true,
+        clearProps: 'scaleX,scaleY',
+      }, '-=0.4');
+
+      // Phase 3: Desktop segments slide in
+      if (segments) {
+        tl.to(segments, {
+          opacity: 1,
+          x: 0,
+          duration: 0.5,
+          ease: 'power3.out',
+          force3D: true,
+          clearProps: 'opacity,x',
+        }, '-=0.65');
+      }
+
+      // Phase 4: Action buttons pop in
+      if (action) {
+        tl.to(action, {
+          opacity: 1,
+          scale: 1,
+          duration: 0.4,
+          ease: 'back.out(1.5)',
+          force3D: true,
+          clearProps: 'opacity,scale',
+        }, '-=0.45');
+      }
+    });
+    
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [isActive]);
   
   const handleScroll = useCallback(() => {
     if (scrollRef.current) {
@@ -337,27 +488,12 @@ Could you please share details on availability and custom options? Thank you!`;
     
     if (!isActive) return;
 
-    // Refresh immediately to capture initial DOM heights
-    ScrollTrigger.refresh();
-
-    // Staged refreshes to handle modal transitions & rendering delays on all devices
-    const t1 = setTimeout(() => {
+    // Perform a single refresh once the 600ms entry animation has finished and settled
+    const timer = setTimeout(() => {
       ScrollTrigger.refresh();
-    }, 100);
+    }, 750);
 
-    const t2 = setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 450); // Mid-transition
-
-    const t3 = setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 850); // Post-transition settlement
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    return () => clearTimeout(timer);
   }, [isActive]);
 
   // Defer rendering of content below the fold to keep the entry transition 100% fluid
@@ -365,12 +501,22 @@ Could you please share details on availability and custom options? Thank you!`;
     if (isActive) {
       const timer = setTimeout(() => {
         setRenderHeavyContent(true);
-      }, 450); // 450ms matches the 600ms graceful transition
+      }, 750); // Increased to allow the 600ms entry transition to settle completely
       return () => clearTimeout(timer);
     } else {
       setRenderHeavyContent(false);
     }
   }, [isActive]);
+
+  // Refresh ScrollTrigger once heavy content has finished mounting and painting
+  useEffect(() => {
+    if (renderHeavyContent) {
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [renderHeavyContent]);
 
   const heroMediaRef = useRef<HTMLDivElement>(null);
   
@@ -447,48 +593,48 @@ Could you please share details on availability and custom options? Thank you!`;
           
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 w-full max-w-5xl">
              {experience.route_start && experience.route_end && experience.route_start.trim().toLowerCase() !== experience.route_end.trim().toLowerCase() && (
-               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out">
+               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out transform-gpu will-change-[transform,opacity]">
                  <span>{experience.route_start}</span>
                  <span className="text-amber-400 font-extrabold mx-1">➔</span>
                  <span>{experience.route_end}</span>
                </div>
              )}
              {experience.route_start && !experience.route_end && (
-               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out">
+               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out transform-gpu will-change-[transform,opacity]">
                  <span>{experience.route_start}</span>
                </div>
              )}
-             <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out">
+             <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out transform-gpu will-change-[transform,opacity]">
                {experience.title}
              </h1>
-             <div className="flex flex-col items-center gap-6 md:gap-10 pt-8 animate-in fade-in duration-1000 delay-300">
-               <div className="flex items-center gap-3 md:gap-4">
-                 <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-                 <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-white/30 whitespace-nowrap">Best For</span>
-                 <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-               </div>
-               
-               <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-5xl px-6">
-                 {experience.category?.map((cat: string, i: number) => (
-                   <Magnetic key={i} intensity={0.2}>
-                     <button 
-                       onClick={() => {
-                         const matchingService = servicesList.find((s: any) => s.title === cat);
-                         if (matchingService) openModal('SERVICES', matchingService);
-                       }}
-                       className="group/badge relative text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/70 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"
-                     >
-                       <span className="relative z-10">{cat}</span>
-                     </button>
-                   </Magnetic>
-                 ))}
-               </div>
-             </div>
+             <div className="flex flex-col items-center gap-6 md:gap-10 pt-8 animate-in fade-in duration-1000 delay-300 transform-gpu will-change-[transform,opacity]">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="w-8 md:w-12 h-[1px] bg-white/25" />
+                  <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-white/60 whitespace-nowrap">Best For</span>
+                  <div className="w-8 md:w-12 h-[1px] bg-white/25" />
+                </div>
+                
+                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-5xl px-6">
+                  {experience.category?.map((cat: string, i: number) => (
+                    <Magnetic key={i} intensity={0.2}>
+                      <button 
+                        onClick={() => {
+                          const matchingService = servicesList.find((s: any) => s.title === cat);
+                          if (matchingService) openModal('SERVICES', matchingService);
+                        }}
+                        className="group/badge relative text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/80 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/20 bg-white/[0.05] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"
+                      >
+                        <span className="relative z-10">{cat}</span>
+                      </button>
+                    </Magnetic>
+                  ))}
+                </div>
+              </div>
           </div>
           
           <div className="absolute bottom-24 md:bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50">
-             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/50 drop-shadow-md">Scroll</span>
-             <ChevronRight size={16} className="text-white/40 rotate-90" strokeWidth={2.5} />
+             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/80 drop-shadow-md">Scroll</span>
+             <ChevronRight size={16} className="text-white/70 rotate-90" strokeWidth={2.5} />
           </div>
         </section>
 
@@ -498,7 +644,7 @@ Could you please share details on availability and custom options? Thank you!`;
           
           {/* 2. THE VISION (Scrub Text Animation) */}
           <section className="max-w-5xl mx-auto text-center px-6 md:px-12 pt-16 md:pt-24">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-8 block animate-pulse">The Vision</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-8 block animate-pulse">The Vision</span>
             <ScrubText 
               text={experience.description || "A breathtaking sanctuary curated for the discerning traveler."} 
               className="justify-center text-[clamp(1.5rem,4vw,3.5rem)] text-white/90 leading-tight font-medium" 
@@ -508,11 +654,11 @@ Could you please share details on availability and custom options? Thank you!`;
 
           {experience.guests && (
             <div className="max-w-5xl mx-auto text-center px-6 -mt-12 md:-mt-16 animate-in fade-in slide-in-from-bottom-2 duration-700">
-              <div className="inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 px-6 py-3 rounded-full bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all duration-300">
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">Best For:</span>
+              <div className="inline-flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5 px-6 py-3 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.06] transition-all duration-300">
+                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/60">Best For:</span>
                 {experience.guests.split(",").map((g: string, idx: number) => (
                   <span key={idx} className="flex items-center gap-2.5 text-xs md:text-sm font-bold text-white tracking-tight">
-                    {idx > 0 && <span className="text-white/20 font-light">•</span>}
+                    {idx > 0 && <span className="text-white/60 font-light">•</span>}
                     {g.trim()}
                   </span>
                 ))}
@@ -527,32 +673,32 @@ Could you please share details on availability and custom options? Thank you!`;
               {/* Top Row: Quick Stats */}
               <div className="md:col-span-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
                  {experience.duration && (
-                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                     <Clock className="text-white/40 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Duration</span>
+                   <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
+                     <Clock className="text-amber-400/80 mb-1" size={22} />
+                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Duration</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.duration}</span>
                    </div>
                  )}
                  {experience.season && (
-                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                     <Compass className="text-white/40 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Season</span>
+                   <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
+                     <Compass className="text-indigo-400/80 mb-1" size={22} />
+                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Season</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.season}</span>
                    </div>
                  )}
                  {experience.flights_status && experience.flights_status !== "excluded" && (
-                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                     <Plane className="text-blue-400/50 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Flights</span>
+                   <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
+                     <Plane className="text-sky-400/80 mb-1" size={22} />
+                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Flights</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">
                        {experience.flights_status === 'included' ? "Included" : "On Request"}
                      </span>
                    </div>
                  )}
                  {experience.max_group_size != null && (
-                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.04] transition-colors">
-                       <Users className="text-amber-400/50 mb-1" size={22} />
-                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/40">Group Size</span>
+                   <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
+                       <Users className="text-emerald-400/80 mb-1" size={22} />
+                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Group Size</span>
                        <span className="text-sm md:text-base font-bold text-white tracking-tight">
                          {experience.min_group_size ?? 1} - {experience.max_group_size} Pax
                        </span>
@@ -562,13 +708,13 @@ Could you please share details on availability and custom options? Thank you!`;
 
               {/* Middle Row: Highlights & Inclusions */}
               {experience.highlights && experience.highlights.length > 0 && (
-                <div className="md:col-span-7 bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.05] rounded-[2rem] p-8 md:p-10 flex flex-col justify-center">
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-6 block">Highlights</span>
+                <div className="md:col-span-7 bg-gradient-to-br from-white/[0.06] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 flex flex-col justify-center">
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60 mb-6 block">Highlights</span>
                   <ul className="space-y-4">
                     {experience.highlights.map((h: string, i: number) => (
                       <li key={i} className="flex items-start gap-4">
-                        <div className="mt-[8px] md:mt-[10px] w-[6px] h-[6px] rounded-full bg-gradient-to-br from-white/60 to-white/20 flex-shrink-0" />
-                        <span className="text-base md:text-xl font-medium text-white/90 leading-tight tracking-tight">{h}</span>
+                        <div className="mt-[8px] md:mt-[10px] w-[6px] h-[6px] rounded-full bg-gradient-to-br from-white/80 to-white/40 flex-shrink-0" />
+                        <span className="text-base md:text-xl font-medium text-white/95 leading-tight tracking-tight">{h}</span>
                       </li>
                     ))}
                   </ul>
@@ -577,11 +723,11 @@ Could you please share details on availability and custom options? Thank you!`;
 
               <div className="md:col-span-5 flex flex-col gap-3 md:gap-4">
                  {experience.inclusions && experience.inclusions.length > 0 && (
-                   <div className="flex-1 bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-6 md:p-8 flex flex-col">
+                   <div className="flex-1 bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 md:p-8 flex flex-col">
                      <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400 mb-5 block">Inclusions</span>
                      <div className="flex flex-wrap gap-2">
                        {experience.inclusions.map((inc: string, i: number) => (
-                         <span key={i} className="text-[11px] md:text-xs font-semibold text-white/80 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(52,211,153,0.05)]">
+                         <span key={i} className="text-[11px] md:text-xs font-semibold text-white/90 bg-white/15 border border-white/25 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(52,211,153,0.05)]">
                            <ShieldCheck size={12} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]" /> {inc}
                          </span>
                        ))}
@@ -589,11 +735,11 @@ Could you please share details on availability and custom options? Thank you!`;
                    </div>
                  )}
                  {experience.exclusions && experience.exclusions.length > 0 && (
-                   <div className="flex-1 bg-red-500/[0.02] border border-red-500/[0.05] rounded-[2rem] p-6 md:p-8 flex flex-col">
-                     <span className="text-[9px] font-black uppercase tracking-[0.4em] text-red-400/80 mb-5 block">Exclusions</span>
+                   <div className="flex-1 bg-red-500/[0.06] border border-red-500/20 rounded-[2rem] p-6 md:p-8 flex flex-col">
+                     <span className="text-[9px] font-black uppercase tracking-[0.4em] text-red-400 mb-5 block">Exclusions</span>
                      <div className="flex flex-wrap gap-2">
                        {experience.exclusions.map((exc: string, i: number) => (
-                         <span key={i} className="text-[11px] md:text-xs font-semibold text-white/70 bg-red-500/5 border border-red-500/10 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(251,113,133,0.05)]">
+                         <span key={i} className="text-[11px] md:text-xs font-semibold text-white/80 bg-red-500/15 border border-red-500/25 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(251,113,133,0.05)]">
                            <X size={12} className="text-red-400 drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]" /> {exc}
                          </span>
                        ))}
@@ -604,11 +750,11 @@ Could you please share details on availability and custom options? Thank you!`;
 
               {/* Optional Add-Ons Summary */}
               {addons && addons.length > 0 && (
-                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] rounded-[2rem] p-8 md:p-10 space-y-6">
+                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.05] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Optional Enhancements</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">Optional Enhancements</span>
                   </div>
-                  <p className="text-xs md:text-sm text-white/50 leading-relaxed italic max-w-2xl">
+                  <p className="text-xs md:text-sm text-white/70 leading-relaxed italic max-w-2xl">
                     Enhance your itinerary with these curated excursions and custom services, available to select during booking.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
@@ -624,13 +770,13 @@ Could you please share details on availability and custom options? Thank you!`;
                       }
                       
                       return (
-                        <div key={idx} className="p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 transition-all duration-300 flex flex-col justify-between gap-4 group/addon">
+                        <div key={idx} className="p-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/15 hover:border-white/30 transition-all duration-300 flex flex-col justify-between gap-4 group/addon">
                           <div className="space-y-1">
-                            <h4 className="text-sm font-bold text-white/90 group-hover/addon:text-white transition-colors">{addon.name}</h4>
-                            <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.25em]">{addon.type.replace('_', ' ')}</span>
+                            <h4 className="text-sm font-bold text-white/95 group-hover/addon:text-white transition-colors">{addon.name}</h4>
+                            <span className="text-[8px] font-black text-white/55 uppercase tracking-[0.25em]">{addon.type.replace('_', ' ')}</span>
                           </div>
-                          <div className="flex items-center justify-between border-t border-white/[0.03] pt-3">
-                            <span className="text-[10px] text-white/40 uppercase tracking-wider">Est. Cost</span>
+                          <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                            <span className="text-[10px] text-white/60 uppercase tracking-wider">Est. Cost</span>
                             <span className="text-xs font-mono font-bold text-amber-400">{priceStr}</span>
                           </div>
                         </div>
@@ -642,11 +788,11 @@ Could you please share details on availability and custom options? Thank you!`;
 
               {/* Best Time to Visit */}
               {seasonsList && seasonsList.length > 0 && (
-                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.02] to-transparent border border-white/[0.05] rounded-[2rem] p-8 md:p-10 space-y-6">
+                <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.05] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">Best Time to Visit</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">Best Time to Visit</span>
                   </div>
-                  <p className="text-xs md:text-sm text-white/50 leading-relaxed italic max-w-2xl">
+                  <p className="text-xs md:text-sm text-white/70 leading-relaxed italic max-w-2xl">
                     Gain deep insight into the regional weather, pricing tiers, and unique cultural events across travel seasons.
                   </p>
                   
@@ -674,14 +820,14 @@ Could you please share details on availability and custom options? Thank you!`;
                       
                       // Split highlights by newline to render as bullets
                       const bulletPoints = (item.highlights || "")
-                        .split("\n")
-                        .map((line: string) => line.trim())
-                        .filter((line: string) => line.length > 0);
+                         .split("\n")
+                         .map((line: string) => line.trim())
+                         .filter((line: string) => line.length > 0);
 
                       return (
                         <div 
                           key={idx} 
-                          className={`bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-[1.5rem] overflow-hidden transition-all duration-300 ${glowShadow}`}
+                          className={`bg-white/[0.05] hover:bg-white/[0.08] border border-white/20 rounded-2xl md:rounded-[1.5rem] overflow-hidden transition-all duration-300 ${glowShadow}`}
                         >
                           {/* Accordion Header */}
                           <button
@@ -704,21 +850,17 @@ Could you please share details on availability and custom options? Thank you!`;
                               fill="none" 
                               stroke="currentColor" 
                               strokeWidth="2.5"
-                              className={`text-white/40 transition-transform duration-300 shrink-0 ml-4 ${isExpanded ? "rotate-180" : ""}`}
+                              className={`text-white/60 transition-transform duration-300 shrink-0 ml-4 ${isExpanded ? "rotate-180" : ""}`}
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                             </svg>
                           </button>
                           
                           {/* Accordion Panel */}
-                          <div 
-                            className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                              isExpanded ? "max-h-[500px] border-t border-white/[0.04]" : "max-h-0"
-                            } overflow-hidden`}
-                          >
-                            <div className="p-5 md:p-6 space-y-4">
+                          <SmoothHeight isOpen={isExpanded}>
+                            <div className="border-t border-white/20 p-5 md:p-6 space-y-4">
                               <div className="space-y-1">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/65">
                                   What To Expect
                                 </span>
                               </div>
@@ -729,7 +871,7 @@ Could you please share details on availability and custom options? Thank you!`;
                                     return (
                                       <li key={pIdx} className="flex items-start gap-3">
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80 mt-1.5 shrink-0" />
-                                        <span className="text-xs md:text-[13px] text-white/60 leading-relaxed font-medium">
+                                        <span className="text-xs md:text-[13px] text-white/80 leading-relaxed font-medium">
                                           {cleanedPoint}
                                         </span>
                                       </li>
@@ -737,12 +879,12 @@ Could you please share details on availability and custom options? Thank you!`;
                                   })}
                                 </ul>
                               ) : (
-                                <p className="text-xs md:text-[13px] text-white/40 italic leading-relaxed">
+                                <p className="text-xs md:text-[13px] text-white/60 italic leading-relaxed">
                                   No specific highlights listed for this season.
                                 </p>
                               )}
                             </div>
-                          </div>
+                          </SmoothHeight>
                         </div>
                       );
                     })}
@@ -755,24 +897,24 @@ Could you please share details on availability and custom options? Thank you!`;
           {/* Destinations Covered (Route Timeline) */}
           {destinationsCovered.length > 0 && (
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
-              <div className="bg-white/[0.01] border border-white/[0.04] rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group">
+              <div className="bg-white/[0.05] border border-white/20 rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-50 pointer-events-none" />
                 <div className="relative z-10 space-y-8">
                   <div className="text-center md:text-left">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">The Route</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">The Route</span>
                     <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight leading-none">Destinations Covered</h3>
                   </div>
                   <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-3 md:gap-6 pt-4 justify-center md:justify-start w-full">
                     {destinationsCovered.map((dest: string, idx: number) => (
                       <div key={idx} className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                        <div className="flex items-center gap-3 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 px-5 py-3 rounded-2xl transition-all duration-300">
-                          <div className="w-6 h-6 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-[10px] font-black text-amber-400 shrink-0">
+                        <div className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.06] border border-white/10 hover:border-white/20 px-5 py-3 rounded-2xl transition-all duration-300">
+                          <div className="w-6 h-6 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-[10px] font-black text-amber-400 shrink-0">
                             {idx + 1}
                           </div>
-                          <span className="text-sm md:text-base font-bold text-white/90">{dest}</span>
+                          <span className="text-sm md:text-base font-bold text-white">{dest}</span>
                         </div>
                         {idx < destinationsCovered.length - 1 && (
-                          <div className="flex items-center justify-center text-white/20 select-none py-1 md:py-0">
+                          <div className="flex items-center justify-center text-white/60 select-none py-1 md:py-0">
                             <ArrowRight size={18} className="hidden md:block animate-pulse" />
                             <ArrowRight size={18} className="block md:hidden rotate-90 animate-pulse" />
                           </div>
@@ -790,7 +932,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
                  <div className="text-center md:text-left">
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">Itinerary</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Itinerary</span>
                    <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Day by Day Plan.</h2>
                  </div>
                  {pdfUrl && (
@@ -821,7 +963,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
                  <div>
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">Visuals</span>
+                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Visuals</span>
                    <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Gallery.</h2>
                  </div>
                  <button 
@@ -864,15 +1006,15 @@ Could you please share details on availability and custom options? Thank you!`;
           {/* 6. PRICING (Clean Tabular Layout) */}
           <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
              <div className="text-center md:text-left mb-10 md:mb-12">
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mb-3 block">Investment</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Investment</span>
                <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Pricing Details.</h2>
              </div>
 
-             <div className="bg-white/[0.02] border border-white/[0.06] rounded-[2.5rem] p-6 md:p-12 w-full flex flex-col md:flex-row items-center gap-10 md:gap-16">
+             <div className="bg-white/[0.04] border border-white/10 rounded-[2.5rem] p-6 md:p-12 w-full flex flex-col md:flex-row items-center gap-10 md:gap-16">
                 <div className="flex-1 flex flex-col gap-2 w-full text-center md:text-left">
                    <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
                      {pricing.hasSavings && (
-                       <span className="text-white/30 font-bold line-through text-lg">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                       <span className="text-white/55 font-bold line-through text-lg">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
                      )}
                      {pricing.hasSavings && (
                        <span className="text-xs font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">Save {pricing.discountPercent}%</span>
@@ -881,16 +1023,16 @@ Could you please share details on availability and custom options? Thank you!`;
                    <span className="text-[clamp(3.5rem,8vw,5.5rem)] font-bold text-white tracking-tighter leading-none tabular-nums">
                      {pricing.formattedFinal}
                    </span>
-                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/40 mt-3 block">
+                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60 mt-3 block">
                      Per Person · {pricing.taxLabel}
                    </span>
                 </div>
 
                 {/* Receipt Card Breakdown */}
-                <div className="w-full md:w-[360px] shrink-0 bg-black/40 rounded-[2rem] p-6 md:p-8 border border-white/[0.08] space-y-5 shadow-2xl">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50 mb-5 border-b border-white/10 pb-4">Manifest Breakdown</h4>
+                <div className="w-full md:w-[360px] shrink-0 bg-black/60 rounded-[2rem] p-6 md:p-8 border border-white/15 space-y-5 shadow-2xl">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-5 border-b border-white/15 pb-4">Manifest Breakdown</h4>
                   
-                  <div className="flex justify-between items-center text-sm text-white/90 font-medium">
+                  <div className="flex justify-between items-center text-sm text-white/95 font-medium">
                     <span>Base (Land)</span>
                     <span className="tabular-nums font-bold tracking-tight">{pricing.symbol}{(pricing.breakdown?.landBase || 0).toLocaleString()}</span>
                   </div>
@@ -902,13 +1044,13 @@ Could you please share details on availability and custom options? Thank you!`;
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center text-sm text-emerald-400/80 font-medium pb-5 border-b border-white/10">
+                  <div className="flex justify-between items-center text-sm text-emerald-400/80 font-medium pb-5 border-b border-white/15">
                     <span>Taxes (GST {pricing.taxRate}%)</span>
                     <span className="tabular-nums font-bold tracking-tight">+{pricing.symbol}{(pricing.breakdown?.taxAmount || 0).toLocaleString()}</span>
                   </div>
                   
                   <div className="flex justify-between items-end text-xl text-white font-black pt-2">
-                    <span className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Total</span>
+                    <span className="text-[10px] uppercase tracking-widest text-white/60 mb-1">Total</span>
                     <span className="tabular-nums tracking-tighter">{pricing.formattedFinal}</span>
                   </div>
                 </div>
@@ -930,12 +1072,12 @@ Could you please share details on availability and custom options? Thank you!`;
                   onClick={() => openModal('BOOKING', experience)}
                   className="group/btn flex flex-col items-center gap-6"
                 >
-                  <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/10 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/btn:border-white/30 group-hover/btn:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+                  <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/20 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/btn:border-white/45 group-hover/btn:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
                     <div className="w-full h-full rounded-full bg-gradient-to-b from-white via-neutral-100 to-neutral-200 text-black flex items-center justify-center shadow-[0_10px_30px_rgba(255,255,255,0.1)] transition-transform duration-500 group-hover/btn:scale-95">
                       <ChevronRight size={32} strokeWidth={2} className="group-hover/btn:translate-x-0.5 transition-transform duration-500" />
                     </div>
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/btn:text-white group-hover/btn:tracking-[0.5em] transition-all duration-700 select-none">
+                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/70 group-hover/btn:text-white group-hover/btn:tracking-[0.5em] transition-all duration-700 select-none">
                     Reserve This Journey
                   </span>
                 </button>
@@ -948,12 +1090,12 @@ Could you please share details on availability and custom options? Thank you!`;
                     rel="noopener noreferrer"
                     className="group/wa-btn flex flex-col items-center gap-6 cursor-pointer"
                   >
-                    <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/10 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/wa-btn:border-[#25D366]/30 group-hover/wa-btn:shadow-[0_0_30px_rgba(37,211,102,0.05)]">
+                    <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/20 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/wa-btn:border-[#25D366]/45 group-hover/wa-btn:shadow-[0_0_30px_rgba(37,211,102,0.05)]">
                       <div className="w-full h-full rounded-full bg-gradient-to-b from-[#25D366] to-[#128C7E] text-white flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.15)] transition-transform duration-500 group-hover/wa-btn:scale-95">
                         <img src="/assets/whatsapp-logo-white.png" alt="WhatsApp" className="w-8 h-8 object-contain" />
                       </div>
                     </div>
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/40 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.5em] transition-all duration-700 select-none">
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/70 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.5em] transition-all duration-700 select-none">
                       Enquire via WhatsApp
                     </span>
                   </a>
@@ -985,68 +1127,75 @@ Could you please share details on availability and custom options? Thank you!`;
             </defs>
           </svg>
 
-          <div className="fixed bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center animate-in slide-in-from-bottom-12 duration-[1.2s] cubic-bezier(0.23,1,0.32,1)">
-            <div className="relative flex flex-col items-center w-full md:w-fit pointer-events-none">
+          <div 
+            ref={islandContainerRef}
+            className="fixed bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center transform-gpu will-change-[transform,opacity]"
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+          >
+            <div ref={islandInnerRef} className="relative flex flex-col items-center w-full md:w-fit pointer-events-none transform-gpu will-change-transform" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
               
               {/* Speech Bubble Popover */}
               <div 
                 className={cn(
-                  "absolute bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[340px] md:w-[460px] max-w-[calc(100vw-32px)] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom",
+                  "absolute bottom-[calc(100%+12px)] md:bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[320px] xs:w-[350px] sm:w-[400px] md:w-[460px] max-w-[calc(100vw-24px)] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom",
                   isPillHovered 
                     ? "opacity-100 scale-100 translate-y-0" 
                     : "opacity-0 scale-95 translate-y-4"
                 )}
               >
                 <div className={cn(
-                  "relative p-5 md:p-7 rounded-[2rem] bg-black/95 backdrop-blur-[35px] border border-white/[0.12] shadow-[0_30px_70px_rgba(0,0,0,0.95),0_0_50px_rgba(255,255,255,0.02)] overflow-y-auto scrollbar-hide max-h-[calc(100vh-140px)] md:max-h-[none] overscroll-contain flex flex-col gap-4 md:gap-5",
+                  "relative p-4 sm:p-5 md:p-7 rounded-[1.75rem] md:rounded-[2rem] bg-zinc-950/95 backdrop-blur-[35px] border border-white/20 shadow-[0_30px_70px_rgba(0,0,0,0.95),inset_0_1px_1px_rgba(255,255,255,0.15)] overflow-y-auto scrollbar-hide max-h-[calc(100svh-120px)] md:max-h-[none] overscroll-contain flex flex-col gap-3.5 sm:gap-4 md:gap-5",
                   isPillHovered ? "pointer-events-auto" : "pointer-events-none"
                 )}>
                   
-                  {/* Ambient inner gold glow */}
-                  <div className="absolute -top-12 -left-12 w-32 h-32 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
-
+                  {/* Ambient inner gold and indigo glow */}
+                  <div className="absolute -top-16 -left-16 w-48 h-48 bg-gradient-to-br from-amber-400/20 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+ 
                   {/* Header info */}
                   <div className="relative z-10 flex items-center justify-between gap-4">
                     <div className="space-y-1">
-                      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-400/90 block leading-none">Journey Summary</span>
-                      <h4 className="text-[13px] md:text-[16px] font-bold text-white tracking-tight leading-none font-sans">{experience.title}</h4>
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles size={10} className="text-amber-400/90 animate-pulse" />
+                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 block leading-none">Journey Summary</span>
+                      </div>
+                      <h4 className="text-[12px] sm:text-[13px] md:text-[16px] font-bold text-white tracking-tight leading-tight sm:leading-none font-sans">{experience.title}</h4>
                       {experience.tagline && (
-                        <p className="text-[9.5px] md:text-[10.5px] text-white/40 italic font-medium leading-none mt-1.5 font-sans">{experience.tagline}</p>
+                        <p className="text-[9px] sm:text-[9.5px] md:text-[10.5px] text-white/70 italic font-medium leading-tight sm:leading-none mt-1 sm:mt-1.5 font-sans">{experience.tagline}</p>
                       )}
                     </div>
-                    <span className="shrink-0 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 leading-none">
+                    <span className="shrink-0 px-2 sm:px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-[7.5px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white leading-none">
                       {experience.duration}
                     </span>
                   </div>
-
+ 
                   {/* Divider */}
-                  <div className="w-full h-px bg-white/10 relative z-10" />
-
+                  <div className="w-full h-px bg-white/20 relative z-10" />
+ 
                   {/* Natural Prose Introduction */}
                   <div className="relative z-10 space-y-1.5 font-sans">
-                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">The Soul of the Journey</span>
-                    <p className="text-[10.5px] md:text-[11.5px] leading-relaxed text-white/70 font-medium whitespace-pre-line">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">The Soul of the Journey</span>
+                    <p className="text-[10px] sm:text-[10.5px] md:text-[11.5px] leading-relaxed text-white/90 font-medium whitespace-pre-line">
                       {soulOfJourney || (
                         <>
-                          Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400/90 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
+                          Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
                         </>
                       )}
                     </p>
                   </div>
-
-                  {/* Route Timeline (Descriptive Flow) */}
+ 
+                  {/* Route Timeline */}
                   {destinationsCovered.length > 0 && (
                     <>
-                      <div className="w-full h-px bg-white/10 relative z-10" />
+                      <div className="w-full h-px bg-white/20 relative z-10" />
                       <div className="relative z-10 space-y-1.5">
-                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Destination Covered</span>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] md:text-[11px] font-bold text-white/80">
+                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Destinations Covered</span>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[9.5px] sm:text-[10px] md:text-[11px] font-bold text-white/95">
                           {destinationsCovered.map((dest: string, i: number) => (
                             <div key={i} className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9.5px] font-medium text-white/80">{dest}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/15 text-[9px] sm:text-[9.5px] font-medium text-white/90">{dest}</span>
                               {i < destinationsCovered.length - 1 && (
-                                <span className="text-white/20 text-[8px] font-light">/</span>
+                                <span className="text-white/40 text-[8px] font-light">/</span>
                               )}
                             </div>
                           ))}
@@ -1054,19 +1203,19 @@ Could you please share details on availability and custom options? Thank you!`;
                       </div>
                     </>
                   )}
-
-                  {/* Curated Highlights & Inclusions Summary */}
+ 
+                  {/* Curated Highlights & Inclusions Grid */}
                   {((experience.highlights && experience.highlights.length > 0) || (experience.inclusions && experience.inclusions.length > 0)) && (
                     <>
-                      <div className="w-full h-px bg-white/10 relative z-10" />
-                      <div className="relative z-10 grid grid-cols-2 gap-4">
+                      <div className="w-full h-px bg-white/20 relative z-10" />
+                      <div className="relative z-10 grid grid-cols-2 gap-3 sm:gap-4">
                         {experience.highlights && experience.highlights.length > 0 && (
                           <div className="space-y-1.5">
-                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Highlights</span>
+                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Highlights</span>
                             <div className="space-y-1">
                               {experience.highlights.slice(0, 2).map((h: string, i: number) => (
-                                <div key={i} className="flex items-start gap-1.5 text-[9.5px] md:text-[10px] text-white/60 leading-tight">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40 mt-[5px] shrink-0" />
+                                <div key={i} className="flex items-start gap-1.5 text-[9px] sm:text-[9.5px] md:text-[10px] text-white/85 leading-tight">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60 mt-[5px] shrink-0" />
                                   <span>{h}</span>
                                 </div>
                               ))}
@@ -1075,11 +1224,11 @@ Could you please share details on availability and custom options? Thank you!`;
                         )}
                         {experience.inclusions && experience.inclusions.length > 0 && (
                           <div className="space-y-1.5">
-                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Inclusions</span>
+                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Inclusions</span>
                             <div className="space-y-1">
                               {experience.inclusions.slice(0, 2).map((inc: string, i: number) => (
-                                <div key={i} className="flex items-start gap-1.5 text-[9.5px] md:text-[10px] text-white/60 leading-tight">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40 mt-[5px] shrink-0" />
+                                <div key={i} className="flex items-start gap-1.5 text-[9px] sm:text-[9.5px] md:text-[10px] text-white/85 leading-tight">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 mt-[5px] shrink-0" />
                                   <span>{inc}</span>
                                 </div>
                               ))}
@@ -1089,28 +1238,28 @@ Could you please share details on availability and custom options? Thank you!`;
                       </div>
                     </>
                   )}
-
+ 
                   {/* Financial Investment Callout */}
-                  <div className="w-full h-px bg-white/10 relative z-10" />
+                  <div className="w-full h-px bg-white/20 relative z-10" />
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Investment Total</span>
-                      <span className="text-[10px] md:text-[11px] font-medium text-white/40 italic">Subject to tier options</span>
+                      <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Investment Total</span>
+                      <span className="text-[9.5px] sm:text-[10px] md:text-[11px] font-medium text-white/60 italic">Subject to tier options</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-[13px] md:text-[16px] font-black text-emerald-400 tabular-nums">
-                        {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")} <span className="text-[8.5px] md:text-[9px] text-white/40 font-normal font-sans">/ traveler</span>
+                      <p className="text-[12px] sm:text-[13px] md:text-[16px] font-black text-emerald-400 tabular-nums">
+                        {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")} <span className="text-[8px] sm:text-[8.5px] md:text-[9px] text-white/70 font-normal font-sans">/ traveler</span>
                       </p>
-                      <p className="text-[7.5px] md:text-[8px] font-bold text-white/30 uppercase tracking-widest leading-none mt-0.5">
+                      <p className="text-[7px] sm:text-[7.5px] md:text-[8px] font-bold text-white/60 uppercase tracking-widest leading-none mt-0.5">
                         {pricing.taxLabel}
                       </p>
                     </div>
                   </div>
                 </div>
-
+ 
                 {/* Speech Bubble Pointer */}
                 <div 
-                  className="absolute w-3.5 h-3.5 bg-black/95 border-r border-b border-white/[0.12] pointer-events-none"
+                  className="absolute w-3.5 h-3.5 bg-zinc-950 border-r border-b border-white/20 pointer-events-none"
                   style={{ 
                     bottom: "-7px", 
                     left: "calc(50% - 7px)", 
@@ -1158,7 +1307,7 @@ Could you please share details on availability and custom options? Thank you!`;
             className="relative flex items-center justify-between py-2 pl-5 pr-3 md:p-2 transform-gpu w-full"
           >
             {/* Background Layer */}
-            <div className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
+            <div className="absolute inset-0 bg-[#0b0b0c] border border-white/30 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
 
             {/* iOS 26 Pointer-Tracking Glow Overlay */}
             <div 
@@ -1180,17 +1329,17 @@ Could you please share details on availability and custom options? Thank you!`;
               >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   {/* Label */}
-                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/30 leading-none">Investment</span>
+                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/55 leading-none">Investment</span>
                   
                   {/* Primary Price Area */}
                   <div className="flex items-baseline gap-1">
-                    <span className="font-black uppercase tracking-widest text-white/45 text-[8px] mr-0.5 select-none leading-none">
+                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] mr-0.5 select-none leading-none">
                       From
                     </span>
                     <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/40 border-l border-white/10 pl-1.5 leading-none">
+                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 border-l border-white/20 pl-1.5 leading-none">
                       / Person
                     </span>
                   </div>
@@ -1199,12 +1348,12 @@ Could you please share details on availability and custom options? Thank you!`;
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {pricing.hasSavings && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[7.5px] font-medium text-white/25 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                        <span className="text-[7.5px] font-medium text-white/50 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
                         <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
                       </div>
                     )}
                     {(pricing.taxLabel) && (
-                      <span className="text-[7px] font-bold text-white/25 uppercase tracking-wide">{pricing.taxLabel}</span>
+                      <span className="text-[7px] font-bold text-white/50 uppercase tracking-wide">{pricing.taxLabel}</span>
                     )}
                   </div>
                 </div>
@@ -1216,11 +1365,11 @@ Could you please share details on availability and custom options? Thank you!`;
                   
                   {/* Primary Price */}
                   <div className="flex flex-col items-center justify-center">
-                    <span className="font-black uppercase text-white/50 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
+                    <span className="font-black uppercase text-white/70 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
                       Investment
                     </span>
                     <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)] flex items-baseline justify-center">
-                      <span className="font-black uppercase tracking-widest text-white/45 text-[9px] mr-1.5 select-none leading-none">
+                      <span className="font-black uppercase tracking-widest text-white/60 text-[9px] mr-1.5 select-none leading-none">
                         From
                       </span>
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
@@ -1228,17 +1377,17 @@ Could you please share details on availability and custom options? Thank you!`;
                   </div>
 
                   {/* Divider */}
-                  <div className="w-px h-8 bg-white/10 shrink-0" />
+                  <div className="w-px h-8 bg-white/20 shrink-0" />
 
                   {/* Secondary Metadata */}
                   <div className="flex flex-col items-start justify-center gap-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold uppercase tracking-wider text-white/40 leading-none whitespace-nowrap text-[8px]">
+                      <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[8px]">
                         / Person
                       </span>
                       {pricing.hasSavings && (
                         <div className="flex items-center gap-2">
-                          <span className="font-medium tracking-tight text-white/30 line-through whitespace-nowrap text-[10px]">
+                          <span className="font-medium tracking-tight text-white/50 line-through whitespace-nowrap text-[10px]">
                             {pricing.symbol}{pricing.originalTotal.toLocaleString()}
                           </span>
                           <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[8px]">
@@ -1250,7 +1399,7 @@ Could you please share details on availability and custom options? Thank you!`;
                     
                     <div className="flex items-center gap-2">
                       {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
-                        <span className="font-bold uppercase tracking-wider text-white/40 leading-none whitespace-nowrap text-[7px]">
+                        <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[7px]">
                           {pricing.taxLabel}
                         </span>
                       )}

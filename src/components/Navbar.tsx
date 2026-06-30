@@ -75,7 +75,7 @@ export function Navbar() {
         {/* iOS 26-style Hyper-Smooth Progressive Mask */}
         {!isMobileMenuOpen && (
           <div 
-            className="pointer-events-none absolute inset-0 h-24 xl:h-32 transition-all duration-1000 backdrop-blur-[5px]" 
+            className="pointer-events-none absolute inset-0 h-28 xl:h-36 transition-all duration-1000" 
             style={{ 
               opacity: isScrolled ? 0.95 : 0.85,
               background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",

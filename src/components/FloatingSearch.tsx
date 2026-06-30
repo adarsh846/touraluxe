@@ -322,6 +322,49 @@ export function FloatingSearch() {
     return () => window.removeEventListener("touchmove", handleTouchMove);
   }, [isMobile]);
 
+  // ═══ APPLE-STYLE SEARCH BAR MOVEMENT CHOREOGRAPHY ═══
+  useEffect(() => {
+    if (!searchContainerRef.current) return;
+    
+    const container = searchContainerRef.current;
+    
+    if (isVisible) {
+      // Clean previous animations
+      gsap.killTweensOf(container);
+      
+      // Seed scale and spring up
+      gsap.fromTo(container, 
+        {
+          y: 60,
+          opacity: 0,
+          scale: 0.9,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          ease: 'elastic.out(1.1, 0.75)',
+          force3D: true,
+          clearProps: 'scale,y,opacity',
+        }
+      );
+    } else {
+      // Clean previous animations
+      gsap.killTweensOf(container);
+      
+      // Smooth slide and scale away
+      gsap.to(container, {
+        y: 40,
+        opacity: 0,
+        scale: 0.95,
+        duration: 0.4,
+        ease: 'power3.inOut',
+        force3D: true,
+      });
+    }
+  }, [isVisible]);
+
 
   // iOS 26 Pointer-Tracking Glow
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -398,10 +441,8 @@ export function FloatingSearch() {
   return (
     <div
       ref={searchContainerRef}
-      className={cn(
-        "fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[45] w-full max-w-4xl px-4 flex items-center justify-center gap-3 transition-all duration-700",
-        isVisible ? "translate-y-0 opacity-100" : "translate-y-24 opacity-0 pointer-events-none"
-      )}
+      className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[45] w-full max-w-4xl px-4 flex items-center justify-center gap-3 transform-gpu will-change-[transform,opacity]"
+      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
     >
       {/* Predictive Autocomplete Suggestions Dropdown */}
       {showSuggestions && suggestions.length > 0 && (
@@ -451,7 +492,7 @@ export function FloatingSearch() {
           triggerSearch();
         }}
         ref={pillRef}
-        className="relative inline-flex w-auto items-center p-1.5 md:p-2 bg-black/80 md:bg-black/90 border border-white/10 rounded-full backdrop-blur-3xl shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
+        className="relative inline-flex w-auto items-center p-1.5 md:p-2 bg-[#0b0b0c] border border-white/10 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300"
         onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
         onMouseLeave={handleGlowLeave}

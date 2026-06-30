@@ -281,13 +281,13 @@ export function ModalShell() {
       <div 
         ref={overlayRef} 
         onClick={startClosing}
-        className="absolute inset-0 bg-black/40 backdrop-blur-3xl" 
+        className="absolute inset-0 bg-black/40 backdrop-blur-3xl transform-gpu will-change-[opacity]" 
       />
 
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full max-w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden"
+        className="relative w-full max-w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity,scale]"
         data-lenis-prevent
       >
         {/* Global Error Alert */}
@@ -316,7 +316,7 @@ export function ModalShell() {
         {/* Shared Progressive Mask (iOS Style) */}
         <div 
           ref={headerMaskRef}
-          className="pointer-events-none absolute top-0 left-0 right-0 h-24 md:h-32 transition-all duration-1000 backdrop-blur-[5px] z-[90] transform-gpu will-change-[opacity,backdrop-filter]" 
+          className="pointer-events-none absolute top-0 left-0 right-0 h-28 md:h-36 transition-all duration-1000 z-[90] transform-gpu will-change-[opacity]" 
           style={{
             paddingTop: "env(safe-area-inset-top, 0px)",
             opacity: 0.85,

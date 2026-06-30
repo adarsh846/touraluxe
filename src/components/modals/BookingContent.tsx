@@ -2033,7 +2033,7 @@ Please confirm my booking. Thank you!`;
                           <div className="w-full flex justify-center px-6 md:px-0">
                             <div 
                               className={cn(
-                                "relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40",
+                                "relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e11]/98 border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40",
                                 isDurationFixed && "md:max-w-xl"
                               )}
                             >
@@ -2174,7 +2174,7 @@ Please confirm my booking. Thank you!`;
                       {/* Phase 03: Group */}
                       <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 3 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
                         <div className="w-full flex justify-center px-6 md:px-0">
-                          <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-visible group/bar shadow-2xl hover:border-white/40">
+                          <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e11]/98 border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-visible group/bar shadow-2xl hover:border-white/40">
                             {[
                               { id: 'adults', label: adults <= 1 ? "Adult" : "Adults", count: adults, set: setAdults, min: 1, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perAdultFinal.toLocaleString("en-IN")} / Adult` },
                               { id: 'kids', label: kids <= 1 ? "Child" : "Children", count: kids, set: setKids, min: 0, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perChildFinal.toLocaleString("en-IN")} / Child` },
@@ -2292,7 +2292,7 @@ Please confirm my booking. Thank you!`;
                             <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)]">
                             
 
-                            <div className="relative w-full max-w-[min(850px,94vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
+                            <div className="relative w-full max-w-[min(850px,94vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-[#0c0c0e]/98 border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
                             
                               {/* Scrollable Protocol Area */}
                               <div 
@@ -2706,7 +2706,7 @@ Please confirm my booking. Thank you!`;
                   {/* Chromatic Glow: High-Density Neutral Accents */}
                   <div className="absolute -inset-0.5 bg-gradient-to-br from-white/20 via-transparent to-white/10 rounded-[2.5rem] blur opacity-40 transition duration-1000" />
                   
-                  <div className="relative w-full bg-black/80 backdrop-blur-3xl border border-white/20 rounded-[2.2rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)]">
+                  <div className="relative w-full bg-[#0a0a0b]/98 border border-white/20 rounded-[2.2rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.9)]">
                     
                     {/* Dossier Header: Primary Identification */}
                     <div className="w-full p-6 md:p-10 border-b border-white/15 bg-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6">
@@ -2959,7 +2959,7 @@ Please confirm my booking. Thank you!`;
       {/* 4. PROGRESSIVE BOTTOM MASK (MIRRORED iOS STYLE) */}
       {((step === 1 && discoveryPhase > 1) || step === 2) && (
         <div
-          className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 md:h-48 transition-all duration-1000 backdrop-blur-sm z-[110] transform-gpu will-change-[opacity,backdrop-filter] animate-in fade-in duration-1000"
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 md:h-48 transition-all duration-1000 z-[110] transform-gpu will-change-[opacity] animate-in fade-in duration-1000"
           style={{
             opacity: 0.95,
             background:
@@ -3001,7 +3001,7 @@ Please confirm my booking. Thank you!`;
               {/* ════ PHYSICAL JELLY SHELL ════ */}
               <div 
                 ref={jellyRef}
-                className="absolute inset-0 bg-black/95 backdrop-blur-[40px] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none"
+                className="absolute inset-0 bg-[#0b0b0c] border border-white/20 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none"
               />
 
               {/* iOS 26 Pointer-Tracking Glow Overlay */}

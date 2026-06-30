@@ -221,7 +221,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       {/* ── PACKAGES ── */}
       <section className="px-6 py-16 md:py-24">
         <div className="max-w-[1200px] mx-auto">
-          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100vw-3rem)] min-w-0 bg-[#0a0a0b]/90 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
+          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100vw-3rem)] min-w-0 bg-[#0a0a0b]/98 px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
             <FilterBar packages={packages} filters={filters} onChange={setFilters} resultCount={filteredPackages.length} />
           </div>
           {filteredPackages.length > 0 ? (
