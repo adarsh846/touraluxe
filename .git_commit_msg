@@ -1,0 +1,23 @@
+perf/style: optimize TouraLuxe modals, unify card, polish animations
+
+Performance & Latency Optimizations:
+- Migrated frontend fetching to GET /api/packages and /api/destinations.
+- Implemented Cache-Control (30s s-maxage, 120s stale-while-revalidate).
+- Deferred heavy package modal content mounting by 750ms.
+
+Unified Component Consolidation:
+- Consolidated main and UI PackageCard versions into one unified file.
+- Supported compact, editorial, and trending variants.
+- Removed duplicate ui/PackageCard.tsx file.
+
+Visual & Aesthetic Polish:
+- Added elastic.out bouncy heading entrance animations to Hero, About, and Services.
+- Removed horizontal line dividers from package card layouts.
+- Fixed hero image fade-in flash by removing initial opacity transitions.
+- Added spring curve animations to tooltips on WhatsApp and voice pills.
+
+Mobile & Layout Refinements:
+- Replaced CPU-intensive backdrop-blur filters on badges with solid opaque fills.
+- Added safety guards for matchData to prevent ghost badge container rendering.
+- Added bottom padding to Explore heading to prevent descender clipping.
+- Optimized DestinationNavbar responsive paddings to prevent Back button overlap.

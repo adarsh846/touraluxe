@@ -1,0 +1,212 @@
+[
+  {
+    "id": "f951bb43-4442-4b13-8da1-302cc62f08ae",
+    "title": "Maldives",
+    "location": "Maldive Islands, Maldives",
+    "image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1777742707912-ny8v8u.jpg",
+    "price": "90,000",
+    "duration": "4 Nights 5 Days",
+    "guests": "Solo/Couple/Group",
+    "season": "All Year",
+    "tagline": "Crystal waters, crystal memories",
+    "description": "Crystal waters, crystal memories.. with TouraLuxe!",
+    "highlights": [],
+    "is_published": true,
+    "sort_order": 99,
+    "created_at": "2026-05-02T17:26:23.166865+00:00",
+    "updated_at": "2026-05-11T11:36:41.183+00:00",
+    "category": [
+      "Luxury Honeymoons",
+      "Luxury Tours",
+      "Group Trips"
+    ],
+    "child_price": "",
+    "currency": "₹",
+    "tax_status": "Exclusive of Taxes",
+    "inclusions": [],
+    "infant_price": "",
+    "itinerary": [],
+    "original_price": "",
+    "badge": "Bestseller",
+    "is_featured": true,
+    "exclusions": [],
+    "route_start": "Delhi Airport",
+    "route_end": "Delhi Airport",
+    "difficulty_level": "Easy",
+    "min_group_size": 1,
+    "max_group_size": 20,
+    "gallery": [],
+    "faq": [
+      {
+        "answer": "You'll have beautiful life-long memories!",
+        "question": "Will I enjoy?"
+      }
+    ],
+    "tags": [
+      "Honeymoon"
+    ],
+    "destination": "",
+    "region": "",
+    "trip_type": "group",
+    "itinerary_url": "{\"segments\":[{\"label\":\"BKK-DMK\",\"price\":\"12000\"}],\"type\":\"Round-Trip\",\"child_fare\":\"10000\",\"infant_fare\":\"4000\",\"status\":\"included\",\"hubs\":[\"Delhi\"],\"estimate\":\"12000\",\"tiers\":[],\"transports\":[{\"pax\":\"2-4\",\"vehicle\":\"Toyota Innova\"}],\"pdf_url\":\"http://example.com/pdf\",\"destinations_covered\":\"Bangkok, Pattaya\",\"pricing_note\":\"Tax inclusive\",\"tax_percentage\":\"5\",\"flight_terms\":\"Non-refundable\",\"addons\":[],\"seasons_list\":[]}",
+    "flights_status": "excluded",
+    "flight_price_estimate": null,
+    "is_airfare_taxable": false,
+    "departure_cities": []
+  },
+  {
+    "id": "e1b8f344-e6e7-46bb-928f-fd2e50fd931a",
+    "title": "Bali",
+    "location": "Nusa Penida, Klungkung Regency, Bali, Indonesia",
+    "image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1777649648417-m2neca.jpg",
+    "price": "79000",
+    "duration": "3 Nights 4 Days",
+    "guests": "",
+    "season": "",
+    "tagline": "Bali sun, saltwater, and smiles.",
+    "description": "Experience Bali with TouraLuxe!",
+    "highlights": [
+      "Sightseeing"
+    ],
+    "is_published": true,
+    "sort_order": 99,
+    "created_at": "2026-05-01T15:35:19.253958+00:00",
+    "updated_at": "2026-05-05T22:47:59.114+00:00",
+    "category": [
+      "Luxury Honeymoons"
+    ],
+    "child_price": "40000",
+    "currency": "₹",
+    "tax_status": "Exclusive of Taxes",
+    "inclusions": [],
+    "infant_price": "",
+    "itinerary": [],
+    "original_price": "",
+    "badge": "Trending",
+    "is_featured": true,
+    "exclusions": [],
+    "route_start": "",
+    "route_end": "",
+    "difficulty_level": "Easy",
+    "min_group_size": 1,
+    "max_group_size": 20,
+    "gallery": [
+      "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1779001504336-8ldf0s.jpg",
+      "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1779001516111-0higz7.jpg",
+      "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1779001532641-yje89k.jpg",
+      "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1779001494565-uohc4l.jpg"
+    ],
+    "faq": [],
+    "tags": [
+      "Honeymoon",
+      "Adventure",
+      "Cultural",
+      "Solo Friendly",
+      "Family"
+    ],
+    "destination": "bali",
+    "region": "",
+    "trip_type": "group,private,honeymoon,solo",
+    "itinerary_url": "{\"segments\":[{\"label\":\"\",\"price\":\"\"}],\"type\":\"Round-Trip\",\"child_fare\":\"\",\"infant_fare\":\"\",\"status\":\"excluded\",\"hubs\":[],\"estimate\":\"0\",\"tiers\":[{\"name\":\"Deluxe\",\"price_grid\":{},\"hotels\":{},\"pdf_url\":\"\"}],\"transports\":[],\"pdf_url\":\"\",\"destinations_covered\":\"\",\"pricing_note\":\"\",\"tax_percentage\":\"5\"}",
+    "flights_status": "excluded",
+    "flight_price_estimate": null,
+    "is_airfare_taxable": false,
+    "departure_cities": []
+  },
+  {
+    "id": "08e912a8-42a8-479d-8653-94f523c2e25d",
+    "title": "Vietnam",
+    "location": "Vietnam",
+    "image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1777649086602-0l4er2.jpg",
+    "price": "80,000",
+    "duration": "3 Nights 4 Days",
+    "guests": "Solo, Couple, Groups",
+    "season": "Dec-May & Jun-Jul",
+    "tagline": "Vietnam-Timeless charm",
+    "description": "Experience Vietnam with TouraLuxe",
+    "highlights": [
+      "The experience you'll never forget!"
+    ],
+    "is_published": true,
+    "sort_order": 99,
+    "created_at": "2026-05-01T15:27:06.169203+00:00",
+    "updated_at": "2026-05-11T09:44:18.611+00:00",
+    "category": [
+      "Luxury Honeymoons",
+      "Luxury Tours",
+      "Group Trips",
+      "MICE Events"
+    ],
+    "child_price": "",
+    "currency": "₹",
+    "tax_status": "Exclusive of Taxes",
+    "inclusions": [
+      "Sightseeing",
+      "Jungle Safari"
+    ],
+    "infant_price": "",
+    "itinerary": [
+      {
+        "day": "1",
+        "image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1780240068891-wlkwvs.jpg",
+        "title": "Arrival in Paradise",
+        "description": "Dinner in Resort"
+      },
+      {
+        "day": "2",
+        "image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1780240241235-54ei7n.jpg",
+        "title": "Sightseeing",
+        "description": "Mountain View Exploration"
+      },
+      {
+        "day": "3",
+        "title": "Shopping",
+        "description": "Explore Vietnam Market"
+      },
+      {
+        "day": "4",
+        "title": "Visit Golden Bridge",
+        "description": "Explore the Golden Bridge"
+      },
+      {
+        "day": "5",
+        "title": "Night Party",
+        "description": "Night Party At Beach"
+      },
+      {
+        "day": "6",
+        "title": "Return",
+        "description": "Return with Lots of Memories"
+      }
+    ],
+    "original_price": "90000",
+    "badge": "Super Saver",
+    "is_featured": true,
+    "exclusions": [
+      "Round Air Ticket"
+    ],
+    "route_start": "Mumbai/Delhi",
+    "route_end": "Mumbai/Delhi",
+    "difficulty_level": "",
+    "min_group_size": 1,
+    "max_group_size": 20,
+    "gallery": [],
+    "faq": [],
+    "tags": [
+      "Honeymoon",
+      "Adventure",
+      "Cultural",
+      "Wildlife",
+      "Solo Friendly",
+      "Family"
+    ],
+    "destination": "vietnam",
+    "region": "",
+    "trip_type": "group,private",
+    "itinerary_url": "{\"segments\":[{\"label\":\"Delhi ➔ Vietnam\",\"price\":\"25000\"}],\"type\":\"Round-Trip\",\"child_fare\":\" \",\"infant_fare\":\" \",\"status\":\"included\",\"hubs\":[\"Mumbai\"],\"estimate\":\"25000\",\"tiers\":[],\"transports\":[],\"pdf_url\":\"\",\"destinations_covered\":\"Hanoi, Ha Long Bay, Hoi An, Ho Chi Minh City\",\"pricing_note\":\"Flight Estimates are subject to airlines.\\nPrices are dynamic as per traveller's requirements.\",\"tax_percentage\":\"5\",\"flight_terms\":\"\",\"addons\":[],\"seasons_list\":[{\"season\":\"Dec-May\",\"highlights\":\"Peak Season\"},{\"season\":\"Jun-Jul\",\"highlights\":\"Moderate Season\"}]}",
+    "flights_status": "included",
+    "flight_price_estimate": "15000",
+    "is_airfare_taxable": false,
+    "departure_cities": []
+  }
+]

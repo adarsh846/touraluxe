@@ -1,0 +1,36 @@
+[
+  {
+    "id": "1cfd6522-92e1-4624-97bf-8b0a3cf8a9ad",
+    "name": "Vietnam",
+    "slug": "vietnam",
+    "region": "Vietnam",
+    "country": "Vietnam",
+    "cover_image": "https://vpaidlsxenpohrhsxfpa.supabase.co/storage/v1/object/public/package-images/1778836363305-x3fvc5.jpg",
+    "description": "",
+    "meta_title": "Vietnam Dream Packages",
+    "meta_description": "",
+    "faq": [],
+    "stats": {},
+    "is_international": true,
+    "sort_order": 99,
+    "is_published": true,
+    "created_at": "2026-05-11T12:10:26.852456"
+  },
+  {
+    "id": "ab1288f7-d028-4ce6-a390-1355645b079f",
+    "name": "Bali",
+    "slug": "bali",
+    "region": "Bali",
+    "country": "Indonesia",
+    "cover_image": "https://images.pexels.com/photos/28518057/pexels-photo-28518057.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "description": "",
+    "meta_title": "",
+    "meta_description": "",
+    "faq": [],
+    "stats": {},
+    "is_international": true,
+    "sort_order": 99,
+    "is_published": true,
+    "created_at": "2026-05-15T11:06:26.177121"
+  }
+]
