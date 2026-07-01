@@ -72,7 +72,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  const response = NextResponse.json(data);
+  if (!isAdmin) {
+    // Cache for 30s at CDN/browser level, allow stale-while-revalidate for 2 minutes
+    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+  }
+  return response;
 }
 
 // POST create new package (admin only)

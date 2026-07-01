@@ -77,13 +77,13 @@ export function DestinationNavbar({
         className="z-[100] flex justify-between items-center"
         style={{
           position: (onBack || onX) ? "absolute" : "fixed",
-          top: "calc(env(safe-area-inset-top, 0px) + clamp(1.25rem, 5vh, 2.5rem))",
-          left: "clamp(1.25rem, 6vw, 3rem)",
-          right: "clamp(1.25rem, 6vw, 3rem)",
+          top: "calc(env(safe-area-inset-top, 0px) + clamp(1rem, 4vh, 2.5rem))",
+          left: "clamp(0.75rem, 4vw, 3rem)",
+          right: "clamp(0.75rem, 4vw, 3rem)",
         }}
       >
         {/* Left: Logo Pill */}
-        <div className="flex-1 flex items-center justify-start">
+        <div className="flex items-center">
           <Magnetic>
             <button onClick={onX ?? handlePageClose} className="relative group block">
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
@@ -109,7 +109,7 @@ export function DestinationNavbar({
         <div className="flex-1 hidden lg:flex items-center justify-center" />
 
         {/* Right: Back Pill + Close Circle */}
-        <div className="flex-1 flex items-center justify-end gap-3">
+        <div className="flex items-center gap-1.5 md:gap-3">
 
           {/* Back Pill */}
           <Magnetic>
@@ -120,9 +120,9 @@ export function DestinationNavbar({
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-              <div className="relative px-5 h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
-                <ArrowLeft size={18} strokeWidth={2.5} className="group-hover/backbtn:-translate-x-1 transition-transform" />
-                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors">
+              <div className="relative px-3.5 md:px-5 h-9 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
+                <ArrowLeft strokeWidth={2.5} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] group-hover/backbtn:-translate-x-1 transition-transform shrink-0" />
+                <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.12em] md:tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors whitespace-nowrap">
                   {backLabel}
                 </span>
               </div>
@@ -137,8 +137,8 @@ export function DestinationNavbar({
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-              <div className="relative w-10 h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90">
-                <X size={20} strokeWidth={2.5} />
+              <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90">
+                <X strokeWidth={2.5} className="w-4 h-4 md:w-5 md:h-5" />
               </div>
             </button>
           </Magnetic>

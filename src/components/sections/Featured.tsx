@@ -7,7 +7,6 @@ import Image from "next/image";
 import { Magnetic } from "../Magnetic";
 import { Plane, MapPin } from "lucide-react";
 import { useBooking } from "../BookingProvider";
-import { supabase } from "@/lib/supabase";
 import { usePricing } from "@/hooks/usePricing";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,15 +23,9 @@ export function Featured() {
   useEffect(() => {
     async function fetchFeatured() {
       try {
-        const { data, error } = await supabase
-          .from("packages")
-          .select("*")
-          .eq("is_featured", true)
-          .eq("is_published", true)
-          .order("sort_order", { ascending: true })
-          .limit(5);
-
-        if (error) throw error;
+        const res = await fetch("/api/packages?featured=true&limit=5");
+        if (!res.ok) throw new Error("Failed to fetch featured journeys");
+        const data = await res.json();
         setExperiences(data || []);
       } catch (err) {
         console.warn("Failed to fetch featured journeys:", err);

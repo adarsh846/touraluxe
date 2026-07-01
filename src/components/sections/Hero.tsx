@@ -7,7 +7,6 @@ import { useSettings } from "@/hooks/useSettings";
 import { Search, MapPin, Calendar, Sparkles, ArrowRight } from "lucide-react";
 import { useBooking } from "../BookingProvider";
 import { Magnetic } from "../Magnetic";
-import { supabase } from "@/lib/supabase";
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -28,12 +27,9 @@ export function Hero() {
   useEffect(() => {
     async function fetchTrendingPackages() {
       try {
-        const { data, error } = await supabase
-          .from("packages")
-          .select("*")
-          .eq("is_published", true);
-
-        if (error) throw error;
+        const res = await fetch("/api/packages");
+        if (!res.ok) throw new Error("Failed to fetch trending packages");
+        const data = await res.json();
 
         if (data && data.length > 0) {
           // Fisher-Yates Shuffle
@@ -100,74 +96,70 @@ export function Hero() {
   }, [trendingPills]);
 
   useEffect(() => {
-    // setIsMobile(window.innerWidth < 640);
-    // const handleResize = () => setIsMobile(window.innerWidth < 640);
-    // window.addEventListener('resize', handleResize);
-    
-    const ctx = gsap.context(() => {
-      // Premium Apple-style Intro Animation
-      const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
+    const startAnimation = () => {
+      const ctx = gsap.context(() => {
+        // Premium Apple-style Intro Animation
+        const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
 
-      tl.fromTo(
-        imageRef.current,
-        { scale: 1.15, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 3 }
-      )
-        .fromTo(
+        tl.fromTo(
           ".word",
-          { y: 100, opacity: 0, skewX: 5, x: -20 },
-          { y: 0, opacity: 1, skewX: 0, x: 0, stagger: 0.1, force3D: true },
-          "-=2.5"
+          { y: 100, opacity: 0, x: -10 },
+          { 
+            y: 0, 
+            opacity: 1, 
+            x: 0, 
+            stagger: 0.08, 
+            duration: 1.4, 
+            ease: "elastic.out(1.1, 0.55)", 
+            force3D: true 
+          }
         )
-        .fromTo(
-          subheadRef.current,
-          { y: 40, x: 30, opacity: 0 },
-          { y: 0, x: 0, opacity: 1 },
-          "-=2.2"
-        )
-        /*
-        .fromTo(
-          ".scroll-indicator",
-          { opacity: 0, y: 10 },
-          { opacity: 1, y: 0, duration: 1, ease: "expo.out" },
-          "-=0.8"
-        )
-        */;
+          .fromTo(
+            subheadRef.current,
+            { y: 30, opacity: 0 },
+            { 
+              y: 0, 
+              opacity: 1, 
+              duration: 1.2, 
+              ease: "power3.out" 
+            },
+            "-=0.7"
+          );
 
-      /*
-      // Fade out scroll indicator on scroll
-      gsap.fromTo(".scroll-indicator",
-        { opacity: 1, y: 0 },
-        {
-          opacity: 0,
+        // Subtle Scroll Parallax on the image
+        gsap.to(imageRef.current, {
+          yPercent: 15,
+          force3D: true,
           ease: "none",
           scrollTrigger: {
             trigger: containerRef.current,
             start: "top top",
-            end: "120px top",
-            scrub: true,
+            end: "bottom top",
+            scrub: 0.5,
           },
-        }
-      );
-      */
+        });
+      }, containerRef);
+      return ctx;
+    };
 
-      // Subtle Scroll Parallax on the image
-      gsap.to(imageRef.current, {
-        yPercent: 15,
-        force3D: true,
-        ease: "none",
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.5,
-        },
-      });
-    }, containerRef);
+    let ctx: gsap.Context | null = null;
+    const hasPreloaderFinished = typeof window !== "undefined" && (window as any).preloaderPlayed;
+
+    if (hasPreloaderFinished) {
+      ctx = startAnimation();
+    } else {
+      const handlePreloaderComplete = () => {
+        ctx = startAnimation();
+      };
+      window.addEventListener("preloaderComplete", handlePreloaderComplete);
+      return () => {
+        window.removeEventListener("preloaderComplete", handlePreloaderComplete);
+        if (ctx) ctx.revert();
+      };
+    }
 
     return () => {
-      // window.removeEventListener('resize', handleResize);
-      ctx.revert();
+      if (ctx) ctx.revert();
     };
   }, []);
 
@@ -179,8 +171,8 @@ export function Hero() {
       {/* Background Image Container */}
       <div 
         ref={imageRef}
-        className="absolute inset-0 z-0 select-none pointer-events-none overflow-hidden scale-110 opacity-0"
-        style={{ willChange: "transform, opacity" }}
+        className="absolute inset-0 z-0 select-none pointer-events-none overflow-hidden"
+        style={{ willChange: "transform" }}
       >
         <Image
           src="/assets/hero-bg.webp"

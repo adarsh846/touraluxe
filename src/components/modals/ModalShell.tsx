@@ -281,13 +281,13 @@ export function ModalShell() {
       <div 
         ref={overlayRef} 
         onClick={startClosing}
-        className="absolute inset-0 bg-black/40 backdrop-blur-3xl transform-gpu will-change-[opacity]" 
+        className={`absolute inset-0 bg-black/40 backdrop-blur-3xl transform-gpu ${!isSettled ? 'will-change-[opacity]' : ''}`} 
       />
 
       {/* Modal Shell Panel */}
       <div 
         ref={modalRef}
-        className="relative w-full max-w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity,scale]"
+        className={`relative w-full max-w-full h-screen-stable md:h-full bg-[#0a0a0b] shadow-2xl border-0 flex flex-col overflow-hidden transform-gpu ${!isSettled ? 'will-change-[transform,opacity,scale]' : ''}`}
         data-lenis-prevent
       >
         {/* Global Error Alert */}
@@ -467,7 +467,7 @@ export function ModalShell() {
         </div>
 
         {/* Persistent View Stack - Industry Grade Performance */}
-        <div className="relative flex-1 w-full h-full overflow-hidden will-change-transform transform-gpu">
+        <div className="relative flex-1 w-full h-full overflow-hidden transform-gpu">
           {/* Services Layer */}
           <div 
             className={`absolute inset-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[opacity,transform] ${getTransitionClass('SERVICES', 1)}`}

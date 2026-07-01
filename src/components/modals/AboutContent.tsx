@@ -1,12 +1,15 @@
 "use client";
-
+ 
 import { useEffect, useRef, useState, memo } from "react";
 import Image from "next/image";
+import gsap from "gsap";
 import { Magnetic } from "../Magnetic";
 import { useSettings } from "@/hooks/useSettings";
-
+ 
 export const AboutContent = memo(function AboutContent({ isActive, onScroll, startClosing }: { isActive: boolean, onScroll: (scrolled: boolean) => void, startClosing: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const subtitleRef = useRef<HTMLSpanElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const { settings } = useSettings();
 
   const stats = settings.about_stats ? JSON.parse(settings.about_stats) : [
@@ -15,6 +18,54 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
     { label: "Excellence", value: "Premium" },
     { label: "Execution", value: "Seamless" }
   ];
+
+  // ═══ CHOREOGRAPHED HEADER ANIMATION ═══
+  const headerAnimatedRef = useRef(false);
+  useEffect(() => {
+    if (!isActive) {
+      headerAnimatedRef.current = false;
+      return;
+    }
+    if (headerAnimatedRef.current) return;
+    
+    const rafId = requestAnimationFrame(() => {
+      if (headerAnimatedRef.current) return;
+      headerAnimatedRef.current = true;
+      
+      const subtitle = subtitleRef.current;
+      const title = titleRef.current;
+      
+      const tl = gsap.timeline({ delay: 0.35 });
+      
+      if (subtitle) {
+        gsap.set(subtitle, { opacity: 0, y: 15 });
+        tl.to(subtitle, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          force3D: true,
+          clearProps: 'y',
+        });
+      }
+      
+      if (title) {
+        gsap.set(title, { opacity: 0, y: 35 });
+        tl.to(title, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'elastic.out(1.1, 0.55)',
+          force3D: true,
+          clearProps: 'y',
+        }, subtitle ? '-=0.45' : '0');
+      }
+    });
+    
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [isActive]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
@@ -42,10 +93,16 @@ export const AboutContent = memo(function AboutContent({ isActive, onScroll, sta
             
             {/* Header Content */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-[clamp(1rem,5vw,2rem)]">
-              <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.4em] text-white/60 mb-4 drop-shadow-lg">
+              <span 
+                ref={subtitleRef}
+                className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.4em] text-white/60 mb-4 drop-shadow-lg opacity-0 transform-gpu will-change-[transform,opacity]"
+              >
                 {settings.about_hero_subtitle || "Luxury Redefined"}
               </span>
-              <h2 className="text-[clamp(2.5rem,10vw,4.5rem)] font-semibold tracking-tighter text-white drop-shadow-2xl">
+              <h2 
+                ref={titleRef}
+                className="text-[clamp(2.5rem,10vw,4.5rem)] font-semibold tracking-tighter text-white drop-shadow-2xl opacity-0 transform-gpu will-change-[transform,opacity]"
+              >
                 {settings.about_hero_title || "About Us"}
               </h2>
             </div>

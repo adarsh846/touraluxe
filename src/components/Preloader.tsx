@@ -10,7 +10,12 @@ export function Preloader() {
   const textContainerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const progressTextRef = useRef<HTMLDivElement>(null);
-  const [shouldRender, setShouldRender] = useState(!preloaderPlayed);
+  const [shouldRender, setShouldRender] = useState(() => {
+    if (typeof window !== "undefined" && preloaderPlayed) {
+      (window as any).preloaderPlayed = true;
+    }
+    return !preloaderPlayed;
+  });
 
   useEffect(() => {
     if (preloaderPlayed) {
@@ -21,6 +26,10 @@ export function Preloader() {
       const tl = gsap.timeline({
         onComplete: () => {
           preloaderPlayed = true;
+          if (typeof window !== "undefined") {
+            (window as any).preloaderPlayed = true;
+            window.dispatchEvent(new Event("preloaderComplete"));
+          }
           setShouldRender(false);
         }
       });

@@ -8,6 +8,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const token = req.headers.get("x-admin-token");
+  const isAdmin = token === process.env.ADMIN_PASSWORD;
   const { id } = await params;
 
   const { data, error } = await supabase
@@ -20,7 +22,11 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
-  return NextResponse.json(data);
+  const response = NextResponse.json(data);
+  if (!isAdmin) {
+    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+  }
+  return response;
 }
 
 // PUT update package (admin only)

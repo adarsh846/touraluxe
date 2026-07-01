@@ -39,13 +39,7 @@ export function WhatsAppButton({
     }
   }, [isVisible, hasBeenDismissed]);
 
-  useEffect(() => {
-    if (view === "PACKAGE" && data?.title && !hasBeenDismissed) {
-      setIsTooltipVisible(true);
-      const hideTimer = setTimeout(() => setIsTooltipVisible(false), 12000);
-      return () => clearTimeout(hideTimer);
-    }
-  }, [view, data, hasBeenDismissed]);
+
 
   if (!phoneNumber || !isVisible) return null;
 
@@ -111,13 +105,13 @@ I would love to get some assistance in handcrafting this experience.`;
   const tooltipEl = (
     <div 
       className={cn(
-        "absolute bottom-[calc(100%+14px)] z-50 overflow-visible transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "absolute bottom-[calc(100%+14px)] z-50 overflow-visible origin-[right_bottom] md:origin-bottom transform-gpu will-change-[transform,opacity]",
         "flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0c0c0e]/95 border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.8)]",
         // Position right-aligned on mobile (to prevent overflowing off-screen), centered on desktop
         "right-0 left-auto translate-x-0 md:left-1/2 md:right-auto md:-translate-x-1/2",
         showTooltip 
-          ? "opacity-100 translate-y-0 pointer-events-auto" 
-          : "opacity-0 translate-y-2 pointer-events-none"
+          ? "opacity-100 scale-100 translate-y-0 pointer-events-auto transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]" 
+          : "opacity-0 scale-[0.9] translate-y-3 pointer-events-none transition-all duration-[250ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
       )}
     >
       <span className="text-[11px] font-semibold text-white/85 whitespace-nowrap tracking-wide select-none">

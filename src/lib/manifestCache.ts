@@ -14,7 +14,6 @@
  * the GSAP modal entrance animation.
  */
 
-import { supabase } from "@/lib/supabase";
 
 export interface PackageManifestItem {
   id: string;
@@ -40,18 +39,18 @@ export function getPackageManifest(): Promise<PackageManifestItem[]> {
   if (cachedPackages) return Promise.resolve(cachedPackages);
   if (inflightPackages) return inflightPackages;
 
-  // Wrap in Promise.resolve to get a true Promise (Supabase returns PromiseLike)
-  inflightPackages = Promise.resolve(
-    supabase.from("packages").select("*").eq("is_published", true)
-  ).then(({ data }) => {
-    const result = (data ?? []) as PackageManifestItem[];
-    cachedPackages = result;
-    inflightPackages = null;
-    return result;
-  }).catch((): PackageManifestItem[] => {
-    inflightPackages = null;
-    return [];
-  });
+  inflightPackages = fetch("/api/packages")
+    .then((res) => (res.ok ? res.json() : []))
+    .then((data) => {
+      const result = data as PackageManifestItem[];
+      cachedPackages = result;
+      inflightPackages = null;
+      return result;
+    })
+    .catch((): PackageManifestItem[] => {
+      inflightPackages = null;
+      return [];
+    });
 
   return inflightPackages;
 }
@@ -64,23 +63,23 @@ export function getDestinationVisualManifest(): Promise<Record<string, string>> 
   if (cachedDestinations) return Promise.resolve(cachedDestinations);
   if (inflightDestinations) return inflightDestinations;
 
-  // Wrap in Promise.resolve to get a true Promise (Supabase returns PromiseLike)
-  inflightDestinations = Promise.resolve(
-    supabase.from("destinations").select("name, cover_image").eq("is_published", true)
-  ).then(({ data }) => {
-    const manifest: Record<string, string> = {};
-    (data ?? []).forEach((d: DestinationManifestItem) => {
-      if (d.name && d.cover_image) {
-        manifest[d.name.toUpperCase().trim()] = d.cover_image;
-      }
+  inflightDestinations = fetch("/api/destinations")
+    .then((res) => (res.ok ? res.json() : []))
+    .then((data: any[]) => {
+      const manifest: Record<string, string> = {};
+      data.forEach((d) => {
+        if (d.name && d.cover_image) {
+          manifest[d.name.toUpperCase().trim()] = d.cover_image;
+        }
+      });
+      cachedDestinations = manifest;
+      inflightDestinations = null;
+      return manifest;
+    })
+    .catch((): Record<string, string> => {
+      inflightDestinations = null;
+      return {};
     });
-    cachedDestinations = manifest;
-    inflightDestinations = null;
-    return manifest;
-  }).catch((): Record<string, string> => {
-    inflightDestinations = null;
-    return {};
-  });
 
   return inflightDestinations;
 }

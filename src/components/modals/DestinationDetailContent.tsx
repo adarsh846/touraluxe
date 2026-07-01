@@ -252,12 +252,12 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       {relatedDestinations.length > 0 && (
         <section className="px-6 py-16 md:py-24 border-t border-white/[0.04] pb-32">
           <div className="max-w-[1200px] mx-auto">
-            <div className="flex items-center justify-between mb-10">
-              <div>
+            <div className="flex items-center justify-between gap-4 mb-10">
+              <div className="min-w-0">
                 <h2 className="text-[clamp(1.25rem,4vw,2rem)] text-balance font-semibold tracking-tight text-white">Explore More</h2>
                 <p className="text-white/30 text-sm mt-1">Other destinations you might love</p>
               </div>
-              <Magnetic><Link href="/destinations" className="px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:bg-white hover:text-black transition-all duration-500">View All</Link></Magnetic>
+              <Magnetic><Link href="/destinations" className="shrink-0 whitespace-nowrap px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:bg-white hover:text-black transition-all duration-500">View All</Link></Magnetic>
             </div>
             <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
               <div className="flex gap-6" style={{ minWidth: 'max-content' }}>

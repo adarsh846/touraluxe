@@ -8,10 +8,14 @@ import { Magnetic } from "../Magnetic";
 import { usePricing } from "@/hooks/usePricing";
 import { cn } from "@/lib/utils";
 import { PackageBadges } from "@/components/ui/PackageBadges";
+import { PackageCard } from "@/components/PackageCard";
 
 export const ServiceContent = memo(function ServiceContent({ data: service, isActive, onScroll, openModal }: { data: any, isActive: boolean, onScroll: (scrolled: boolean) => void, openModal: any }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLSpanElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const taglineRef = useRef<HTMLParagraphElement>(null);
   const { computePrice } = usePricing();
   
   // --- Discovery Logic ---
@@ -89,6 +93,66 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
       setIsTyping(false);
     }, 1500);
   };
+  // ═══ CHOREOGRAPHED HEADER ANIMATION ═══
+  const headerAnimatedRef = useRef(false);
+  useEffect(() => {
+    if (!isActive) {
+      headerAnimatedRef.current = false;
+      return;
+    }
+    if (headerAnimatedRef.current) return;
+    
+    const rafId = requestAnimationFrame(() => {
+      if (headerAnimatedRef.current) return;
+      headerAnimatedRef.current = true;
+      
+      const badge = badgeRef.current;
+      const title = titleRef.current;
+      const tagline = taglineRef.current;
+      
+      const tl = gsap.timeline({ delay: 0.35 });
+      
+      if (badge) {
+        gsap.set(badge, { opacity: 0, y: 15 });
+        tl.to(badge, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          force3D: true,
+          clearProps: 'y',
+        });
+      }
+      
+      if (title) {
+        gsap.set(title, { opacity: 0, y: 35 });
+        tl.to(title, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'elastic.out(1.1, 0.55)',
+          force3D: true,
+          clearProps: 'y',
+        }, badge ? '-=0.45' : '0');
+      }
+      
+      if (tagline) {
+        gsap.set(tagline, { opacity: 0, y: 15 });
+        tl.to(tagline, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          force3D: true,
+          clearProps: 'y',
+        }, '-=0.45');
+      }
+    });
+    
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [isActive]);
 
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#0a0a0b]">
@@ -145,7 +209,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
               <div className="flex flex-col w-full">
                 
                 {/* Cinematic Fullscreen Hero Banner */}
-                <div className="relative w-full h-screen overflow-hidden bg-[#0a0a0b] flex-shrink-0">
+                <div className="relative w-full h-[100svh] overflow-hidden bg-[#0a0a0b] flex-shrink-0">
                   <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-[0.65] grayscale-[0.1]" priority decoding="async" />
                   
                   {/* Progressive Atmospheric Gradient & Vignette */}
@@ -154,14 +218,23 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
 
                   {/* Title and Tagline overlay inside the Hero viewport */}
                   <div className="absolute inset-0 flex flex-col justify-end px-[clamp(1.5rem,6vw,4rem)] pb-24 z-25 max-w-7xl mx-auto w-full">
-                    <div className="space-y-4 max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]">
-                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] text-white/50 block">
+                    <div className="space-y-4 max-w-3xl">
+                      <span 
+                        ref={badgeRef}
+                        className="text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] text-white/50 block opacity-0 transform-gpu will-change-[transform,opacity]"
+                      >
                         Our Specialization
                       </span>
-                      <h2 className="text-[clamp(2.25rem,6vw,4.5rem)] font-extrabold tracking-tighter text-white leading-none">
+                      <h2 
+                        ref={titleRef}
+                        className="text-[clamp(2.25rem,6vw,4.5rem)] font-extrabold tracking-tighter text-white leading-none opacity-0 transform-gpu will-change-[transform,opacity]"
+                      >
                         {service.title}
                       </h2>
-                      <p className="text-base md:text-xl text-white/70 font-medium tracking-tight italic">
+                      <p 
+                        ref={taglineRef}
+                        className="text-base md:text-xl text-white/70 font-medium tracking-tight italic opacity-0 transform-gpu will-change-[transform,opacity]"
+                      >
                         {service.tagline}
                       </p>
                     </div>
@@ -214,63 +287,32 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                     </div>
 
                     {isDiscoveryLoading ? (
-                      <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
+                      <div className="flex overflow-x-auto gap-6 md:gap-8 scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 px-[clamp(1.5rem,6vw,4rem)] -mx-[clamp(1.5rem,6vw,4rem)]">
                         {[1, 2].map(i => (
-                          <div key={i} className="aspect-[16/10] min-w-[280px] md:min-w-[380px] flex-shrink-0 rounded-[24px] bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+                          <div 
+                            key={i} 
+                            className="flex-shrink-0 w-[80vw] sm:w-[50vw] md:w-[380px] lg:w-[420px] aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11] rounded-[2.5rem] bg-white/[0.02] border border-white/[0.05] animate-pulse" 
+                          />
                         ))}
                       </div>
                     ) : livePackages.length > 0 ? (
                       <div 
                         onScroll={(e) => setDiscoveryScrolled(e.currentTarget.scrollLeft > 30)}
-                        className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide snap-x snap-mandatory"
+                        className="flex overflow-x-auto gap-6 md:gap-8 snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 min-h-0 px-[clamp(1.5rem,6vw,4rem)] -mx-[clamp(1.5rem,6vw,4rem)]"
                       >
                         {livePackages.map((pkg) => {
                           const pricing = computePrice(pkg);
                           return (
-                            <div 
+                            <PackageCard 
                               key={pkg.id}
+                              pkg={pkg}
+                              pricing={pricing}
+                              variant="editorial"
                               onClick={() => {
                                 openModal('PACKAGE', pkg, `SERVICES_${service.title.toUpperCase().replace(/\s+/g, '_')}`);
                               }}
-                              className="group relative aspect-[16/11] min-w-[320px] md:min-w-[420px] flex-shrink-0 rounded-[24px] md:rounded-[32px] overflow-hidden bg-[#2c2c2e] border border-white/5 cursor-pointer hover:border-white/20 transition-all duration-700 snap-start transform-gpu will-change-transform"
-                            >
-                              <Image src={pkg.image} alt={pkg.title} fill className="object-cover transition-transform duration-[1.5s] group-hover:scale-110" decoding="async" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
-                              
-                              {/* Status Badges Layer */}
-                              <PackageBadges pkg={pkg} pricing={pricing} className="top-5 left-5 right-5" />
-                              
-                              {/* Overlay Content */}
-                              <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                                <div className="flex items-end justify-between gap-4">
-                                  <div className="space-y-1 flex-1 min-w-0">
-                                    <h5 className="text-[15px] md:text-lg font-bold text-white truncate drop-shadow-lg">{pkg.title}</h5>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{pkg.location}</p>
-                                  </div>
-                                  
-                                  {/* Arrow Indicator */}
-                                  <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-white/10 flex flex-col gap-0.5">
-                                  <div className="flex items-baseline gap-2">
-                                    <span className="text-lg font-black text-white tracking-tighter">
-                                      {pricing.formattedFinal}
-                                    </span>
-                                    {pricing.hasSavings && (
-                                      <span className="text-xs font-bold text-white/20 line-through italic">
-                                        {pricing.formattedOriginal}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[8px] font-black uppercase tracking-widest text-white/30">
-                                    Per person · {pricing.taxLabel}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
+                              className="w-[80vw] sm:w-[50vw] md:w-[380px] lg:w-[420px] aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11]"
+                            />
                           );
                         })}
                       </div>

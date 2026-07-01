@@ -218,6 +218,9 @@ export const PackageContent = memo(({
   const actionRef = useRef<HTMLDivElement>(null);
   const islandContainerRef = useRef<HTMLDivElement>(null);
   const islandInnerRef = useRef<HTMLDivElement>(null);
+  const scrollIndicatorRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const metaRef = useRef<HTMLDivElement>(null);
 
   const pricing = useMemo(() => computePrice(experience), [experience, computePrice]);
 
@@ -387,6 +390,54 @@ Could you please share details on availability and custom options? Thank you!`;
     });
   }, [pricing.finalTotal]);
 
+  // ═══ CHOREOGRAPHED HEADER ANIMATION ═══
+  const headerAnimatedRef = useRef(false);
+  useEffect(() => {
+    if (!isActive) {
+      headerAnimatedRef.current = false;
+      return;
+    }
+    if (headerAnimatedRef.current) return;
+    
+    const rafId = requestAnimationFrame(() => {
+      if (headerAnimatedRef.current) return;
+      headerAnimatedRef.current = true;
+      
+      const title = titleRef.current;
+      const meta = metaRef.current;
+      
+      const tl = gsap.timeline({ delay: 0.35 });
+      
+      if (title) {
+        gsap.set(title, { opacity: 0, y: 35 });
+        tl.to(title, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: 'elastic.out(1.1, 0.55)',
+          force3D: true,
+          clearProps: 'y',
+        });
+      }
+      
+      if (meta) {
+        gsap.set(meta, { opacity: 0, y: 15 });
+        tl.to(meta, {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: 'power3.out',
+          force3D: true,
+          clearProps: 'y',
+        }, '-=0.45');
+      }
+    });
+    
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [isActive]);
+
   // ═══ APPLE-STYLE ISLAND ENTRANCE CHOREOGRAPHY ═══
   const islandAnimatedRef = useRef(false);
   useEffect(() => {
@@ -465,6 +516,19 @@ Could you please share details on availability and custom options? Thank you!`;
           force3D: true,
           clearProps: 'opacity,scale',
         }, '-=0.45');
+      }
+
+      // Phase 5: Scroll indicator fades in promptly after bottom island shows up
+      if (scrollIndicatorRef.current) {
+        gsap.set(scrollIndicatorRef.current, { opacity: 0, y: 15 });
+        tl.to(scrollIndicatorRef.current, {
+          opacity: 1,
+          y: 0,
+          duration: 0.5,
+          ease: 'power2.out',
+          force3D: true,
+          clearProps: 'y',
+        }, '-=0.35');
       }
     });
     
@@ -561,15 +625,16 @@ Could you please share details on availability and custom options? Thank you!`;
   if (!experience) return null;
 
   return (
-    <>
+    <div className="relative w-full h-full bg-[#080808] overflow-hidden">
+      {/* Ambient Travel/Leisure Background Glows */}
+      <div className="absolute top-0 right-0 w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-sky-500/10 rounded-full blur-[130px] pointer-events-none -translate-y-1/2 translate-x-1/3 mix-blend-screen z-0" />
+      <div className="absolute bottom-0 left-0 w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-amber-500/10 rounded-full blur-[150px] pointer-events-none translate-y-1/3 -translate-x-1/3 mix-blend-screen z-0" />
+
       <div 
         ref={scrollRef}
         onScroll={handleScroll}
-        className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide selection:bg-amber-400/20 selection:text-amber-100 bg-[#080808]"
+        className="relative w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide selection:bg-amber-400/20 selection:text-amber-100 bg-transparent z-10"
       >
-        {/* Ambient Travel/Leisure Background Glows */}
-        <div className="fixed top-0 right-0 w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-sky-500/10 rounded-full blur-[130px] pointer-events-none -translate-y-1/2 translate-x-1/3 mix-blend-screen z-0" />
-        <div className="fixed bottom-0 left-0 w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-amber-500/10 rounded-full blur-[150px] pointer-events-none translate-y-1/3 -translate-x-1/3 mix-blend-screen z-0" />
 
         {/* 1. HERO SECTION (Immersive Edge-to-Edge) */}
         <section className="relative w-full h-[100svh] flex flex-col items-center justify-center overflow-hidden">
@@ -592,22 +657,16 @@ Could you please share details on availability and custom options? Thank you!`;
           <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/10 via-black/40 to-[#0a0a0a]" />
           
           <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 w-full max-w-5xl">
-             {experience.route_start && experience.route_end && experience.route_start.trim().toLowerCase() !== experience.route_end.trim().toLowerCase() && (
-               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out transform-gpu will-change-[transform,opacity]">
-                 <span>{experience.route_start}</span>
-                 <span className="text-amber-400 font-extrabold mx-1">➔</span>
-                 <span>{experience.route_end}</span>
-               </div>
-             )}
-             {experience.route_start && !experience.route_end && (
-               <div className="flex items-center gap-2 text-white/70 mb-6 text-[10px] md:text-xs font-bold uppercase tracking-[0.25em] md:tracking-[0.35em] bg-white/[0.04] border border-white/10 px-5 py-2.5 rounded-full backdrop-blur-xl animate-in slide-in-from-bottom-4 fade-in duration-[1.2s] ease-out transform-gpu will-change-[transform,opacity]">
-                 <span>{experience.route_start}</span>
-               </div>
-             )}
-             <h1 className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] animate-in slide-in-from-bottom-8 fade-in duration-1000 ease-out transform-gpu will-change-[transform,opacity]">
+             <h1 
+               ref={titleRef}
+               className="text-[clamp(2.5rem,8vw,6.5rem)] font-black tracking-[-0.04em] bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-400 leading-[0.9] drop-shadow-[0_4px_24px_rgba(0,0,0,0.75)] text-balance mb-6 pr-[0.05em] pl-[0.02em] py-[0.04em] opacity-0 transform-gpu will-change-[transform,opacity]"
+             >
                {experience.title}
              </h1>
-             <div className="flex flex-col items-center gap-6 md:gap-10 pt-8 animate-in fade-in duration-1000 delay-300 transform-gpu will-change-[transform,opacity]">
+             <div 
+               ref={metaRef}
+               className="flex flex-col items-center gap-6 md:gap-10 pt-8 opacity-0 transform-gpu will-change-[transform,opacity]"
+             >
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="w-8 md:w-12 h-[1px] bg-white/25" />
                   <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-white/60 whitespace-nowrap">Best For</span>
@@ -632,15 +691,19 @@ Could you please share details on availability and custom options? Thank you!`;
               </div>
           </div>
           
-          <div className="absolute bottom-24 md:bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce pointer-events-none z-50">
-             <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/80 drop-shadow-md">Scroll</span>
-             <ChevronRight size={16} className="text-white/70 rotate-90" strokeWidth={2.5} />
+          <div 
+            ref={scrollIndicatorRef}
+            className="absolute bottom-24 md:bottom-32 left-1/2 -translate-x-1/2 pointer-events-none z-50 opacity-0"
+          >
+            <div className="flex flex-col items-center gap-2 animate-bounce">
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/80 drop-shadow-md">Scroll</span>
+              <ChevronRight size={16} className="text-white/70 rotate-90" strokeWidth={2.5} />
+            </div>
           </div>
         </section>
 
         {/* CONTENT WRAPPER */}
-        {renderHeavyContent && (
-          <div className="relative z-20 bg-[#0a0a0a] w-full mx-auto flex flex-col gap-24 md:gap-32 pb-32">
+        <div className="relative z-20 bg-[#0a0a0a] w-full mx-auto flex flex-col gap-24 md:gap-32 pb-32">
           
           {/* 2. THE VISION (Scrub Text Animation) */}
           <section className="max-w-5xl mx-auto text-center px-6 md:px-12 pt-16 md:pt-24">
@@ -666,7 +729,9 @@ Could you please share details on availability and custom options? Thank you!`;
             </div>
           )}
 
-          {/* 3. BENTO BOX OVERVIEW */}
+          {renderHeavyContent && (
+            <>
+              {/* 3. BENTO BOX OVERVIEW */}
           <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 auto-rows-min">
               
@@ -1103,8 +1168,9 @@ Could you please share details on availability and custom options? Thank you!`;
               )}
             </div>
           </section>
+            </>
+          )}
         </div>
-        )}
       </div>
 
 
@@ -1137,10 +1203,10 @@ Could you please share details on availability and custom options? Thank you!`;
               {/* Speech Bubble Popover */}
               <div 
                 className={cn(
-                  "absolute bottom-[calc(100%+12px)] md:bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[320px] xs:w-[350px] sm:w-[400px] md:w-[460px] max-w-[calc(100vw-24px)] pointer-events-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom",
+                  "absolute bottom-[calc(100%+12px)] md:bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[320px] xs:w-[350px] sm:w-[400px] md:w-[460px] max-w-[calc(100vw-24px)] pointer-events-none origin-bottom transform-gpu will-change-[transform,opacity]",
                   isPillHovered 
-                    ? "opacity-100 scale-100 translate-y-0" 
-                    : "opacity-0 scale-95 translate-y-4"
+                    ? "opacity-100 scale-100 translate-y-0 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]" 
+                    : "opacity-0 scale-[0.9] translate-y-3 transition-all duration-[250ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
                 )}
               >
                 <div className={cn(
@@ -1505,6 +1571,6 @@ Could you please share details on availability and custom options? Thank you!`;
         </div>,
         document.body
       )}
-    </>
+    </div>
   );
 });
