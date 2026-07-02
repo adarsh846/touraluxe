@@ -425,3 +425,25 @@ textarea:-webkit-autofill {
   transform: translate3d(0, 0, 0);
 }
 
+/* ─── IOS-STYLE DIGIT TICKER ANIMATION (60 FPS COMPOSITED) ─── */
+@keyframes slideUpTicker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, -50%, 0); }
+}
+@keyframes slideDownTicker {
+  0% { transform: translate3d(0, -50%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@utility animate-slide-up-ticker {
+  animation: slideUpTicker 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+@utility animate-slide-down-ticker {
+  animation: slideDownTicker 320ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+
+

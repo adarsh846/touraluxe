@@ -11,6 +11,7 @@ import { Magnetic } from "../Magnetic";
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
   const subheadRef = useRef<HTMLParagraphElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   // const [isMobile, setIsMobile] = useState(false);
   const { settings } = useSettings();
@@ -101,17 +102,16 @@ export function Hero() {
         // Premium Apple-style Intro Animation
         const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
 
-        tl.fromTo(
-          ".word",
-          { y: 100, opacity: 0, x: -10 },
+        gsap.set(titleRef.current, { opacity: 0, y: 35 });
+        tl.to(
+          titleRef.current,
           { 
             y: 0, 
             opacity: 1, 
-            x: 0, 
-            stagger: 0.08, 
-            duration: 1.4, 
+            duration: 0.8, 
             ease: "elastic.out(1.1, 0.55)", 
-            force3D: true 
+            force3D: true,
+            clearProps: "y"
           }
         )
           .fromTo(
@@ -192,15 +192,15 @@ export function Hero() {
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col items-center text-center mt-12 md:mt-20">
         
         {/* Cinematic Headline */}
-        <h1 className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 flex flex-wrap justify-center overflow-hidden" style={{ willChange: "transform" }}>
+        <h1 
+          ref={titleRef}
+          className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 text-center overflow-hidden opacity-0" 
+          style={{ willChange: "transform" }}
+        >
           {titleLines.map((line, lIdx) => (
-            <div key={lIdx} className="w-full flex flex-wrap justify-center gap-x-[clamp(0.25em,1.5vw,1rem)] overflow-hidden py-1">
-              {line.split(' ').map((word, wIdx) => (
-                <span key={wIdx} className="word inline-block origin-bottom opacity-0">
-                  {word}
-                </span>
-              ))}
-            </div>
+            <span key={lIdx} className="block">
+              {line}
+            </span>
           ))}
         </h1>
 

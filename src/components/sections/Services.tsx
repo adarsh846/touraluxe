@@ -15,7 +15,7 @@ export const SERVICES = [
     tagline: "Exclusive global access.",
     desc: "Bespoke luxury journeys across the world’s most exclusive destinations.",
     fullDesc: "We curate bespoke luxury journeys across the world’s most exclusive destinations—combining personalized itineraries, premium stays, and unforgettable experiences. From secluded Mediterranean villas to private island escapes, every journey is a masterpiece of comfort and discovery.",
-    image: "/luxury_villa_secluded_1777655165196.webp",
+    image: "/assets/services/luxury.png",
     highlights: ["Personalized Itineraries", "Premium Property Access", "Luxury Urban Transfers", "Visa Concierge Support"],
     cta: "Book Your Journey",
     icon: (
@@ -75,7 +75,7 @@ export const SERVICES = [
     tagline: "Corporate excellence redefined.",
     desc: "World-class Meetings, Incentives, Conferences, and Events across global destinations.",
     fullDesc: "Our MICE division delivers seamless, high-impact corporate programs that go beyond logistics. From executive board meetings and large-scale global summits to achievement-based incentive travel and gala events, we blend strategic expertise with elevated luxury to create meaningful, results-driven experiences.",
-    image: "/corporate_event_exotic_1777655212281.webp",
+    image: "/assets/services/mice.png",
     highlights: ["Global Summit Curation", "Executive Board Meetings", "Corporate Incentive Programs", "Event Management Solutions"],
     cta: "Plan Your Event",
     icon: (

@@ -184,8 +184,8 @@ export function useGlobalSettings() {
       const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
       const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
 
-      const flightChild = isExcluded ? 0 : (rawChildFare ? safeInt(rawChildFare) : flightAdult);
-      const flightInfant = isExcluded ? 0 : (rawInfantFare ? safeInt(rawInfantFare) : flightAdult);
+      const flightChild = isExcluded ? 0 : ((rawChildFare && String(rawChildFare).trim()) ? safeInt(rawChildFare) : flightAdult);
+      const flightInfant = isExcluded ? 0 : ((rawInfantFare && String(rawInfantFare).trim()) ? safeInt(rawInfantFare) : flightAdult);
 
       const perAdultFinal = landAdult + flightAdult;
       const perChildFinal = landChild + flightChild;

@@ -151,6 +151,73 @@ function getJaroWinkler(s1: string, s2: string): number {
   return jaro + l * p * (1 - jaro);
 }
 
+// iOS-style rolling digit animation helper (slot-machine / ticker transition)
+const IOSRollingNumber = ({ 
+  value, 
+  formatter = (v) => String(v) 
+}: { 
+  value: number; 
+  formatter?: (v: number) => string;
+}) => {
+  const [prevValue, setPrevValue] = useState(value);
+  const [direction, setDirection] = useState<'up' | 'down' | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (value !== prevValue) {
+      setDirection(value > prevValue ? 'up' : 'down');
+      setIsAnimating(true);
+      const timer = setTimeout(() => {
+        setPrevValue(value);
+        setDirection(null);
+        setIsAnimating(false);
+      }, 320);
+      return () => clearTimeout(timer);
+    }
+  }, [value, prevValue]);
+
+  const displayPrev = formatter(prevValue);
+  const displayVal = formatter(value);
+  const maxDisplay = displayVal.length >= displayPrev.length ? displayVal : displayPrev;
+
+  return (
+    <span className="relative inline-flex items-center justify-center tabular-nums overflow-hidden" style={{ height: '1.2em', verticalAlign: 'middle' }}>
+      {/* Hidden layout holder to reserve space dynamically without layout shifts */}
+      <span className="invisible select-none pointer-events-none h-full flex items-center justify-center leading-none">
+        {maxDisplay}
+      </span>
+      
+      {/* Absolute sliding compositor layer (composited GPU rendering) */}
+      <span className="absolute inset-0 w-full h-full overflow-hidden flex flex-col justify-center">
+        {!isAnimating ? (
+          <span className="flex items-center justify-center w-full h-full leading-none">{displayVal}</span>
+        ) : (
+          <span
+            className={cn(
+              "absolute w-full flex flex-col items-center left-0 top-0 h-[200%]",
+              direction === 'up' 
+                ? "animate-slide-up-ticker" 
+                : "animate-slide-down-ticker"
+            )}
+          >
+            {direction === 'up' ? (
+              <>
+                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayPrev}</span>
+                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayVal}</span>
+              </>
+            ) : (
+              <>
+                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayVal}</span>
+                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayPrev}</span>
+              </>
+            )}
+          </span>
+        )}
+      </span>
+    </span>
+  );
+};
+
 export const BookingContent = memo(function BookingContent({
   data: packageData,
   isActive,
@@ -829,6 +896,13 @@ export const BookingContent = memo(function BookingContent({
 
   // Prevent past dates and maintain valid timeline
   useEffect(() => {
+    if (!startDate) {
+      if (endDate !== "") {
+        setEndDate("");
+      }
+      return;
+    }
+
     if (startDate && startDate < todayStr) {
       setStartDate(todayStr);
     }
@@ -922,9 +996,11 @@ export const BookingContent = memo(function BookingContent({
     return [];
   }, [internalPackage, packageData]);
 
-  const getPaxBreakdown = useCallback((type: 'adult' | 'child' | 'infant') => {
+  const getPaxBreakdown = useCallback((type: 'adult' | 'child' | 'infant' | 'adults' | 'kids' | 'infants') => {
     const pkg = internalPackage || packageData;
     if (!pkg || pkg.isCustom) return null;
+
+    const normType = type === 'adults' ? 'adult' : type === 'kids' ? 'child' : type === 'infants' ? 'infant' : type;
 
     const taxRate = pricing.taxRate;
     const isInclusive = pricing.isInclusive;
@@ -1002,11 +1078,11 @@ export const BookingContent = memo(function BookingContent({
     }
 
     let landBaseRaw = base;
-    if (type === 'child') {
+    if (normType === 'child') {
       landBaseRaw = pkg.child_price && pkg.child_price !== "0"
         ? (parseInt(String(pkg.child_price).replace(/[^0-9]/g, "")) || 0)
         : base;
-    } else if (type === 'infant') {
+    } else if (normType === 'infant') {
       landBaseRaw = pkg.infant_price && pkg.infant_price !== "0"
         ? (parseInt(String(pkg.infant_price).replace(/[^0-9]/g, "")) || 0)
         : base;
@@ -1019,14 +1095,14 @@ export const BookingContent = memo(function BookingContent({
     const flightAdult = isExcluded ? 0 : (parseInt(String(rawAdultEstimate).replace(/[^0-9]/g, "")) || 0);
 
     let flightFare = 0;
-    if (type === 'adult') {
+    if (normType === 'adult') {
       flightFare = flightAdult;
-    } else if (type === 'child') {
+    } else if (normType === 'child') {
       const rawChildFare = anchor?.child_fare || pkg.flight_price_child || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).child_fare : "");
-      flightFare = isExcluded ? 0 : (rawChildFare ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) : flightAdult);
-    } else if (type === 'infant') {
+      flightFare = isExcluded ? 0 : ((rawChildFare && String(rawChildFare).trim()) ? parseInt(String(rawChildFare).replace(/[^0-9]/g, "")) || 0 : flightAdult);
+    } else if (normType === 'infant') {
       const rawInfantFare = anchor?.infant_fare || pkg.flight_price_infant || (pkg.flight_segments && !Array.isArray(pkg.flight_segments) ? (pkg.flight_segments as any).infant_fare : "");
-      flightFare = isExcluded ? 0 : (rawInfantFare ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) : flightAdult);
+      flightFare = isExcluded ? 0 : ((rawInfantFare && String(rawInfantFare).trim()) ? parseInt(String(rawInfantFare).replace(/[^0-9]/g, "")) || 0 : flightAdult);
     }
 
     // 3. Tax calculations
@@ -1054,45 +1130,38 @@ export const BookingContent = memo(function BookingContent({
     const pkg = internalPackage || packageData;
     if (!pkg || pkg.isCustom) return null;
 
-    const taxRate = pricing.taxRate;
-    const isInclusive = pricing.isInclusive;
     const symbol = pricing.symbol;
+    const breakdown = pricing.breakdown;
 
-    const adultData = getPaxBreakdown('adult');
-    const childData = getPaxBreakdown('child');
-    const infantData = getPaxBreakdown('infant');
-
-    if (!adultData) return null;
-
-    const tourTotal = (adultData.landNet * adults) +
-      (childData ? childData.landNet * kids : 0) +
-      (infantData ? infantData.landNet * infants : 0);
-
-    const flightTotal = (adultData.flightFare * adults) +
-      (childData ? childData.flightFare * kids : 0) +
-      (infantData ? infantData.flightFare * infants : 0);
-
-    const taxTotal = (adultData.taxAmt * adults) +
-      (childData ? childData.taxAmt * kids : 0) +
-      (infantData ? infantData.taxAmt * infants : 0);
+    // Retrieve pricing note if available in the itinerary JSON config
+    let pricingNote = "";
+    try {
+      const anchor = pkg.itinerary_url && pkg.itinerary_url.includes('{') 
+        ? JSON.parse(pkg.itinerary_url) 
+        : null;
+      pricingNote = anchor?.pricing_note || "";
+    } catch (e) {}
 
     return {
-      tourTotal,
-      flightTotal,
-      taxTotal,
+      tourTotal: breakdown?.landBase || 0,
+      flightTotal: breakdown?.flightNet || 0,
+      taxTotal: breakdown?.taxAmount || 0,
+      addonsTotal: breakdown?.addonsTotal || 0,
       grandTotal: pricing.finalTotal,
       symbol,
-      pricingNote: adultData.pricingNote
+      pricingNote
     };
-  }, [internalPackage, packageData, pricing, adults, kids, infants, getPaxBreakdown]);
+  }, [internalPackage, packageData, pricing]);
 
   // Haptic Feedback Trigger for Pricing Updates
   const pillRef = useRef<HTMLDivElement>(null);
+  const guestBarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const segmentsRef = useRef<HTMLDivElement>(null);
   const actionRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const jellyRef = useRef<HTMLDivElement>(null);
+  const lastTouchTimeRef = useRef<number>(0);
 
   // iOS 26 Pointer-Tracking Glow (zero re-renders, direct DOM)
   const handleGlowMove = useCallback((clientX: number, clientY: number) => {
@@ -1123,6 +1192,183 @@ export const BookingContent = memo(function BookingContent({
   const [scrollMask, setScrollMask] = useState<'right' | 'left' | 'both' | 'none'>('none');
   const [isMobile, setIsMobile] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
+  const [pinnedTooltip, setPinnedTooltip] = useState<'cost' | 'timeline' | 'guests' | null>(null);
+  const [activePaxTooltip, setActivePaxTooltip] = useState<'adults' | 'kids' | 'infants' | null>(null);
+
+  // Click outside to dismiss pinned tooltips
+  useEffect(() => {
+    const handleClickOutside = (e: Event) => {
+      // Don't close if clicking inside the guest selection panel
+      const clickedInGuestBar = guestBarRef.current && guestBarRef.current.contains(e.target as Node);
+      if (pillRef.current && !pillRef.current.contains(e.target as Node) && !clickedInGuestBar) {
+        setPinnedTooltip(null);
+      }
+      if (guestBarRef.current && !guestBarRef.current.contains(e.target as Node)) {
+        setActivePaxTooltip(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside, { passive: true });
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  const [tooltipX, setTooltipX] = useState<number | null>(null);
+  const [pointerOffset, setPointerOffset] = useState<number>(0);
+
+  // Dynamic calculation of the active segment center for the single premium tooltip
+  const activeIslandType = hoveredIslandSegment || pinnedTooltip;
+  const activeIslandTypeRef = useRef<string | null>(null);
+  activeIslandTypeRef.current = activeIslandType;
+
+  const isCostActive = activeIslandType ? activeIslandType === 'cost' : (discoveryPhase === 4 || step === 2);
+  const isTimelineActive = activeIslandType ? activeIslandType === 'timeline' : (discoveryPhase === 2);
+  const isGuestsActive = activeIslandType ? activeIslandType === 'guests' : (discoveryPhase === 3);
+
+  // Unified speech bubble positioning function (immune to stale closures via refs)
+  const updateSpeechBubblePositionRef = useRef<() => void>(() => {});
+  updateSpeechBubblePositionRef.current = () => {
+    const activeType = activeIslandTypeRef.current;
+    if (!activeType || !pillRef.current) {
+      setTooltipX(null);
+      setPointerOffset(0);
+      return;
+    }
+    const segmentEl = pillRef.current.querySelector(`[data-segment="${activeType}"]`);
+    if (segmentEl) {
+      const segmentRect = segmentEl.getBoundingClientRect();
+      const pillRect = pillRef.current.getBoundingClientRect();
+      // Calculate middle point of segment relative to pill container
+      const x = segmentRect.left - pillRect.left + segmentRect.width / 2;
+      setTooltipX(x);
+
+      // For mobile/centered layout, calculate the offset from pill center to segment center
+      const segmentCenter = segmentRect.left + segmentRect.width / 2;
+      const pillCenter = pillRect.left + pillRect.width / 2;
+      const dx = segmentCenter - pillCenter;
+
+      let maxOffset = 100;
+      if (activeType === 'cost') maxOffset = 110;
+      else if (activeType === 'guests') maxOffset = 105;
+
+      setPointerOffset(Math.max(-maxOffset, Math.min(maxOffset, dx)));
+    }
+  };
+
+  // Keep segment centering synchronized across dynamic layout / state updates
+  const syncActiveSegmentScrollRef = useRef<() => void>(() => {});
+  syncActiveSegmentScrollRef.current = () => {
+    if (!pillRef.current || !scrollContainerRef.current) return;
+    
+    let activeSegmentName = 'cost';
+    if (pinnedTooltip) {
+      activeSegmentName = pinnedTooltip;
+    } else if (discoveryPhase === 2) {
+      activeSegmentName = 'timeline';
+    } else if (discoveryPhase === 3) {
+      activeSegmentName = 'guests';
+    } else if (discoveryPhase === 4 || step === 2) {
+      activeSegmentName = 'cost';
+    }
+
+    const segmentEl = pillRef.current.querySelector(`[data-segment="${activeSegmentName}"]`) as HTMLElement;
+    const container = scrollContainerRef.current;
+    if (segmentEl && container) {
+      const targetScrollLeft = segmentEl.offsetLeft - (container.clientWidth - segmentEl.clientWidth) / 2;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const boundedTarget = Math.max(0, Math.min(maxScroll, targetScrollLeft));
+      container.scrollLeft = boundedTarget;
+    }
+  };
+
+  useEffect(() => {
+    if (!activeIslandType) {
+      setTooltipX(null);
+      setPointerOffset(0);
+      return;
+    }
+
+    updateSpeechBubblePositionRef.current();
+
+    // Small delay to allow layout adjustments to settle
+    const timer = setTimeout(() => {
+      updateSpeechBubblePositionRef.current();
+    }, 50);
+
+    window.addEventListener('resize', updateSpeechBubblePositionRef.current, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateSpeechBubblePositionRef.current);
+    };
+  }, [activeIslandType]);
+
+  // Keep a reference to the active scroll animation frame to avoid concurrent collision
+  const scrollAnimFrameId = useRef<number | null>(null);
+
+  // Custom smooth scroll animator using requestAnimationFrame and cubic-bezier easing
+  const scrollSegmentToCenter = (segmentEl: HTMLElement) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    if (scrollAnimFrameId.current !== null) {
+      cancelAnimationFrame(scrollAnimFrameId.current);
+    }
+    
+    const targetScrollLeft = segmentEl.offsetLeft - (container.clientWidth - segmentEl.clientWidth) / 2;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const boundedTarget = Math.max(0, Math.min(maxScroll, targetScrollLeft));
+    
+    const start = container.scrollLeft;
+    const change = boundedTarget - start;
+    if (Math.abs(change) < 1) return; // Already centered
+    
+    const startTime = performance.now();
+    const duration = 380; // 380ms animation duration for swift but buttery action
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Premium Apple-tier Ease Out Cubic curve: f(t) = 1 - (1 - t)^3
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      
+      container.scrollLeft = start + change * easeOutCubic;
+
+      if (progress < 1) {
+        scrollAnimFrameId.current = requestAnimationFrame(animate);
+      } else {
+        scrollAnimFrameId.current = null;
+      }
+    };
+
+    scrollAnimFrameId.current = requestAnimationFrame(animate);
+  };
+
+  // Auto-scroll active segment into view when phase, pinned tooltip, or inputs change (ensures auto-swiping back if user had manually swiped away)
+  useEffect(() => {
+    if (!pillRef.current || !scrollContainerRef.current) return;
+    
+    let activeSegmentName = 'cost';
+    if (pinnedTooltip) {
+      activeSegmentName = pinnedTooltip;
+    } else if (discoveryPhase === 2) {
+      activeSegmentName = 'timeline';
+    } else if (discoveryPhase === 3) {
+      activeSegmentName = 'guests';
+    } else if (discoveryPhase === 4 || step === 2) {
+      activeSegmentName = 'cost';
+    }
+    
+    const segmentEl = pillRef.current.querySelector(`[data-segment="${activeSegmentName}"]`) as HTMLElement;
+    if (segmentEl) {
+      const handle = requestAnimationFrame(() => {
+        scrollSegmentToCenter(segmentEl);
+      });
+      return () => cancelAnimationFrame(handle);
+    }
+  }, [discoveryPhase, step, pinnedTooltip, adults, kids, infants, startDate, endDate]);
 
   // Viewport Awareness Engine (Resize + Orientation)
   useEffect(() => {
@@ -1172,7 +1418,7 @@ export const BookingContent = memo(function BookingContent({
     });
   }, [totalInvestment, startDate, endDate, adults, kids, infants, discoveryPhase, step, isActive]);
 
-  // Dynamic Kinetic Mask Engine (Bidirectional Scroll Hints)
+  // Dynamic Kinetic Mask Engine (Bidirectional Scroll Hints) + Bubble Tracker
   useEffect(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
@@ -1181,15 +1427,17 @@ export const BookingContent = memo(function BookingContent({
       const { scrollLeft, scrollWidth, clientWidth } = el;
       if (scrollWidth <= clientWidth + 4) {
         setScrollMask('none');
-        return;
+      } else {
+        const isAtStart = scrollLeft <= 5;
+        const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 15;
+
+        if (isAtStart) setScrollMask('right');
+        else if (isAtEnd) setScrollMask('left');
+        else setScrollMask('both');
       }
 
-      const isAtStart = scrollLeft <= 5;
-      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 15;
-
-      if (isAtStart) setScrollMask('right');
-      else if (isAtEnd) setScrollMask('left');
-      else setScrollMask('both');
+      // Keep speech bubble perfectly locked in screen space on scroll
+      updateSpeechBubblePositionRef.current();
     };
 
     el.addEventListener('scroll', handleScroll, { passive: true });
@@ -1253,9 +1501,14 @@ export const BookingContent = memo(function BookingContent({
           ease: "elastic.out(1, 0.35)",
           force3D: true,
           transformOrigin: "center center",
+          onUpdate: () => {
+            // Recalculate centering in sync with spring frames
+            syncActiveSegmentScrollRef.current();
+          },
           onComplete: () => {
             setTimeout(() => {
               if (pillRef.current) pillRef.current.style.width = `${targetWidth}px`;
+              syncActiveSegmentScrollRef.current();
             }, 50);
           }
         });
@@ -1287,6 +1540,8 @@ export const BookingContent = memo(function BookingContent({
       clearTimeout(pulseTimer);
     };
   }, [discoveryPhase, step, adults, kids, infants, startDate, endDate, isMobile]);
+
+  // Note: Redundant mobile centering effect removed to prevent collision with custom Ease-Out scroll centering
 
   // Discovery Analytics: Silent Trend Tracking
   useEffect(() => {
@@ -1487,7 +1742,13 @@ Please confirm my booking. Thank you!`;
   }, []);
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden">
+    <div className="relative w-full h-full flex flex-col bg-[#0a0a0b] text-[#f5f5f7] selection:bg-white selection:text-black font-sans antialiased overflow-hidden select-none">
+      <style>{`
+        input, textarea {
+          user-select: text !important;
+          -webkit-user-select: text !important;
+        }
+      `}</style>
       {/* 1. PROGRESS LINE (PINNED) */}
       <div className="absolute top-0 left-0 right-0 h-[1px] z-[150] flex gap-px px-px">
         {[1, 2, 3, 4].map((p) => (
@@ -1615,7 +1876,7 @@ Please confirm my booking. Thank you!`;
                         <Search
                           className={cn(
                             "absolute left-4 md:left-6 top-1/2 -translate-y-1/2 transition-all duration-500 z-10 w-[18px] h-[18px] md:w-[22px] md:h-[22px]",
-                            searchFocused ? "text-white/80" : "text-white/20",
+                            searchFocused ? "text-white/80" : "text-white/40",
                           )}
                         />
                         <input
@@ -1652,7 +1913,7 @@ Please confirm my booking. Thank you!`;
                           }}
                           placeholder={isMobile ? "Search destination..." : "Where should your journey begin?"}
                           autoComplete="off"
-                          className="w-full py-3.5 md:py-5 pl-11 pr-10 md:pl-14 md:pr-12 text-sm sm:text-base md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.02] border border-white/[0.08] focus:border-white/30 rounded-full text-white placeholder:text-white/30 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
+                          className="w-full py-3.5 md:py-5 pl-11 pr-10 md:pl-14 md:pr-12 text-sm sm:text-base md:text-xl font-medium focus:outline-none transition-all duration-700 bg-white/[0.04] border border-white/[0.15] focus:border-white/40 rounded-full text-white placeholder:text-white/45 backdrop-blur-3xl shadow-[0_0_50px_-12px_rgba(255,255,255,0.05)] focus:shadow-[0_0_60px_-12px_rgba(255,255,255,0.1)]"
                         />
                         {destination.length > 0 && (
                           <button
@@ -1954,12 +2215,9 @@ Please confirm my booking. Thank you!`;
               {/* DISCOVERY PHASES 02-04: CONTENT ORCHESTRATION */}
               {discoveryPhase > 1 && (
                 <div className="absolute inset-0 w-full h-full z-[200] overflow-hidden pointer-events-none">
-                  <div className="flex-1 w-full flex flex-col justify-between p-8 md:p-20 lg:p-24 pb-28 md:pb-20 relative z-20 h-full pointer-events-auto">
+                  <div className="flex-1 w-full flex flex-col justify-between px-3 md:px-20 lg:px-24 py-8 md:py-20 lg:py-24 pb-28 md:pb-20 relative z-20 h-full pointer-events-auto">
                     {/* Top Section: Title (Hidden in Phase 04 to avoid duplication) */}
-                    <div className={cn(
-                      "max-w-4xl space-y-3 px-4 md:px-0 transition-all duration-1000",
-                      discoveryPhase === 4 ? "opacity-0 -translate-y-8 pointer-events-none h-0" : "mt-20 md:mt-24"
-                    )}>
+                    <div className="max-w-4xl space-y-3 px-4 md:px-0 transition-all duration-1000 mt-20 md:mt-24">
                       {/* Top Section: Title (Unified Phase 2-4 Header) */}
                       <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)] shrink-0">
                         <div className="text-center space-y-1 animate-in fade-in slide-in-from-top-2 duration-1000">
@@ -1992,17 +2250,18 @@ Please confirm my booking. Thank you!`;
                     <div className="flex-1 flex flex-col justify-end items-center pb-[clamp(2rem,8vh,6rem)]">
                       <div className="w-full max-w-5xl min-h-[160px] h-auto relative flex items-center justify-center">
 
-                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 2 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none")}>
+                        <div className={cn("absolute inset-0 pb-[45px] md:pb-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 2 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 -translate-x-8 pointer-events-none")}>
                           <div className="w-full flex justify-center px-6 md:px-0">
                             <div
                               className={cn(
-                                "relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e11]/98 border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-2xl hover:border-white/40",
+                                "relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e12]/90 backdrop-blur-xl border border-white/25 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-hidden group/bar shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:border-white/45 hover:shadow-[0_20px_50px_rgba(255,255,255,0.02)]",
                                 isDurationFixed && "md:max-w-xl"
                               )}
                             >
                               {/* LEFT: DEPARTURE */}
                               <div
                                 onClick={() => {
+                                  setPinnedTooltip(null);
                                   const startInput = startInputRef.current as any;
                                   if (!startInput) return;
                                   try {
@@ -2017,7 +2276,7 @@ Please confirm my booking. Thank you!`;
                                 }}
                                 className="flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08] transition-all group/arrival border-b md:border-b-0 md:border-r border-white/10 md:border-transparent"
                               >
-                                <span className="text-[9px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/arrival:text-white/70 transition-colors">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/60 group-hover/arrival:text-white/90 transition-colors">
                                   Departure
                                 </span>
                                 <div className="flex flex-col items-center">
@@ -2030,7 +2289,7 @@ Please confirm my booking. Thank you!`;
                                       <div className="h-[14px] opacity-0" />
                                     </div>
                                   ) : (
-                                    <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 group-hover/arrival:text-white/50 transition-colors">
+                                    <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/60 group-hover/arrival:text-white/90 group-hover/arrival:text-amber-400 transition-colors">
                                       Set Date
                                     </span>
                                   )}
@@ -2046,7 +2305,10 @@ Please confirm my booking. Thank you!`;
                                   type="date"
                                   value={startDate}
                                   min={todayStr}
-                                  onChange={(e) => setStartDate(e.target.value)}
+                                  onChange={(e) => {
+                                    setStartDate(e.target.value);
+                                    setPinnedTooltip(null);
+                                  }}
                                   className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
                                 />
                               </div>
@@ -2057,7 +2319,24 @@ Please confirm my booking. Thank you!`;
                               {/* RIGHT: RETURN */}
                               <div
                                 onClick={() => {
+                                  setPinnedTooltip(null);
                                   if (isDurationFixed) return;
+                                  if (!startDate) {
+                                    // Guide user to set departure first
+                                    const startInput = startInputRef.current as any;
+                                    if (startInput) {
+                                      try {
+                                        if ('showPicker' in startInput) {
+                                          startInput.showPicker();
+                                        } else {
+                                          startInput.click();
+                                        }
+                                      } catch (e) {
+                                        startInput.click();
+                                      }
+                                    }
+                                    return;
+                                  }
                                   const endInput = endInputRef.current as any;
                                   if (!endInput) return;
                                   try {
@@ -2072,24 +2351,28 @@ Please confirm my booking. Thank you!`;
                                 }}
                                 className={cn(
                                   "flex-1 relative flex flex-col items-center justify-center gap-2 py-8 md:py-0 transition-all group/return",
-                                  isDurationFixed ? "cursor-default bg-white/[0.02]" : "cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08]"
+                                  isDurationFixed 
+                                    ? "cursor-default bg-white/[0.02]" 
+                                    : (!startDate
+                                        ? "cursor-pointer bg-white/[0.01] opacity-50"
+                                        : "cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08]")
                                 )}
                               >
                                 <div className="flex items-center gap-2">
                                   <span className={cn(
-                                    "text-[9px] font-black uppercase tracking-[0.5em] transition-colors",
-                                    isDurationFixed ? "text-white/20" : "text-white/40 group-hover/return:text-white/70"
+                                    "text-[10px] font-bold uppercase tracking-[0.5em] transition-colors",
+                                    (isDurationFixed || !startDate) ? "text-white/30" : "text-white/60 group-hover/return:text-white/90"
                                   )}>
                                     Return
                                   </span>
-                                  {isDurationFixed && <LockKeyhole size={12} className="text-white/40" />}
+                                  {isDurationFixed && <LockKeyhole size={12} className="text-white/30" />}
                                 </div>
                                 <div className="flex flex-col items-center">
                                   {endDate ? (
                                     <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
                                       <span className={cn(
                                         "text-2xl font-light tracking-tight transition-colors",
-                                        isDurationFixed ? "text-white/30" : "text-white"
+                                        isDurationFixed ? "text-white/50" : "text-white"
                                       )}>
                                         {new Date(endDate).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })}
                                       </span>
@@ -2106,8 +2389,13 @@ Please confirm my booking. Thank you!`;
                                       </div>
                                     </div>
                                   ) : (
-                                    <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/30 group-hover/return:text-white/50 transition-colors">
-                                      {isDurationFixed ? "Awaiting Arrival" : "Set Date"}
+                                    <span className={cn(
+                                      "text-xs font-bold uppercase tracking-[0.3em] transition-colors",
+                                      (isDurationFixed || !startDate)
+                                        ? "text-white/35"
+                                        : "text-white/60 group-hover/return:text-white/90 group-hover/return:text-amber-400"
+                                    )}>
+                                      {isDurationFixed ? "Awaiting Arrival" : "Awaiting Departure"}
                                     </span>
                                   )}
                                 </div>
@@ -2125,7 +2413,10 @@ Please confirm my booking. Thank you!`;
                                     type="date"
                                     value={endDate}
                                     min={startDate || todayStr}
-                                    onChange={(e) => setEndDate(e.target.value)}
+                                    onChange={(e) => {
+                                      setEndDate(e.target.value);
+                                      setPinnedTooltip(null);
+                                    }}
                                     className="absolute inset-0 w-full h-full opacity-0 pointer-events-none z-20"
                                   />
                                 )}
@@ -2135,9 +2426,14 @@ Please confirm my booking. Thank you!`;
                         </div>
 
                         {/* Phase 03: Group */}
-                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 3 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                        <div className={cn("absolute inset-0 pb-[45px] md:pb-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 3 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
                           <div className="w-full flex justify-center px-6 md:px-0">
-                            <div className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e11]/98 border border-white/20 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-visible group/bar shadow-2xl hover:border-white/40">
+                            <div 
+                              ref={guestBarRef}
+                              className="relative w-full max-w-[280px] sm:max-w-md md:max-w-4xl h-auto md:h-[120px] transition-all duration-700 bg-[#0e0e12]/90 backdrop-blur-xl border border-white/25 rounded-[32px] md:rounded-2xl flex flex-col md:flex-row items-stretch overflow-visible group/bar shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:border-white/45"
+                            >
+
+
                               {[
                                 { id: 'adults', label: adults <= 1 ? "Adult" : "Adults", count: adults, set: setAdults, min: 1, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perAdultFinal.toLocaleString("en-IN")} / Adult` },
                                 { id: 'kids', label: kids <= 1 ? "Child" : "Children", count: kids, set: setKids, min: 0, sub: internalPackage?.isCustom || packageData?.isCustom ? "" : `From ${pricing.symbol}${pricing.perChildFinal.toLocaleString("en-IN")} / Child` },
@@ -2145,17 +2441,26 @@ Please confirm my booking. Thank you!`;
                               ].map((t, idx) => (
                                 <React.Fragment key={t.id}>
                                   <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActivePaxTooltip(prev => prev === t.id ? null : (t.id as any));
+                                      setPinnedTooltip(null);
+                                    }}
                                     onMouseEnter={() => setHoveredPaxType(t.id as any)}
                                     onMouseLeave={() => setHoveredPaxType(null)}
-                                    className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-6 md:py-0 group/segment transition-all"
+                                    className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-0 group/segment transition-all cursor-pointer"
                                   >
-                                    <span className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.5em] text-white/40 group-hover/segment:text-white/70 transition-colors">
+                                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] md:tracking-[0.5em] text-white/75 group-hover/segment:text-white/100 transition-colors flex items-center justify-center">
                                       {t.label}
                                     </span>
                                     <div className="flex items-center gap-6 md:gap-8">
                                       <button
-                                        onClick={() => t.set(Math.max(t.min, t.count - 1))}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          t.set(Math.max(t.min, t.count - 1));
+                                          setPinnedTooltip(null);
+                                        }}
+                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
                                       >
                                         -
                                       </button>
@@ -2163,78 +2468,21 @@ Please confirm my booking. Thank you!`;
                                         {t.count}
                                       </span>
                                       <button
-                                        onClick={() => t.set(t.count + 1)}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          t.set(t.count + 1);
+                                          setPinnedTooltip(null);
+                                        }}
+                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
                                       >
                                         +
                                       </button>
                                     </div>
                                     {t.sub && (
-                                      <span className="text-[8px] md:text-[9px] font-bold text-white/30 tracking-widest uppercase transition-colors group-hover/segment:text-white/50 mt-1">
+                                      <span className="text-[10px] md:text-[10.5px] font-sans font-semibold text-white/70 tracking-wide transition-colors duration-300 group-hover/segment:text-white/95 mt-1.5">
                                         {t.sub}
                                       </span>
                                     )}
-
-                                    {/* Speech Bubble Popover */}
-                                    {(() => {
-                                      const data = getPaxBreakdown(t.id as any);
-                                      if (!data) return null;
-                                      const isHovered = hoveredPaxType === t.id;
-                                      return (
-                                        <div
-                                          className={cn(
-                                            "absolute bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[100] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                                            isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
-                                          )}
-                                        >
-                                          <div className="space-y-2 text-[10px] text-white/70">
-                                            <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
-                                              <span>{t.id === 'adults' ? 'Adult' : t.id === 'kids' ? 'Child' : 'Infant'} Rate</span>
-                                              <span className="text-white/40">1 Pax</span>
-                                            </div>
-
-                                            <div className="flex justify-between">
-                                              <span>Tour & Services:</span>
-                                              <span className="font-mono text-white/90">{data.symbol}{data.landNet.toLocaleString()}</span>
-                                            </div>
-
-                                            {data.flightFare > 0 && (
-                                              <div className="flex justify-between text-blue-400/90">
-                                                <span>Flight Est:</span>
-                                                <span className="font-mono">{data.symbol}{data.flightFare.toLocaleString()}</span>
-                                              </div>
-                                            )}
-
-                                            <div className="flex justify-between text-emerald-400/90">
-                                              <span>GST / Taxes:</span>
-                                              <span className="font-mono">{data.symbol}{data.taxAmt.toLocaleString()}</span>
-                                            </div>
-
-                                            <div className="flex justify-between font-black border-t border-white/10 pt-1.5 text-white">
-                                              <span>Total:</span>
-                                              <span className="font-mono">{data.symbol}{data.total.toLocaleString()}</span>
-                                            </div>
-
-                                            {data.pricingNote && (
-                                              <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
-                                                <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Note:</span>
-                                                <p className="text-[7.5px] leading-relaxed text-white/50 italic whitespace-normal">{data.pricingNote}</p>
-                                              </div>
-                                            )}
-                                          </div>
-
-                                          {/* Speech Bubble Pointer */}
-                                          <div
-                                            className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
-                                            style={{
-                                              bottom: "-5px",
-                                              transform: "rotate(45deg)",
-                                              zIndex: 10
-                                            }}
-                                          />
-                                        </div>
-                                      );
-                                    })()}
                                   </div>
                                   {idx < 2 && (
                                     <>
@@ -2251,21 +2499,21 @@ Please confirm my booking. Thank you!`;
                         </div>
 
                         {/* Phase 04: Curation (Intrinsic Architectural Model) */}
-                        <div className={cn("absolute inset-0 transition-all duration-700 transform-gpu flex flex-col justify-end pb-[clamp(1.5rem,5vh,4rem)]", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
-                          <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)]">
+                        <div className={cn("absolute inset-0 pb-[45px] md:pb-0 transition-all duration-700 transform-gpu flex flex-col justify-center", discoveryPhase === 4 ? "opacity-100 translate-x-0 pointer-events-auto" : "opacity-0 translate-x-8 pointer-events-none")}>
+                          <div className="w-full flex flex-col items-center gap-[clamp(1.5rem,5vh,2.5rem)] px-2 md:px-[clamp(1rem,4vw,2.5rem)] mt-[clamp(2rem,6vh,6rem)]">
 
 
-                            <div className="relative w-full max-w-[min(850px,94vw)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-[#0c0c0e]/98 border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
+                            <div className="relative w-full max-w-[calc(100vw-16px)] sm:max-w-md md:max-w-5xl transition-all duration-700 bg-[#0c0c0e]/98 border border-white/20 rounded-[40px] flex flex-col shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] hover:border-white/40 overflow-hidden group/instrument mx-auto">
 
                               {/* Scrollable Protocol Area */}
                               <div
                                 ref={curationScrollRef}
                                 onScroll={handleCurationScroll}
-                                className="w-full max-h-[calc(100vh-clamp(220px,45vh,450px))] md:max-h-[clamp(350px,55vh,650px)] overflow-y-auto scrollbar-hide p-[clamp(1.5rem,6vw,3rem)] space-y-[clamp(1.5rem,5vh,3rem)] rounded-[inherit] overflow-hidden"
+                                className="w-full max-h-[calc(100vh-clamp(220px,45vh,450px))] md:max-h-[clamp(350px,55vh,650px)] overflow-y-auto scrollbar-hide px-6 pt-8 pb-28 md:px-[clamp(1.5rem,6vw,3rem)] md:pt-[clamp(2rem,4vw,3.5rem)] md:pb-24 space-y-[clamp(1.5rem,5vh,3rem)] rounded-[inherit]"
                               >
 
                                 {/* Section 1: Primary Identification */}
-                                <div className="space-y-6 md:space-y-10">
+                                <div className="space-y-6 md:space-y-8">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                       Lead Traveler
@@ -2275,77 +2523,79 @@ Please confirm my booking. Thank you!`;
                                     </span>
                                   </div>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-[clamp(1.5rem,4vw,4rem)] gap-y-8 items-start">
-                                    <div className="space-y-3 md:space-y-4 group/id min-w-0">
-                                      <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/id:text-white/80 transition-colors">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                                    {/* Full Name Input */}
+                                    <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
+                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
                                         Full Name
                                       </span>
-                                      <div className="h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full min-w-0">
-                                        <input
-                                          type="text"
-                                          value={customerName}
-                                          onChange={(e) => setCustomerName(e.target.value)}
-                                          placeholder="Enter your name"
-                                          className="w-full bg-transparent text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
-                                        />
-                                      </div>
+                                      <input
+                                        type="text"
+                                        value={customerName}
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        placeholder="Enter your name"
+                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-0.5"
+                                      />
                                     </div>
 
-                                    <div className="space-y-4 group/contact min-w-0">
-                                      <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.1em] text-white/50 group-hover/contact:text-white/80 transition-colors">
-                                        Contact Information
+                                    {/* Email Address Input */}
+                                    <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
+                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                        Email Address
                                       </span>
-                                      <div className="flex flex-col gap-6 items-stretch min-w-0">
-                                        <div className="flex-1 h-10 flex items-end pb-1 border-b border-white/20 focus-within:border-white/50 transition-all w-full">
-                                          <input
-                                            type="email"
-                                            value={customerEmail}
-                                            onChange={(e) => setCustomerEmail(e.target.value)}
-                                            placeholder="Email address"
-                                            className="w-full bg-transparent text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
-                                          />
-                                        </div>
-                                        {/* Contact Number with Country Selector */}
-                                        <div className="flex-1 flex items-center gap-3 h-10 border-b border-white/20 group/phone focus-within:border-white/50 transition-all relative w-full">
-                                          <div className="relative mb-1">
-                                            <div
-                                              onClick={(e) => { e.stopPropagation(); setCountryMenuOpen(!countryMenuOpen); }}
-                                              className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all active:scale-95 bg-white/5"
-                                            >
-                                              <span className="text-xs">{selectedCountry.flag}</span>
-                                              <span className="text-[10px] md:text-xs font-bold text-white/60 group-focus-within/phone:text-white/90">{selectedCountry.code}</span>
-                                            </div>
-                                            {countryMenuOpen && (
-                                              <div className="absolute top-full left-0 mt-2 w-48 max-h-40 overflow-y-auto bg-[#121214] backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-hide">
-                                                {[
-                                                  { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
-                                                  { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
-                                                  { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
-                                                  { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
-                                                  { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
-                                                  { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 },
-                                                ].map((c) => (
-                                                  <div key={c.name} onClick={() => { setSelectedCountry(c); setCustomerPhone(""); setCountryMenuOpen(false); }} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/10 cursor-pointer transition-colors group/item">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="text-xs">{c.flag}</span>
-                                                      <span className="text-[10px] font-bold text-white/70 group-hover/item:text-white">{c.name}</span>
-                                                    </div>
-                                                    <span className="text-[9px] font-black text-white/30 group-hover/item:text-white/50">{c.code}</span>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            )}
+                                      <input
+                                        type="email"
+                                        value={customerEmail}
+                                        onChange={(e) => setCustomerEmail(e.target.value)}
+                                        placeholder="Email address"
+                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-0.5"
+                                      />
+                                    </div>
+
+                                    {/* Phone Number Input */}
+                                    <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
+                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                        Phone Number
+                                      </span>
+                                      <div className="flex items-center gap-2 mt-0.5 w-full">
+                                        <div className="relative">
+                                          <div
+                                            onClick={(e) => { e.stopPropagation(); setCountryMenuOpen(!countryMenuOpen); }}
+                                            className="flex items-center gap-1.5 px-2 py-0.5 cursor-pointer hover:bg-white/10 rounded-md transition-all active:scale-95 bg-white/5 border border-white/10"
+                                          >
+                                            <span className="text-xs">{selectedCountry.flag}</span>
+                                            <span className="text-[10px] font-bold text-white/60">{selectedCountry.code}</span>
                                           </div>
-                                          <input
-                                            type="tel"
-                                            value={customerPhone}
-                                            onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ""))}
-                                            maxLength={selectedCountry.length}
-                                            placeholder="Phone number"
-                                            onFocus={() => setCountryMenuOpen(false)}
-                                            className="flex-1 bg-transparent mb-1 text-sm md:text-base font-light text-white placeholder:text-white/30 focus:outline-none transition-all"
-                                          />
+                                          {countryMenuOpen && (
+                                            <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#0c0c0e]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-hide">
+                                              {[
+                                                { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
+                                                { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
+                                                { flag: "🇬🇧", code: "+44", name: "UK", length: 10 },
+                                                { flag: "🇦🇪", code: "+971", name: "UAE", length: 9 },
+                                                { flag: "🇸🇬", code: "+65", name: "Singapore", length: 8 },
+                                                { flag: "🇦🇺", code: "+61", name: "Australia", length: 9 },
+                                              ].map((c) => (
+                                                <div key={c.name} onClick={() => { setSelectedCountry(c); setCustomerPhone(""); setCountryMenuOpen(false); }} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/10 cursor-pointer transition-colors group/item">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs">{c.flag}</span>
+                                                    <span className="text-[10px] font-bold text-white/70 group-hover/item:text-white">{c.name}</span>
+                                                  </div>
+                                                  <span className="text-[9px] font-black text-white/30 group-hover/item:text-white/50">{c.code}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
                                         </div>
+                                        <input
+                                          type="tel"
+                                          value={customerPhone}
+                                          onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                                          maxLength={selectedCountry.length}
+                                          placeholder="Phone number"
+                                          onFocus={() => setCountryMenuOpen(false)}
+                                          className="flex-1 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                        />
                                       </div>
                                     </div>
                                   </div>
@@ -2495,28 +2745,24 @@ Please confirm my booking. Thank you!`;
                                       </span>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 md:gap-x-16 gap-y-12">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                       {/* Additional Adults */}
                                       {Array.from({ length: adults - 1 }).map((_, i) => (
-                                        <div key={`adult-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500 min-w-0">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
-                                              Guest {i + 2} <span className="text-[8px] text-white/20 pl-1">(Adult)</span>
-                                            </span>
-                                          </div>
-                                          <div className="border-b border-white/10 pb-2 focus-within:border-white/40 transition-all w-full min-w-0">
-                                            <input
-                                              type="text"
-                                              placeholder="Full name"
-                                              value={additionalGuests[i]?.name || ""}
-                                              onChange={(e) => {
-                                                const next = [...additionalGuests];
-                                                if (next[i]) next[i].name = e.target.value;
-                                                setAdditionalGuests(next);
-                                              }}
-                                              className="w-full bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
-                                            />
-                                          </div>
+                                        <div key={`adult-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
+                                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                            Guest {i + 2} <span className="text-[7px] text-white/20 pl-1">(Adult)</span>
+                                          </span>
+                                          <input
+                                            type="text"
+                                            placeholder="Full name"
+                                            value={additionalGuests[i]?.name || ""}
+                                            onChange={(e) => {
+                                              const next = [...additionalGuests];
+                                              if (next[i]) next[i].name = e.target.value;
+                                              setAdditionalGuests(next);
+                                            }}
+                                            className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-1"
+                                          />
                                         </div>
                                       ))}
 
@@ -2524,13 +2770,11 @@ Please confirm my booking. Thank you!`;
                                       {Array.from({ length: kids }).map((_, i) => {
                                         const guestIdx = (adults - 1) + i;
                                         return (
-                                          <div key={`child-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
-                                                Guest {adults + i + 1} <span className="text-[7px] text-white/20 pl-1">(Child)</span>
-                                              </span>
-                                            </div>
-                                            <div className="flex gap-4 border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                          <div key={`child-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
+                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                              Guest {adults + i + 1} <span className="text-[7px] text-white/20 pl-1">(Child)</span>
+                                            </span>
+                                            <div className="flex items-center gap-3 w-full mt-1">
                                               <input
                                                 type="text"
                                                 placeholder="Full name"
@@ -2540,35 +2784,38 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].name = e.target.value;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="flex-[2] bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none"
                                               />
-                                              <div className="w-[1px] h-3 bg-white/10 my-auto" />
+                                              <div className="w-[1px] h-4 bg-white/10 self-center" />
                                               <input
                                                 type="text"
+                                                inputMode="numeric"
+                                                maxLength={2}
                                                 placeholder="Age"
                                                 value={additionalGuests[guestIdx]?.age || ""}
                                                 onChange={(e) => {
+                                                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                                                  const clamped = raw === "" ? "" : String(Math.min(12, parseInt(raw, 10)));
                                                   const next = [...additionalGuests];
-                                                  if (next[guestIdx]) next[guestIdx].age = e.target.value;
+                                                  if (next[guestIdx]) next[guestIdx].age = clamped;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="w-10 bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all text-center"
+                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none text-center"
                                               />
                                             </div>
                                           </div>
                                         );
                                       })}
+
                                       {/* Infants */}
                                       {Array.from({ length: infants }).map((_, i) => {
                                         const guestIdx = (adults - 1) + kids + i;
                                         return (
-                                          <div key={`infant-${i}`} className="space-y-4 group/guest animate-in fade-in zoom-in-95 duration-500">
-                                            <div className="flex items-center justify-between">
-                                              <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-white/40 group-hover/guest:text-white/70 transition-colors">
-                                                Guest {adults + kids + i + 1} <span className="text-[7px] text-white/20 pl-1">(Infant)</span>
-                                              </span>
-                                            </div>
-                                            <div className="flex gap-4 border-b border-white/10 pb-2 focus-within:border-white/40 transition-all">
+                                          <div key={`infant-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
+                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                              Guest {adults + kids + i + 1} <span className="text-[7px] text-white/20 pl-1">(Infant)</span>
+                                            </span>
+                                            <div className="flex items-center gap-3 w-full mt-1">
                                               <input
                                                 type="text"
                                                 placeholder="Full name"
@@ -2578,19 +2825,23 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].name = e.target.value;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="flex-[2] bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none"
                                               />
-                                              <div className="w-[1px] h-3 bg-white/10 my-auto" />
+                                              <div className="w-[1px] h-4 bg-white/10 self-center" />
                                               <input
                                                 type="text"
+                                                inputMode="numeric"
+                                                maxLength={1}
                                                 placeholder="Age"
                                                 value={additionalGuests[guestIdx]?.age || ""}
                                                 onChange={(e) => {
+                                                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                                                  const clamped = raw === "" ? "" : String(Math.min(2, parseInt(raw, 10)));
                                                   const next = [...additionalGuests];
-                                                  if (next[guestIdx]) next[guestIdx].age = e.target.value;
+                                                  if (next[guestIdx]) next[guestIdx].age = clamped;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="w-10 bg-transparent text-xs md:text-sm font-light text-white placeholder:text-white/20 focus:outline-none transition-all text-center"
+                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none text-center"
                                               />
                                             </div>
                                           </div>
@@ -2601,7 +2852,7 @@ Please confirm my booking. Thank you!`;
                                 )}
 
                                 {/* Section 3: Protocol Refinements */}
-                                <div className="space-y-4 md:space-y-6 group/notes pb-20 md:pb-24">
+                                <div className="space-y-4 md:space-y-5 group/notes">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                       Special Requests <span className="text-[8px] md:text-[10px] opacity-40 ml-1">(Optional)</span>
@@ -2610,25 +2861,27 @@ Please confirm my booking. Thank you!`;
                                   <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    placeholder="Any special desire? Tell us!"
-                                    className="w-full h-24 md:h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6 text-xs md:text-sm font-light tracking-wide text-white placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] focus:border-white/20 transition-all resize-none scrollbar-hide shadow-inner"
+                                    placeholder="Dietary requirements, accessibility needs, anniversary celebrations..."
+                                    className="w-full h-44 md:h-56 bg-white/[0.02] border border-white/10 rounded-[20px] p-4 text-sm font-medium tracking-wide text-white placeholder:text-white/20 focus:outline-none focus:bg-white/[0.04] focus:border-white/30 transition-all resize-none scrollbar-hide shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]"
                                   />
                                 </div>
                               </div>
 
-                              {/* Atmospheric Bottom Blur with Subtle Arrow (Sovereign Signal) */}
-                              <div className={cn(
-                                "absolute bottom-0 left-0 right-0 h-16 md:h-12 pointer-events-none transition-all duration-[1.2s] z-[125] flex flex-col items-center justify-end pb-2 md:pb-12",
-                                showScrollIndicator ? "opacity-100" : "opacity-0"
-                              )}>
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                                <div className="absolute inset-0 backdrop-blur-[2px] [mask-image:linear-gradient(to_top,black,transparent)]" />
-                                <div className="relative z-10 flex flex-col items-center gap-1">
-                                  <span className="hidden md:block text-[7px] font-black uppercase tracking-[0.4em] text-white/80 animate-pulse drop-shadow-md">
+                              {/* Scroll indicator — rendered outside scroll container but inside card via sticky-pinned overlay */}
+                              <div
+                                className={cn(
+                                  "absolute bottom-0 left-0 right-0 h-24 pointer-events-none transition-opacity duration-700 z-10 flex flex-col items-center justify-end pb-3",
+                                  showScrollIndicator ? "opacity-100" : "opacity-0"
+                                )}
+                              >
+                                {/* Strong contrast gradient so chevron is visible over dark card */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/80 to-transparent rounded-b-[40px]" />
+                                <div className="relative z-10 flex flex-col items-center gap-0.5">
+                                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/70 animate-pulse">
                                     Scroll
                                   </span>
-                                  <div className="animate-[bounce_3s_infinite] drop-shadow-lg">
-                                    <ChevronDown size={12} strokeWidth={3} className="text-white/40 md:text-white" />
+                                  <div className="animate-bounce">
+                                    <ChevronDown size={14} strokeWidth={2.5} className="text-amber-400/80" />
                                   </div>
                                 </div>
                               </div>
@@ -2920,7 +3173,7 @@ Please confirm my booking. Thank you!`;
       </div>
 
       {/* 4. PROGRESSIVE BOTTOM MASK (MIRRORED iOS STYLE) */}
-      {((step === 1 && discoveryPhase > 1) || step === 2) && (
+      {((step === 1 && discoveryPhase === 4) || step === 2) && (
         <div
           className="pointer-events-none absolute bottom-0 left-0 right-0 h-40 md:h-48 transition-all duration-1000 z-[110] transform-gpu will-change-[opacity] animate-in fade-in duration-1000"
           style={{
@@ -2954,13 +3207,272 @@ Please confirm my booking. Thank you!`;
               ref={pillRef}
               className="relative flex items-center justify-between p-2 rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-fit overflow-visible"
               style={{ gap: 'clamp(0.25rem, 2vw, 2rem)' }}
-              onMouseMove={(e) => handleGlowMove(e.clientX, e.clientY)}
-              onMouseEnter={(e) => handleGlowMove(e.clientX, e.clientY)}
-              onMouseLeave={handleGlowLeave}
-              onTouchStart={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-              onTouchMove={(e) => handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-              onTouchEnd={handleGlowLeave}
+              onMouseMove={(e) => {
+                if (Date.now() - lastTouchTimeRef.current < 800) return;
+                handleGlowMove(e.clientX, e.clientY);
+              }}
+              onMouseEnter={(e) => {
+                if (Date.now() - lastTouchTimeRef.current < 800) return;
+                handleGlowMove(e.clientX, e.clientY);
+              }}
+              onMouseLeave={() => {
+                if (Date.now() - lastTouchTimeRef.current < 800) return;
+                handleGlowLeave();
+              }}
+              onTouchStart={(e) => {
+                lastTouchTimeRef.current = Date.now();
+                handleGlowMove(e.touches[0].clientX, e.touches[0].clientY);
+              }}
+              onTouchMove={(e) => {
+                lastTouchTimeRef.current = Date.now();
+                handleGlowMove(e.touches[0].clientX, e.touches[0].clientY);
+              }}
+              onTouchEnd={() => {
+                lastTouchTimeRef.current = Date.now();
+                handleGlowLeave();
+              }}
+              onTouchCancel={() => {
+                lastTouchTimeRef.current = Date.now();
+                handleGlowLeave();
+              }}
             >
+              {/* ════ SINGLE UNIFIED PREMIUM SPEECH BUBBLE ════ */}
+              {(() => {
+                const activeType = activeIslandType;
+                if (!activeType) return null;
+
+                // Fetch data based on the active type
+                let content = null;
+                let bubbleWidth = "w-[calc(100vw-32px)] max-w-[240px]"; // default width
+
+                if (activeType === 'cost') {
+                  const groupData = getGroupBreakdown();
+                  if (groupData) {
+                    bubbleWidth = "w-[calc(100vw-32px)] max-w-[260px]";
+                    content = (
+                      <div className="space-y-2.5 text-[11px] text-white/70 animate-in fade-in duration-300">
+                        <div className="flex justify-between font-bold border-b border-white/10 pb-2 text-white text-[12px] uppercase tracking-wider">
+                          <span>Group Pricing</span>
+                          <span className="text-white/40">Total</span>
+                        </div>
+
+                        <div className="flex justify-between text-white/60">
+                          <span>Tour Base:</span>
+                          <span className="font-mono">{groupData.symbol}{groupData.tourTotal.toLocaleString()}</span>
+                        </div>
+
+                        {groupData.flightTotal > 0 && (
+                          <div className="flex justify-between text-white/60">
+                            <span>Flights:</span>
+                            <span className="font-mono">{groupData.symbol}{groupData.flightTotal.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {groupData.addonsTotal > 0 && (
+                          <div className="flex justify-between text-white/60">
+                            <span>Add-ons:</span>
+                            <span className="font-mono">{groupData.symbol}{groupData.addonsTotal.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {groupData.taxTotal > 0 && (
+                          <div className="flex justify-between text-teal-400/90 font-medium">
+                            <span>GST / Taxes:</span>
+                            <span className="font-mono">{groupData.symbol}{groupData.taxTotal.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between border-t border-white/15 pt-2 text-[12px] font-bold text-white">
+                          <span>Grand Total:</span>
+                          <span className="font-mono text-emerald-400">{groupData.symbol}{groupData.grandTotal.toLocaleString()}</span>
+                        </div>
+
+                        <div className="text-[7.5px] leading-normal text-white/30 pt-1 border-t border-white/5 uppercase tracking-wide">
+                          <span className="text-amber-400/80 font-bold block mb-0.5">Note:</span>
+                          Flight Estimates are subject to airlines. Prices are dynamic as per traveler's requirements.
+                        </div>
+                      </div>
+                    );
+                  }
+                } else if (activeType === 'timeline') {
+                  const hasValidDates = (startDate && endDate);
+                  if (hasValidDates) {
+                    const nights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
+                    content = (
+                      <div className="space-y-2.5 text-[11px] text-white/70 animate-in fade-in duration-300">
+                        <div className="flex justify-between font-bold border-b border-white/10 pb-2 text-white text-[12px] uppercase tracking-wider">
+                          <span>Timeline</span>
+                          <span className="text-white/40">{nights} N / {nights + 1} D</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span>Start Date:</span>
+                          <span className="text-white/95 font-medium">{formatDateForDisplay(startDate, false)}</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span>End Date:</span>
+                          <span className="text-white/95 font-medium">{formatDateForDisplay(endDate, false)}</span>
+                        </div>
+
+                        <div className="flex justify-between border-t border-white/10 pt-2">
+                          <span>Total Nights:</span>
+                          <span className="text-white/95 font-mono font-bold">{nights} Nights</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                          <span>Total Days:</span>
+                          <span className="text-white/95 font-mono font-bold">{nights + 1} Days</span>
+                        </div>
+
+                        {discoveryPhase !== 2 && (
+                          <button
+                            onClick={() => {
+                              setStep(1);
+                              setDiscoveryPhase(2);
+                              setPinnedTooltip(null);
+                            }}
+                            className="w-full mt-3 py-2 px-4 rounded-xl bg-gradient-to-r from-white/[0.06] to-white/[0.09] hover:from-white/[0.1] hover:to-white/[0.13] border border-white/[0.08] text-white/90 font-medium text-[10px] tracking-tight flex items-center justify-center gap-1.5 transition-all active:scale-[0.96] duration-200 shadow-sm"
+                          >
+                            <span>Modify Dates & Duration</span>
+                            <span className="text-white/40 text-[9px]">→</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                } else if (activeType === 'guests') {
+                  const paxFocus = hoveredPaxType || activePaxTooltip;
+                  const namedGuests = additionalGuests.filter(g => g.name.trim() !== "");
+                  
+                  if (paxFocus) {
+                    bubbleWidth = "w-[calc(100vw-32px)] max-w-[270px]";
+                  } else {
+                    bubbleWidth = "w-[calc(100vw-32px)] max-w-[250px]";
+                  }
+                  
+                  const paxData = paxFocus ? getPaxBreakdown(paxFocus) : null;
+                  content = (
+                    <div className="space-y-2.5 text-[11px] text-white/70 animate-in fade-in duration-300">
+                      <div className="flex justify-between font-bold border-b border-white/10 pb-2 text-white text-[12px] uppercase tracking-wider">
+                        <span>Travelers</span>
+                        <span className="text-white/40">Total: {adults + kids + infants}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className={cn(paxFocus === 'adults' && "text-amber-400 font-bold")}>Adults:</span>
+                        <span className="font-mono text-white/90 font-bold">{adults}</span>
+                      </div>
+
+                      {kids > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className={cn(paxFocus === 'kids' && "text-amber-400 font-bold")}>Children:</span>
+                          <span className="font-mono text-white/90 font-bold">{kids}</span>
+                        </div>
+                      )}
+
+                      {infants > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className={cn(paxFocus === 'infants' && "text-amber-400 font-bold")}>Infants:</span>
+                          <span className="font-mono text-white/90 font-bold">{infants}</span>
+                        </div>
+                      )}
+
+                      {/* Inline Single Pax Rate Breakdown Card */}
+                      {paxData && (
+                        <div className="mt-3 p-3 rounded-[16px] bg-white/[0.04] border border-white/10 animate-in slide-in-from-top-2 duration-300 space-y-1.5">
+                          <div className="flex justify-between text-[9px] font-black uppercase text-amber-400 tracking-wider pb-1 border-b border-white/5">
+                            <span>{paxFocus === 'adults' ? 'Adult' : paxFocus === 'kids' ? 'Child' : 'Infant'} Rate</span>
+                            <span className="text-white/40">Per Pax</span>
+                          </div>
+                          
+                          <div className="flex justify-between text-[10px] text-white/60">
+                            <span>Tour Net:</span>
+                            <span className="font-mono">{paxData.symbol}{paxData.landNet.toLocaleString()}</span>
+                          </div>
+
+                          {paxData.flightFare > 0 && (
+                            <div className="flex justify-between text-[10px] text-white/60">
+                              <span>Flight Est:</span>
+                              <span className="font-mono">{paxData.symbol}{paxData.flightFare.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          {paxData.taxAmt > 0 && (
+                            <div className="flex justify-between text-[10px] text-teal-400/80">
+                              <span>GST / Taxes:</span>
+                              <span className="font-mono">{paxData.symbol}{paxData.taxAmt.toLocaleString()}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between text-[10.5px] font-bold text-white border-t border-white/5 pt-1.5">
+                            <span>Subtotal:</span>
+                            <span className="font-mono text-emerald-400">{paxData.symbol}{paxData.total.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {namedGuests.length > 0 && !paxFocus && (
+                        <div className="border-t border-white/10 pt-2.5 space-y-1">
+                          <span className="text-[8px] font-bold text-amber-400 uppercase tracking-widest block mb-1">Manifest Details:</span>
+                          <ul className="text-[8.5px] leading-relaxed text-white/50 space-y-1">
+                            {namedGuests.map((g, i) => (
+                              <li key={i} className="flex justify-between">
+                                <span className="truncate max-w-[150px]">• {g.name}</span>
+                                <span className="text-[7.5px] uppercase tracking-wider text-white/30">{g.type}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {discoveryPhase !== 3 && !paxFocus && (
+                        <button
+                          onClick={() => {
+                            setStep(1);
+                            setDiscoveryPhase(3);
+                            setPinnedTooltip(null);
+                          }}
+                          className="w-full mt-3 py-2 px-4 rounded-xl bg-gradient-to-r from-white/[0.06] to-white/[0.09] hover:from-white/[0.1] hover:to-white/[0.13] border border-white/[0.08] text-white/90 font-medium text-[10px] tracking-tight flex items-center justify-center gap-1.5 transition-all active:scale-[0.96] duration-200 shadow-sm"
+                        >
+                          <span>Adjust Traveler Count</span>
+                          <span className="text-white/40 text-[9px]">→</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (!content) return null;
+
+                return (
+                  <div
+                    className={cn(
+                      "absolute bottom-[calc(100%+20px)] z-[135] p-5 rounded-[24px] bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/[0.15] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.95)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu",
+                      bubbleWidth
+                    )}
+                    style={{
+                      left: isMobile ? "50%" : (tooltipX !== null ? `${tooltipX}px` : "50%"),
+                      transform: "translateX(-50%)",
+                      opacity: tooltipX !== null ? 1 : 0,
+                    }}
+                  >
+                    {content}
+
+                    {/* Speech Bubble Pointer */}
+                    <div
+                      className="absolute w-2.5 h-2.5 bg-[#0c0c0e] border-r border-b border-white/[0.15] pointer-events-none transition-[left] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                      style={{
+                        bottom: "-6px",
+                        left: isMobile ? `calc(50% + ${pointerOffset}px)` : "50%",
+                        transform: "translateX(-50%) rotate(45deg)",
+                        zIndex: 10
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+
               {/* ════ PHYSICAL JELLY SHELL ════ */}
               <div
                 ref={jellyRef}
@@ -2981,13 +3493,13 @@ Please confirm my booking. Thank you!`;
               <div
                 ref={scrollContainerRef}
                 className={cn(
-                  "min-w-0 flex-grow scrollbar-hide scroll-smooth relative z-10 transition-[mask-image]",
-                  hoveredIslandSegment ? "overflow-visible" : (isOverflowing ? "overflow-x-auto scroll-snap-x" : "overflow-x-hidden"),
+                  "min-w-0 flex-grow scrollbar-hide scroll-smooth relative z-10 transition-[mask-image] overflow-x-auto snap-x snap-mandatory",
                   isOverflowing && scrollMask === 'right' && "mask-fade-right",
                   isOverflowing && scrollMask === 'left' && "mask-fade-left",
                   isOverflowing && scrollMask === 'both' && "mask-fade-both",
                   (!isOverflowing || scrollMask === 'none') && "mask-none"
                 )}
+                style={{ WebkitOverflowScrolling: 'touch' }}
               >
                 <div
                   ref={segmentsRef}
@@ -2997,167 +3509,108 @@ Please confirm my booking. Thank you!`;
 
                   {/* Segment 1: Terminal Investment */}
                   <div
+                    data-segment="cost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const next = pinnedTooltip === 'cost' ? null : 'cost';
+                      setPinnedTooltip(next);
+                      if (next) {
+                        scrollSegmentToCenter(e.currentTarget);
+                      }
+                    }}
                     onMouseEnter={() => setHoveredIslandSegment('cost')}
                     onMouseLeave={() => setHoveredIslandSegment(null)}
                     className={cn(
-                      "flex flex-col items-center justify-center transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 snap-center relative",
-                      (discoveryPhase === 4 || step === 2) ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                      "flex flex-col items-center justify-center transition-[opacity,transform,color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 relative cursor-pointer active:scale-95 snap-center snap-always",
+                      isCostActive ? "opacity-100 scale-100 z-10" : "opacity-75 scale-[0.98] hover:opacity-100"
                     )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}
                   >
-                    <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                    <span className={cn(
+                      "font-black uppercase whitespace-nowrap text-center transition-colors duration-300",
+                      isCostActive ? "text-amber-400" : "text-white/35"
+                    )} style={{ fontSize: 'clamp(5.5px, 1vw, 8.5px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                       {isMobile ? (internalPackage?.isCustom ? 'Quote' : 'Cost') : (internalPackage?.isCustom ? 'Personalized Pricing' : 'Itinerary Cost')}
                     </span>
                     <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
-                      <p className="font-bold tracking-tighter text-white leading-none tabular-nums whitespace-nowrap" style={{ fontSize: 'clamp(10px, 2.5vw, 1.8rem)' }}>
-                        {internalPackage?.isCustom ? "Upon Request" : totalInvestment}
+                      <p className={cn(
+                        "font-bold tracking-tighter leading-none tabular-nums whitespace-nowrap transition-colors duration-300",
+                        isCostActive ? "text-white" : "text-white/70"
+                      )} style={{ fontSize: 'clamp(10px, 2.5vw, 1.8rem)' }}>
+                        {internalPackage?.isCustom ? (
+                          "Upon Request"
+                        ) : (
+                          <span className="flex items-center gap-0.5">
+                            <span>From {pricing.symbol}</span>
+                            <IOSRollingNumber
+                              value={pricing.finalTotal}
+                              formatter={(v) => v.toLocaleString("en-IN")}
+                            />
+                          </span>
+                        )}
                       </p>
                       {!internalPackage?.isCustom && (
-                        <span className="font-bold uppercase tracking-wider text-white/35 leading-none whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
+                        <span className={cn(
+                          "font-bold uppercase tracking-wider leading-none whitespace-nowrap transition-colors duration-300",
+                          isCostActive ? "text-white/60" : "text-white/40"
+                        )} style={{ fontSize: 'clamp(5px, 0.8vw, 8px)' }}>
                           incl. tax
                         </span>
                       )}
                     </div>
-
-                    {/* Tooltip for Cost */}
-                    {(() => {
-                      const groupData = getGroupBreakdown();
-                      if (!groupData) return null;
-                      const isHovered = hoveredIslandSegment === 'cost';
-                      return (
-                        <div
-                          className={cn(
-                            "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[200px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
-                            isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
-                          )}
-                        >
-                          <div className="space-y-2 text-[10px] text-white/70">
-                            <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
-                              <span>Group Pricing</span>
-                              <span className="text-white/40">Total</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                              <span>Tour Base:</span>
-                              <span className="font-mono text-white/90">{groupData.symbol}{groupData.tourTotal.toLocaleString()}</span>
-                            </div>
-
-                            {groupData.flightTotal > 0 && (
-                              <div className="flex justify-between text-blue-400/90">
-                                <span>Flights:</span>
-                                <span className="font-mono">{groupData.symbol}{groupData.flightTotal.toLocaleString()}</span>
-                              </div>
-                            )}
-
-                            <div className="flex justify-between text-emerald-400/90">
-                              <span>GST / Taxes:</span>
-                              <span className="font-mono">{groupData.symbol}{groupData.taxTotal.toLocaleString()}</span>
-                            </div>
-
-                            <div className="flex justify-between font-black border-t border-white/10 pt-1.5 text-white">
-                              <span>Grand Total:</span>
-                              <span className="font-mono">{groupData.symbol}{groupData.grandTotal.toLocaleString()}</span>
-                            </div>
-
-                            {groupData.pricingNote && (
-                              <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
-                                <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Note:</span>
-                                <p className="text-[7.5px] leading-relaxed text-white/50 italic whitespace-normal">{groupData.pricingNote}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Speech Bubble Pointer */}
-                          <div
-                            className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
-                            style={{
-                              bottom: "-5px",
-                              transform: "rotate(45deg)",
-                              zIndex: 10
-                            }}
-                          />
-                        </div>
-                      );
-                    })()}
                   </div>
 
                   {/* Segment 2: Timeline Spawning */}
                   {startDate && endDate && (
                     <div
+                      data-segment="timeline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const next = pinnedTooltip === 'timeline' ? null : 'timeline';
+                        setPinnedTooltip(next);
+                        if (next) {
+                          scrollSegmentToCenter(e.currentTarget);
+                        }
+                      }}
                       onMouseEnter={() => setHoveredIslandSegment('timeline')}
                       onMouseLeave={() => setHoveredIslandSegment(null)}
                       className={cn(
-                        "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center relative",
-                        discoveryPhase === 2 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                        "flex flex-col items-center justify-center border-l border-white/10 transition-[opacity,transform,color,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] relative cursor-pointer active:scale-95 snap-center snap-always",
+                        isTimelineActive ? "opacity-100 scale-100 z-10" : "opacity-75 scale-[0.98] hover:opacity-100"
                       )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(2px, 0.5vw, 6px)' }}
                     >
-                      <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                      <span className={cn(
+                        "font-black uppercase whitespace-nowrap text-center transition-colors duration-300",
+                        isTimelineActive ? "text-amber-400" : "text-white/35"
+                      )} style={{ fontSize: 'clamp(5.5px, 1vw, 8.5px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                         Timeline
                       </span>
                       <div className="flex items-center justify-center whitespace-nowrap" style={{ gap: 'clamp(3px, 1.2vw, 20px)' }}>
-                        <span className="font-bold text-white/95 tracking-tighter tabular-nums uppercase" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
+                        <span className={cn(
+                          "font-bold tracking-tighter tabular-nums uppercase transition-colors duration-300",
+                          isTimelineActive ? "text-white" : "text-white/70"
+                        )} style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
                           {formatDateForDisplay(startDate, isMobile)}
                         </span>
-                        <div className="h-[1px] bg-white/30 shrink-0" style={{ width: 'clamp(4px, 1.5vw, 2rem)' }} />
-                        <span className="font-bold text-white/95 tracking-tighter tabular-nums uppercase" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
+                        <div className={cn(
+                          "h-[1px] shrink-0 transition-colors duration-300",
+                          isTimelineActive ? "bg-white/40" : "bg-white/20"
+                        )} style={{ width: 'clamp(4px, 1.5vw, 2rem)' }} />
+                        <span className={cn(
+                          "font-bold tracking-tighter tabular-nums uppercase transition-colors duration-300",
+                          isTimelineActive ? "text-white" : "text-white/70"
+                        )} style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
                           {formatDateForDisplay(endDate, isMobile)}
                         </span>
                       </div>
                       {(() => {
                         const nights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
                         return (
-                          <span className="font-bold uppercase tracking-wider text-white/35 whitespace-nowrap" style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
-                            {nights}N / {nights + 1}D
+                          <span className={cn(
+                            "font-bold uppercase tracking-wider whitespace-nowrap transition-colors duration-300 flex items-center gap-0.5",
+                            isTimelineActive ? "text-white/50" : "text-white/35"
+                          )} style={{ fontSize: 'clamp(5px, 0.8vw, 7px)' }}>
+                            <IOSRollingNumber value={nights} />N / <IOSRollingNumber value={nights + 1} />D
                           </span>
-                        );
-                      })()}
-
-                      {/* Tooltip for Timeline */}
-                      {(() => {
-                        const isHovered = hoveredIslandSegment === 'timeline';
-                        const nights = Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY));
-                        return (
-                          <div
-                            className={cn(
-                              "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
-                              isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
-                            )}
-                          >
-                            <div className="space-y-2 text-[10px] text-white/70">
-                              <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
-                                <span>Itinerary Duration</span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span>Start Date:</span>
-                                <span className="text-white/90">{formatDateForDisplay(startDate, false)}</span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span>End Date:</span>
-                                <span className="text-white/90">{formatDateForDisplay(endDate, false)}</span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span>Total Nights:</span>
-                                <span className="text-white/95 font-mono">{nights} Nights</span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span>Total Days:</span>
-                                <span className="text-white/95 font-mono">{nights + 1} Days</span>
-                              </div>
-                            </div>
-
-                            {/* Speech Bubble Pointer */}
-                            <div
-                              className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
-                              style={{
-                                bottom: "-5px",
-                                transform: "rotate(45deg)",
-                                zIndex: 10
-                              }}
-                            />
-                          </div>
                         );
                       })()}
                     </div>
@@ -3166,95 +3619,54 @@ Please confirm my booking. Thank you!`;
                   {/* Segment 3: Manifest Spawning */}
                   {discoveryPhase >= 3 && (
                     <div
+                      data-segment="guests"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const next = pinnedTooltip === 'guests' ? null : 'guests';
+                        setPinnedTooltip(next);
+                        if (next) {
+                          scrollSegmentToCenter(e.currentTarget);
+                        }
+                      }}
                       onMouseEnter={() => setHoveredIslandSegment('guests')}
                       onMouseLeave={() => setHoveredIslandSegment(null)}
                       className={cn(
-                        "flex flex-col items-center justify-center border-l border-white/10 transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] snap-center relative",
-                        discoveryPhase === 3 ? "opacity-100 scale-100" : "opacity-65 scale-[0.98]"
+                        "flex flex-col items-center justify-center border-l border-white/10 transition-[opacity,transform,color,border-color] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] island-enter min-w-fit shrink-0 will-change-[opacity,transform] relative cursor-pointer active:scale-95 snap-center snap-always",
+                        isGuestsActive ? "opacity-100 scale-100 z-10" : "opacity-75 scale-[0.98] hover:opacity-100"
                       )} style={{ padding: '0 clamp(0.4rem, 2vw, 2rem)', gap: 'clamp(1px, 0.4vw, 6px)' }}
                     >
-                      <span className="font-black uppercase text-white/50 whitespace-nowrap text-center" style={{ fontSize: 'clamp(5px, 1vw, 8px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
+                      <span className={cn(
+                        "font-black uppercase whitespace-nowrap text-center transition-colors duration-300",
+                        isGuestsActive ? "text-amber-400" : "text-white/35"
+                      )} style={{ fontSize: 'clamp(5.5px, 1vw, 8.5px)', letterSpacing: 'clamp(0.1em, 0.5vw, 0.4em)' }}>
                         Guests
                       </span>
                       <div className="flex items-center justify-center whitespace-nowrap" style={{ gap: 'clamp(3px, 1vw, 12px)' }}>
-                        <span className="font-bold text-white/95 tracking-tighter leading-none uppercase text-center" style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
-                          {adults} {adults <= 1 ? "Adult" : "Adults"}
+                        <span className={cn(
+                          "font-bold tracking-tighter leading-none uppercase text-center transition-colors duration-300",
+                          isGuestsActive ? "text-white" : "text-white/70"
+                        )} style={{ fontSize: 'clamp(8px, 1.8vw, 14px)' }}>
+                          <IOSRollingNumber value={adults} /> {adults <= 1 ? "Adult" : "Adults"}
                           {kids > 0 && (
                             <>
-                              <span className="mx-1 text-white/20">|</span>
-                              {kids} {kids === 1 ? "Child" : "Children"}
+                              <span className={cn(
+                                "mx-1 transition-colors duration-300",
+                                isGuestsActive ? "text-white/30" : "text-white/15"
+                              )}>|</span>
+                              <IOSRollingNumber value={kids} /> {kids === 1 ? "Child" : "Children"}
                             </>
                           )}
                           {infants > 0 && (
                             <>
-                              <span className="mx-1 text-white/20">|</span>
-                              {infants} {infants === 1 ? "Infant" : "Infants"}
+                              <span className={cn(
+                                "mx-1 transition-colors duration-300",
+                                isGuestsActive ? "text-white/30" : "text-white/15"
+                              )}>|</span>
+                              <IOSRollingNumber value={infants} /> {infants === 1 ? "Infant" : "Infants"}
                             </>
                           )}
                         </span>
                       </div>
-
-                      {/* Tooltip for Guests */}
-                      {(() => {
-                        const isHovered = hoveredIslandSegment === 'guests';
-                        return (
-                          <div
-                            className={cn(
-                              "absolute bottom-[calc(100%+24px)] left-1/2 -translate-x-1/2 z-[130] w-[180px] p-4 rounded-[20px] bg-[#0c0c0e]/95 backdrop-blur-md border border-white/[0.12] shadow-[0_12px_40px_-8px_rgba(0,0,0,0.9)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] before:absolute before:inset-x-0 before:h-[24px] before:bottom-[-24px] before:content-['']",
-                              isHovered ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-2 scale-95 pointer-events-none"
-                            )}
-                          >
-                            <div className="space-y-2 text-[10px] text-white/70">
-                              <div className="flex justify-between font-bold border-b border-white/10 pb-1.5 text-white text-[11px] uppercase tracking-wider">
-                                <span>Travelers</span>
-                                <span className="text-white/40">Total: {adults + kids + infants}</span>
-                              </div>
-
-                              <div className="flex justify-between">
-                                <span>Adults:</span>
-                                <span className="font-mono text-white/90">{adults}</span>
-                              </div>
-
-                              {kids > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Children:</span>
-                                  <span className="font-mono text-white/90">{kids}</span>
-                                </div>
-                              )}
-
-                              {infants > 0 && (
-                                <div className="flex justify-between">
-                                  <span>Infants:</span>
-                                  <span className="font-mono text-white/90">{infants}</span>
-                                </div>
-                              )}
-
-                              {additionalGuests.some(g => g.name.trim() !== "") && (
-                                <div className="border-t border-white/10 pt-1.5 mt-1.5 text-left">
-                                  <span className="text-[7.5px] font-bold text-amber-400 uppercase tracking-widest block mb-0.5">Guest Manifest:</span>
-                                  <ul className="text-[7.5px] leading-relaxed text-white/50 italic space-y-0.5">
-                                    {additionalGuests
-                                      .filter(g => g.name.trim() !== "")
-                                      .map((g, i) => (
-                                        <li key={i}>• {g.name} ({g.type})</li>
-                                      ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Speech Bubble Pointer */}
-                            <div
-                              className="absolute w-2 h-2 bg-[#0c0c0e] border-r border-b border-white/[0.12] pointer-events-none left-[calc(50%-4px)]"
-                              style={{
-                                bottom: "-5px",
-                                transform: "rotate(45deg)",
-                                zIndex: 10
-                              }}
-                            />
-                          </div>
-                        );
-                      })()}
                     </div>
                   )}
                 </div>
@@ -3287,7 +3699,7 @@ Please confirm my booking. Thank you!`;
                             )
                             : "bg-white text-black shadow-[0_15px_40px_-10px_rgba(255,255,255,0.4)] hover:shadow-[0_20px_50px_-10px_rgba(255,255,255,0.5)] opacity-100"
                           )
-                          : "bg-white/10 text-white/20 cursor-not-allowed border border-white/5 opacity-50",
+                          : "bg-white/5 text-white/30 cursor-not-allowed border border-white/10",
                         discoveryPhase >= 2 && "xl:px-10"
                       )}
                     >
@@ -3310,7 +3722,10 @@ Please confirm my booking. Thank you!`;
                           <ChevronRight
                             size={20}
                             strokeWidth={3}
-                            className="text-black group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0"
+                            className={cn(
+                              "group-hover/btn:translate-x-0.5 xl:group-hover/btn:translate-x-1 transition-transform shrink-0",
+                              isPhaseValid ? "text-black" : "text-white/30"
+                            )}
                           />
                         )}
                       </div>

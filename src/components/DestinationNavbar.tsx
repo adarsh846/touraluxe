@@ -54,20 +54,14 @@ export function DestinationNavbar({
 
   return (
     <>
-      {/* ═══ iOS 26 Progressive Blur Mask — only on standalone pages (not modal) ═══ */}
+      {/* ═══ Optimized GPU Header Fade Mask — avoiding layout-bottleneck backdrop filters ═══ */}
       {!(onBack || onX) && (
         <div
           className="pointer-events-none fixed top-0 left-0 right-0 h-32 md:h-36 z-[90] transform-gpu transition-opacity duration-1000"
           style={{
-            opacity: isScrolled ? 0.95 : 0.85,
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0.2) 65%, rgba(0,0,0,0.05) 85%, transparent 100%)",
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter: "blur(5px)",
-            maskImage:
-              "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to bottom, black 0%, black 20%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.1) 90%, transparent 100%)",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            opacity: isScrolled ? 0.98 : 0.85,
+            background: "linear-gradient(to bottom, rgba(10,10,11,0.98) 0%, rgba(10,10,11,0.88) 20%, rgba(10,10,11,0.6) 45%, rgba(10,10,11,0.3) 70%, transparent 100%)",
           }}
         />
       )}

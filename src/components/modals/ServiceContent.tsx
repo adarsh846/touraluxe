@@ -210,7 +210,16 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                 
                 {/* Cinematic Fullscreen Hero Banner */}
                 <div className="relative w-full h-[100svh] overflow-hidden bg-[#0a0a0b] flex-shrink-0">
-                  <Image src={service.image} alt={service.title} fill className="object-cover scale-[1.01] opacity-[0.65] grayscale-[0.1]" priority decoding="async" />
+                  <Image 
+                    src={service.image} 
+                    alt={service.title} 
+                    fill 
+                    sizes="100vw"
+                    quality={90}
+                    className="object-cover scale-[1.01] opacity-[0.65] grayscale-[0.1]" 
+                    priority 
+                    decoding="async" 
+                  />
                   
                   {/* Progressive Atmospheric Gradient & Vignette */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-black/25 to-black/50" />
