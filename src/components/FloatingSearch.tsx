@@ -259,24 +259,25 @@ export function FloatingSearch() {
       const w = window.innerWidth;
       const mobile = w < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setIsVisible(false); // Hide by default on mobile, triggered by bottom nav
-        if (w < 400) {
-          setPlaceholder("Search");
-        } else {
-          setPlaceholder("Search destinations");
-        }
-      } else {
-        setIsVisible(true);
-        setPlaceholder("Where will your next journey begin?");
-      }
 
-      // Only update initialHeightRef if screen width actually changed (orientation/resize)
-      // to prevent mobile virtual keyboard opening from overriding the default layout height.
+      // CRITICAL: Only update visibility and placeholder when the viewport WIDTH changes.
+      // On Android, opening the virtual keyboard fires window.resize with the SAME width
+      // but reduced height. Without this guard, checkMobile was unconditionally calling
+      // setIsVisible(false) on every keyboard-open resize — hiding the search bar immediately
+      // after it appeared. We use lastWidthRef (starts at 0) so the initial mount always runs.
       if (w !== lastWidthRef.current) {
         lastWidthRef.current = w;
         initialHeightRef.current = window.innerHeight;
+
+        if (mobile) {
+          setIsVisible(false); // Hidden by default on mobile, opened by bottom nav Search btn
+          setPlaceholder(w < 400 ? "Search" : "Search destinations");
+        } else {
+          setIsVisible(true);
+          setPlaceholder("Where will your next journey begin?");
+        }
       }
+
       setIsInitialized(true);
     };
     checkMobile();
