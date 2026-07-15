@@ -327,12 +327,12 @@ export function FloatingSearch() {
   // Smart Scroll Logic - runs once, refs used for real-time guard to avoid stale closure
   useEffect(() => {
     lastScrollY.current = window.scrollY;
-    if (window.scrollY > 100 && !isMobile) {
+    if (window.scrollY > 100 && window.innerWidth >= 1280) {
       setIsVisible(false);
     }
 
     const handleScroll = () => {
-      if (isMobile) return; // Bypass scroll-hiding on mobile
+      if (window.innerWidth < 1280) return; // Bypass scroll-hiding on mobile/tablet widths
       
       // If the input is focused, keep the bar visible but do NOT blur it here.
       // Generic window 'scroll' events trigger on programmatic shifts (e.g. browser keyboard centering).
