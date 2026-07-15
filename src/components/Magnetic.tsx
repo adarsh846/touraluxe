@@ -61,9 +61,24 @@ export function Magnetic({
       yToLive((clientY - cy) * intensity);
     };
 
-    const onMouseMove = (e: MouseEvent) => moveWithLive(e.clientX, e.clientY);
+    let lastTouchTime = 0;
+
+    const moveWithTouch = (clientX: number, clientY: number) => {
+      if (!cachedRect) updateRect();
+      const rect = cachedRect!;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      xToLive((clientX - cx) * intensity);
+      yToLive((clientY - cy) * intensity);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (Date.now() - lastTouchTime < 500) return;
+      moveWithLive(e.clientX, e.clientY);
+    };
 
     const onMouseEnter = () => {
+      if (Date.now() - lastTouchTime < 500) return;
       updateRect(); // Cache rect once per interaction
       gsap.killTweensOf(inner);
       refreshQuickTo();
@@ -71,43 +86,33 @@ export function Magnetic({
     };
 
     const onMouseLeave = () => {
+      if (Date.now() - lastTouchTime < 500) return;
       reset();
       gsap.to(inner, { filter: "brightness(1)", duration: 0.6, ease: "power2.out", overwrite: "auto" });
     };
 
     // ═══ TOUCH: Liquid Interaction Logic ═══
-    let startX = 0;
-    let startY = 0;
-
     const onTouchStart = (e: TouchEvent) => {
+      lastTouchTime = Date.now();
+      updateRect();
+      gsap.killTweensOf(inner);
+      refreshQuickTo();
       const t = e.touches[0];
-      startX = t.clientX;
-      startY = t.clientY;
+      moveWithTouch(t.clientX, t.clientY);
       gsap.to(inner, { scale: 0.95, filter: "brightness(1.5)", duration: 0.2, ease: "power2.out", overwrite: "auto" });
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      lastTouchTime = Date.now();
       const t = e.touches[0];
-      const dx = t.clientX - startX;
-      const dy = t.clientY - startY;
-      
-      // Calibrated Liquid Move: Reduced multiplier to 0.1 to prevent 'stretching' feel
-      // and added a threshold check to keep the button stable during vertical scroll.
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-        gsap.to(inner, {
-          x: dx * 0.1,
-          y: dy * 0.1,
-          scale: 0.98,
-          duration: 0.4,
-          ease: "power2.out",
-          overwrite: "auto",
-        });
-      }
+      moveWithTouch(t.clientX, t.clientY);
     };
 
     const onTouchEnd = () => {
+      lastTouchTime = Date.now();
+      reset();
       gsap.to(inner, {
-        x: 0, y: 0, scale: 1, filter: "brightness(1)",
+        scale: 1, filter: "brightness(1)",
         duration: 0.8, ease: "elastic.out(1.2, 0.4)", overwrite: "auto",
       });
     };
