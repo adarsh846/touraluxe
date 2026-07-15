@@ -633,20 +633,18 @@ export function FloatingSearch() {
           )}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
         >
-        {/* iOS 26 gradient border ring — mobile only */}
-        {isMobile && (
-          <div
-            className="absolute inset-0 rounded-full pointer-events-none z-[2]"
-            style={{
-              background: "linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.03) 70%, rgba(255,255,255,0.01) 100%)",
-              padding: "1px",
-              borderRadius: "9999px",
-              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-              WebkitMaskComposite: "destination-out",
-              maskComposite: "exclude",
-            }}
-          />
-        )}
+        {/* iOS 26 gradient border ring — mobile & desktop */}
+        <div
+          className="absolute inset-0 rounded-full pointer-events-none z-[2]"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.03) 70%, rgba(255,255,255,0.01) 100%)",
+            padding: "1px",
+            borderRadius: "9999px",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "destination-out",
+            maskComposite: "exclude",
+          }}
+        />
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -654,10 +652,10 @@ export function FloatingSearch() {
           }}
           ref={pillRef}
           className={cn(
-            "relative items-center border rounded-full transition-[border-color] duration-300",
+            "relative items-center border rounded-full transition-[border-color] duration-300 bg-[#0a0a0b]/95 backdrop-blur-2xl border-white/[0.18]",
             isMobile
-              ? "flex w-full p-1.5 bg-[#0a0a0b]/95 backdrop-blur-2xl border-white/[0.18] shadow-[0_20px_60px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.12)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
-              : "inline-flex w-auto p-1.5 md:p-2 bg-[#0b0b0c] border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)]"
+              ? "flex w-full p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.12)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+              : "inline-flex w-auto p-1.5 md:p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.15)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
           )}
           onMouseMove={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
           onMouseEnter={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
