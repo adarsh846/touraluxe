@@ -91,11 +91,11 @@ export function Footer() {
         <p className="text-xs text-muted">
           &copy; {new Date().getFullYear()} TouraLuxe. All rights reserved.
         </p>
-        <p className="text-xs text-muted flex items-center gap-1">
+        {/* <p className="text-xs text-muted flex items-center gap-1">
           <span>Handcrafted with</span>
           <Heart size={14} className="fill-red-500/70 stroke-none relative top-[0.5px]" />
           <span>by ADARSH.</span>
-        </p>
+        </p> */}
       </div>
     </footer>
   );
