@@ -291,16 +291,22 @@ export function FloatingSearch() {
     const handleVisualViewportChange = () => {
       const vv = window.visualViewport;
       if (!vv) return;
-      
+
       const keyboardActive = isFocusedRef.current && (vv.height < initialHeightRef.current * 0.85);
       setIsKeyboardOpen(keyboardActive);
-      isKeyboardOpenRef.current = keyboardActive; // Keep ref in sync for scroll guard
+      isKeyboardOpenRef.current = keyboardActive;
 
       if (keyboardActive) {
         setIsVisible(true);
       } else {
-        // Auto-blur input when keyboard is dismissed to reset focus state correctly
-        if (document.activeElement === inputRef.current) {
+        // Only blur — and therefore allow hiding — when the keyboard is definitively closed.
+        // The keyboard open animation fires multiple visualViewport resize events; during that
+        // animation, vv.height transiently sits between 85–95% of initial (not yet fully open,
+        // not fully closed). Blurring in that transient window caused the search bar to
+        // disappear immediately after appearing. We guard with a 95% threshold so we only
+        // blur when the viewport is back near full height (keyboard is truly dismissed).
+        const keyboardDefinitelyClosed = vv.height >= initialHeightRef.current * 0.95;
+        if (keyboardDefinitelyClosed && document.activeElement === inputRef.current) {
           inputRef.current?.blur();
         }
       }
