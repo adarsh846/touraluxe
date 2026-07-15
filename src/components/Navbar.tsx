@@ -268,17 +268,24 @@ export function Navbar() {
 
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md">
-        <div className="flex items-center justify-between bg-black/90 backdrop-blur-xl border border-white/10 rounded-full px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_1px_2px_rgba(255,255,255,0.05)_inset]">
+        {/* iOS 26 gradient border ring: bright top rim, fading sides, dark bottom */}
+        <div
+          className="p-px rounded-full"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.04) 70%, rgba(255,255,255,0.02) 100%)",
+          }}
+        >
+        <div className="flex items-center justify-between bg-[#0a0a0b]/92 backdrop-blur-2xl rounded-full px-3 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.08)_inset,0_-1px_0px_rgba(0,0,0,0.4)_inset]">
           {/* Search */}
           <button
             onClick={() => {
               setIsMobileMenuOpen(false);
               window.dispatchEvent(new CustomEvent("open-mobile-search"));
             }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
           >
-            <Search size={20} className="opacity-75" />
-            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Search</span>
+            <Search size={20} className="opacity-90" />
+            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Search</span>
           </button>
 
           {/* Destinations */}
@@ -287,10 +294,10 @@ export function Navbar() {
               setIsMobileMenuOpen(false);
               router.push("/destinations");
             }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
           >
-            <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white scale-110" : "opacity-75")} />
-            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Places</span>
+            <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "opacity-90")} />
+            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Places</span>
           </button>
 
           {/* Book Now (Center Standout Action) */}
@@ -301,7 +308,10 @@ export function Navbar() {
                   setIsMobileMenuOpen(false);
                   openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
                 }}
-                className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all border border-white/20"
+                className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all"
+                style={{
+                  boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px_28px_rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
+                }}
               >
                 <Calendar size={22} className="stroke-[2.5]" />
                 <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
@@ -322,30 +332,31 @@ export function Navbar() {
                 scrollToSection("services", -80);
               }
             }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
           >
-            <Sparkles size={20} className="opacity-75" />
-            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Services</span>
+            <Sparkles size={20} className="opacity-90" />
+            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Services</span>
           </button>
 
           {/* Menu / Close */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
           >
             {isMobileMenuOpen ? (
               <>
-                <X size={20} className="text-white scale-110" />
-                <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Close</span>
+                <X size={20} className="text-white" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Close</span>
               </>
             ) : (
               <>
-                <Menu size={20} className="opacity-75" />
-                <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Menu</span>
+                <Menu size={20} className="opacity-90" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Menu</span>
               </>
             )}
           </button>
         </div>
+        </div>{/* /gradient border ring */}
       </div>
     </>
   );

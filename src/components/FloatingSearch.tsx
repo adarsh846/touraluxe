@@ -257,7 +257,7 @@ export function FloatingSearch() {
   useEffect(() => {
     const checkMobile = () => {
       const w = window.innerWidth;
-      const mobile = w < 768;
+      const mobile = w < 1280; // Align with xl breakpoint (1280px) to match bottom pill nav visibility
       setIsMobile(mobile);
 
       // CRITICAL: Only update visibility and placeholder when the viewport WIDTH changes.
@@ -567,7 +567,7 @@ export function FloatingSearch() {
         ref={searchContainerRef}
         className={cn(
           "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3",
-          isMobile ? "top-[76px] max-w-sm" : "bottom-10 max-w-4xl",
+          isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md" : "bottom-10 max-w-4xl",
           !isInitialized && "opacity-0 invisible",
           !isVisible && "pointer-events-none"
         )}
@@ -623,13 +623,30 @@ export function FloatingSearch() {
           </div>
         )}
 
-        {/* islandInnerRef: plain w-fit wrapper, NO CSS transitions — Phase 2 elastic scaleX/Y target.
-            Matches PackageContent's islandInnerRef exactly. transition-all on form would kill elastic.out. */}
+        {/* islandInnerRef: plain wrapper, NO CSS transitions — Phase 2 elastic scaleX/Y target.
+            w-full on mobile (form fills container), w-fit on desktop (elastic expand works correctly) */}
         <div
           ref={islandInnerRef}
-          className="relative flex items-center justify-center w-fit transform-gpu will-change-transform"
+          className={cn(
+            "relative flex items-center justify-center transform-gpu will-change-transform",
+            isMobile ? "w-full" : "w-fit"
+          )}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
         >
+        {/* iOS 26 gradient border ring — mobile only */}
+        {isMobile && (
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none z-[2]"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.03) 70%, rgba(255,255,255,0.01) 100%)",
+              padding: "1px",
+              borderRadius: "9999px",
+              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+              WebkitMaskComposite: "destination-out",
+              maskComposite: "exclude",
+            }}
+          />
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -637,10 +654,10 @@ export function FloatingSearch() {
           }}
           ref={pillRef}
           className={cn(
-            "relative items-center bg-[#0b0b0c] border border-white/10 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-[border-color] duration-300",
-            isMobile 
-              ? "flex w-full p-1.5 bg-[#0b0b0c]/90 backdrop-blur-xl border-white/10 shadow-[0_24px_48px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)]" 
-              : "inline-flex w-auto p-1.5 md:p-2"
+            "relative items-center border rounded-full transition-[border-color] duration-300",
+            isMobile
+              ? "flex w-full p-1.5 bg-[#0a0a0b]/95 backdrop-blur-2xl border-white/[0.18] shadow-[0_20px_60px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.12)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+              : "inline-flex w-auto p-1.5 md:p-2 bg-[#0b0b0c] border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.15)]"
           )}
           onMouseMove={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
           onMouseEnter={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
