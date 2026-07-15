@@ -148,7 +148,7 @@ I would love to get some assistance in handcrafting this experience.`;
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
-        "fixed bottom-24 right-5 md:bottom-8 md:right-8 z-[100] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "mobile-whatsapp-btn transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
         isVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
       )}
     >

@@ -36,7 +36,7 @@ export function Footer() {
   }, [settings.services_data]);
 
   return (
-    <footer className="relative z-20 w-full bg-black py-16 px-6 -mt-[1px]">
+    <footer className="relative z-20 w-full bg-black pt-16 pb-28 md:pb-16 px-6 -mt-[1px]">
       <div className="mx-auto max-w-[1200px] flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         <div className="flex flex-col items-start gap-4">
           <Magnetic>

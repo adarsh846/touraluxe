@@ -118,13 +118,6 @@ export function Magnetic({
     wrapper.addEventListener("mouseleave", onMouseLeave);
     window.addEventListener("resize", updateRect, { passive: true });
 
-    if (isTouch) {
-      wrapper.addEventListener("touchstart", onTouchStart, { passive: true });
-      wrapper.addEventListener("touchmove", onTouchMove, { passive: true });
-      wrapper.addEventListener("touchend", onTouchEnd, { passive: true });
-      wrapper.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    }
-
     return () => {
       gsap.killTweensOf(inner);
       gsap.killTweensOf(wrapper);
@@ -132,10 +125,6 @@ export function Magnetic({
       wrapper.removeEventListener("mousemove", onMouseMove);
       wrapper.removeEventListener("mouseleave", onMouseLeave);
       window.removeEventListener("resize", updateRect);
-      wrapper.removeEventListener("touchstart", onTouchStart);
-      wrapper.removeEventListener("touchmove", onTouchMove);
-      wrapper.removeEventListener("touchend", onTouchEnd);
-      wrapper.removeEventListener("touchcancel", onTouchEnd);
     };
   }, []);
 

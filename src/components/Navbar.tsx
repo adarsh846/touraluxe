@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Compass, Globe, Sparkles, Calendar, Search } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 import { useBooking } from "./BookingProvider";
-
-
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 const NAV_LINKS = [
   { name: "New Journey", href: "featured", offset: 0 },
@@ -20,10 +18,24 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { openBooking, openModal } = useBooking();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+
+  useEffect(() => {
+    import("@/lib/settingsCache").then(({ getSettings }) => {
+      getSettings().then(data => {
+        if (data.whatsapp_number) {
+          setWhatsappNumber(data.whatsapp_number);
+        } else if (data.contact_phone) {
+          setWhatsappNumber(data.contact_phone);
+        }
+      });
+    });
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -171,19 +183,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* ── Mobile Toggle Button — always above overlay ── */}
-      <div className="fixed top-4 right-6 xl:hidden z-[60]">
-        <Magnetic>
-          <button
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-white/10 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/20"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle Menu"
-          >
-            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </Magnetic>
-      </div>
-
       {/* ── Mobile Nav Overlay ── */}
       <div
         className={cn(
@@ -195,7 +194,7 @@ export function Navbar() {
       >
         <div className="flex flex-col h-full pt-[clamp(7rem,12vw,10rem)] px-[clamp(2rem,6vw,6rem)]">
           <nav className="flex flex-col gap-[clamp(1.5rem,4vw,3rem)]">
-            {NAV_LINKS.map((link, i) => (
+            {NAV_LINKS.filter(link => link.name !== "Destinations" && link.name !== "Services").map((link, i) => (
               <Magnetic key={link.name}>
                 {link.href.startsWith("/") ? (
                   <Link
@@ -230,29 +229,122 @@ export function Navbar() {
 
             <div
               className={cn(
-                "mt-[clamp(2.5rem,6vw,5rem)] pt-[clamp(2rem,4vw,4rem)] border-t border-white/10 transition-all duration-500 flex flex-col sm:flex-row gap-4",
+                "mt-[clamp(2.5rem,6vw,5rem)] pt-[clamp(2rem,4vw,4rem)] border-t border-white/10 transition-all duration-500 flex flex-col gap-4",
                 isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               )}
-              style={{ transitionDelay: isMobileMenuOpen ? "320ms" : "0ms" }}
+              style={{ transitionDelay: isMobileMenuOpen ? "250ms" : "0ms" }}
             >
               <Magnetic>
                 <button
-                  onClick={() => { openBooking(undefined, "NAVBAR_MOBILE_CTA"); setIsMobileMenuOpen(false); }}
-                  className="flex-1 rounded-full bg-white px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-black transition-transform hover:scale-105 text-center"
-                >
-                  Book Now
-                </button>
-              </Magnetic>
-              <Magnetic>
-                <button
                   onClick={() => { openModal('PORTAL'); setIsMobileMenuOpen(false); }}
-                  className="flex-1 rounded-full bg-white/5 border border-white/10 px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-white/70 transition-transform hover:scale-105 text-center hover:bg-white/15 hover:text-white"
+                  className="w-full rounded-full bg-white px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-black transition-transform hover:scale-105 text-center"
                 >
                   Track Your Booking
                 </button>
               </Magnetic>
+
+              {whatsappNumber && (
+                <Magnetic>
+                  <a
+                    href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hello TouraLuxe, I'd like to inquire about a luxury experience.")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full rounded-full bg-white/5 border border-white/10 backdrop-blur-md px-[clamp(1.75rem,4vw,3rem)] py-[clamp(0.875rem,2vw,1.5rem)] text-[clamp(11.5px,1.5vw,16px)] font-black uppercase tracking-widest text-white transition-all hover:bg-white/10 active:scale-95 text-center flex items-center justify-center gap-3 shadow-[0_4px_30px_rgba(0,0,0,0.2)]"
+                  >
+                    <img 
+                      src="/assets/whatsapp-logo-white.png" 
+                      alt="WhatsApp" 
+                      className="w-5 h-5 object-contain opacity-90"
+                    />
+                    Chat on WhatsApp
+                  </a>
+                </Magnetic>
+              )}
             </div>
           </nav>
+        </div>
+      </div>
+
+      {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md">
+        <div className="flex items-center justify-between bg-black/90 backdrop-blur-xl border border-white/10 rounded-full px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.6),0_1px_2px_rgba(255,255,255,0.05)_inset]">
+          {/* Search */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              window.dispatchEvent(new CustomEvent("open-mobile-search"));
+            }}
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+          >
+            <Search size={20} className="opacity-75" />
+            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Search</span>
+          </button>
+
+          {/* Destinations */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              router.push("/destinations");
+            }}
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+          >
+            <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white scale-110" : "opacity-75")} />
+            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Places</span>
+          </button>
+
+          {/* Book Now (Center Standout Action) */}
+          <div className="flex-1 flex justify-center -translate-y-3.5 relative">
+            <Magnetic>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
+                }}
+                className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all border border-white/20"
+              >
+                <Calendar size={22} className="stroke-[2.5]" />
+                <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
+              </button>
+            </Magnetic>
+          </div>
+
+          {/* Services */}
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              if (pathname !== "/") {
+                router.push("/");
+                setTimeout(() => {
+                  scrollToSection("services", -80);
+                }, 300);
+              } else {
+                scrollToSection("services", -80);
+              }
+            }}
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+          >
+            <Sparkles size={20} className="opacity-75" />
+            <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Services</span>
+          </button>
+
+          {/* Menu / Close */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/60 hover:text-white transition-all py-1"
+          >
+            {isMobileMenuOpen ? (
+              <>
+                <X size={20} className="text-white scale-110" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Close</span>
+              </>
+            ) : (
+              <>
+                <Menu size={20} className="opacity-75" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold scale-90">Menu</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </>
