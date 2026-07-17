@@ -39,8 +39,6 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
   }, [isExiting, router]);
 
   useEffect(() => {
-    if (!pathname.startsWith("/destinations")) return;
-
     document.body.style.overflow = "hidden";
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__lenis?.stop();
@@ -62,6 +60,14 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
       (window as any).__lenis?.start();
       ctx.revert();
     };
+  }, []);
+
+  // Reset scroll container position when slug/pathname transitions
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+    setIsScrolled(false);
   }, [pathname]);
 
   if (!pathname.startsWith("/destinations")) {

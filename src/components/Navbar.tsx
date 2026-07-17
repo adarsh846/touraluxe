@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
+import gsap from "gsap";
 import Image from "next/image";
 import { Menu, X, Compass, Globe, Sparkles, Calendar, Search } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,13 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [isPreloaderCompleted, setIsPreloaderCompleted] = useState(false);
+
+  // Refs for GSAP entrance animation on the bottom pill
+  const pillWrapperRef = useRef<HTMLDivElement>(null);
+  const pillInnerRef = useRef<HTMLDivElement>(null);
+  const pillIconsRef = useRef<HTMLDivElement>(null);
+  const pillEntrancePlayed = useRef(false);
 
   useEffect(() => {
     import("@/lib/settingsCache").then(({ getSettings }) => {
@@ -36,6 +44,64 @@ export function Navbar() {
       });
     });
   }, []);
+
+  // Gate pill entrance on preloader completion — mirrors FloatingSearch logic
+  useEffect(() => {
+    const alreadyPlayed = typeof window !== "undefined" && (window as any).preloaderPlayed;
+    if (alreadyPlayed) {
+      setIsPreloaderCompleted(true);
+    } else {
+      const handler = () => setIsPreloaderCompleted(true);
+      window.addEventListener("preloaderComplete", handler);
+      return () => window.removeEventListener("preloaderComplete", handler);
+    }
+  }, []);
+
+  // ── Dynamic Island entrance for bottom pill ──────────────────────────────
+  // Mirrors the desktop FloatingSearch 4-phase Apple Dynamic Island choreography:
+  //   Phase 1: seed rises from below  (expo.out 0.6s)
+  //   Phase 2: pill elastically expands to full width (elastic.out 0.9s)
+  //   Phase 3: icons / labels fade in (power3.out 0.5s)
+  useLayoutEffect(() => {
+    const wrapperEl = pillWrapperRef.current;
+    const innerEl   = pillInnerRef.current;
+    const iconsEl   = pillIconsRef.current;
+    if (!wrapperEl || !innerEl || !iconsEl) return;
+
+    if (!isPreloaderCompleted) {
+      gsap.set(wrapperEl, { opacity: 0 });
+      return;
+    }
+
+    if (pillEntrancePlayed.current) return;
+    pillEntrancePlayed.current = true;
+
+    // Initial compressed-seed state — opacity:0 hides white border ring until fully risen
+    gsap.set(wrapperEl, { y: 60, opacity: 0, scale: 0.4 });
+    gsap.set(innerEl,   { scaleX: 0.3, scaleY: 0.85 });
+    gsap.set(iconsEl,   { opacity: 0 });
+
+    const tl = gsap.timeline({ delay: 0.2 });
+
+    // Phase 1: seed rises and fades in from bottom
+    tl.to(wrapperEl, {
+      y: 0, opacity: 1, scale: 1,
+      duration: 0.6, ease: "expo.out", force3D: true,
+      clearProps: "scale,y,opacity",
+    })
+    // Phase 2: pill elastically expands to full width
+    .to(innerEl, {
+      scaleX: 1, scaleY: 1,
+      duration: 0.85, ease: "elastic.out(1.0, 0.5)", force3D: true,
+      clearProps: "scaleX,scaleY",
+    }, "-=0.35")
+    // Phase 3: icons & labels fade in
+    .to(iconsEl, {
+      opacity: 1,
+      duration: 0.45, ease: "power3.out",
+      clearProps: "opacity",
+    }, "-=0.55");
+  }, [isPreloaderCompleted]);
 
   useEffect(() => {
     let ticking = false;
@@ -270,96 +336,100 @@ export function Navbar() {
       </div>
 
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md">
+      <div ref={pillWrapperRef} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md" style={{ opacity: 0 }}>
         {/* iOS 26 gradient border ring: bright top rim, fading sides, dark bottom */}
-        <div
-          className="p-px rounded-full"
+        <div ref={pillInnerRef}
+          className="p-px rounded-full transform-gpu will-change-transform"
           style={{
             background: "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.04) 70%, rgba(255,255,255,0.02) 100%)",
           }}
         >
-        <div className="flex items-center justify-between bg-[#0a0a0b]/92 backdrop-blur-2xl rounded-full px-3 py-2 shadow-[0_20px_60px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.08)_inset,0_-1px_0px_rgba(0,0,0,0.4)_inset]">
-          {/* Search */}
-          <button
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              window.dispatchEvent(new CustomEvent("open-mobile-search"));
-            }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
-          >
-            <Search size={20} className="opacity-90" />
-            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Search</span>
-          </button>
-
-          {/* Destinations */}
-          <button
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              router.push("/destinations");
-            }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
-          >
-            <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "opacity-90")} />
-            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Places</span>
-          </button>
-
-          {/* Book Now (Center Standout Action) */}
-          <div className="flex-1 flex justify-center -translate-y-3.5 relative">
-            <Magnetic>
+          {/* Solid background and shadow layer that scales with the border */}
+          <div className="bg-[#0a0a0b]/92 backdrop-blur-2xl rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.08)_inset,0_-1px_0px_rgba(0,0,0,0.4)_inset]">
+            {/* Icons content layer — starts invisible and fades in */}
+            <div ref={pillIconsRef} className="flex items-center justify-between px-3 py-2 w-full h-full">
+              {/* Search */}
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
-                  openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
+                  window.dispatchEvent(new CustomEvent("open-mobile-search"));
                 }}
-                className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all"
-                style={{
-                  boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px_28px_rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
-                }}
+                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
               >
-                <Calendar size={22} className="stroke-[2.5]" />
-                <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
+                <Search size={20} className="opacity-90" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Search</span>
               </button>
-            </Magnetic>
+
+              {/* Destinations */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  router.push("/destinations");
+                }}
+                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+              >
+                <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "opacity-90")} />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Places</span>
+              </button>
+
+              {/* Book Now (Center Standout Action) */}
+              <div className="flex-1 flex justify-center -translate-y-3.5 relative">
+                <Magnetic>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
+                    }}
+                    className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all"
+                    style={{
+                      boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px_28px_rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
+                    }}
+                  >
+                    <Calendar size={22} className="stroke-[2.5]" />
+                    <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
+                  </button>
+                </Magnetic>
+              </div>
+
+              {/* Services */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (pathname !== "/") {
+                    router.push("/");
+                    setTimeout(() => {
+                      scrollToSection("services", -80);
+                    }, 300);
+                  } else {
+                    scrollToSection("services", -80);
+                  }
+                }}
+                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+              >
+                <Sparkles size={20} className="opacity-90" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Services</span>
+              </button>
+
+              {/* Menu / Close */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+              >
+                {isMobileMenuOpen ? (
+                  <>
+                    <X size={20} className="text-white" />
+                    <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Close</span>
+                  </>
+                ) : (
+                  <>
+                    <Menu size={20} className="opacity-90" />
+                    <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Menu</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-
-          {/* Services */}
-          <button
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              if (pathname !== "/") {
-                router.push("/");
-                setTimeout(() => {
-                  scrollToSection("services", -80);
-                }, 300);
-              } else {
-                scrollToSection("services", -80);
-              }
-            }}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
-          >
-            <Sparkles size={20} className="opacity-90" />
-            <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Services</span>
-          </button>
-
-          {/* Menu / Close */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
-          >
-            {isMobileMenuOpen ? (
-              <>
-                <X size={20} className="text-white" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Close</span>
-              </>
-            ) : (
-              <>
-                <Menu size={20} className="opacity-90" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Menu</span>
-              </>
-            )}
-          </button>
         </div>
-        </div>{/* /gradient border ring */}
       </div>
     </>
   );

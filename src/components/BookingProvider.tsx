@@ -135,7 +135,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       setHistory([]);
       // Push a fake entry so the HW back button fires popstate
       if (!hasPushedHistoryRef.current) {
-        window.history.pushState({ touraluxeModal: true }, '');
+        window.history.pushState({ ...window.history.state, touraluxeModal: true }, '');
         hasPushedHistoryRef.current = true;
       }
     }
@@ -169,6 +169,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   const closeModal = useCallback(() => {
+    isOpenRef.current = false; // Disable popstate intercept immediately to prevent race conditions during popstate events
     // If we pushed a fake history entry, clean it up silently
     if (hasPushedHistoryRef.current) {
       hasPushedHistoryRef.current = false;
@@ -191,16 +192,16 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Only intercept if our modal is open
       if (!isOpenRef.current) return;
 
-      // Prevent the browser from actually navigating away
-      // Re-push so the back button still works if pressed again
-      window.history.pushState({ touraluxeModal: true }, '');
-
       // Read from ref to avoid stale closure over history state
       if (historyRef.current.length > 0) {
+        // Prevent the browser from actually navigating away
+        // Re-push so the back button still works if pressed again
+        window.history.pushState({ ...window.history.state, touraluxeModal: true }, '');
         // Navigate back within modal history
         goBack();
       } else {
         // No more modal history — close the modal
+        // Let the browser's back navigation happen naturally (no re-push)
         setIsClosing(true);
         setErrorState(null);
         hasPushedHistoryRef.current = false;
