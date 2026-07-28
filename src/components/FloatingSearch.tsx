@@ -253,24 +253,49 @@ export function FloatingSearch() {
     openBooking(undefined, "FLOATING_SEARCH", finalVal || "Explore");
   }, [searchValue, openBooking]);
 
+  const isResizingRef = useRef(false);
+
   // Check mobile & set dynamic placeholder
   useEffect(() => {
     const checkMobile = () => {
       const w = window.innerWidth;
       const mobile = w < 1280; // Align with xl breakpoint (1280px) to match bottom pill nav visibility
-      setIsMobile(mobile);
 
-      // CRITICAL: Only update visibility and placeholder when the viewport WIDTH changes.
-      // On Android, opening the virtual keyboard fires window.resize with the SAME width
-      // but reduced height. Without this guard, checkMobile was unconditionally calling
-      // setIsVisible(false) on every keyboard-open resize — hiding the search bar immediately
-      // after it appeared. We use lastWidthRef (starts at 0) so the initial mount always runs.
-      if (w !== lastWidthRef.current) {
+      setIsMobile(prevMobile => {
+        if (prevMobile !== mobile) {
+          isResizingRef.current = true;
+          setTimeout(() => { isResizingRef.current = false; }, 200);
+
+          if (mobile) {
+            setIsVisible(false);
+            setPlaceholder(w < 400 ? "Search" : "Search destinations");
+            if (islandContainerRef.current) {
+              gsap.killTweensOf(islandContainerRef.current);
+              gsap.set(islandContainerRef.current, { opacity: 0, y: -120 });
+            }
+          } else {
+            setIsVisible(true);
+            setPlaceholder("Where will your next journey begin?");
+            // Mark desktop entrance as played so the layout effect uses the
+            // lightweight slide path instead of the full 4-phase choreography.
+            // The full choreography sets inputAreaRef opacity to 0, which hides
+            // the placeholder. Only a genuine first page load should trigger it.
+            desktopEntrancePlayedRef.current = true;
+            if (islandContainerRef.current) {
+              gsap.killTweensOf(islandContainerRef.current);
+              gsap.set(islandContainerRef.current, { opacity: 1, y: 0 });
+            }
+          }
+        }
+        return mobile;
+      });
+
+      if (lastWidthRef.current === 0) {
         lastWidthRef.current = w;
         initialHeightRef.current = window.innerHeight;
 
         if (mobile) {
-          setIsVisible(false); // Hidden by default on mobile, opened by bottom nav Search btn
+          setIsVisible(false);
           setPlaceholder(w < 400 ? "Search" : "Search destinations");
         } else {
           setIsVisible(true);
@@ -462,11 +487,47 @@ export function FloatingSearch() {
           );
         }
       } else {
-        // Mobile: spring drop from top
-        gsap.fromTo(islandEl,
-          { y: startY, opacity: 0, scale: 0.9 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: 'elastic.out(1.1, 0.75)', force3D: true, clearProps: 'scale,y,opacity' }
-        );
+        // ─── MOBILE: Apple Dynamic Island Elastic Spring Choreography ───
+        // Stage 1: Kinetic Seed Drop (expo.out) - compressed glass seed drops from top
+        // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45)) - morphs & elastically stretches X/Y with spring inertia
+        // Stage 3: Staggered Content Pop (power3.out & back.out) - input field & action pop in with 3D depth
+
+        gsap.set(islandEl, { y: -120, opacity: 0, scale: 0.3 });
+        if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
+        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
+        if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
+
+        const tl = gsap.timeline();
+
+        // Stage 1: Kinetic Seed Drop (expo.out 0.5s)
+        tl.to(islandEl, {
+          y: 0, opacity: 1, scale: 1,
+          duration: 0.5, ease: 'expo.out', force3D: true,
+          clearProps: 'scale,y,opacity',
+        })
+        // Stage 2: Elastic Morph Expansion along X/Y axes (elastic.out(1.1, 0.45) 0.85s)
+        .to(innerEl, {
+          scaleX: 1, scaleY: 1,
+          duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
+          clearProps: 'scaleX,scaleY',
+        }, '-=0.35');
+
+        // Stage 3: Staggered Content Pop (power3.out 0.45s & back.out 0.4s)
+        if (inputAreaRef.current) {
+          tl.to(inputAreaRef.current, {
+            opacity: 1, x: 0,
+            duration: 0.45, ease: 'power3.out', force3D: true,
+            clearProps: 'opacity,x',
+          }, '-=0.6');
+        }
+
+        if (searchActionRef.current) {
+          tl.to(searchActionRef.current, {
+            opacity: 1, scale: 1,
+            duration: 0.4, ease: 'back.out(1.5)', force3D: true,
+            clearProps: 'opacity,scale',
+          }, '-=0.45');
+        }
       }
     } else {
       gsap.killTweensOf(islandEl);
@@ -474,10 +535,21 @@ export function FloatingSearch() {
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
-      gsap.to(islandEl, {
-        y: hideY, opacity: 0, scale: 0.95,
-        duration: 0.4, ease: 'power3.inOut', force3D: true,
-      });
+      // Clear GSAP inline styles so inputArea/searchAction start fresh on next open.
+      // Without this, killed Stage 3 tweens leave opacity:0 stuck on the elements,
+      // making the placeholder invisible when the bar reopens.
+      if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
+      if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
+      if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
+
+      if (isResizingRef.current) {
+        gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.95 });
+      } else {
+        gsap.to(islandEl, {
+          y: hideY, opacity: 0, scale: 0.95,
+          duration: 0.4, ease: 'power3.inOut', force3D: true,
+        });
+      }
     }
   }, [isVisible, isMobile, isPreloaderCompleted]);
 
@@ -567,7 +639,7 @@ export function FloatingSearch() {
         ref={searchContainerRef}
         className={cn(
           "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3",
-          isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md" : "bottom-10 max-w-4xl",
+          isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl" : "bottom-10 max-w-4xl",
           !isInitialized && "opacity-0 invisible",
           !isVisible && "pointer-events-none"
         )}
@@ -766,20 +838,22 @@ export function FloatingSearch() {
           )}
 
           {isMobile && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchValue("");
-                if (inputRef.current) {
-                  inputRef.current.blur();
-                }
-                setShowSuggestions(false);
-                setIsVisible(false);
-              }}
-              className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white px-3 py-2 transition-colors duration-300 shrink-0"
-            >
-              Cancel
-            </button>
+            <div ref={searchActionRef} className="shrink-0 relative z-10">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchValue("");
+                  if (inputRef.current) {
+                    inputRef.current.blur();
+                  }
+                  setShowSuggestions(false);
+                  setIsVisible(false);
+                }}
+                className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white px-3 py-2 transition-colors duration-300 shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
           )}
         </form>
         </div>{/* /islandInnerRef */}

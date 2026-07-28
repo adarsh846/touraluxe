@@ -296,18 +296,18 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                     </div>
 
                     {isDiscoveryLoading ? (
-                      <div className="flex overflow-x-auto gap-6 md:gap-8 scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 px-[clamp(1.5rem,6vw,4rem)] -mx-[clamp(1.5rem,6vw,4rem)]">
-                        {[1, 2].map(i => (
+                      <div className="flex sm:grid overflow-x-auto sm:overflow-visible scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 gap-6 md:gap-8 -mx-[clamp(1.5rem,6vw,4rem)] sm:mx-0 px-[clamp(1.5rem,6vw,4rem)] sm:px-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3].map(i => (
                           <div 
                             key={i} 
-                            className="flex-shrink-0 w-[80vw] sm:w-[50vw] md:w-[380px] lg:w-[420px] aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11] rounded-[2.5rem] bg-white/[0.02] border border-white/[0.05] animate-pulse" 
+                            className="flex-shrink-0 w-[80vw] sm:w-full aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11] rounded-3xl md:rounded-[28px] bg-white/[0.02] border border-white/[0.05] animate-pulse" 
                           />
                         ))}
                       </div>
                     ) : livePackages.length > 0 ? (
                       <div 
                         onScroll={(e) => setDiscoveryScrolled(e.currentTarget.scrollLeft > 30)}
-                        className="flex overflow-x-auto gap-6 md:gap-8 snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 min-h-0 px-[clamp(1.5rem,6vw,4rem)] -mx-[clamp(1.5rem,6vw,4rem)]"
+                        className="flex sm:grid overflow-x-auto sm:overflow-visible snap-x snap-mandatory scrollbar-hide pt-2 pb-6 md:pt-4 md:pb-8 min-h-0 gap-6 md:gap-8 -mx-[clamp(1.5rem,6vw,4rem)] sm:mx-0 px-[clamp(1.5rem,6vw,4rem)] sm:px-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                       >
                         {livePackages.map((pkg) => {
                           const pricing = computePrice(pkg);
@@ -320,20 +320,20 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                               onClick={() => {
                                 openModal('PACKAGE', pkg, `SERVICES_${service.title.toUpperCase().replace(/\s+/g, '_')}`);
                               }}
-                              className="w-[80vw] sm:w-[50vw] md:w-[380px] lg:w-[420px] aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11]"
+                              className="flex-shrink-0 w-[80vw] sm:w-full aspect-[10/11] sm:aspect-[12/11] md:aspect-[16/11]"
                             />
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="py-12 px-8 rounded-[32px] bg-white/[0.02] border border-dashed border-white/20 flex flex-col items-center text-center">
+                      <div className="py-12 px-8 rounded-3xl md:rounded-[28px] bg-white/[0.02] border border-dashed border-white/20 flex flex-col items-center text-center">
                         <p className="text-[14px] text-white/60 font-medium italic">Our curators are currently preparing new missions in this sector.</p>
                       </div>
                     )}
                   </div>
 
                   {/* Custom Journey CTA */}
-                  <div className="mb-12 p-6 md:p-8 rounded-[32px] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.1] flex flex-col md:flex-row items-center justify-between gap-6 group">
+                  <div className="mb-12 p-6 md:p-8 rounded-3xl md:rounded-[28px] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/[0.1] flex flex-col md:flex-row items-center justify-between gap-6 group">
                     <div className="flex-1 text-center md:text-left">
                       <h5 className="text-[15px] font-bold text-white mb-2">Seeking a Different Destination?</h5>
                       <p className="text-[13px] text-[#86868b] leading-relaxed">Share your dream destination, and our curators will handle the rest.</p>

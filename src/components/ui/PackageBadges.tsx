@@ -19,37 +19,33 @@ interface PackageBadgesProps {
 export function PackageBadges({ pkg, pricing, className, size = "md", matchData }: PackageBadgesProps) {
   const badgeConfig = pkg.badge ? BADGE_CONFIG[pkg.badge] : null;
   const BadgeIcon = badgeConfig?.icon || Sparkles;
-  const isSmall = size === "sm";
 
   return (
-    <div className={cn("absolute top-3 left-3 right-3 md:top-4 md:left-4 md:right-4 flex items-start justify-between pointer-events-none z-20", className)}>
-      {pkg.badge ? (
-        <div className={cn(`rounded-full border flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-top-4 duration-700`, badgeConfig?.bg || "bg-[#1a1a1f]/90 border-white/10", "px-2 py-0.5 md:px-3 md:py-1.5 gap-1 md:gap-1.5")}>
-          <BadgeIcon size={8} className={cn(badgeConfig?.color || "text-white/80", "md:w-[12px] md:h-[12px]")} />
-          <span className={cn("font-black uppercase tracking-widest text-center", badgeConfig?.color || "text-white/80", "text-[7px] md:text-[9px]")}>
-            {pkg.badge}
-          </span>
-        </div>
-      ) : <div />}
-
-      <div className="flex flex-col items-end gap-1.5 md:gap-2">
-        {matchData && matchData.label && (
-          <div className={cn(
-            "rounded-full border flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-right-4 duration-700",
-            "px-2 py-0.5 md:px-3 md:py-1.5 gap-1 md:gap-1.5",
-            matchData.authority === 'gold' ? "bg-amber-950/80 border-amber-400/30 text-amber-100" :
-              matchData.authority === 'silver' ? "bg-zinc-900/80 border-white/30 text-white" :
-                "bg-[#1a1a1f]/90 border-white/10 text-white/70"
-          )}>
-            <span className={cn("font-black uppercase tracking-widest text-center", "text-[7px] md:text-[9px]")}>
+    <div className={cn("absolute top-3 left-3 right-3 md:top-4 md:left-4 md:right-4 flex items-center justify-between pointer-events-none z-20 gap-2", className)}>
+      {/* Left Badge: Primary Category/Status (Trending, Bestseller, etc.) */}
+      <div className="flex items-center gap-2">
+        {pkg.badge ? (
+          <div className="flex items-center gap-1.5 px-3 py-1 md:px-3.5 md:py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/15 shadow-[0_8px_20px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-500">
+            <BadgeIcon size={11} className={cn(badgeConfig?.color || "text-amber-400")} strokeWidth={2.2} />
+            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
+              {pkg.badge}
+            </span>
+          </div>
+        ) : matchData?.label ? (
+          <div className="flex items-center gap-1.5 px-3 py-1 md:px-3.5 md:py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/15 shadow-[0_8px_20px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-500">
+            <Sparkles size={11} className="text-amber-400" strokeWidth={2.2} />
+            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
               {matchData.label}
             </span>
           </div>
-        )}
+        ) : <div />}
+      </div>
 
+      {/* Right Badge: Savings % Tag */}
+      <div className="flex items-center gap-2">
         {pricing?.hasSavings && (
-          <div className={cn(`rounded-full bg-emerald-600 border border-emerald-500 shadow-[0_4px_20px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-right-4 duration-700 delay-150 flex items-center justify-center`, "w-6 h-6 md:w-8 md:h-8")}>
-            <span className={cn("font-black text-white text-center", "text-[8px] md:text-[10px]")}>
+          <div className="flex items-center px-2.5 py-1 md:px-3 md:py-1 rounded-full bg-emerald-500/15 backdrop-blur-xl border border-emerald-500/30 text-emerald-300 shadow-[0_4px_15px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in-95 duration-500">
+            <span className="text-[9px] md:text-[10px] font-bold tracking-wider">
               -{pricing.discountPercent}%
             </span>
           </div>

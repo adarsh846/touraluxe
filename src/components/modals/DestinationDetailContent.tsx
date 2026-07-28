@@ -259,8 +259,8 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
               </div>
               <Magnetic><Link href="/destinations" className="shrink-0 whitespace-nowrap px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:bg-white hover:text-black transition-all duration-500">View All</Link></Magnetic>
             </div>
-            <div className="overflow-x-auto scrollbar-hide -mx-6 px-6">
-              <div className="flex gap-6" style={{ minWidth: 'max-content' }}>
+            <div className="overflow-x-auto scrollbar-hide -mx-6 xl:-mx-[calc((100vw-1200px)/2+1.5rem)]">
+              <div className="flex gap-6 min-w-full w-max px-6 xl:px-[calc((100vw-1200px)/2+1.5rem)]" style={{ justifyContent: 'safe center' }}>
                 {relatedDestinations.map((dest) => (
                   <Link key={dest.id} href={`/destinations/${dest.slug}`} replace className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
                     <div className="relative aspect-[4/5] overflow-hidden bg-white/5">

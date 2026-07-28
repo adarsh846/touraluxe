@@ -118,7 +118,7 @@ export const PackageCard = memo(function PackageCard({
                         {pricing.formattedFinal}
                       </span>
                       {pricing.hasSavings && (
-                        <span className="text-xs font-medium text-white/35 line-through italic tabular-nums">
+                        <span className="text-xs font-semibold text-white/75 line-through decoration-rose-400/90 italic tabular-nums">
                           {pricing.formattedOriginal}
                         </span>
                       )}
@@ -154,7 +154,7 @@ export const PackageCard = memo(function PackageCard({
           <div
             onClick={handleClick}
             className={cn(
-              "group/card relative w-full h-full rounded-[2.5rem] overflow-hidden cursor-pointer border transition-all duration-700 shadow-2xl lg:hover:translate-y-[-8px] lg:hover:scale-[1.01] transform-gpu backface-hidden",
+              "group/card relative w-full h-full rounded-3xl md:rounded-[28px] overflow-hidden cursor-pointer border transition-all duration-700 shadow-2xl lg:hover:translate-y-[-8px] lg:hover:scale-[1.01] transform-gpu backface-hidden",
               pkg.authority_type === 'gold'
                 ? "border-amber-400/40 hover:border-amber-400/60 shadow-[0_10px_40px_-5px_rgba(251,191,36,0.2)] hover:shadow-[0_15px_50px_-5px_rgba(251,191,36,0.3)]"
                 : pkg.authority_type === 'silver'
@@ -212,11 +212,11 @@ export const PackageCard = memo(function PackageCard({
                   {/* Price & Savings */}
                   <div className="space-y-0.5 text-right">
                     {pricing?.hasSavings ? (
-                      <span className="text-[10px] font-bold line-through text-white/50 block mb-1 drop-shadow-md">
+                      <span className="text-xs md:text-sm font-bold line-through text-white/80 decoration-rose-400/90 block mb-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
                         {pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold text-transparent block mb-1 pointer-events-none select-none">
+                      <span className="text-xs md:text-sm font-bold text-transparent block mb-0.5 pointer-events-none select-none">
                         &nbsp;
                       </span>
                     )}
@@ -244,7 +244,7 @@ export const PackageCard = memo(function PackageCard({
       <Magnetic intensity={0.08} className="w-full h-full block">
         <div
           onClick={handleClick}
-          className="group/card relative w-full h-full rounded-[2rem] overflow-hidden cursor-pointer border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl lg:hover:translate-y-[-4px] transform-gpu backface-hidden"
+          className="group/card relative w-full h-full rounded-3xl md:rounded-[28px] overflow-hidden cursor-pointer border border-white/[0.08] hover:border-white/30 transition-all duration-700 shadow-2xl lg:hover:translate-y-[-4px] transform-gpu backface-hidden"
         >
           {/* Hero Image */}
           <div className="absolute inset-0">
