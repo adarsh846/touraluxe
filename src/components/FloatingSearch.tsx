@@ -535,19 +535,31 @@ export function FloatingSearch() {
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
-      // Clear GSAP inline styles so inputArea/searchAction start fresh on next open.
-      // Without this, killed Stage 3 tweens leave opacity:0 stuck on the elements,
-      // making the placeholder invisible when the bar reopens.
-      if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
-      if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
-      if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
-
       if (isResizingRef.current) {
         gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.95 });
+        if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
+        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
+        if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
       } else {
+        // Fade out child contents smoothly during close to prevent sudden text pop/flash
+        const childTargets = [inputAreaRef.current, searchActionRef.current].filter(Boolean);
+        if (childTargets.length > 0) {
+          gsap.to(childTargets, {
+            opacity: 0,
+            duration: 0.2,
+            ease: 'power2.out',
+            force3D: true,
+          });
+        }
+
         gsap.to(islandEl, {
           y: hideY, opacity: 0, scale: 0.95,
-          duration: 0.4, ease: 'power3.inOut', force3D: true,
+          duration: 0.35, ease: 'power3.inOut', force3D: true,
+          onComplete: () => {
+            if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
+            if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
+            if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
+          }
         });
       }
     }
@@ -583,8 +595,12 @@ export function FloatingSearch() {
       if (!textMeasureRef.current || !inputAreaRef.current) return;
 
       if (isMobile) {
-        gsap.killTweensOf(inputAreaRef.current);
-        gsap.set(inputAreaRef.current, { clearProps: "width" });
+        // Only clear the width property — do NOT killTweensOf(inputAreaRef) here,
+        // as that would kill the Stage 3 opacity/x animation from the Dynamic Island
+        // choreography, leaving inputAreaRef stuck at opacity:0 and hiding all text.
+        if (inputAreaRef.current) {
+          inputAreaRef.current.style.width = '';
+        }
         return;
       }
 
