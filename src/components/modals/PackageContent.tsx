@@ -33,44 +33,37 @@ const ScrubText = ({
   useEffect(() => {
     if (!containerRef.current || !scroller) return;
     const words = containerRef.current.querySelectorAll('.scrub-word');
-    
-    // Default to the top edge of the floating bottom dynamic island
-    const finalStart = start || (() => {
-      const islandHeight = window.innerWidth < 768 ? 76 : 92;
-      return `top bottom-=${islandHeight}`;
-    });
-    
-    // Complete the animation relative to the container scroll trigger
-    const finalEnd = end || (() => {
-      const islandHeight = window.innerWidth < 768 ? 76 : 92;
-      return `bottom bottom-=${islandHeight + 80}`;
-    });
+    if (!words.length) return;
 
     const ctx = gsap.context(() => {
       gsap.fromTo(words, 
-        { opacity: 0.15, y: 20 },
+        { 
+          opacity: 0.1, 
+          y: 28,
+        },
         {
           opacity: 1,
           y: 0,
-          stagger: 0.05,
+          stagger: 0.03,
           ease: "power2.out",
           scrollTrigger: {
             scroller: scroller,
             trigger: containerRef.current,
-            start: finalStart,
-            end: finalEnd,
-            scrub: 0.5,
+            start: start || "top bottom-=90",
+            end: end || "bottom bottom-=220",
+            scrub: 0.3,
           }
         }
       );
     }, containerRef);
+
     return () => ctx.revert();
   }, [text, scroller, start, end]);
 
   return (
-    <div ref={containerRef} className={cn("flex flex-wrap gap-x-[0.25em] gap-y-[0.1em]", className)}>
+    <div ref={containerRef} className={cn("flex flex-wrap gap-x-[0.25em] gap-y-[0.1em] transform-gpu", className)}>
       {text.split(' ').map((word, i) => (
-        <span key={i} className="scrub-word inline-block">{word}</span>
+        <span key={i} className="scrub-word inline-block transform-gpu will-change-[transform,opacity]">{word}</span>
       ))}
     </div>
   );
@@ -1079,7 +1072,7 @@ Could you please share details on availability and custom options? Thank you!`;
                 <div className="flex-1 flex flex-col gap-2 w-full text-center md:text-left">
                    <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
                      {pricing.hasSavings && (
-                       <span className="text-white/85 font-bold line-through decoration-rose-400/90 text-lg md:text-xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}</span>
+                       <span className="text-white/70 font-bold line-through decoration-rose-400/80 text-lg">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
                      )}
                      {pricing.hasSavings && (
                        <span className="text-xs font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">Save {pricing.discountPercent}%</span>
@@ -1197,15 +1190,16 @@ Could you please share details on availability and custom options? Thank you!`;
 
           <div 
             ref={islandContainerRef}
-            className="fixed bottom-4 md:bottom-8 left-0 right-0 px-4 md:px-10 z-[120] pointer-events-none flex justify-center transform-gpu will-change-[transform,opacity]"
+            data-island-container="true"
+            className="fixed bottom-5 left-0 right-0 px-4 z-[120] pointer-events-none flex justify-center transform-gpu"
             style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
           >
-            <div ref={islandInnerRef} className="relative flex flex-col items-center w-full md:w-fit pointer-events-none transform-gpu will-change-transform" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
+            <div ref={islandInnerRef} className="relative flex flex-col items-center w-fit pointer-events-none transform-gpu" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
               
               {/* Speech Bubble Popover */}
               <div 
                 className={cn(
-                  "absolute bottom-[calc(100%+12px)] md:bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[320px] xs:w-[350px] sm:w-[400px] md:w-[460px] max-w-[calc(100vw-24px)] pointer-events-none origin-bottom transform-gpu will-change-[transform,opacity]",
+                  "absolute bottom-[calc(100%+12px)] lg:bottom-[calc(100%+16px)] left-1/2 -translate-x-1/2 z-[130] w-[320px] xs:w-[350px] sm:w-[400px] lg:w-[460px] max-w-[calc(100vw-24px)] pointer-events-none origin-bottom transform-gpu will-change-[transform,opacity]",
                   isPillHovered 
                     ? "opacity-100 scale-100 translate-y-0 transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]" 
                     : "opacity-0 scale-[0.9] translate-y-3 transition-all duration-[250ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
@@ -1367,12 +1361,12 @@ Could you please share details on availability and custom options? Thank you!`;
                 onTouchCancel={() => {
                   handleGlowLeave();
                 }}
-                className="relative flex items-center justify-between rounded-full pointer-events-auto mx-auto transform-gpu will-change-[width,transform] w-full md:w-fit max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-80px)] overflow-hidden"
+                className="relative flex items-center rounded-full pointer-events-auto mx-auto transform-gpu w-fit max-w-[calc(100vw-32px)] lg:max-w-[calc(100vw-80px)] overflow-hidden"
               >
           {/* ════ PHYSICAL JELLY SHELL ════ */}
           <div 
             ref={jellyRef}
-            className="relative flex items-center justify-between py-2 pl-5 pr-3 md:p-2 transform-gpu w-full"
+            className="relative flex items-center justify-between p-1 sm:p-1.5 lg:p-1.5 transform-gpu w-full"
           >
             {/* Background Layer */}
             <div className="absolute inset-0 bg-[#0b0b0c] border border-white/30 rounded-full shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] transition-[border-color] duration-300 pointer-events-none" />
@@ -1385,116 +1379,106 @@ Could you please share details on availability and custom options? Thank you!`;
             />
 
             {/* Content Container (Wrapped in Jelly) */}
-            <div className="relative z-10 flex items-center justify-between w-full h-full gap-2 md:gap-4 lg:gap-6">
+            <div className="relative z-10 flex items-center w-full h-full gap-3 lg:justify-between lg:gap-5 xl:gap-6 pl-3 lg:pl-5 pr-1">
 
-              {/* ── MOBILE LAYOUT (< md): 2-Line Ultra-Clean Stack ── */}
+              {/* ── MOBILE/TABLET LAYOUT (< lg): Full info + icon-only Reserve ── */}
               <div 
-                className="flex md:hidden items-center gap-2 flex-1 min-w-0 cursor-pointer select-none"
+                className="flex lg:hidden items-center gap-3 flex-1 min-w-0 cursor-pointer select-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsPillHovered(prev => !prev);
                 }}
               >
-                <div className="flex flex-col gap-1 min-w-0 flex-1">
-                  {/* Line 1: Label + Savings */}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[7px] font-black uppercase tracking-[0.25em] text-white/55 leading-none shrink-0">
-                      Investment
+                <div className="flex flex-col items-center min-w-0 flex-1">
+                  {/* Label — centered above price, matching desktop */}
+                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/55 leading-none mb-0.5">Investment</span>
+                  
+                  {/* Primary Price Area */}
+                  <div className="flex items-baseline gap-1 justify-center">
+                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] mr-0.5 select-none leading-none">
+                      From
                     </span>
+                    <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 leading-none">
+                      / Person
+                    </span>
+                  </div>
+                  
+                  {/* Info Row: savings + flight + tax */}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-center">
                     {pricing.hasSavings && (
-                      <div className="flex items-center gap-1 min-w-0 overflow-hidden">
-                        <span className="text-[10px] font-bold text-white/85 line-through decoration-rose-400/90 tabular-nums shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                          {pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}
+                      <div className="flex items-center gap-1">
+                        <span className="text-[7.5px] font-semibold text-white/70 line-through decoration-rose-400/80 tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                        <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
+                      </div>
+                    )}
+                    {(pricing.taxLabel) && (
+                      <span className="text-[7px] font-bold text-white/50 uppercase tracking-wide">{pricing.taxLabel}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── DESKTOP LAYOUT (lg+): Unified centered pricing block ── */}
+              <div className="hidden lg:flex items-center min-w-0" ref={segmentsRef}>
+                <div className="flex flex-col items-center justify-center px-4">
+                  {/* Label */}
+                  <span className="font-black uppercase text-white/70 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
+                    Investment
+                  </span>
+                  
+                  {/* Primary Price Row */}
+                  <div className="flex items-baseline justify-center gap-1.5">
+                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none">
+                      From
+                    </span>
+                    <span className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.2rem,4vw,1.75rem)]">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
+                    </span>
+                    <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[8px]">
+                      / Person
+                    </span>
+                  </div>
+
+                  {/* Info Row: savings + tax */}
+                  <div className="flex items-center gap-2 justify-center mt-0.5">
+                    {pricing.hasSavings && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold tracking-tight text-white/70 line-through decoration-rose-400/80 whitespace-nowrap text-[8.5px] tabular-nums">
+                          {pricing.symbol}{pricing.originalTotal.toLocaleString()}
                         </span>
-                        <span className="text-[7.5px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20 shrink-0">
-                          −{pricing.discountPercent}%
+                        <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[7.5px]">
+                          Save {pricing.discountPercent}%
                         </span>
                       </div>
                     )}
-                  </div>
-                  
-                  {/* Line 2: Price + Per Person + Tax */}
-                  <div className="flex items-baseline gap-1 min-w-0">
-                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none shrink-0">
-                      From
-                    </span>
-                    <span className="text-[1.1rem] font-black text-white leading-none tabular-nums tracking-tighter shrink-0">
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 leading-none shrink-0">
-                      / Person
-                    </span>
-                    {pricing.taxLabel && (
-                      <span className="text-[6.5px] font-bold text-white/45 uppercase tracking-wide truncate">
+                    {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
+                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap text-[7px]">
                         {pricing.taxLabel}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-
-              {/* ── DESKTOP LAYOUT (md+): Full metadata stack ── */}
-              <div className="hidden md:flex items-center min-w-0" ref={segmentsRef}>
-                <div className="flex items-center justify-center px-2 md:px-6 gap-3 md:gap-5">
-                  
-                  {/* Primary Price */}
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="font-black uppercase text-white/70 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
-                      Investment
-                    </span>
-                    <p className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.25rem,5vw,2rem)] flex items-baseline justify-center">
-                      <span className="font-black uppercase tracking-widest text-white/60 text-[9px] mr-1.5 select-none leading-none">
-                        From
-                      </span>
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-
-                  {/* Secondary Metadata */}
-                  <div className="flex flex-col items-start justify-center gap-1 min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[8px]">
-                        / Person
-                      </span>
-                      {pricing.hasSavings && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold tracking-tight text-white/85 line-through decoration-rose-400/90 whitespace-nowrap text-xs md:text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tabular-nums">
-                            {pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}
-                          </span>
-                          <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[8px]">
-                            Save {pricing.discountPercent}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
-                        <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[7px]">
-                          {pricing.taxLabel}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
               
-              {/* Action Button — icon-only on mobile, full on desktop */}
-              <div ref={actionRef} className="flex items-center justify-end shrink-0 pl-1 md:pl-3 gap-2">
+              {/* Action Button — edge-to-edge design */}
+              <div ref={actionRef} className="flex items-center justify-end shrink-0 gap-1.5 my-auto">
                 {whatsappNumber && (
                   <Magnetic intensity={0.3}>
                     <a
                       href={getWhatsAppEnquiryUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group/wa relative overflow-hidden rounded-full bg-[#25D366] text-black transition-all duration-700 active:scale-95 flex items-center justify-center cursor-pointer
-                        h-10 w-10 md:h-12 md:w-auto md:px-6 shadow-[0_4px_15px_rgba(37,211,102,0.2)]"
+                      className="group/wa relative overflow-hidden rounded-full bg-[#25D366] text-black transition-all duration-300 active:scale-95 flex items-center justify-center cursor-pointer
+                        h-10 lg:h-12 w-10 lg:w-auto lg:px-6 shadow-[0_4px_15px_rgba(37,211,102,0.25)]"
                     >
                       <div className="relative z-10 flex items-center justify-center gap-1.5">
-                        <svg className="w-5 h-5 md:w-4 md:h-4 text-black shrink-0" viewBox="0 0 448 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <svg className="w-4 h-4 text-black shrink-0" viewBox="0 0 448 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                           <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                         </svg>
-                        <span className="hidden md:block text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
+                        <span className="hidden lg:block text-[10px] font-black uppercase tracking-[0.25em] whitespace-nowrap">
                           Enquire
                         </span>
                       </div>
@@ -1505,17 +1489,17 @@ Could you please share details on availability and custom options? Thank you!`;
                 <Magnetic intensity={0.3}>
                   <button 
                     onClick={() => openModal('BOOKING', experience)}
-                    className="group/btn relative overflow-hidden rounded-full bg-white text-black transition-all duration-700 active:scale-95 flex items-center justify-center
-                      h-10 w-10 md:h-12 md:w-auto md:px-10"
+                    className="group/btn relative overflow-hidden rounded-full bg-white text-black transition-all duration-300 active:scale-95 flex items-center justify-center
+                      h-10 lg:h-12 w-10 lg:w-auto lg:px-8 shadow-[0_4px_15px_rgba(255,255,255,0.15)]"
                   >
                     <div className="relative z-10 flex items-center justify-center gap-1.5">
                       {/* Mobile: icon only */}
-                      <ChevronRight strokeWidth={2.5} className="text-black group-hover/btn:translate-x-0.5 transition-transform shrink-0 w-4 h-4 md:hidden" />
+                      <ChevronRight strokeWidth={2.5} className="text-black group-hover/btn:translate-x-0.5 transition-transform shrink-0 w-4 h-4 lg:hidden" />
                       {/* Desktop: text + icon */}
-                      <span className="hidden md:block text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap">
+                      <span className="hidden lg:block text-[10px] font-black uppercase tracking-[0.25em] whitespace-nowrap">
                         Reserve
                       </span>
-                      <ChevronRight strokeWidth={2.5} className="text-black hidden md:block group-hover/btn:translate-x-1 transition-transform shrink-0 w-[18px] h-[18px]" />
+                      <ChevronRight strokeWidth={2.5} className="text-black hidden lg:block group-hover/btn:translate-x-1 transition-transform shrink-0 w-4 h-4" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                   </button>
