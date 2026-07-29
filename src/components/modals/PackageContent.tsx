@@ -1387,41 +1387,47 @@ Could you please share details on availability and custom options? Thank you!`;
             {/* Content Container (Wrapped in Jelly) */}
             <div className="relative z-10 flex items-center justify-between w-full h-full gap-2 md:gap-4 lg:gap-6">
 
-              {/* ── MOBILE LAYOUT (< md): Full info + icon-only Reserve ── */}
+              {/* ── MOBILE LAYOUT (< md): 2-Line Ultra-Clean Stack ── */}
               <div 
-                className="flex md:hidden items-center gap-3 flex-1 min-w-0 cursor-pointer select-none"
+                className="flex md:hidden items-center gap-2 flex-1 min-w-0 cursor-pointer select-none"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsPillHovered(prev => !prev);
                 }}
               >
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  {/* Label */}
-                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/55 leading-none">Investment</span>
-                  
-                  {/* Primary Price Area */}
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none">
-                      From
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  {/* Line 1: Label + Savings */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[7px] font-black uppercase tracking-[0.25em] text-white/55 leading-none shrink-0">
+                      Investment
                     </span>
-                    <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
-                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-[8px] font-black uppercase tracking-wider text-white/60 leading-none">
-                      / Person
-                    </span>
-                  </div>
-                  
-                  {/* Info Row: savings + flight + tax */}
-                  <div className="flex items-center gap-2 flex-wrap">
                     {pricing.hasSavings && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-white/85 line-through decoration-rose-400/90 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}</span>
-                        <span className="text-[8px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20">−{pricing.discountPercent}%</span>
+                      <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                        <span className="text-[10px] font-bold text-white/85 line-through decoration-rose-400/90 tabular-nums shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                          {pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[7.5px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                          −{pricing.discountPercent}%
+                        </span>
                       </div>
                     )}
-                    {(pricing.taxLabel) && (
-                      <span className="text-[7.5px] font-bold text-white/60 uppercase tracking-wide">{pricing.taxLabel}</span>
+                  </div>
+                  
+                  {/* Line 2: Price + Per Person + Tax */}
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none shrink-0">
+                      From
+                    </span>
+                    <span className="text-[1.1rem] font-black text-white leading-none tabular-nums tracking-tighter shrink-0">
+                      {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 leading-none shrink-0">
+                      / Person
+                    </span>
+                    {pricing.taxLabel && (
+                      <span className="text-[6.5px] font-bold text-white/45 uppercase tracking-wide truncate">
+                        {pricing.taxLabel}
+                      </span>
                     )}
                   </div>
                 </div>
