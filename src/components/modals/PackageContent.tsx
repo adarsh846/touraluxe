@@ -1079,7 +1079,7 @@ Could you please share details on availability and custom options? Thank you!`;
                 <div className="flex-1 flex flex-col gap-2 w-full text-center md:text-left">
                    <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
                      {pricing.hasSavings && (
-                       <span className="text-white/55 font-bold line-through text-lg">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                       <span className="text-white/85 font-bold line-through decoration-rose-400/90 text-lg md:text-xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}</span>
                      )}
                      {pricing.hasSavings && (
                        <span className="text-xs font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-full border border-emerald-400/20">Save {pricing.discountPercent}%</span>
@@ -1400,28 +1400,28 @@ Could you please share details on availability and custom options? Thank you!`;
                   <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/55 leading-none">Investment</span>
                   
                   {/* Primary Price Area */}
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] mr-0.5 select-none leading-none">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none">
                       From
                     </span>
                     <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 border-l border-white/20 pl-1.5 leading-none">
+                    <span className="text-[8px] font-black uppercase tracking-wider text-white/60 leading-none">
                       / Person
                     </span>
                   </div>
                   
                   {/* Info Row: savings + flight + tax */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {pricing.hasSavings && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-[7.5px] font-medium text-white/50 line-through tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
-                        <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white/85 line-through decoration-rose-400/90 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}</span>
+                        <span className="text-[8px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded border border-emerald-500/20">−{pricing.discountPercent}%</span>
                       </div>
                     )}
                     {(pricing.taxLabel) && (
-                      <span className="text-[7px] font-bold text-white/50 uppercase tracking-wide">{pricing.taxLabel}</span>
+                      <span className="text-[7.5px] font-bold text-white/60 uppercase tracking-wide">{pricing.taxLabel}</span>
                     )}
                   </div>
                 </div>
@@ -1429,7 +1429,7 @@ Could you please share details on availability and custom options? Thank you!`;
 
               {/* ── DESKTOP LAYOUT (md+): Full metadata stack ── */}
               <div className="hidden md:flex items-center min-w-0" ref={segmentsRef}>
-                <div className="flex items-center justify-center px-2 md:px-6 gap-3 md:gap-4">
+                <div className="flex items-center justify-center px-2 md:px-6 gap-3 md:gap-5">
                   
                   {/* Primary Price */}
                   <div className="flex flex-col items-center justify-center">
@@ -1444,19 +1444,16 @@ Could you please share details on availability and custom options? Thank you!`;
                     </p>
                   </div>
 
-                  {/* Divider */}
-                  <div className="w-px h-8 bg-white/20 shrink-0" />
-
                   {/* Secondary Metadata */}
                   <div className="flex flex-col items-start justify-center gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[8px]">
                         / Person
                       </span>
                       {pricing.hasSavings && (
                         <div className="flex items-center gap-2">
-                          <span className="font-medium tracking-tight text-white/50 line-through whitespace-nowrap text-[10px]">
-                            {pricing.symbol}{pricing.originalTotal.toLocaleString()}
+                          <span className="font-bold tracking-tight text-white/85 line-through decoration-rose-400/90 whitespace-nowrap text-xs md:text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] tabular-nums">
+                            {pricing.symbol}{pricing.originalTotal.toLocaleString("en-IN")}
                           </span>
                           <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[8px]">
                             Save {pricing.discountPercent}%
