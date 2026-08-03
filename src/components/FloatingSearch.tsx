@@ -69,9 +69,26 @@ export function FloatingSearch() {
   const [isMobile, setIsMobile] = useState(false);
   const [placeholder, setPlaceholder] = useState("Where will your next journey begin?");
   const [isVisible, setIsVisible] = useState(false);
+  const [shouldRenderCSS, setShouldRenderCSS] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const { openBooking, isOpen } = useBooking();
+
+  // Sync CSS visibility with GSAP exit animation lifecycle to prevent resize flashing
+  useEffect(() => {
+    if (isVisible) {
+      setShouldRenderCSS(true);
+    } else {
+      if (isMobile) {
+        setShouldRenderCSS(false);
+      } else {
+        const timer = setTimeout(() => {
+          setShouldRenderCSS(false);
+        }, 350);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isVisible, isMobile]);
 
   useEffect(() => {
     const handleOpenSearch = () => {
@@ -254,19 +271,24 @@ export function FloatingSearch() {
   }, [searchValue, openBooking]);
 
   const isResizingRef = useRef(false);
+  const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check mobile & set dynamic placeholder
   useEffect(() => {
     const checkMobile = () => {
+      isResizingRef.current = true;
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      resizeTimerRef.current = setTimeout(() => {
+        isResizingRef.current = false;
+      }, 150);
+
       const w = window.innerWidth;
-      const mobile = w < 1280; // Align with xl breakpoint (1280px) to match bottom pill nav visibility
+      const mobile = w < 1280; // Align with xl breakpoint (1280px)
 
       setIsMobile(prevMobile => {
         if (prevMobile !== mobile) {
-          isResizingRef.current = true;
-          setTimeout(() => { isResizingRef.current = false; }, 200);
-
           if (mobile) {
+            // Mobile: On-demand only (Apple Spotlight standard) — hidden until Search button tapped
             setIsVisible(false);
             setPlaceholder(w < 400 ? "Search" : "Search destinations");
             if (islandContainerRef.current) {
@@ -274,18 +296,18 @@ export function FloatingSearch() {
               gsap.set(islandContainerRef.current, { opacity: 0, y: -120 });
             }
           } else {
+            // Desktop: Ambient floating search bar — visible by default near top
             setIsVisible(true);
             setPlaceholder("Where will your next journey begin?");
-            // Mark desktop entrance as played so the layout effect uses the
-            // lightweight slide path instead of the full 4-phase choreography.
-            // The full choreography sets inputAreaRef opacity to 0, which hides
-            // the placeholder. Only a genuine first page load should trigger it.
             desktopEntrancePlayedRef.current = true;
             if (islandContainerRef.current) {
               gsap.killTweensOf(islandContainerRef.current);
               gsap.set(islandContainerRef.current, { opacity: 1, y: 0 });
             }
           }
+        } else if (mobile && !isFocusedRef.current) {
+          // On mobile window resize when input is NOT focused: strictly keep hidden to prevent resize flashes
+          setIsVisible(false);
         }
         return mobile;
       });
@@ -307,7 +329,10 @@ export function FloatingSearch() {
     };
     checkMobile();
     window.addEventListener('resize', checkMobile, { passive: true });
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+      window.removeEventListener('resize', checkMobile);
+    };
   }, []);
 
   // Detect virtual keyboard state on mobile via visualViewport resize
@@ -315,6 +340,9 @@ export function FloatingSearch() {
     if (typeof window === "undefined" || !window.visualViewport) return;
 
     const handleVisualViewportChange = () => {
+      // ONLY handle visualViewport height shifts when search input is actively focused
+      if (!isFocusedRef.current) return;
+
       const vv = window.visualViewport;
       if (!vv) return;
 
@@ -325,12 +353,6 @@ export function FloatingSearch() {
       if (keyboardActive) {
         setIsVisible(true);
       } else {
-        // Only blur — and therefore allow hiding — when the keyboard is definitively closed.
-        // The keyboard open animation fires multiple visualViewport resize events; during that
-        // animation, vv.height transiently sits between 85–95% of initial (not yet fully open,
-        // not fully closed). Blurring in that transient window caused the search bar to
-        // disappear immediately after appearing. We guard with a 95% threshold so we only
-        // blur when the viewport is back near full height (keyboard is truly dismissed).
         const keyboardDefinitelyClosed = vv.height >= initialHeightRef.current * 0.95;
         if (keyboardDefinitelyClosed && document.activeElement === inputRef.current) {
           inputRef.current?.blur();
@@ -360,8 +382,6 @@ export function FloatingSearch() {
       if (window.innerWidth < 1280) return; // Bypass scroll-hiding on mobile/tablet widths
       
       // If the input is focused, keep the bar visible but do NOT blur it here.
-      // Generic window 'scroll' events trigger on programmatic shifts (e.g. browser keyboard centering).
-      // Blurring here would cause instant collapse upon tap.
       if (isFocusedRef.current) {
         setIsVisible(true);
         return;
@@ -429,6 +449,15 @@ export function FloatingSearch() {
       if (innerEl) gsap.killTweensOf(innerEl);
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
+
+      if (isResizingRef.current) {
+        // Fast-path during rapid window resizing: set state instantly to avoid animation flashing
+        gsap.set(islandEl, { y: 0, opacity: 1, scale: 1 });
+        if (innerEl) gsap.set(innerEl, { scaleX: 1, scaleY: 1 });
+        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 1, x: 0 });
+        if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 1, scale: 1 });
+        return;
+      }
 
       if (!isMobile) {
         // ─── FIRST-LOAD: Exact PackageContent 4-phase Apple Dynamic Island choreography ───
@@ -654,9 +683,9 @@ export function FloatingSearch() {
       <div
         ref={searchContainerRef}
         className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3",
+          "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3 transition-opacity duration-200",
           isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl" : "bottom-10 max-w-4xl",
-          !isInitialized && "opacity-0 invisible",
+          (!isInitialized || !shouldRenderCSS || (isMobile && !isVisible)) && "opacity-0 invisible pointer-events-none",
           !isVisible && "pointer-events-none"
         )}
       >

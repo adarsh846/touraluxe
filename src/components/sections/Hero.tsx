@@ -2,11 +2,16 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { useSettings } from "@/hooks/useSettings";
 import { Search, MapPin, Calendar, Sparkles, ArrowRight } from "lucide-react";
 import { useBooking } from "../BookingProvider";
 import { Magnetic } from "../Magnetic";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export function Hero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -127,17 +132,20 @@ export function Hero() {
           );
 
         // Subtle Scroll Parallax on the image
-        gsap.to(imageRef.current, {
-          yPercent: 15,
-          force3D: true,
-          ease: "none",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: 0.5,
-          },
-        });
+        if (imageRef.current && containerRef.current) {
+          gsap.to(imageRef.current, {
+            yPercent: 15,
+            force3D: true,
+            ease: "none",
+            scrollTrigger: {
+              trigger: containerRef.current,
+              start: "top top",
+              end: "bottom top",
+              scrub: 0.5,
+              invalidateOnRefresh: true,
+            },
+          });
+        }
       }, containerRef);
       return ctx;
     };
@@ -152,13 +160,15 @@ export function Hero() {
         ctx = startAnimation();
       };
       window.addEventListener("preloaderComplete", handlePreloaderComplete);
-      return () => {
-        window.removeEventListener("preloaderComplete", handlePreloaderComplete);
-        if (ctx) ctx.revert();
-      };
     }
 
+    const handleResize = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener("resize", handleResize, { passive: true });
+
     return () => {
+      window.removeEventListener("resize", handleResize);
       if (ctx) ctx.revert();
     };
   }, []);
@@ -168,10 +178,10 @@ export function Hero() {
       ref={containerRef}
       className="relative z-10 h-screen-stable w-full flex items-center justify-center overflow-hidden bg-black text-white"
     >
-      {/* Background Image Container */}
+      {/* Background Image Container with top/bottom bleed for seamless resize & parallax */}
       <div 
         ref={imageRef}
-        className="absolute inset-0 z-0 select-none pointer-events-none overflow-hidden"
+        className="absolute -top-[15%] -bottom-[15%] inset-x-0 z-0 select-none pointer-events-none overflow-hidden transform-gpu"
         style={{ willChange: "transform" }}
       >
         <Image
@@ -180,7 +190,7 @@ export function Hero() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-center scale-105"
         />
         <div className="absolute inset-0 bg-black/20 z-10" />
       </div>
