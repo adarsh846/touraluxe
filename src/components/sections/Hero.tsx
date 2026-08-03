@@ -5,7 +5,7 @@ import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { useSettings } from "@/hooks/useSettings";
-import { Search, MapPin, Calendar, Sparkles, ArrowRight } from "lucide-react";
+import { Search, MapPin, Calendar, Sparkles, ArrowRight, Flame } from "lucide-react";
 import { useBooking } from "../BookingProvider";
 import { Magnetic } from "../Magnetic";
 
@@ -18,10 +18,19 @@ export function Hero() {
   const subheadRef = useRef<HTMLParagraphElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const trendingRef = useRef<HTMLDivElement>(null);
+  const trendingInnerRef = useRef<HTMLDivElement>(null);
+  const trendingTagRef = useRef<HTMLDivElement>(null);
+  const trendingPillsRef = useRef<HTMLDivElement>(null);
   // const [isMobile, setIsMobile] = useState(false);
   const { settings } = useSettings();
-  const { openModal } = useBooking();
-  const [trendingPills, setTrendingPills] = useState<any[]>([]);
+  const { openModal, openBooking } = useBooking();
+  const [trendingPills, setTrendingPills] = useState<any[]>([
+    { id: "1", title: "Alpine Sanctuary", location: "Switzerland", price: "450000", image: "/assets/hero-bg.webp", is_published: true },
+    { id: "2", title: "Maldivian Lagoon", location: "Maldives", price: "350000", image: "/assets/hero-bg.webp", is_published: true },
+    { id: "3", title: "Kyoto Heritage", location: "Japan", price: "280000", image: "/assets/hero-bg.webp", is_published: true },
+    { id: "4", title: "Amboseli Safari", location: "Kenya", price: "390000", image: "/assets/hero-bg.webp", is_published: true }
+  ]);
   const trendingScrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -38,14 +47,18 @@ export function Hero() {
         const data = await res.json();
 
         if (data && data.length > 0) {
-          // Fisher-Yates Shuffle
-          const shuffled = [...data];
+          const published = data.filter((p: any) => p.is_published !== false);
+          const listToShuffle = published.length > 0 ? published : data;
+          
+          // Fisher-Yates Shuffle for fresh dynamic display on every visit
+          const shuffled = [...listToShuffle];
           for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
           }
 
-          setTrendingPills(shuffled.slice(0, 4));
+          // Display up to 8 top dynamic trending packages in the scrollable capsule
+          setTrendingPills(shuffled.slice(0, 8));
         } else {
           setTrendingPills([
             { id: "1", title: "Alpine Sanctuary", location: "Switzerland", price: "450000", image: "/assets/hero-bg.webp", is_published: true },
@@ -130,6 +143,43 @@ export function Hero() {
             },
             "-=0.7"
           );
+
+        if (trendingRef.current) {
+          gsap.set(trendingRef.current, { y: 60, opacity: 0, scale: 0.3 });
+          if (trendingInnerRef.current) gsap.set(trendingInnerRef.current, { scaleX: 0.45, scaleY: 0.7 });
+          if (trendingTagRef.current)   gsap.set(trendingTagRef.current,   { opacity: 0, x: -15 });
+          if (trendingPillsRef.current) gsap.set(trendingPillsRef.current, { opacity: 0, scale: 0.85 });
+
+          // Stage 1: Kinetic Seed Rise (expo.out) - compressed seed rises from bottom
+          tl.to(trendingRef.current, {
+            y: 0, opacity: 1, scale: 1,
+            duration: 0.55, ease: 'expo.out', force3D: true,
+            clearProps: 'scale,y,opacity',
+          }, '-=0.5')
+          // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45))
+          .to(trendingInnerRef.current, {
+            scaleX: 1, scaleY: 1,
+            duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
+            clearProps: 'scaleX,scaleY',
+          }, '-=0.35');
+
+          // Stage 3: Staggered Content Pop (power3.out & back.out)
+          if (trendingTagRef.current) {
+            tl.to(trendingTagRef.current, {
+              opacity: 1, x: 0,
+              duration: 0.45, ease: 'power3.out', force3D: true,
+              clearProps: 'opacity,x',
+            }, '-=0.6');
+          }
+
+          if (trendingPillsRef.current) {
+            tl.to(trendingPillsRef.current, {
+              opacity: 1, scale: 1,
+              duration: 0.4, ease: 'back.out(1.5)', force3D: true,
+              clearProps: 'opacity,scale',
+            }, '-=0.45');
+          }
+        }
 
         // Subtle Scroll Parallax on the image
         if (imageRef.current && containerRef.current) {
@@ -222,49 +272,62 @@ export function Hero() {
           {subtitle}
         </p>
 
-        {/* Dynamic Trending Travel Theme Pills */}
+        {/* Apple-Tier Dynamic Island Segmented Strip (Unified Mobile + Desktop) */}
         {trendingPills.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-[600ms] w-full max-w-4xl mx-auto px-4">
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/50 shrink-0">Trending:</span>
-            <div 
-              ref={trendingScrollRef}
-              className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap"
-              onScroll={() => {
-                const el = trendingScrollRef.current;
-                if (!el) return;
-                const maxScroll = el.scrollWidth - el.clientWidth;
-                if (maxScroll <= 0) {
-                  el.style.maskImage = 'none';
-                  el.style.webkitMaskImage = 'none';
-                  return;
-                }
-                // Continuous fade: 0→1 over first 30px of scroll
-                const leftOpacity = Math.min(el.scrollLeft / 30, 1);
-                const rightRemaining = maxScroll - el.scrollLeft;
-                const rightOpacity = Math.min(rightRemaining / 30, 1);
-                // Fade distance scales with opacity (0px when fully visible, 24px when fully faded)
-                const leftFade = Math.round(leftOpacity * 24);
-                const rightFade = Math.round(rightOpacity * 24);
-                const mask = `linear-gradient(to right, transparent, black ${leftFade}px, black calc(100% - ${rightFade}px), transparent)`;
-                el.style.maskImage = mask;
-                el.style.webkitMaskImage = mask;
-              }}
-              style={{ 
-                maskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent)',
-                WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 24px), transparent)',
-              }}
-            >
-              {trendingPills.map((pkg) => (
+          <div ref={trendingRef} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
+            <div ref={trendingInnerRef} className="inline-flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-w-full overflow-hidden">
+              
+              {/* Lead Status Tag */}
+              <div ref={trendingTagRef} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-white/90 shrink-0">
+                <Sparkles size={11} className="text-amber-400 fill-amber-400/30" />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">Trending</span>
+              </div>
+
+              {/* Horizontal Scrollable Segment Items */}
+              <div 
+                ref={(el) => {
+                  (trendingScrollRef as any).current = el;
+                  (trendingPillsRef as any).current = el;
+                }}
+                className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap pr-1 scroll-smooth"
+                onScroll={() => {
+                  const el = trendingScrollRef.current;
+                  if (!el) return;
+                  const maxScroll = el.scrollWidth - el.clientWidth;
+                  if (maxScroll <= 0) {
+                    el.style.maskImage = 'none';
+                    el.style.webkitMaskImage = 'none';
+                    return;
+                  }
+                  const leftOpacity = Math.min(el.scrollLeft / 20, 1);
+                  const rightRemaining = maxScroll - el.scrollLeft;
+                  const rightOpacity = Math.min(rightRemaining / 20, 1);
+                  const leftFade = Math.round(leftOpacity * 16);
+                  const rightFade = Math.round(rightOpacity * 16);
+                  const mask = `linear-gradient(to right, transparent, black ${leftFade}px, black calc(100% - ${rightFade}px), transparent)`;
+                  el.style.maskImage = mask;
+                  el.style.webkitMaskImage = mask;
+                }}
+              >
+                {trendingPills.map((pkg) => (
+                  <button
+                    key={pkg.id || pkg.title}
+                    onClick={() => openModal('PACKAGE', pkg)}
+                    className="px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wide text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all duration-200 cursor-pointer shrink-0 whitespace-nowrap"
+                  >
+                    {pkg.title}
+                  </button>
+                ))}
+
                 <button
-                  key={pkg.id || pkg.title}
-                  onClick={() => {
-                    openModal('PACKAGE', pkg);
-                  }}
-                  className="px-3 py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider text-white/70 hover:text-amber-400 border border-white/15 hover:border-amber-400/30 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-sm transition-all duration-500 active:scale-95 cursor-pointer shrink-0"
+                  onClick={() => openBooking(undefined, "TRENDING_OVERFLOW", "Explore All")}
+                  className="px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wide text-amber-300/80 hover:text-amber-300 hover:bg-amber-400/10 active:scale-95 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1 whitespace-nowrap"
                 >
-                  {pkg.title}
+                  <span>Explore All</span>
+                  <ArrowRight size={10} className="stroke-[2.5]" />
                 </button>
-              ))}
+              </div>
+
             </div>
           </div>
         )}
