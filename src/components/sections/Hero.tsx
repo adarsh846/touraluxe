@@ -154,7 +154,7 @@ export function Hero() {
           tl.to(trendingRef.current, {
             y: 0, opacity: 1, scale: 1,
             duration: 0.55, ease: 'expo.out', force3D: true,
-            clearProps: 'scale,y,opacity',
+            clearProps: 'scale,y',
           }, '-=0.5')
           // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45))
           .to(trendingInnerRef.current, {
@@ -274,7 +274,7 @@ export function Hero() {
 
         {/* Apple-Tier Dynamic Island Segmented Strip (Unified Mobile + Desktop) */}
         {trendingPills.length > 0 && (
-          <div ref={trendingRef} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
+          <div ref={trendingRef} style={{ opacity: 0 }} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
             <div ref={trendingInnerRef} className="inline-flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-w-full overflow-hidden">
               
               {/* Lead Status Tag */}
