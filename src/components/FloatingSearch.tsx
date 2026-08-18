@@ -87,38 +87,57 @@ export function FloatingSearch() {
   }, [isVisible]);
 
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isButtonClickedRef = useRef(false);
+  // Timestamp of last Search button tap — used instead of a boolean+timer lock to avoid
+  // colliding setTimeout calls on rapid double-taps (a timer from Tap1 can fire during Tap2's lock window)
+  const lastToggleTapRef = useRef(0);
+  const TOGGLE_GUARD_MS = 600; // ignore blur/click-outside within 600ms of a Search button tap
+  // Synchronously tracks open/close state — never stale unlike React state
+  const isVisibleRef = useRef(false);
+
+  // Keep isVisibleRef synchronised whenever we call setIsVisible
+  const setIsVisibleWithRef = useCallback((next: boolean) => {
+    isVisibleRef.current = next;
+    setIsVisible(next);
+  }, []);
 
   useEffect(() => {
     const handleOpenSearch = () => {
-      // Clear any pending blur timeout to prevent race conditions on double tap
+      lastToggleTapRef.current = Date.now();
+
+      // Cancel any pending onBlur auto-close timer immediately
       if (blurTimeoutRef.current) {
         clearTimeout(blurTimeoutRef.current);
         blurTimeoutRef.current = null;
       }
 
-      setIsVisible(prev => {
-        const next = !prev;
-        if (next) {
-          setTimeout(() => {
-            if (inputRef.current) {
-              inputRef.current.focus();
-            }
-          }, 150);
-        } else {
-          if (inputRef.current) {
-            inputRef.current.blur();
-          }
-          setShowSuggestions(false);
-        }
-        return next;
-      });
+      // Read current open state from the synchronous ref — never stale
+      const currentlyOpen = isVisibleRef.current;
+
+      isButtonClickedRef.current = true;
+
+      if (currentlyOpen) {
+        // Tap 2 (Open → Closed): Clean dismiss with Dynamic Island retraction
+        isFocusedRef.current = false;
+        setIsFocused(false);
+        setShowSuggestions(false);
+        if (inputRef.current) inputRef.current.blur();
+        setIsVisibleWithRef(false);
+      } else {
+        // Tap 1 (Closed → Open): Launch with Dynamic Island seed drop
+        setIsVisibleWithRef(true);
+        setTimeout(() => {
+          if (inputRef.current) inputRef.current.focus();
+        }, 150);
+      }
     };
+
     window.addEventListener("open-mobile-search", handleOpenSearch);
     return () => {
       window.removeEventListener("open-mobile-search", handleOpenSearch);
       if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     };
-  }, []);
+  }, [setIsVisibleWithRef]);
 
   // Instant autocomplete / Suggest-ahead dropdown state
   const [packages, setPackages] = useState<any[]>([]);
@@ -243,16 +262,25 @@ export function FloatingSearch() {
     return Array.from(list.values()).slice(0, 5);
   }, [searchValue, packages]);
 
-  // Click outside to dismiss suggestions dropdown
+  // Click outside to dismiss search bar & suggestions dropdown
+  // IMPORTANT: uses 'click' not 'mousedown' — on iOS, mousedown fires BEFORE the Navbar's onClick,
+  // so the timestamp guard hasn't been set yet. 'click' fires AFTER, guaranteeing the guard works.
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (Date.now() - lastToggleTapRef.current < TOGGLE_GUARD_MS) return;
+
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
+        if (isMobile && isVisibleRef.current) {
+          isButtonClickedRef.current = true;
+          if (inputRef.current) inputRef.current.blur();
+          setIsVisibleWithRef(false);
+        }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [isMobile, setIsVisibleWithRef]);
 
   // Update showSuggestions status as query length updates
   useEffect(() => {
@@ -420,19 +448,23 @@ export function FloatingSearch() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMobile]);
 
-  // Auto-blur search input and collapse virtual keyboard on manual touch drag gesture (mobile only)
+  // Auto-blur search input and dismiss search bar on manual scroll/drag gesture (mobile only)
   useEffect(() => {
     if (!isMobile) return;
 
     const handleTouchMove = () => {
-      if (isFocusedRef.current && inputRef.current) {
-        inputRef.current.blur();
+      // Ignore scroll during the guard window after a Search button tap
+      if (Date.now() - lastToggleTapRef.current < TOGGLE_GUARD_MS) return;
+      if (isVisibleRef.current || isFocusedRef.current) {
+        isButtonClickedRef.current = true;
+        if (inputRef.current) inputRef.current.blur();
+        setIsVisibleWithRef(false);
       }
     };
 
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     return () => window.removeEventListener("touchmove", handleTouchMove);
-  }, [isMobile]);
+  }, [isMobile, setIsVisibleWithRef]);
 
   useIsomorphicLayoutEffect(() => {
     // searchContainerRef = CSS centering shell (-translate-x-1/2), NEVER animated by GSAP
@@ -452,6 +484,9 @@ export function FloatingSearch() {
     const startY = isMobile ? -120 : 80;
     const hideY  = isMobile ? -120 : 80;
 
+    const isBtnClick = isButtonClickedRef.current;
+    isButtonClickedRef.current = false;
+
     if (isVisible) {
       gsap.killTweensOf(islandEl);
       if (innerEl) gsap.killTweensOf(innerEl);
@@ -469,36 +504,28 @@ export function FloatingSearch() {
 
       if (!isMobile) {
         // ─── FIRST-LOAD: Exact PackageContent 4-phase Apple Dynamic Island choreography ───
-        // islandEl  ≡ islandContainerRef in PackageContent (Phase 1: y / scale / opacity)
-        // innerEl   ≡ islandInnerRef in PackageContent    (Phase 2: elastic scaleX / scaleY)
-        // inputAreaRef  ≡ segmentsRef                     (Phase 3: opacity / x)
-        // searchActionRef ≡ actionRef                     (Phase 4: opacity / scale)
         if (!desktopEntrancePlayedRef.current) {
           desktopEntrancePlayedRef.current = true;
 
-          // Initial compressed-seed state — identical to PackageContent gsap.set calls
+          // Initial compressed-seed state
           gsap.set(islandEl, { y: 80, opacity: 0, scale: 0.3 });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.75 });
           if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: 20 });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.6 });
 
-          // Preloader exit is complete — 0.1s is enough for browser paint to settle
           const tl = gsap.timeline({ delay: 0.1 });
 
-          // Phase 1: Seed rises from bottom — expo.out 0.6s
           tl.to(islandEl, {
             y: 0, opacity: 1, scale: 1,
             duration: 0.6, ease: 'expo.out', force3D: true,
             clearProps: 'scale,y,opacity',
           })
-          // Phase 2: w-fit wrapper elastically expands to full pill width — elastic.out(1.1,0.45) 0.9s
           .to(innerEl, {
             scaleX: 1, scaleY: 1,
             duration: 0.9, ease: 'elastic.out(1.1, 0.45)', force3D: true,
             clearProps: 'scaleX,scaleY',
           }, '-=0.4');
 
-          // Phase 3: Input area slides in — power3.out 0.5s
           if (inputAreaRef.current) {
             tl.to(inputAreaRef.current, {
               opacity: 1, x: 0,
@@ -507,7 +534,6 @@ export function FloatingSearch() {
             }, '-=0.65');
           }
 
-          // Phase 4: Explore button pops in — back.out(1.5) 0.4s
           if (searchActionRef.current) {
             tl.to(searchActionRef.current, {
               opacity: 1, scale: 1,
@@ -525,12 +551,19 @@ export function FloatingSearch() {
         }
       } else {
         // ─── MOBILE: Apple Dynamic Island Elastic Spring Choreography ───
+        if (!isBtnClick) {
+          // Lightweight show for automatic/scroll events — simple slide & fade, no heavy seed drop morphing
+          gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, duration: 0.25, ease: 'power2.out', clearProps: 'scale,y,opacity' });
+          if (innerEl) gsap.set(innerEl, { scaleX: 1, scaleY: 1 });
+          if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 1, x: 0 });
+          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 1, scale: 1 });
+          return;
+        }
+
         const currentOpacity = Number(gsap.getProperty(islandEl, "opacity") || 0);
 
         if (currentOpacity < 0.1) {
-          // Stage 1: Kinetic Seed Drop (expo.out) - compressed glass seed drops from top
-          // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45)) - morphs & elastically stretches X/Y
-          // Stage 3: Staggered Content Pop (power3.out & back.out) - input field & action pop in
+          // Full Search Button Launch: 3-Stage Dynamic Island Seed Drop & Elastic Expansion
           gsap.set(islandEl, { y: -120, opacity: 0, scale: 0.3 });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
           if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
@@ -538,20 +571,17 @@ export function FloatingSearch() {
 
           const tl = gsap.timeline();
 
-          // Stage 1: Kinetic Seed Drop (expo.out 0.5s)
           tl.to(islandEl, {
             y: 0, opacity: 1, scale: 1,
             duration: 0.5, ease: 'expo.out', force3D: true,
             clearProps: 'scale,y,opacity',
           })
-          // Stage 2: Elastic Morph Expansion along X/Y axes (elastic.out(1.1, 0.45) 0.85s)
           .to(innerEl, {
             scaleX: 1, scaleY: 1,
             duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
             clearProps: 'scaleX,scaleY',
           }, '-=0.35');
 
-          // Stage 3: Staggered Content Pop (power3.out 0.45s & back.out 0.4s)
           if (inputAreaRef.current) {
             tl.to(inputAreaRef.current, {
               opacity: 1, x: 0,
@@ -591,11 +621,11 @@ export function FloatingSearch() {
         if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
         if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -15 : 20 });
         if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
+      } else if (!isBtnClick) {
+        // Lightweight hide for background/auto events (scroll, auto-blur, window resize)
+        gsap.to(islandEl, { y: hideY, opacity: 0, scale: 0.95, duration: 0.25, ease: 'power2.in' });
       } else {
-        // ─── REVERSE APPLE DYNAMIC ISLAND EXIT CHOREOGRAPHY ───
-        // Step 1: Content & Action contract (reverse of Stage 3 pop)
-        // Step 2: Inner capsule morphs back to compressed seed (reverse of Stage 2 elastic expansion)
-        // Step 3: Seed retracts back up into bezel (reverse of Stage 1 kinetic drop)
+        // ─── REVERSE APPLE DYNAMIC ISLAND EXIT CHOREOGRAPHY (Search button click) ───
         const tlExit = gsap.timeline({
           onComplete: () => {
             if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
@@ -604,7 +634,6 @@ export function FloatingSearch() {
           }
         });
 
-        // Step 1: Contract content and action buttons
         if (searchActionRef.current) {
           tlExit.to(searchActionRef.current, {
             opacity: 0, scale: 0.5,
@@ -619,7 +648,6 @@ export function FloatingSearch() {
           }, 0);
         }
 
-        // Step 2: Inner island elastically compresses back to seed dimensions
         if (innerEl) {
           tlExit.to(innerEl, {
             scaleX: 0.45, scaleY: isMobile ? 0.7 : 0.75,
@@ -627,7 +655,6 @@ export function FloatingSearch() {
           }, 0.05);
         }
 
-        // Step 3: Kinetic Seed retraction back into bezel/floor (-120 on mobile, +80 on desktop)
         tlExit.to(islandEl, {
           y: hideY, opacity: 0, scale: 0.3,
           duration: 0.3, ease: 'expo.in', force3D: true
@@ -864,20 +891,15 @@ export function FloatingSearch() {
               onChange={(e) => setSearchValue(e.target.value)}
               onFocus={() => {
                 setIsFocused(true);
-                isFocusedRef.current = true; // Sync ref immediately for scroll guard
-                setIsVisible(true);
+                isFocusedRef.current = true;
+                setIsVisibleWithRef(true);
               }}
               onBlur={() => {
+                // Apple Spotlight pattern: blur NEVER closes the overlay.
+                // Closing is handled exclusively by: toggle button, click-outside, scroll, or Cancel.
+                // This eliminates all blur↔click race conditions on iOS.
                 setIsFocused(false);
-                isFocusedRef.current = false; // Sync ref immediately for scroll guard
-                if (isMobile) {
-                  if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
-                  blurTimeoutRef.current = setTimeout(() => {
-                    if (!isFocusedRef.current) {
-                      setIsVisible(false);
-                    }
-                  }, 200);
-                }
+                isFocusedRef.current = false;
               }}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') {
@@ -930,12 +952,11 @@ export function FloatingSearch() {
               <button
                 type="button"
                 onClick={() => {
+                  isButtonClickedRef.current = true;
                   setSearchValue("");
-                  if (inputRef.current) {
-                    inputRef.current.blur();
-                  }
+                  if (inputRef.current) inputRef.current.blur();
                   setShowSuggestions(false);
-                  setIsVisible(false);
+                  setIsVisibleWithRef(false);
                 }}
                 className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white px-3 py-2 transition-colors duration-300 shrink-0"
               >
