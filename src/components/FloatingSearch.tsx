@@ -74,24 +74,28 @@ export function FloatingSearch() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const { openBooking, isOpen } = useBooking();
 
-  // Sync CSS visibility with GSAP exit animation lifecycle to prevent resize flashing
+  // Sync CSS visibility with GSAP exit animation lifecycle to prevent premature unmounting
   useEffect(() => {
     if (isVisible) {
       setShouldRenderCSS(true);
     } else {
-      if (isMobile) {
+      const timer = setTimeout(() => {
         setShouldRenderCSS(false);
-      } else {
-        const timer = setTimeout(() => {
-          setShouldRenderCSS(false);
-        }, 350);
-        return () => clearTimeout(timer);
-      }
+      }, 350);
+      return () => clearTimeout(timer);
     }
-  }, [isVisible, isMobile]);
+  }, [isVisible]);
+
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleOpenSearch = () => {
+      // Clear any pending blur timeout to prevent race conditions on double tap
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = null;
+      }
+
       setIsVisible(prev => {
         const next = !prev;
         if (next) {
@@ -104,12 +108,16 @@ export function FloatingSearch() {
           if (inputRef.current) {
             inputRef.current.blur();
           }
+          setShowSuggestions(false);
         }
         return next;
       });
     };
     window.addEventListener("open-mobile-search", handleOpenSearch);
-    return () => window.removeEventListener("open-mobile-search", handleOpenSearch);
+    return () => {
+      window.removeEventListener("open-mobile-search", handleOpenSearch);
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
   }, []);
 
   // Instant autocomplete / Suggest-ahead dropdown state
@@ -517,45 +525,59 @@ export function FloatingSearch() {
         }
       } else {
         // ─── MOBILE: Apple Dynamic Island Elastic Spring Choreography ───
-        // Stage 1: Kinetic Seed Drop (expo.out) - compressed glass seed drops from top
-        // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45)) - morphs & elastically stretches X/Y with spring inertia
-        // Stage 3: Staggered Content Pop (power3.out & back.out) - input field & action pop in with 3D depth
+        const currentOpacity = Number(gsap.getProperty(islandEl, "opacity") || 0);
 
-        gsap.set(islandEl, { y: -120, opacity: 0, scale: 0.3 });
-        if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
-        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
-        if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
+        if (currentOpacity < 0.1) {
+          // Stage 1: Kinetic Seed Drop (expo.out) - compressed glass seed drops from top
+          // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45)) - morphs & elastically stretches X/Y
+          // Stage 3: Staggered Content Pop (power3.out & back.out) - input field & action pop in
+          gsap.set(islandEl, { y: -120, opacity: 0, scale: 0.3 });
+          if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
+          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
+          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
 
-        const tl = gsap.timeline();
+          const tl = gsap.timeline();
 
-        // Stage 1: Kinetic Seed Drop (expo.out 0.5s)
-        tl.to(islandEl, {
-          y: 0, opacity: 1, scale: 1,
-          duration: 0.5, ease: 'expo.out', force3D: true,
-          clearProps: 'scale,y,opacity',
-        })
-        // Stage 2: Elastic Morph Expansion along X/Y axes (elastic.out(1.1, 0.45) 0.85s)
-        .to(innerEl, {
-          scaleX: 1, scaleY: 1,
-          duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
-          clearProps: 'scaleX,scaleY',
-        }, '-=0.35');
+          // Stage 1: Kinetic Seed Drop (expo.out 0.5s)
+          tl.to(islandEl, {
+            y: 0, opacity: 1, scale: 1,
+            duration: 0.5, ease: 'expo.out', force3D: true,
+            clearProps: 'scale,y,opacity',
+          })
+          // Stage 2: Elastic Morph Expansion along X/Y axes (elastic.out(1.1, 0.45) 0.85s)
+          .to(innerEl, {
+            scaleX: 1, scaleY: 1,
+            duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
+            clearProps: 'scaleX,scaleY',
+          }, '-=0.35');
 
-        // Stage 3: Staggered Content Pop (power3.out 0.45s & back.out 0.4s)
-        if (inputAreaRef.current) {
-          tl.to(inputAreaRef.current, {
-            opacity: 1, x: 0,
-            duration: 0.45, ease: 'power3.out', force3D: true,
-            clearProps: 'opacity,x',
-          }, '-=0.6');
-        }
+          // Stage 3: Staggered Content Pop (power3.out 0.45s & back.out 0.4s)
+          if (inputAreaRef.current) {
+            tl.to(inputAreaRef.current, {
+              opacity: 1, x: 0,
+              duration: 0.45, ease: 'power3.out', force3D: true,
+              clearProps: 'opacity,x',
+            }, '-=0.6');
+          }
 
-        if (searchActionRef.current) {
-          tl.to(searchActionRef.current, {
-            opacity: 1, scale: 1,
-            duration: 0.4, ease: 'back.out(1.5)', force3D: true,
-            clearProps: 'opacity,scale',
-          }, '-=0.45');
+          if (searchActionRef.current) {
+            tl.to(searchActionRef.current, {
+              opacity: 1, scale: 1,
+              duration: 0.4, ease: 'back.out(1.5)', force3D: true,
+              clearProps: 'opacity,scale',
+            }, '-=0.45');
+          }
+        } else {
+          // Rapid click interrupt: smoothly catch & restore from current mid-flight coordinates without hard jumps
+          if (innerEl) gsap.to(innerEl, { scaleX: 1, scaleY: 1, duration: 0.3, ease: 'power3.out', clearProps: 'scaleX,scaleY' });
+          if (inputAreaRef.current) gsap.to(inputAreaRef.current, { opacity: 1, x: 0, duration: 0.3, ease: 'power3.out', clearProps: 'opacity,x' });
+          if (searchActionRef.current) gsap.to(searchActionRef.current, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(1.5)', clearProps: 'opacity,scale' });
+          
+          gsap.to(islandEl, {
+            y: 0, opacity: 1, scale: 1,
+            duration: 0.35, ease: 'expo.out', force3D: true,
+            clearProps: 'scale,y,opacity'
+          });
         }
       }
     } else {
@@ -565,31 +587,51 @@ export function FloatingSearch() {
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
       if (isResizingRef.current) {
-        gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.95 });
-        if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
-        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
-        if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
+        gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.3 });
+        if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.7 });
+        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -15 : 20 });
+        if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
       } else {
-        // Fade out child contents smoothly during close to prevent sudden text pop/flash
-        const childTargets = [inputAreaRef.current, searchActionRef.current].filter(Boolean);
-        if (childTargets.length > 0) {
-          gsap.to(childTargets, {
-            opacity: 0,
-            duration: 0.2,
-            ease: 'power2.out',
-            force3D: true,
-          });
-        }
-
-        gsap.to(islandEl, {
-          y: hideY, opacity: 0, scale: 0.95,
-          duration: 0.35, ease: 'power3.inOut', force3D: true,
+        // ─── REVERSE APPLE DYNAMIC ISLAND EXIT CHOREOGRAPHY ───
+        // Step 1: Content & Action contract (reverse of Stage 3 pop)
+        // Step 2: Inner capsule morphs back to compressed seed (reverse of Stage 2 elastic expansion)
+        // Step 3: Seed retracts back up into bezel (reverse of Stage 1 kinetic drop)
+        const tlExit = gsap.timeline({
           onComplete: () => {
             if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
             if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { clearProps: 'opacity,x' });
             if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
           }
         });
+
+        // Step 1: Contract content and action buttons
+        if (searchActionRef.current) {
+          tlExit.to(searchActionRef.current, {
+            opacity: 0, scale: 0.5,
+            duration: 0.15, ease: 'back.in(1.5)', force3D: true
+          }, 0);
+        }
+
+        if (inputAreaRef.current) {
+          tlExit.to(inputAreaRef.current, {
+            opacity: 0, x: isMobile ? -15 : 20,
+            duration: 0.18, ease: 'power2.in', force3D: true
+          }, 0);
+        }
+
+        // Step 2: Inner island elastically compresses back to seed dimensions
+        if (innerEl) {
+          tlExit.to(innerEl, {
+            scaleX: 0.45, scaleY: isMobile ? 0.7 : 0.75,
+            duration: 0.22, ease: 'power3.in', force3D: true
+          }, 0.05);
+        }
+
+        // Step 3: Kinetic Seed retraction back into bezel/floor (-120 on mobile, +80 on desktop)
+        tlExit.to(islandEl, {
+          y: hideY, opacity: 0, scale: 0.3,
+          duration: 0.3, ease: 'expo.in', force3D: true
+        }, 0.1);
       }
     }
   }, [isVisible, isMobile, isPreloaderCompleted]);
@@ -685,7 +727,7 @@ export function FloatingSearch() {
         className={cn(
           "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3 transition-opacity duration-200",
           isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl" : "bottom-10 max-w-4xl",
-          (!isInitialized || !shouldRenderCSS || (isMobile && !isVisible)) && "opacity-0 invisible pointer-events-none",
+          (!isInitialized || !shouldRenderCSS) && "opacity-0 invisible pointer-events-none",
           !isVisible && "pointer-events-none"
         )}
       >
@@ -829,7 +871,8 @@ export function FloatingSearch() {
                 setIsFocused(false);
                 isFocusedRef.current = false; // Sync ref immediately for scroll guard
                 if (isMobile) {
-                  setTimeout(() => {
+                  if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+                  blurTimeoutRef.current = setTimeout(() => {
                     if (!isFocusedRef.current) {
                       setIsVisible(false);
                     }
