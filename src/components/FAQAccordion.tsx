@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FAQItem {
@@ -33,39 +33,47 @@ export function FAQAccordion({ items, title = "Frequently Asked Questions" }: FA
             <div
               key={i}
               className={cn(
-                "rounded-2xl border transition-all duration-500 overflow-hidden",
+                "rounded-2xl border transition-all duration-500 overflow-hidden transform-gpu active:scale-[0.995]",
                 isOpen
-                  ? "bg-white/[0.04] border-white/[0.1]"
-                  : "bg-white/[0.02] border-white/[0.05] hover:border-white/[0.08]"
+                  ? "bg-white/[0.04] border-white/20 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.15)_inset]"
+                  : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.03] hover:border-white/15"
               )}
             >
               <button
                 onClick={() => setOpenIndex(isOpen ? null : i)}
-                className="w-full flex items-center justify-between p-5 md:p-6 text-left gap-4"
+                className="w-full flex items-center justify-between p-5 md:p-6 text-left gap-4 cursor-pointer select-none"
               >
                 <span className={cn(
-                  "text-sm md:text-base font-medium transition-colors duration-300",
-                  isOpen ? "text-white" : "text-white/60"
+                  "text-sm md:text-base font-medium tracking-wide transition-colors duration-300",
+                  isOpen ? "text-white font-semibold" : "text-white/70"
                 )}>
                   {item.question}
                 </span>
-                <ChevronDown
-                  size={16}
-                  strokeWidth={2.5}
-                  className={cn(
-                    "shrink-0 text-white/30 transition-all duration-500",
-                    isOpen && "rotate-180 text-white/60"
-                  )}
-                />
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 border",
+                  isOpen 
+                    ? "bg-white/15 border-white/30 text-white rotate-45 shadow-[0_2px_10px_rgba(255,255,255,0.1)]" 
+                    : "bg-white/5 border-white/10 text-white/40 rotate-0 hover:text-white hover:bg-white/10"
+                )}>
+                  <Plus
+                    size={15}
+                    strokeWidth={2.5}
+                    className="transition-transform duration-500"
+                  />
+                </div>
               </button>
+
+              {/* Liquid Grid-Row Height Interpolation (Apple iOS HIG Standard) */}
               <div
                 className={cn(
-                  "transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden",
-                  isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+                  "grid transition-[grid-template-rows,opacity] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 )}
               >
-                <div className="px-5 md:px-6 pb-5 md:pb-6 text-sm text-white/40 leading-relaxed">
-                  {item.answer}
+                <div className="overflow-hidden">
+                  <div className="px-5 md:px-6 pb-5 md:pb-6 text-sm text-white/50 leading-relaxed border-t border-white/[0.06] pt-4">
+                    {item.answer}
+                  </div>
                 </div>
               </div>
             </div>

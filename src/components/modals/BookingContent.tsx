@@ -151,7 +151,41 @@ function getJaroWinkler(s1: string, s2: string): number {
   return jaro + l * p * (1 - jaro);
 }
 
-// iOS-style rolling digit animation helper (slot-machine / ticker transition)
+// Single Digit Rolling Column (Apple Slot-Machine Odometer)
+const DigitColumn = memo(({ digit }: { digit: string }) => {
+  const num = parseInt(digit, 10);
+  const isNumber = !isNaN(num);
+  const columnRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    if (!isNumber || !columnRef.current) return;
+    gsap.to(columnRef.current, {
+      y: `-${num * 10}%`,
+      duration: 0.42,
+      ease: "power3.out",
+      force3D: true,
+    });
+  }, [num, isNumber]);
+
+  if (!isNumber) {
+    return <span className="inline-block px-0.5">{digit}</span>;
+  }
+
+  return (
+    <span className="relative inline-block h-[1.15em] overflow-hidden align-middle leading-none">
+      <span ref={columnRef} className="flex flex-col transform-gpu will-change-transform">
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+          <span key={n} className="h-[1.15em] flex items-center justify-center leading-none">
+            {n}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+});
+DigitColumn.displayName = "DigitColumn";
+
+// Full Number / Currency Odometer Ticker (Apple Slot-Machine Engine)
 const IOSRollingNumber = ({ 
   value, 
   formatter = (v) => String(v) 
@@ -159,61 +193,14 @@ const IOSRollingNumber = ({
   value: number; 
   formatter?: (v: number) => string;
 }) => {
-  const [prevValue, setPrevValue] = useState(value);
-  const [direction, setDirection] = useState<'up' | 'down' | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  useEffect(() => {
-    if (value !== prevValue) {
-      setDirection(value > prevValue ? 'up' : 'down');
-      setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setPrevValue(value);
-        setDirection(null);
-        setIsAnimating(false);
-      }, 320);
-      return () => clearTimeout(timer);
-    }
-  }, [value, prevValue]);
-
-  const displayPrev = formatter(prevValue);
-  const displayVal = formatter(value);
-  const maxDisplay = displayVal.length >= displayPrev.length ? displayVal : displayPrev;
+  const str = formatter(value);
+  const charArray = useMemo(() => str.split(""), [str]);
 
   return (
-    <span className="relative inline-flex items-center justify-center tabular-nums overflow-hidden" style={{ height: '1.2em', verticalAlign: 'middle' }}>
-      {/* Hidden layout holder to reserve space dynamically without layout shifts */}
-      <span className="invisible select-none pointer-events-none h-full flex items-center justify-center leading-none">
-        {maxDisplay}
-      </span>
-      
-      {/* Absolute sliding compositor layer (composited GPU rendering) */}
-      <span className="absolute inset-0 w-full h-full overflow-hidden flex flex-col justify-center">
-        {!isAnimating ? (
-          <span className="flex items-center justify-center w-full h-full leading-none">{displayVal}</span>
-        ) : (
-          <span
-            className={cn(
-              "absolute w-full flex flex-col items-center left-0 top-0 h-[200%]",
-              direction === 'up' 
-                ? "animate-slide-up-ticker" 
-                : "animate-slide-down-ticker"
-            )}
-          >
-            {direction === 'up' ? (
-              <>
-                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayPrev}</span>
-                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayVal}</span>
-              </>
-            ) : (
-              <>
-                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayVal}</span>
-                <span className="h-1/2 flex items-center justify-center w-full leading-none">{displayPrev}</span>
-              </>
-            )}
-          </span>
-        )}
-      </span>
+    <span className="inline-flex items-center tabular-nums select-none">
+      {charArray.map((char, i) => (
+        <DigitColumn key={`${charArray.length - i}-${i}`} digit={char} />
+      ))}
     </span>
   );
 };
@@ -2460,12 +2447,12 @@ Please confirm my booking. Thank you!`;
                                           t.set(Math.max(t.min, t.count - 1));
                                           setPinnedTooltip(null);
                                         }}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
                                       >
                                         -
                                       </button>
                                       <span className="text-[clamp(1.5rem,3vw,1.875rem)] font-light tracking-tight text-white tabular-nums">
-                                        {t.count}
+                                        <IOSRollingNumber value={t.count} />
                                       </span>
                                       <button
                                         onClick={(e) => {
@@ -2473,7 +2460,7 @@ Please confirm my booking. Thank you!`;
                                           t.set(t.count + 1);
                                           setPinnedTooltip(null);
                                         }}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold"
+                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
                                       >
                                         +
                                       </button>
@@ -3534,8 +3521,8 @@ Please confirm my booking. Thank you!`;
                       {isMobile ? (internalPackage?.isCustom ? 'Quote' : 'Cost') : (internalPackage?.isCustom ? 'Personalized Pricing' : 'Itinerary Cost')}
                     </span>
                     <div className="flex items-center justify-center" style={{ gap: 'clamp(4px, 1vw, 12px)' }}>
-                      <p className={cn(
-                        "font-bold tracking-tighter leading-none tabular-nums whitespace-nowrap transition-colors duration-300",
+                      <span className={cn(
+                        "block font-bold tracking-tighter leading-none tabular-nums whitespace-nowrap transition-colors duration-300",
                         isCostActive ? "text-white" : "text-white/70"
                       )} style={{ fontSize: 'clamp(10px, 2.5vw, 1.8rem)' }}>
                         {internalPackage?.isCustom ? (
@@ -3549,7 +3536,7 @@ Please confirm my booking. Thank you!`;
                             />
                           </span>
                         )}
-                      </p>
+                      </span>
                       {!internalPackage?.isCustom && (
                         <span className={cn(
                           "font-bold uppercase tracking-wider leading-none whitespace-nowrap transition-colors duration-300",
