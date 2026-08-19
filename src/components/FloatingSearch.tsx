@@ -567,39 +567,49 @@ export function FloatingSearch() {
       setIsVisible(false);
     }
 
+    let rafId: number | null = null;
+
     const handleScroll = () => {
       if (window.innerWidth < 1280) return; // Bypass scroll-hiding on mobile/tablet widths
       
       // If the input is focused, keep the bar visible but do NOT blur it here.
       if (isFocusedRef.current) {
-        setIsVisible(true);
+        if (!isVisibleRef.current) setIsVisibleWithRef(true);
         return;
       }
 
-      const currentScrollY = window.scrollY;
+      if (rafId) cancelAnimationFrame(rafId);
 
-      // Always show when near the top of the page
-      if (currentScrollY < 50) {
-        setIsVisible(true);
-        lastScrollY.current = currentScrollY;
-        return;
-      }
+      rafId = requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
 
-      const diff = currentScrollY - lastScrollY.current;
-      if (diff > 15) {
-        // Scrolling down -> hide
-        setIsVisible(false);
-        lastScrollY.current = currentScrollY;
-      } else if (diff < -15) {
-        // Scrolling up -> show
-        setIsVisible(true);
-        lastScrollY.current = currentScrollY;
-      }
+        // Always show when near the top of the page
+        if (currentScrollY < 50) {
+          if (!isVisibleRef.current) setIsVisibleWithRef(true);
+          lastScrollY.current = currentScrollY;
+          return;
+        }
+
+        const diff = currentScrollY - lastScrollY.current;
+        // Increased scroll delta threshold (28px) to prevent micro-jitter toggles during inertia scroll
+        if (diff > 28) {
+          // Scrolling down -> hide
+          if (isVisibleRef.current) setIsVisibleWithRef(false);
+          lastScrollY.current = currentScrollY;
+        } else if (diff < -28) {
+          // Scrolling up -> show
+          if (!isVisibleRef.current) setIsVisibleWithRef(true);
+          lastScrollY.current = currentScrollY;
+        }
+      });
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isMobile]);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isMobile, setIsVisibleWithRef]);
 
   // Auto-blur search input and dismiss search bar on manual scroll/drag gesture (mobile only)
   useEffect(() => {
@@ -641,6 +651,10 @@ export function FloatingSearch() {
     isButtonClickedRef.current = false;
 
     if (isVisible) {
+      if (searchContainerRef.current) {
+        searchContainerRef.current.style.visibility = "visible";
+      }
+
       gsap.killTweensOf(islandEl);
       if (innerEl) gsap.killTweensOf(innerEl);
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
@@ -656,7 +670,7 @@ export function FloatingSearch() {
       }
 
       if (!isMobile) {
-        // ─── FIRST-LOAD: Exact PackageContent 4-phase Apple Dynamic Island choreography ───
+        // ─── DESKTOP: Apple Spotlight Dynamic Island Spring Choreography ───
         if (!desktopEntrancePlayedRef.current) {
           desktopEntrancePlayedRef.current = true;
 
@@ -696,11 +710,39 @@ export function FloatingSearch() {
           }
 
         } else {
-          // Subsequent show: lightweight slide up only
-          gsap.fromTo(islandEl,
-            { y: hideY, opacity: 0, scale: 0.95 },
-            { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'expo.out', force3D: true, clearProps: 'scale,y,opacity' }
-          );
+          // Subsequent scroll show: Apple spring entrance with spatial blur
+          gsap.killTweensOf(islandEl);
+          if (innerEl) gsap.killTweensOf(innerEl);
+          if (inputAreaRef.current) gsap.killTweensOf(inputAreaRef.current);
+
+          gsap.set(islandEl, { y: 50, opacity: 0, scale: 0.85, filter: "blur(20px)" });
+          if (innerEl) gsap.set(innerEl, { scaleX: 0.6, scaleY: 0.8 });
+          if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 0, x: 15 });
+
+          // Container spring rise & un-blur
+          gsap.to(islandEl, {
+            y: 0, scale: 1, filter: "blur(0px)", opacity: 1,
+            duration: 0.65, ease: SPRING_POS_SOFT, force3D: true,
+            clearProps: 'scale,y,opacity,filter',
+          });
+
+          // Inner capsule expansion
+          if (innerEl) {
+            gsap.to(innerEl, {
+              scaleX: 1, scaleY: 1,
+              duration: 0.75, ease: SPRING_EXPAND, force3D: true, delay: 0.03,
+              clearProps: 'scaleX,scaleY',
+            });
+          }
+
+          // Input area slide-in
+          if (inputAreaRef.current) {
+            gsap.to(inputAreaRef.current, {
+              opacity: 1, x: 0,
+              duration: 0.45, ease: 'power3.out', force3D: true, delay: 0.06,
+              clearProps: 'opacity,x',
+            });
+          }
         }
       } else {
         // ─── MOBILE: Apple UIKit Spring Physics Dynamic Island ───
@@ -788,14 +830,49 @@ export function FloatingSearch() {
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
+      const hideContainer = () => {
+        if (searchContainerRef.current) {
+          searchContainerRef.current.style.visibility = "hidden";
+        }
+      };
+
       if (isResizingRef.current && !isBtnClick) {
-        gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.88, filter: "blur(20px)" });
+        gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.88, clearProps: "filter" });
         if (innerEl) gsap.set(innerEl, { scaleX: 0.7, scaleY: 0.85 });
         if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -10 : 20 });
         if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.7 });
+        hideContainer();
+      } else if (!isMobile) {
+        // ─── DESKTOP SCROLL RETRACTION: Apple Spotlight Reverse Spring ───
+        if (inputAreaRef.current) {
+          gsap.to(inputAreaRef.current, {
+            opacity: 0, x: 20,
+            duration: 0.18, ease: 'power2.in', force3D: true
+          });
+        }
+        if (innerEl) {
+          gsap.to(innerEl, {
+            scaleX: 0.75, scaleY: 0.85,
+            duration: 0.25, ease: 'power3.in', force3D: true
+          });
+        }
+        gsap.to(islandEl, {
+          y: 50, scale: 0.88, filter: "blur(20px)", opacity: 0,
+          duration: 0.35, ease: 'power3.in', force3D: true,
+          onComplete: () => {
+            gsap.set(islandEl, { clearProps: "filter" });
+            hideContainer();
+          }
+        });
       } else if (!isBtnClick) {
-        // Lightweight hide — critically damped retraction
-        gsap.to(islandEl, { y: hideY, opacity: 0, scale: 0.95, filter: "blur(16px)", duration: 0.35, ease: SPRING_POSITION, force3D: true });
+        // Lightweight hide — critically damped retraction for mobile
+        gsap.to(islandEl, { 
+          y: hideY, opacity: 0, scale: 0.95, duration: 0.35, ease: SPRING_POSITION, force3D: true,
+          onComplete: () => {
+            gsap.set(islandEl, { clearProps: "filter" });
+            hideContainer();
+          }
+        });
       } else {
         // ─── APPLE DYNAMIC ISLAND EXIT: Single-Pass Reverse Spring Retraction ───
         if (searchActionRef.current) {
@@ -827,6 +904,7 @@ export function FloatingSearch() {
         gsap.to(islandEl, {
           opacity: 0,
           duration: 0.24, ease: 'power2.in', force3D: true, delay: 0.1,
+          onComplete: hideContainer,
         });
 
         // Cleanup after exit settles
@@ -835,6 +913,7 @@ export function FloatingSearch() {
           if (inputAreaRef.current) gsap.set(inputAreaRef.current, { clearProps: 'opacity,x' });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
           if (islandEl) gsap.set(islandEl, { clearProps: 'filter' });
+          hideContainer();
         });
       }
     }
@@ -929,7 +1008,7 @@ export function FloatingSearch() {
       <div
         ref={searchContainerRef}
         className={cn(
-          "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3 transition-opacity duration-200",
+          "fixed left-1/2 -translate-x-1/2 z-[45] w-full px-4 flex items-center justify-center gap-3",
           isMobile ? "top-[76px] w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl" : "bottom-10 max-w-4xl",
           (!isInitialized || !shouldRenderCSS) && "opacity-0 invisible pointer-events-none",
           !isVisible && "pointer-events-none"
@@ -938,7 +1017,7 @@ export function FloatingSearch() {
         {/* GSAP-owned island wrapper — matches PackageContent's islandContainerRef exactly */}
         <div
           ref={islandContainerRef}
-          className="relative flex items-center justify-center gap-3 w-full transform-gpu will-change-[transform,opacity]"
+          className="relative flex items-center justify-center gap-3 w-full transform-gpu will-change-[transform,opacity,filter]"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
         {/* Predictive Autocomplete Suggestions Dropdown */}

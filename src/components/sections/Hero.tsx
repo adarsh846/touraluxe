@@ -251,10 +251,10 @@ export function Hero() {
       {/* Narrative Overlay Content */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 flex flex-col items-center text-center mt-12 md:mt-20">
         
-        {/* Cinematic Headline */}
+        {/* Cinematic Headline with Titanium Editorial Metallic Gradient */}
         <h1 
           ref={titleRef}
-          className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-white font-serif mb-6 text-center overflow-hidden opacity-0" 
+          className="text-[clamp(1.75rem,7vw,5.5rem)] font-medium leading-[1.05] tracking-[-0.03em] max-w-[1100px] select-none text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-white/65 drop-shadow-[0_10px_35px_rgba(0,0,0,0.8)] font-serif mb-6 text-center overflow-hidden opacity-0" 
           style={{ willChange: "transform" }}
         >
           {titleLines.map((line, lIdx) => (
@@ -267,20 +267,20 @@ export function Hero() {
         {/* Refined Secondary Narrative */}
         <p 
           ref={subheadRef}
-          className="text-[clamp(0.875rem,2.5vw,1rem)] text-pretty font-normal text-white/50 tracking-wide max-w-[620px] mb-[clamp(2rem,5vw,3rem)] leading-relaxed opacity-0"
+          className="text-[clamp(0.875rem,2.5vw,1rem)] text-pretty font-normal text-white/60 tracking-wide max-w-[620px] mb-[clamp(2rem,5vw,3rem)] leading-relaxed opacity-0 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]"
         >
           {subtitle}
         </p>
 
-        {/* Apple-Tier Dynamic Island Segmented Strip (Unified Mobile + Desktop) */}
+        {/* Apple-Tier Dynamic Island Kinetic Glass Pill Segmented Strip */}
         {trendingPills.length > 0 && (
           <div ref={trendingRef} style={{ opacity: 0 }} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
-            <div ref={trendingInnerRef} className="inline-flex items-center gap-1 p-1 rounded-full bg-black/40 backdrop-blur-2xl border border-white/15 shadow-[0_10px_30px_rgba(0,0,0,0.5)] max-w-full overflow-hidden">
+            <div ref={trendingInnerRef} className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-black/50 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.7),0_1px_0px_rgba(255,255,255,0.15)_inset] max-w-full overflow-hidden">
               
               {/* Lead Status Tag */}
-              <div ref={trendingTagRef} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-white/90 shrink-0">
-                <Sparkles size={11} className="text-amber-400 fill-amber-400/30" />
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em]">Trending</span>
+              <div ref={trendingTagRef} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-400/10 border border-amber-400/30 text-amber-300 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <Sparkles size={11} className="text-amber-400 fill-amber-400/30 animate-pulse" />
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Trending</span>
               </div>
 
               {/* Horizontal Scrollable Segment Items */}
@@ -289,7 +289,7 @@ export function Hero() {
                   (trendingScrollRef as any).current = el;
                   (trendingPillsRef as any).current = el;
                 }}
-                className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap pr-1 scroll-smooth"
+                className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap pr-1 scroll-smooth"
                 onScroll={() => {
                   const el = trendingScrollRef.current;
                   if (!el) return;
@@ -313,7 +313,7 @@ export function Hero() {
                   <button
                     key={pkg.id || pkg.title}
                     onClick={() => openModal('PACKAGE', pkg)}
-                    className="px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wide text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all duration-200 cursor-pointer shrink-0 whitespace-nowrap"
+                    className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide text-white/80 bg-white/[0.05] border border-white/10 hover:text-white hover:bg-white/[0.15] hover:border-white/25 hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer shrink-0 whitespace-nowrap shadow-xs"
                   >
                     {pkg.title}
                   </button>
@@ -321,7 +321,7 @@ export function Hero() {
 
                 <button
                   onClick={() => openBooking(undefined, "TRENDING_OVERFLOW", "Explore All")}
-                  className="px-3 py-1.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wide text-amber-300/80 hover:text-amber-300 hover:bg-amber-400/10 active:scale-95 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1 whitespace-nowrap"
+                  className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wide text-amber-300 bg-amber-400/10 border border-amber-400/25 hover:text-amber-200 hover:bg-amber-400/20 hover:border-amber-400/40 hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1 whitespace-nowrap shadow-xs"
                 >
                   <span>Explore All</span>
                   <ArrowRight size={10} className="stroke-[2.5]" />
