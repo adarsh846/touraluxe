@@ -387,14 +387,18 @@ export function FloatingSearch() {
   // Check mobile & set dynamic placeholder
   useEffect(() => {
     const checkMobile = () => {
-      isResizingRef.current = true;
-      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
-      resizeTimerRef.current = setTimeout(() => {
-        isResizingRef.current = false;
-      }, 150);
-
       const w = window.innerWidth;
       const mobile = w < 1280; // Align with xl breakpoint (1280px)
+
+      // Only set isResizingRef if window width actually changed (orientation / desktop resize),
+      // NEVER on virtual keyboard height shifts on mobile devices.
+      if (lastWidthRef.current !== 0 && Math.abs(w - lastWidthRef.current) > 5) {
+        isResizingRef.current = true;
+        if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+        resizeTimerRef.current = setTimeout(() => {
+          isResizingRef.current = false;
+        }, 150);
+      }
 
       setIsMobile(prevMobile => {
         if (prevMobile !== mobile) {
@@ -416,9 +420,6 @@ export function FloatingSearch() {
               gsap.set(islandContainerRef.current, { opacity: 1, y: 0 });
             }
           }
-        } else if (mobile && !isFocusedRef.current) {
-          // On mobile window resize when input is NOT focused: strictly keep hidden to prevent resize flashes
-          setIsVisible(false);
         }
         return mobile;
       });
@@ -434,6 +435,8 @@ export function FloatingSearch() {
           setIsVisible(true);
           setPlaceholder("Where will your next journey begin?");
         }
+      } else {
+        lastWidthRef.current = w;
       }
 
       setIsInitialized(true);
@@ -568,7 +571,7 @@ export function FloatingSearch() {
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
-      if (isResizingRef.current) {
+      if (isResizingRef.current && !isBtnClick) {
         // Fast-path during rapid window resizing: set state instantly to avoid animation flashing
         gsap.set(islandEl, { y: 0, opacity: 1, scale: 1 });
         if (innerEl) gsap.set(innerEl, { scaleX: 1, scaleY: 1 });
@@ -710,7 +713,7 @@ export function FloatingSearch() {
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
 
-      if (isResizingRef.current) {
+      if (isResizingRef.current && !isBtnClick) {
         gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.88 });
         if (innerEl) gsap.set(innerEl, { scaleX: 0.7, scaleY: 0.85 });
         if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -10 : 20 });
