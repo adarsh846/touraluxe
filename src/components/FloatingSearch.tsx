@@ -338,6 +338,15 @@ export function FloatingSearch() {
     return Array.from(list.values()).slice(0, 5);
   }, [searchValue, packages]);
 
+  const [isSuggestionsRendered, setIsSuggestionsRendered] = useState(false);
+
+  // Sync render state with showSuggestions
+  useEffect(() => {
+    if (showSuggestions && suggestions.length > 0) {
+      setIsSuggestionsRendered(true);
+    }
+  }, [showSuggestions, suggestions.length]);
+
   const lastSuggestionsHeightRef = useRef<number>(0);
 
   // Apple-Tier Dynamic Island 2-phase spring choreography for autocomplete suggestion strip
@@ -360,12 +369,12 @@ export function FloatingSearch() {
             height: currentHeight, 
             filter: "blur(0px)", 
             duration: 0.35, 
-            ease: "power3.out", 
+            ease: SPRING_POS_SOFT, 
             clearProps: "height,filter" 
           }
         );
       } else {
-        // Phase 1: Capsule seed expansion with high-visibility outer GPU spatial blur
+        // Phase 1: Capsule seed expansion with iOS Dynamic Island spring overshoot & spatial depth blur
         gsap.fromTo(
           card,
           {
@@ -382,8 +391,8 @@ export function FloatingSearch() {
             scaleX: 1,
             y: 0,
             filter: "blur(0px)",
-            duration: 0.52,
-            ease: "power3.out",
+            duration: 0.58,
+            ease: SPRING_BOUNCY,
             force3D: true,
             clearProps: "filter",
           }
@@ -413,10 +422,43 @@ export function FloatingSearch() {
           }
         );
       }
-    } else {
+    } else if (!showSuggestions && isSuggestionsRendered && suggestionsCardRef.current) {
+      // ─── APPLE DYNAMIC ISLAND DROP-OUT EXIT ───
+      const card = suggestionsCardRef.current;
+      const items = card.querySelectorAll(".suggestion-item");
+
+      gsap.killTweensOf(card);
+      if (items.length > 0) gsap.killTweensOf(items);
+
+      if (items.length > 0) {
+        gsap.to(items, {
+          opacity: 0,
+          y: isMobile ? -6 : 6,
+          duration: 0.15,
+          ease: "power2.in",
+          force3D: true,
+        });
+      }
+
+      gsap.to(card, {
+        opacity: 0,
+        scaleY: 0.3,
+        scaleX: 0.8,
+        y: isMobile ? -14 : 14,
+        filter: "blur(18px)",
+        duration: 0.24,
+        ease: "power3.in",
+        force3D: true,
+        onComplete: () => {
+          setIsSuggestionsRendered(false);
+          lastSuggestionsHeightRef.current = 0;
+        },
+      });
+    } else if (!showSuggestions) {
       lastSuggestionsHeightRef.current = 0;
+      setIsSuggestionsRendered(false);
     }
-  }, [showSuggestions, suggestions.length, isMobile]);
+  }, [showSuggestions, suggestions.length, isMobile, isSuggestionsRendered]);
 
   // Click outside to dismiss search bar & suggestions dropdown
   // IMPORTANT: uses 'click' not 'mousedown' — on iOS, mousedown fires BEFORE the Navbar's onClick,
@@ -1027,7 +1069,7 @@ export function FloatingSearch() {
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
         {/* Predictive Autocomplete Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {isSuggestionsRendered && suggestions.length > 0 && (
           <div
             ref={suggestionsCardRef}
             className={cn(
@@ -1046,10 +1088,10 @@ export function FloatingSearch() {
                     triggerSearch(item.label);
                   }}
                   className={cn(
-                    "suggestion-item w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 ease-out transform-gpu",
+                    "suggestion-item w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 ease-out transform-gpu active:scale-[0.97]",
                     isSelected 
-                      ? "bg-gradient-to-r from-white/[0.18] to-white/[0.08] text-white scale-[1.015] translate-x-0.5 shadow-[0_4px_20px_rgba(255,255,255,0.06),0_1px_0px_rgba(255,255,255,0.15)_inset] border border-white/20" 
-                      : "text-white/60 hover:bg-white/5 hover:text-white hover:translate-x-0.5 border border-transparent"
+                      ? "bg-gradient-to-r from-white/[0.2] to-white/[0.08] text-white scale-[1.015] translate-x-0.5 shadow-[0_4px_25px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.2)_inset] border border-white/25" 
+                      : "text-white/60 hover:bg-white/[0.07] hover:text-white hover:translate-x-0.5 border border-transparent"
                   )}
                 >
                   {item.type === 'destination' ? (
