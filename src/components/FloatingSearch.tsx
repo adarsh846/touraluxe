@@ -352,11 +352,17 @@ export function FloatingSearch() {
       if (items.length > 0) gsap.killTweensOf(items);
 
       if (lastSuggestionsHeightRef.current > 0 && lastSuggestionsHeightRef.current !== currentHeight) {
-        // Height auto-morphing when suggestion count changes while typing
+        // Height auto-morphing when suggestion count changes while typing — resolve any interrupted spatial blur
         gsap.fromTo(
           card,
           { height: lastSuggestionsHeightRef.current },
-          { height: currentHeight, duration: 0.35, ease: "power3.out", clearProps: "height" }
+          { 
+            height: currentHeight, 
+            filter: "blur(0px)", 
+            duration: 0.35, 
+            ease: "power3.out", 
+            clearProps: "height,filter" 
+          }
         );
       } else {
         // Phase 1: Capsule seed expansion with high-visibility outer GPU spatial blur
