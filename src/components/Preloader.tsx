@@ -34,16 +34,27 @@ export function Preloader() {
         }
       });
 
-      // 1. Initial Reveal
+      // 1. Apple Spatial Blur Depth Initial Reveal
       tl.fromTo(
         ".preloader-text span",
-        { y: 60, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, ease: "expo.out", stagger: 0.04 }
+        { y: 50, opacity: 0, scale: 0.85, filter: "blur(24px)" },
+        { 
+          y: 0, 
+          opacity: 1, 
+          scale: 1, 
+          filter: "blur(0px)", 
+          duration: 0.65, 
+          ease: "power3.out", 
+          stagger: 0.04,
+          onComplete: () => {
+            gsap.set(".preloader-text span", { clearProps: "filter" });
+          }
+        }
       );
 
       // 2. Smooth Progress Animation (Simulated but ultra-smooth)
       tl.to({}, {
-        duration: 0.8, // Total load time is now under 1s
+        duration: 0.8, // Total load time is under 1s
         onUpdate: function () {
           const val = Math.round(this.progress() * 100);
           if (progressRef.current) progressRef.current.style.width = `${val}%`;
@@ -52,18 +63,27 @@ export function Preloader() {
         ease: "power2.inOut"
       });
 
-      // 3. Ultra-Fast Exit
+      // 3. Apple Spatial Depth Curtain Exit Unveil
       tl.to(".preloader-text span", {
-        y: -60,
+        y: -50,
         opacity: 0,
-        duration: 0.3,
-        ease: "expo.in",
+        scale: 1.1,
+        filter: "blur(20px)",
+        duration: 0.35,
+        ease: "power2.in",
         stagger: 0.02,
       }, "+=0.1")
         .to(preloaderRef.current, {
           yPercent: -100,
-          duration: 0.6,
-          ease: "expo.inOut",
+          filter: "blur(30px)",
+          opacity: 0,
+          duration: 0.65,
+          ease: "power3.inOut",
+          onComplete: () => {
+            if (preloaderRef.current) {
+              gsap.set(preloaderRef.current, { clearProps: "filter" });
+            }
+          }
         }, "-=0.1")
         .set(preloaderRef.current, { display: "none" });
 

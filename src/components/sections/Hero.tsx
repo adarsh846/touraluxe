@@ -117,67 +117,75 @@ export function Hero() {
   useEffect(() => {
     const startAnimation = () => {
       const ctx = gsap.context(() => {
-        // Premium Apple-style Intro Animation
-        const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
+        // Premium Apple-style Intro Animation — Balanced Rhythmic Orchestration
+        const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
 
+        // 1. Headline Entrance
         gsap.set(titleRef.current, { opacity: 0, y: 35 });
         tl.to(
           titleRef.current,
           { 
             y: 0, 
             opacity: 1, 
-            duration: 0.8, 
+            duration: 0.85, 
             ease: "elastic.out(1.1, 0.55)", 
             force3D: true,
             clearProps: "y"
           }
         )
-          .fromTo(
-            subheadRef.current,
-            { y: 30, opacity: 0 },
-            { 
-              y: 0, 
-              opacity: 1, 
-              duration: 1.2, 
-              ease: "power3.out" 
-            },
-            "-=0.7"
-          );
+        // 2. Subtitle Entrance (starts seamlessly as title settles)
+        .fromTo(
+          subheadRef.current,
+          { y: 24, opacity: 0 },
+          { 
+            y: 0, 
+            opacity: 1, 
+            duration: 0.65, 
+            ease: "power3.out",
+            clearProps: "y"
+          },
+          "-=0.45"
+        );
 
+        // 3. Trending Pill Dynamic Island Unfold (starts right as subtitle settles)
         if (trendingRef.current) {
-          gsap.set(trendingRef.current, { y: 60, opacity: 0, scale: 0.3 });
-          if (trendingInnerRef.current) gsap.set(trendingInnerRef.current, { scaleX: 0.45, scaleY: 0.7 });
-          if (trendingTagRef.current)   gsap.set(trendingTagRef.current,   { opacity: 0, x: -15 });
-          if (trendingPillsRef.current) gsap.set(trendingPillsRef.current, { opacity: 0, scale: 0.85 });
+          gsap.set(trendingRef.current, { y: 35, opacity: 0, filter: "blur(20px)" });
+          if (trendingInnerRef.current) gsap.set(trendingInnerRef.current, { scaleX: 0.65, scaleY: 0.90 });
+          if (trendingTagRef.current)   gsap.set(trendingTagRef.current,   { opacity: 0, x: -10 });
 
-          // Stage 1: Kinetic Seed Rise (expo.out) - compressed seed rises from bottom
+          const pillButtons = trendingPillsRef.current ? trendingPillsRef.current.querySelectorAll("button") : [];
+          if (pillButtons.length > 0) {
+            gsap.set(pillButtons, { opacity: 0, y: 6 });
+          }
+
+          // Phase 1: Spatial Seed Rise & 20px Unblur (0.45s power3.out)
           tl.to(trendingRef.current, {
-            y: 0, opacity: 1, scale: 1,
-            duration: 0.55, ease: 'expo.out', force3D: true,
-            clearProps: 'scale,y',
-          }, '-=0.5')
-          // Stage 2: Elastic Morph Expansion (elastic.out(1.1, 0.45))
+            y: 0, opacity: 1, filter: "blur(0px)",
+            duration: 0.45, ease: "power3.out", force3D: true,
+            clearProps: "y,opacity,filter",
+          }, "-=0.20")
+          // Phase 2: Smooth Elastic Width Expansion (0.60s elastic.out(1.0, 0.5))
           .to(trendingInnerRef.current, {
             scaleX: 1, scaleY: 1,
-            duration: 0.85, ease: 'elastic.out(1.1, 0.45)', force3D: true,
-            clearProps: 'scaleX,scaleY',
-          }, '-=0.35');
+            duration: 0.60, ease: "elastic.out(1.0, 0.5)", force3D: true,
+            clearProps: "scaleX,scaleY",
+          }, "-=0.28");
 
-          // Stage 3: Staggered Content Pop (power3.out & back.out)
+          // Phase 3: Gold Tag & Pill Items Fluid Unveil
           if (trendingTagRef.current) {
             tl.to(trendingTagRef.current, {
               opacity: 1, x: 0,
-              duration: 0.45, ease: 'power3.out', force3D: true,
-              clearProps: 'opacity,x',
-            }, '-=0.6');
+              duration: 0.30, ease: "power3.out",
+              clearProps: "opacity,x",
+            }, "-=0.20");
           }
 
-          if (trendingPillsRef.current) {
-            tl.to(trendingPillsRef.current, {
-              opacity: 1, scale: 1,
-              duration: 0.4, ease: 'back.out(1.5)', force3D: true,
-              clearProps: 'opacity,scale',
-            }, '-=0.45');
+          if (pillButtons.length > 0) {
+            tl.to(pillButtons, {
+              opacity: 1, y: 0,
+              duration: 0.30, ease: "power3.out", stagger: 0.025,
+              clearProps: "opacity,y",
+            }, "-=0.18");
           }
         }
 
@@ -275,12 +283,25 @@ export function Hero() {
         {/* Apple-Tier Dynamic Island Kinetic Glass Pill Segmented Strip */}
         {trendingPills.length > 0 && (
           <div ref={trendingRef} style={{ opacity: 0 }} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
-            <div ref={trendingInnerRef} className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-black/50 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.7),0_1px_0px_rgba(255,255,255,0.15)_inset] max-w-full overflow-hidden">
+            <div ref={trendingInnerRef} className="relative inline-flex items-center gap-1.5 p-1.5 rounded-full bg-[#0a0a0c]/65 backdrop-blur-3xl border border-white/10 shadow-[0_20px_45px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.12)_inset] max-w-full overflow-hidden">
               
-              {/* Lead Status Tag */}
-              <div ref={trendingTagRef} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-400/10 border border-amber-400/30 text-amber-300 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                <Sparkles size={11} className="text-amber-400 fill-amber-400/30 animate-pulse" />
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Trending</span>
+              {/* Apple iOS subtle top-down gradient border ring */}
+              <div
+                className="absolute inset-0 rounded-full pointer-events-none z-[2]"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 40%, rgba(255,255,255,0.00) 75%)",
+                  padding: "1px",
+                  borderRadius: "9999px",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "destination-out",
+                  maskComposite: "exclude",
+                }}
+              />
+
+              {/* Lead Status Tag — Refined Subtle Gold Badge */}
+              <div ref={trendingTagRef} className="relative z-[3] inline-flex items-center justify-center gap-1.5 h-7 sm:h-8 px-3 rounded-full bg-gradient-to-r from-amber-400/[0.10] via-amber-400/[0.05] to-transparent border border-amber-400/20 text-amber-300/90 shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.10)]">
+                <Sparkles size={11} className="text-amber-300/80 fill-amber-300/30 animate-pulse" />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] leading-none">Trending</span>
               </div>
 
               {/* Horizontal Scrollable Segment Items */}
@@ -289,7 +310,7 @@ export function Hero() {
                   (trendingScrollRef as any).current = el;
                   (trendingPillsRef as any).current = el;
                 }}
-                className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap pr-1 scroll-smooth"
+                className="relative z-[3] flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex-nowrap pr-1 scroll-smooth"
                 onScroll={() => {
                   const el = trendingScrollRef.current;
                   if (!el) return;
@@ -313,7 +334,7 @@ export function Hero() {
                   <button
                     key={pkg.id || pkg.title}
                     onClick={() => openModal('PACKAGE', pkg)}
-                    className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide text-white/80 bg-white/[0.05] border border-white/10 hover:text-white hover:bg-white/[0.15] hover:border-white/25 hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer shrink-0 whitespace-nowrap shadow-xs"
+                    className="inline-flex items-center justify-center h-7 sm:h-8 px-3.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wider uppercase text-white/65 bg-white/[0.04] border border-white/10 hover:text-white hover:bg-white/[0.10] hover:border-white/20 active:scale-[0.95] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shrink-0 whitespace-nowrap shadow-xs leading-none"
                   >
                     {pkg.title}
                   </button>
@@ -321,7 +342,7 @@ export function Hero() {
 
                 <button
                   onClick={() => openBooking(undefined, "TRENDING_OVERFLOW", "Explore All")}
-                  className="px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wide text-amber-300 bg-amber-400/10 border border-amber-400/25 hover:text-amber-200 hover:bg-amber-400/20 hover:border-amber-400/40 hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1 whitespace-nowrap shadow-xs"
+                  className="inline-flex items-center justify-center h-7 sm:h-8 px-3.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-amber-300/90 bg-amber-400/[0.08] border border-amber-400/20 hover:text-amber-200 hover:bg-amber-400/[0.14] hover:border-amber-400/35 active:scale-[0.95] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shrink-0 gap-1.5 whitespace-nowrap shadow-[0_2px_8px_rgba(245,158,11,0.08)] leading-none"
                 >
                   <span>Explore All</span>
                   <ArrowRight size={10} className="stroke-[2.5]" />

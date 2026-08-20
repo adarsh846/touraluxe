@@ -77,17 +77,17 @@ export function Navbar() {
     pillEntrancePlayed.current = true;
 
     // Initial compressed-seed state — opacity:0 hides white border ring until fully risen
-    gsap.set(wrapperEl, { y: 60, opacity: 0, scale: 0.4 });
+    gsap.set(wrapperEl, { y: 60, opacity: 0, scale: 0.4, filter: "blur(32px)" });
     gsap.set(innerEl,   { scaleX: 0.3, scaleY: 0.85 });
     gsap.set(iconsEl,   { opacity: 0 });
 
     const tl = gsap.timeline({ delay: 0.2 });
 
-    // Phase 1: seed rises and fades in from bottom
+    // Phase 1: seed rises out of blur(32px) and fades in from bottom
     tl.to(wrapperEl, {
-      y: 0, opacity: 1, scale: 1,
-      duration: 0.6, ease: "expo.out", force3D: true,
-      clearProps: "scale,y,opacity",
+      y: 0, opacity: 1, scale: 1, filter: "blur(0px)",
+      duration: 0.65, ease: "power3.out", force3D: true,
+      clearProps: "scale,y,opacity,filter",
     })
     // Phase 2: pill elastically expands to full width
     .to(innerEl, {
@@ -337,15 +337,24 @@ export function Navbar() {
 
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
       <div ref={pillWrapperRef} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md" style={{ opacity: 0 }}>
-        {/* iOS 26 gradient border ring: bright top rim, fading sides, dark bottom */}
+        {/* iOS 26 gradient border ring: bright top rim, fading sides, pure dark black bottom */}
         <div ref={pillInnerRef}
-          className="p-px rounded-full transform-gpu will-change-transform"
-          style={{
-            background: "linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.04) 70%, rgba(255,255,255,0.02) 100%)",
-          }}
+          className="relative p-[1px] rounded-full transform-gpu will-change-transform bg-[#0a0a0c]/96 backdrop-blur-3xl border-t border-x border-white/16 border-b-transparent shadow-[0_25px_65px_rgba(0,0,0,0.95),0_1px_0px_rgba(255,255,255,0.18)_inset]"
         >
+          {/* Apple iOS top-down gradient border ring — fades completely to 0 at bottom */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none z-[2]"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.12) 35%, rgba(255,255,255,0.00) 65%)",
+              padding: "1px",
+              borderRadius: "9999px",
+              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+              WebkitMaskComposite: "destination-out",
+              maskComposite: "exclude",
+            }}
+          />
           {/* Solid background and shadow layer that scales with the border */}
-          <div className="bg-[#0a0a0b]/92 backdrop-blur-2xl rounded-full shadow-[0_20px_60px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.08)_inset,0_-1px_0px_rgba(0,0,0,0.4)_inset]">
+          <div className="relative z-[3] rounded-full">
             {/* Icons content layer — starts invisible and fades in */}
             <div ref={pillIconsRef} className="flex items-center justify-between px-3 py-2 w-full h-full">
               {/* Search */}

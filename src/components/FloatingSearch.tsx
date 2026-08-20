@@ -137,7 +137,10 @@ export function FloatingSearch() {
 
   useEffect(() => {
     const handleOpenSearch = () => {
-      lastToggleTapRef.current = Date.now();
+      const now = Date.now();
+      // Apple Spotlight debouncing lock (400ms): ignore rapid repeated taps during transition to prevent animation tearing & history thrashing
+      if (now - lastToggleTapRef.current < 400) return;
+      lastToggleTapRef.current = now;
 
       // Cancel any pending onBlur auto-close timer immediately
       if (blurTimeoutRef.current) {
@@ -151,14 +154,30 @@ export function FloatingSearch() {
       isButtonClickedRef.current = true;
 
       if (currentlyOpen) {
-        // Tap 2 (Open → Closed): Clean dismiss with Dynamic Island retraction
-        isFocusedRef.current = false;
-        setIsFocused(false);
-        setShowSuggestions(false);
-        if (inputRef.current) inputRef.current.blur();
-        setIsVisibleWithRef(false);
+        // If already open, refocus search input & select query text (Apple Spotlight UX)
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+        // Authentic iOS CAKeyframeAnimation shake + Dynamic Island squish-stretch liquid physics
+        if (islandContainerRef.current) {
+          gsap.killTweensOf(islandContainerRef.current, "x,scaleX,scaleY");
+          gsap.to(islandContainerRef.current, {
+            keyframes: [
+              { x: -14, scaleX: 1.025, scaleY: 0.975, duration: 0.06 },
+              { x: 14, scaleX: 0.98, scaleY: 1.02, duration: 0.07 },
+              { x: -10, scaleX: 1.015, scaleY: 0.985, duration: 0.07 },
+              { x: 10, scaleX: 0.99, scaleY: 1.01, duration: 0.07 },
+              { x: -5, scaleX: 1.005, scaleY: 0.995, duration: 0.08 },
+              { x: 5, scaleX: 0.998, scaleY: 1.002, duration: 0.08 },
+              { x: 0, scaleX: 1, scaleY: 1, duration: 0.09 },
+            ],
+            ease: "sine.inOut",
+            clearProps: "x,scaleX,scaleY",
+          });
+        }
       } else {
-        // Tap 1 (Closed → Open): Launch with Dynamic Island seed drop
+        // Tap (Closed → Open): Launch with Dynamic Island seed drop spring animation
         setIsVisibleWithRef(true);
         setTimeout(() => {
           if (inputRef.current) inputRef.current.focus();
@@ -178,6 +197,7 @@ export function FloatingSearch() {
   // search bar with the exit animation instead of navigating away from the page.
   // When search closes (by any path): pop the dummy entry if it's still there.
   const historyPushedRef = useRef(false);
+  const isNavigatingToBookingRef = useRef(false);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -186,11 +206,17 @@ export function FloatingSearch() {
       // Push a dummy state so Back button has something to pop
       window.history.pushState({ floatingSearch: true }, "");
       historyPushedRef.current = true;
+      isNavigatingToBookingRef.current = false;
     } else if (!isVisible && historyPushedRef.current) {
-      // Search was closed via another path (Cancel, click-outside, scroll, toggle) —
-      // silently remove the dummy entry so Back doesn't fire our handler again
       historyPushedRef.current = false;
-      window.history.back();
+      if (isNavigatingToBookingRef.current) {
+        // We are transitioning directly into the Booking modal — do NOT call window.history.back()
+        // as that would pop the modal state that openBooking just pushed onto history!
+        isNavigatingToBookingRef.current = false;
+      } else {
+        // Search was closed manually (Cancel, click-outside, scroll) — pop dummy entry
+        window.history.back();
+      }
     }
   }, [isVisible, isMobile]);
 
@@ -353,36 +379,42 @@ export function FloatingSearch() {
   useIsomorphicLayoutEffect(() => {
     if (showSuggestions && suggestions.length > 0 && suggestionsCardRef.current) {
       const card = suggestionsCardRef.current;
-      const currentHeight = card.offsetHeight;
+
+      // Measure natural content height by temporarily resetting inline height
+      const previousHeight = lastSuggestionsHeightRef.current > 0 ? lastSuggestionsHeightRef.current : card.offsetHeight;
+      card.style.height = "auto";
+      const targetHeight = card.offsetHeight;
 
       gsap.killTweensOf(card);
       
       const items = card.querySelectorAll(".suggestion-item");
       if (items.length > 0) gsap.killTweensOf(items);
 
-      if (lastSuggestionsHeightRef.current > 0 && lastSuggestionsHeightRef.current !== currentHeight) {
-        // Height auto-morphing when suggestion count changes while typing — resolve any interrupted spatial blur
+      if (lastSuggestionsHeightRef.current > 0 && Math.abs(previousHeight - targetHeight) > 2) {
+        // Height auto-morphing when suggestion count changes while typing — Apple fluid spring morph
         gsap.fromTo(
           card,
-          { height: lastSuggestionsHeightRef.current },
+          { height: previousHeight },
           { 
-            height: currentHeight, 
+            height: targetHeight, 
             filter: "blur(0px)", 
             duration: 0.35, 
             ease: SPRING_POS_SOFT, 
-            clearProps: "height,filter" 
+            onComplete: () => {
+              gsap.set(card, { clearProps: "height,filter" });
+            } 
           }
         );
       } else {
-        // Phase 1: Capsule seed expansion with iOS Dynamic Island spring overshoot & spatial depth blur
+        // Phase 1: Capsule seed expansion with iOS Dynamic Island spring overshoot & dramatic Apple spatial depth blur
         gsap.fromTo(
           card,
           {
             opacity: 0,
             scaleY: 0.35,
             scaleX: 0.8,
-            y: isMobile ? -12 : 12,
-            filter: "blur(20px)",
+            y: isMobile ? -14 : 14,
+            filter: "blur(40px)",
             transformOrigin: isMobile ? "top center" : "bottom center",
           },
           {
@@ -391,34 +423,41 @@ export function FloatingSearch() {
             scaleX: 1,
             y: 0,
             filter: "blur(0px)",
-            duration: 0.58,
+            duration: 0.62,
             ease: SPRING_BOUNCY,
             force3D: true,
-            clearProps: "filter",
+            onComplete: () => {
+              gsap.set(card, { clearProps: "filter,height" });
+            }
           }
         );
       }
 
-      lastSuggestionsHeightRef.current = currentHeight;
+      lastSuggestionsHeightRef.current = targetHeight;
 
-      // Phase 2: Spatial staggered row unfold (GPU hardware-accelerated, zero per-item blur rasterization)
+      // Phase 2: Spatial staggered row unfold with intense Apple depth blur focus
       if (items.length > 0) {
         gsap.fromTo(
           items,
           {
             opacity: 0,
-            y: isMobile ? -10 : 10,
-            scale: 0.94,
+            y: isMobile ? -14 : 14,
+            scale: 0.92,
+            filter: "blur(16px)",
           },
           {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.42,
-            stagger: 0.03,
+            filter: "blur(0px)",
+            duration: 0.48,
+            stagger: 0.04,
             ease: SPRING_BOUNCY,
-            delay: 0.03,
+            delay: 0.04,
             force3D: true,
+            onComplete: () => {
+              gsap.set(items, { clearProps: "filter" });
+            }
           }
         );
       }
@@ -433,8 +472,9 @@ export function FloatingSearch() {
       if (items.length > 0) {
         gsap.to(items, {
           opacity: 0,
-          y: isMobile ? -6 : 6,
-          duration: 0.15,
+          y: isMobile ? -8 : 8,
+          filter: "blur(14px)",
+          duration: 0.18,
           ease: "power2.in",
           force3D: true,
         });
@@ -445,8 +485,8 @@ export function FloatingSearch() {
         scaleY: 0.3,
         scaleX: 0.8,
         y: isMobile ? -14 : 14,
-        filter: "blur(18px)",
-        duration: 0.24,
+        filter: "blur(32px)",
+        duration: 0.26,
         ease: "power3.in",
         force3D: true,
         onComplete: () => {
@@ -480,10 +520,10 @@ export function FloatingSearch() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [isMobile, setIsVisibleWithRef]);
 
-  // Update showSuggestions status as query length updates
+  // Update showSuggestions status as query length updates (Apple Spotlight UX: focus loss does not collapse active results)
   useEffect(() => {
-    if (searchValue.trim().length >= 2 && isFocused) {
-      setShowSuggestions(true);
+    if (searchValue.trim().length >= 2) {
+      if (isFocused) setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
@@ -501,8 +541,13 @@ export function FloatingSearch() {
     const finalVal = (valueOverride !== undefined ? valueOverride : searchValue).trim();
     setShowSuggestions(false);
     setSelectedIndex(-1);
+    if (isMobile) {
+      isNavigatingToBookingRef.current = true;
+      isButtonClickedRef.current = true;
+      setIsVisibleWithRef(false);
+    }
     openBooking(undefined, "FLOATING_SEARCH", finalVal || "Explore");
-  }, [searchValue, openBooking]);
+  }, [searchValue, openBooking, isMobile, setIsVisibleWithRef]);
 
   const isResizingRef = useRef(false);
   const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -660,12 +705,21 @@ export function FloatingSearch() {
   }, [isMobile, setIsVisibleWithRef]);
 
   // Auto-blur search input and dismiss search bar on manual scroll/drag gesture (mobile only)
+  // CRITICAL: Ignore touchmove events that originate inside the suggestions dropdown —
+  // even a sub-pixel finger jitter during a tap fires touchmove, which would kill the
+  // search bar before onClick can register on the suggestion button.
   useEffect(() => {
     if (!isMobile) return;
 
-    const handleTouchMove = () => {
+    const handleTouchMove = (e: TouchEvent) => {
       // Ignore scroll during the guard window after a Search button tap
       if (Date.now() - lastToggleTapRef.current < TOGGLE_GUARD_MS) return;
+
+      // Never dismiss if the touch originated inside the suggestions card
+      if (suggestionsCardRef.current && e.target instanceof Node && suggestionsCardRef.current.contains(e.target)) {
+        return;
+      }
+
       if (isVisibleRef.current || isFocusedRef.current) {
         isButtonClickedRef.current = true;
         if (inputRef.current) inputRef.current.blur();
@@ -806,8 +860,8 @@ export function FloatingSearch() {
         const currentOpacity = Number(gsap.getProperty(islandEl, "opacity") || 0);
 
         if (currentOpacity < 0.1) {
-          // ─── FULL LAUNCH: Dynamic Island Bouncy Spring Entrance + High-Visibility Spatial Blur ───
-          gsap.set(islandEl, { y: -60, opacity: 0, scale: 0.65, filter: "blur(24px)" });
+          // ─── FULL LAUNCH: Dynamic Island Bouncy Spring Entrance + Balanced Apple Spatial Blur ───
+          gsap.set(islandEl, { y: -60, opacity: 0, scale: 0.65, filter: "blur(32px)" });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.55, scaleY: 0.7 });
           if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
@@ -820,9 +874,12 @@ export function FloatingSearch() {
           gsap.to(islandEl, {
             scale: 1, duration: 0.85, ease: SPRING_BOUNCY, force3D: true,
           });
-          // High-visibility outer GPU spatial depth blur resolution
+          // Balanced Apple GPU spatial depth blur resolution
           gsap.to(islandEl, {
-            filter: "blur(0px)", opacity: 1, duration: 0.52, ease: "power3.out", force3D: true,
+            filter: "blur(0px)", opacity: 1, duration: 0.48, ease: "power2.out", force3D: true,
+            onComplete: () => {
+              gsap.set(islandEl, { clearProps: "filter" });
+            }
           });
 
           // Inner capsule expansion: bounciest spring — scaleX overshoots visibly
@@ -944,15 +1001,18 @@ export function FloatingSearch() {
           });
         }
 
-        // Seed retracts into bezel with high-visibility spatial blur
+        // Seed retracts into bezel with balanced Apple spatial blur
         gsap.to(islandEl, {
-          y: hideY, scale: 0.88, filter: "blur(20px)",
-          duration: 0.35, ease: 'power3.in', force3D: true, delay: 0.04,
+          y: hideY, scale: 0.88, filter: "blur(24px)",
+          duration: 0.32, ease: 'power3.in', force3D: true, delay: 0.04,
         });
         gsap.to(islandEl, {
           opacity: 0,
-          duration: 0.24, ease: 'power2.in', force3D: true, delay: 0.1,
-          onComplete: hideContainer,
+          duration: 0.24, ease: 'power2.in', force3D: true, delay: 0.08,
+          onComplete: () => {
+            gsap.set(islandEl, { clearProps: "filter" });
+            hideContainer();
+          },
         });
 
         // Cleanup after exit settles
@@ -1073,25 +1133,51 @@ export function FloatingSearch() {
           <div
             ref={suggestionsCardRef}
             className={cn(
-              "absolute bg-[#0c0c0e]/95 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_30px_70px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.12)_inset] overflow-hidden flex flex-col p-1.5 z-[50] transform-gpu origin-top md:origin-bottom before:absolute before:inset-x-0 before:top-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent pointer-events-auto",
+              "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col p-1.5 z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
               isMobile ? "top-full mt-3 left-4 right-4" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
             )}
           >
+            {/* Apple iOS top-down gradient border ring — refined polished specular sheen */}
+            <div
+              className="absolute inset-0 rounded-2xl pointer-events-none z-[2]"
+              style={{
+                background: "linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.02) 100%)",
+                padding: "1px",
+                borderRadius: "1rem",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "destination-out",
+                maskComposite: "exclude",
+              }}
+            />
+            {/* Feathered top specular accent line */}
+            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none z-[3]" />
             {suggestions.map((item, idx) => {
               const isSelected = idx === selectedIndex;
               return (
                 <button
                   key={idx}
+                  type="button"
                   onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent input blur on item select
+                    e.preventDefault(); // Prevent input blur on desktop mouse down
+                  }}
+                  onTouchEnd={(e) => {
+                    // iOS Safari swallows onClick when the virtual keyboard is dismissing.
+                    // onTouchEnd fires reliably before the OS consumes the gesture.
+                    e.preventDefault(); // Prevent the subsequent synthetic click
+                    setSearchValue(item.label);
+                    triggerSearch(item.label);
+                  }}
+                  onClick={(e) => {
+                    // Desktop fallback (onTouchEnd won't fire on non-touch devices)
+                    e.stopPropagation();
                     setSearchValue(item.label);
                     triggerSearch(item.label);
                   }}
                   className={cn(
-                    "suggestion-item w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 ease-out transform-gpu active:scale-[0.97]",
+                    "suggestion-item w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu active:scale-[0.96] active:bg-white/[0.14] active:brightness-125",
                     isSelected 
-                      ? "bg-gradient-to-r from-white/[0.2] to-white/[0.08] text-white scale-[1.015] translate-x-0.5 shadow-[0_4px_25px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.2)_inset] border border-white/25" 
-                      : "text-white/60 hover:bg-white/[0.07] hover:text-white hover:translate-x-0.5 border border-transparent"
+                      ? "bg-gradient-to-r from-white/[0.18] via-white/[0.10] to-white/[0.04] text-white scale-[1.01] translate-x-1 shadow-[0_4px_20px_rgba(0,0,0,0.7),0_1px_0px_rgba(255,255,255,0.2)_inset] border border-white/20" 
+                      : "text-white/60 hover:bg-white/[0.08] hover:text-white hover:translate-x-0.5 border border-transparent"
                   )}
                 >
                   {item.type === 'destination' ? (
@@ -1105,15 +1191,23 @@ export function FloatingSearch() {
                       isSelected ? "text-sky-300 scale-125 rotate-6" : "text-white/40"
                     )} />
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <p className={cn(
-                      "text-[10px] font-bold tracking-[0.1em] uppercase truncate transition-colors duration-200",
-                      isSelected ? "text-white font-black" : "text-white/80"
+                      "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
+                      isSelected ? "text-white font-black" : "text-white/90"
                     )}>{item.label}</p>
+                    {isMobile && item.extra && (
+                      <span className={cn(
+                        "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                        isSelected ? "text-white/70" : "text-white/40"
+                      )}>
+                        {item.extra}
+                      </span>
+                    )}
                   </div>
-                  {item.extra && (
+                  {!isMobile && item.extra && (
                     <span className={cn(
-                      "text-[8px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded transition-all duration-200 border",
+                      "text-[8px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded transition-all duration-200 border shrink-0",
                       isSelected 
                         ? "text-white bg-white/15 border-white/20 shadow-xs" 
                         : "text-white/30 bg-white/5 border-transparent"
@@ -1146,7 +1240,7 @@ export function FloatingSearch() {
         <div
           className="absolute inset-0 rounded-full pointer-events-none z-[2]"
           style={{
-            background: "linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.10) 40%, rgba(255,255,255,0.03) 70%, rgba(255,255,255,0.01) 100%)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.14) 40%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.00) 100%)",
             padding: "1px",
             borderRadius: "9999px",
             WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
@@ -1161,10 +1255,10 @@ export function FloatingSearch() {
           }}
           ref={pillRef}
           className={cn(
-            "relative items-center border rounded-full transition-[border-color] duration-300 bg-[#0a0a0b]/95 backdrop-blur-2xl border-white/[0.18]",
+            "relative items-center border rounded-full transition-[border-color] duration-300 bg-[#0a0a0c]/96 backdrop-blur-3xl border-white/16",
             isMobile
-              ? "flex w-full p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.12)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
-              : "inline-flex w-auto p-1.5 md:p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.15)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+              ? "flex w-full p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+              : "inline-flex w-auto p-1.5 md:p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
           )}
           onMouseMove={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
           onMouseEnter={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
@@ -1200,12 +1294,12 @@ export function FloatingSearch() {
               <button 
                 type="submit" 
                 disabled={!searchValue}
-                className="text-white/50 active:scale-95 transition-transform shrink-0 disabled:pointer-events-none"
+                className="text-white/70 active:scale-95 transition-transform shrink-0 disabled:pointer-events-none"
               >
-                <Search size={14} className={cn("transition-transform duration-300", isFocused && "rotate-12 scale-110", searchValue ? "text-white" : "text-white/50")} />
+                <Search size={14} className={cn("transition-transform duration-300", isFocused && "rotate-12 scale-110", searchValue ? "text-white" : "text-white/75")} />
               </button>
             ) : (
-              <Search className={cn("shrink-0 transition-transform duration-300", isFocused ? "text-white rotate-12 scale-110" : "text-white/50")} size={14} />
+              <Search className={cn("shrink-0 transition-transform duration-300", isFocused ? "text-white rotate-12 scale-110" : "text-white/70")} size={14} />
             )}
             <input
               ref={inputRef}
@@ -1248,7 +1342,7 @@ export function FloatingSearch() {
                 }
               }}
               placeholder={placeholder}
-              className="w-full p-0 border-none bg-transparent text-white placeholder-white/50 placeholder-small font-medium uppercase tracking-[0.15em] md:tracking-[0.2em] outline-none caret-white selection:bg-white/20 selection:text-white"
+              className="w-full p-0 border-none bg-transparent text-white placeholder-white/70 placeholder-small font-medium uppercase tracking-[0.15em] md:tracking-[0.2em] outline-none caret-white selection:bg-white/20 selection:text-white"
               style={{
                 fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
               }}
@@ -1281,7 +1375,7 @@ export function FloatingSearch() {
                   setShowSuggestions(false);
                   setIsVisibleWithRef(false);
                 }}
-                className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0"
               >
                 Cancel
               </button>
