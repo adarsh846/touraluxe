@@ -117,75 +117,65 @@ export function Hero() {
   useEffect(() => {
     const startAnimation = () => {
       const ctx = gsap.context(() => {
-        // Premium Apple-style Intro Animation — Balanced Rhythmic Orchestration
-        const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+        // Premium Apple-style Intro Animation
+        const tl = gsap.timeline({ defaults: { ease: "expo.out", duration: 1.5 } });
 
-        // 1. Headline Entrance
         gsap.set(titleRef.current, { opacity: 0, y: 35 });
         tl.to(
           titleRef.current,
           { 
             y: 0, 
             opacity: 1, 
-            duration: 0.85, 
+            duration: 0.8, 
             ease: "elastic.out(1.1, 0.55)", 
             force3D: true,
             clearProps: "y"
           }
         )
-        // 2. Subtitle Entrance (starts seamlessly as title settles)
-        .fromTo(
-          subheadRef.current,
-          { y: 24, opacity: 0 },
-          { 
-            y: 0, 
-            opacity: 1, 
-            duration: 0.65, 
-            ease: "power3.out",
-            clearProps: "y"
-          },
-          "-=0.45"
-        );
+          .fromTo(
+            subheadRef.current,
+            { y: 30, opacity: 0 },
+            { 
+              y: 0, 
+              opacity: 1, 
+              duration: 1.2, 
+              ease: "power3.out" 
+            },
+            "-=0.7"
+          );
 
-        // 3. Trending Pill Dynamic Island Unfold (starts right as subtitle settles)
         if (trendingRef.current) {
-          gsap.set(trendingRef.current, { y: 35, opacity: 0, filter: "blur(20px)" });
-          if (trendingInnerRef.current) gsap.set(trendingInnerRef.current, { scaleX: 0.65, scaleY: 0.90 });
-          if (trendingTagRef.current)   gsap.set(trendingTagRef.current,   { opacity: 0, x: -10 });
+          // Replicated exact Desktop Floating Search Bar compressed-seed initial state
+          gsap.set(trendingRef.current, { y: 80, opacity: 0, scale: 0.3 });
+          if (trendingInnerRef.current) gsap.set(trendingInnerRef.current, { scaleX: 0.45, scaleY: 0.75 });
+          if (trendingTagRef.current)   gsap.set(trendingTagRef.current,   { opacity: 0, x: 20 });
+          if (trendingPillsRef.current) gsap.set(trendingPillsRef.current, { opacity: 0, scale: 0.6 });
 
-          const pillButtons = trendingPillsRef.current ? trendingPillsRef.current.querySelectorAll("button") : [];
-          if (pillButtons.length > 0) {
-            gsap.set(pillButtons, { opacity: 0, y: 6 });
-          }
-
-          // Phase 1: Spatial Seed Rise & 20px Unblur (0.45s power3.out)
           tl.to(trendingRef.current, {
-            y: 0, opacity: 1, filter: "blur(0px)",
-            duration: 0.45, ease: "power3.out", force3D: true,
-            clearProps: "y,opacity,filter",
-          }, "-=0.20")
-          // Phase 2: Smooth Elastic Width Expansion (0.60s elastic.out(1.0, 0.5))
+            y: 0, opacity: 1, scale: 1,
+            duration: 0.6, ease: 'expo.out', force3D: true,
+            clearProps: 'scale,y,opacity',
+          }, '-=0.5')
           .to(trendingInnerRef.current, {
             scaleX: 1, scaleY: 1,
-            duration: 0.60, ease: "elastic.out(1.0, 0.5)", force3D: true,
-            clearProps: "scaleX,scaleY",
-          }, "-=0.28");
+            duration: 0.9, ease: 'elastic.out(1.1, 0.45)', force3D: true,
+            clearProps: 'scaleX,scaleY',
+          }, '-=0.4');
 
-          // Phase 3: Gold Tag & Pill Items Fluid Unveil
           if (trendingTagRef.current) {
             tl.to(trendingTagRef.current, {
               opacity: 1, x: 0,
-              duration: 0.30, ease: "power3.out",
-              clearProps: "opacity,x",
-            }, "-=0.20");
+              duration: 0.5, ease: 'power3.out', force3D: true,
+              clearProps: 'opacity,x',
+            }, '-=0.65');
           }
 
-          if (pillButtons.length > 0) {
-            tl.to(pillButtons, {
-              opacity: 1, y: 0,
-              duration: 0.30, ease: "power3.out", stagger: 0.025,
-              clearProps: "opacity,y",
-            }, "-=0.18");
+          if (trendingPillsRef.current) {
+            tl.to(trendingPillsRef.current, {
+              opacity: 1, scale: 1,
+              duration: 0.4, ease: 'back.out(1.5)', force3D: true,
+              clearProps: 'opacity,scale',
+            }, '-=0.45');
           }
         }
 
