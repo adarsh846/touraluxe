@@ -178,10 +178,10 @@ export function Preloader() {
         className="absolute w-[320px] h-[320px] sm:w-[550px] sm:h-[550px] rounded-full bg-[radial-gradient(circle,rgba(52,211,153,0.14)_0%,rgba(16,185,129,0.06)_40%,transparent_70%)] pointer-events-none blur-3xl opacity-0 will-change-transform"
       />
 
-      {/* Kinetic Overhead Jet Silhouette Flight Path — Positioned directly above TOURALUXE */}
+      {/* Kinetic Overhead Jet Silhouette Flight Path — Mobile top-[38%], Desktop sm:top-[34%] */}
       <div
         ref={jetRef}
-        className="absolute top-[37%] sm:top-[38%] z-20 flex items-center gap-2 pointer-events-none opacity-0 will-change-transform"
+        className="absolute top-[38%] sm:top-[34%] z-20 flex items-center gap-2 pointer-events-none opacity-0 will-change-transform"
       >
         <div className="w-12 sm:w-16 h-[1.5px] bg-gradient-to-r from-transparent to-amber-300/90 blur-[0.5px]" />
         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-200 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)] rotate-90" viewBox="0 0 24 24" fill="currentColor">
