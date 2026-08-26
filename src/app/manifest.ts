@@ -2,14 +2,17 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "TouraLuxe — We Craft Experiences",
+    name: "TouraLuxe | Luxury Redefined",
     short_name: "TouraLuxe",
-    description: "A premium luxury travel brand crafting unforgettable experiences.",
+    description: "Redefining luxury travel. Immersive, exclusive, and tailored entirely to your desires.",
     start_url: "/",
+    scope: "/",
+    id: "/",
     display: "standalone",
     background_color: "#000000",
     theme_color: "#000000",
     orientation: "portrait-primary",
+    categories: ["travel", "lifestyle"],
     icons: [
       {
         src: "/icon-192x192.png",

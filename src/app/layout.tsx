@@ -20,13 +20,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "TouraLuxe | We craft experiences",
+  title: "TouraLuxe | Luxury Redefined",
   description:
     "A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires. Private jets, curated retreats, and bespoke itineraries.",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL("https://touraluxe.com"),
   openGraph: {
-    title: "TouraLuxe | We craft experiences",
+    title: "TouraLuxe | Luxury Redefined",
     description:
       "A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.",
     url: "https://touraluxe.com",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TouraLuxe | We craft experiences",
+    title: "TouraLuxe | Luxury Redefined",
     description:
       "A new standard in luxury travel. Immersive, exclusive, and tailored entirely to your desires.",
     images: ["/og-image.webp"],
