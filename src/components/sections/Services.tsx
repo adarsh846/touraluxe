@@ -192,6 +192,7 @@ export function Services() {
     <section ref={containerRef} id="services" className="scroll-mt-20 pt-[clamp(2.5rem,5vw,4rem)] pb-[clamp(5rem,8vw,8rem)] px-[clamp(1.5rem,4vw,4rem)] w-full bg-black text-foreground flex flex-col items-center">
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-[clamp(3rem,6vw,5rem)] max-w-2xl">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-[#86868b] mb-3 opacity-0">Our Services</p>
           <h2 className="text-[clamp(2rem,8vw,3.75rem)] leading-tight text-balance font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
           <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] text-pretty text-[#86868b] tracking-wide opacity-0">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
         </div>
