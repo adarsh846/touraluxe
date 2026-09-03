@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } fr
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import gsap from "gsap";
 import { Search, ArrowRight, MapPin, Compass, Sparkles, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useBooking } from "./BookingProvider";
 import { Magnetic } from "./Magnetic";
 import { cn } from "@/lib/utils";
@@ -528,6 +529,15 @@ export function FloatingSearch() {
       setShowSuggestions(false);
     }
   }, [searchValue, isFocused]);
+
+  // Apple Spotlight UX: Auto-select index 0 on suggestions open/update for immediate bidirectional navigation
+  useEffect(() => {
+    if (showSuggestions && suggestions.length > 0) {
+      setSelectedIndex(prev => (prev < 0 || prev >= suggestions.length ? 0 : prev));
+    } else if (!showSuggestions) {
+      setSelectedIndex(-1);
+    }
+  }, [showSuggestions, suggestions]);
   const hasMountedRef = useRef(false);
   const initialHeightRef = useRef(0);
   const lastWidthRef = useRef(0);
@@ -1157,6 +1167,7 @@ export function FloatingSearch() {
                 <button
                   key={idx}
                   type="button"
+                  onMouseEnter={() => setSelectedIndex(idx)}
                   onMouseDown={(e) => {
                     e.preventDefault(); // Prevent input blur on desktop mouse down
                   }}
@@ -1174,54 +1185,68 @@ export function FloatingSearch() {
                     triggerSearch(item.label);
                   }}
                   className={cn(
-                    "suggestion-item w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu active:scale-[0.96] active:bg-white/[0.14] active:brightness-125",
-                    isSelected 
-                      ? "bg-gradient-to-r from-white/[0.18] via-white/[0.10] to-white/[0.04] text-white scale-[1.01] translate-x-1 shadow-[0_4px_20px_rgba(0,0,0,0.7),0_1px_0px_rgba(255,255,255,0.2)_inset] border border-white/20" 
-                      : "text-white/60 hover:bg-white/[0.08] hover:text-white hover:translate-x-0.5 border border-transparent"
+                    "suggestion-item relative w-full text-left px-3.5 py-2 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu active:scale-[0.98]",
+                    isSelected ? "text-white" : "text-white/60 hover:text-white"
                   )}
                 >
-                  {item.type === 'destination' ? (
-                    <MapPin size={13} className={cn(
-                      "shrink-0 transition-all duration-200", 
-                      isSelected ? "text-amber-300 scale-125 rotate-3" : "text-white/40"
-                    )} />
-                  ) : (
-                    <Sparkles size={13} className={cn(
-                      "shrink-0 transition-all duration-200", 
-                      isSelected ? "text-sky-300 scale-125 rotate-6" : "text-white/40"
-                    )} />
+                  {/* Apple Spotlight Damped Spring Highlight Pill */}
+                  {isSelected && (
+                    <motion.div
+                      layoutId="floating-search-suggestion-pill"
+                      className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
+                      transition={{
+                        type: "spring",
+                        stiffness: 550,
+                        damping: 36,
+                        mass: 0.5
+                      }}
+                    />
                   )}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <p className={cn(
-                      "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
-                      isSelected ? "text-white font-black" : "text-white/90"
-                    )}>{item.label}</p>
-                    {isMobile && item.extra && (
+
+                  <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
+                    {item.type === 'destination' ? (
+                      <MapPin size={13} className={cn(
+                        "shrink-0 transition-all duration-300", 
+                        isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
+                      )} />
+                    ) : (
+                      <Sparkles size={13} className={cn(
+                        "shrink-0 transition-all duration-300", 
+                        isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
+                      )} />
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <p className={cn(
+                        "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
+                        isSelected ? "text-white font-black" : "text-white/75"
+                      )}>{item.label}</p>
+                      {isMobile && item.extra && (
+                        <span className={cn(
+                          "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                          isSelected ? "text-white/70" : "text-white/35"
+                        )}>
+                          {item.extra}
+                        </span>
+                      )}
+                    </div>
+                    {!isMobile && item.extra && (
                       <span className={cn(
-                        "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
-                        isSelected ? "text-white/70" : "text-white/40"
+                        "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                        isSelected 
+                          ? "text-white/90 bg-white/12 shadow-xs" 
+                          : "text-white/30 bg-white/[0.04]"
                       )}>
                         {item.extra}
                       </span>
                     )}
                   </div>
-                  {!isMobile && item.extra && (
-                    <span className={cn(
-                      "text-[8px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded transition-all duration-200 border shrink-0",
-                      isSelected 
-                        ? "text-white bg-white/15 border-white/20 shadow-xs" 
-                        : "text-white/30 bg-white/5 border-transparent"
-                    )}>
-                      {item.extra}
-                    </span>
-                  )}
                 </button>
               );
             })}
             
-            <div className="hidden md:flex border-t border-white/5 mt-1.5 pt-1.5 px-3 pb-1 flex justify-between items-center text-[7px] font-black uppercase tracking-[0.15em] text-white/20">
-              <span>Press ↑↓ to navigate</span>
-              <span>Enter to select</span>
+            <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[9px] font-bold uppercase tracking-[0.18em] text-white/55">
+              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↑↓</span> Press to navigate</span>
+              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↵</span> Enter to select</span>
             </div>
           </div>
         )}
@@ -1321,16 +1346,23 @@ export function FloatingSearch() {
               onKeyDown={(e) => {
                 if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  setSelectedIndex(prev => 
-                    prev < suggestions.length - 1 ? prev + 1 : prev
-                  );
+                  if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                  setSelectedIndex(prev => {
+                    if (prev < 0) return 0;
+                    return Math.min(prev + 1, suggestions.length - 1);
+                  });
                 } else if (e.key === 'ArrowUp') {
                   e.preventDefault();
-                  setSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+                  if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                  setSelectedIndex(prev => {
+                    if (prev < 0) return 0;
+                    return Math.max(prev - 1, 0);
+                  });
                 } else if (e.key === 'Enter') {
                   e.preventDefault();
-                  if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-                    const val = suggestions[selectedIndex].label;
+                  const activeIdx = selectedIndex >= 0 ? selectedIndex : 0;
+                  if (showSuggestions && suggestions[activeIdx]) {
+                    const val = suggestions[activeIdx].label;
                     setSearchValue(val);
                     triggerSearch(val);
                   } else {

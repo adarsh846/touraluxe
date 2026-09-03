@@ -49,6 +49,16 @@ const INITIAL_ADULTS = 1;
 const INITIAL_KIDS = 0;
 const INITIAL_INFANTS = 0;
 
+function softSpring(zeta: number = 0.76, omega: number = 16) {
+  const omegaD = omega * Math.sqrt(1 - zeta * zeta);
+  return (t: number) =>
+    1 - Math.exp(-zeta * omega * t) *
+    (Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t));
+}
+
+const SPRING_BOUNCY = softSpring(0.55, 14);
+const SPRING_POS_SOFT = softSpring(0.68, 16);
+
 const TAX_INCLUSIVE_LABEL = "Inclusive of Taxes";
 const TAX_EXCLUSIVE_LABEL = "Exclusive of Taxes";
 const STATUS_ESTABLISHED = "Established";
@@ -704,6 +714,143 @@ export const BookingContent = memo(function BookingContent({
       setShowSuggestions(false);
     }
   }, [destination, searchFocused]);
+
+  const suggestionsCardRef = useRef<HTMLDivElement>(null);
+  const [isSuggestionsRendered, setIsSuggestionsRendered] = useState(false);
+  const lastSuggestionsHeightRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (showSuggestions && suggestions.length > 0) {
+      setIsSuggestionsRendered(true);
+      setSelectedIndex(prev => (prev < 0 || prev >= suggestions.length ? 0 : prev));
+    } else if (!showSuggestions) {
+      setSelectedIndex(-1);
+    }
+  }, [showSuggestions, suggestions]);
+
+  // Apple-Tier Dynamic Island 2-phase spring choreography for autocomplete suggestion strip
+  useLayoutEffect(() => {
+    if (showSuggestions && suggestions.length > 0 && suggestionsCardRef.current) {
+      const card = suggestionsCardRef.current;
+
+      // Measure natural content height by temporarily resetting inline height
+      const previousHeight = lastSuggestionsHeightRef.current > 0 ? lastSuggestionsHeightRef.current : card.offsetHeight;
+      card.style.height = "auto";
+      const targetHeight = card.offsetHeight;
+
+      gsap.killTweensOf(card);
+      const items = card.querySelectorAll(".suggestion-item");
+      if (items.length > 0) gsap.killTweensOf(items);
+
+      if (lastSuggestionsHeightRef.current > 0 && Math.abs(previousHeight - targetHeight) > 2) {
+        // Height auto-morphing when suggestion count changes while typing
+        gsap.fromTo(
+          card,
+          { height: previousHeight },
+          { 
+            height: targetHeight, 
+            filter: "blur(0px)", 
+            duration: 0.35, 
+            ease: SPRING_POS_SOFT, 
+            onComplete: () => {
+              gsap.set(card, { clearProps: "height,filter" });
+            } 
+          }
+        );
+      } else {
+        // Phase 1: Capsule seed expansion with iOS Dynamic Island spring overshoot & dramatic Apple spatial depth blur
+        gsap.fromTo(
+          card,
+          {
+            opacity: 0,
+            scaleY: 0.35,
+            scaleX: 0.8,
+            y: 14,
+            filter: "blur(40px)",
+            transformOrigin: "top center",
+          },
+          {
+            opacity: 1,
+            scaleY: 1,
+            scaleX: 1,
+            y: 0,
+            filter: "blur(0px)",
+            duration: 0.62,
+            ease: SPRING_BOUNCY,
+            force3D: true,
+            onComplete: () => {
+              gsap.set(card, { clearProps: "filter,height" });
+            }
+          }
+        );
+      }
+
+      lastSuggestionsHeightRef.current = targetHeight;
+
+      // Phase 2: Spatial staggered row unfold with intense Apple depth blur focus
+      if (items.length > 0) {
+        gsap.fromTo(
+          items,
+          {
+            opacity: 0,
+            y: 14,
+            scale: 0.92,
+            filter: "blur(16px)",
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 0.48,
+            stagger: 0.04,
+            ease: SPRING_BOUNCY,
+            delay: 0.04,
+            force3D: true,
+            onComplete: () => {
+              gsap.set(items, { clearProps: "filter" });
+            }
+          }
+        );
+      }
+    } else if (!showSuggestions && isSuggestionsRendered && suggestionsCardRef.current) {
+      // ─── APPLE DYNAMIC ISLAND DROP-OUT EXIT ───
+      const card = suggestionsCardRef.current;
+      const items = card.querySelectorAll(".suggestion-item");
+
+      gsap.killTweensOf(card);
+      if (items.length > 0) gsap.killTweensOf(items);
+
+      if (items.length > 0) {
+        gsap.to(items, {
+          opacity: 0,
+          y: 8,
+          filter: "blur(14px)",
+          duration: 0.18,
+          ease: "power2.in",
+          force3D: true,
+        });
+      }
+
+      gsap.to(card, {
+        opacity: 0,
+        scaleY: 0.3,
+        scaleX: 0.8,
+        y: 14,
+        filter: "blur(32px)",
+        duration: 0.26,
+        ease: "power3.in",
+        force3D: true,
+        onComplete: () => {
+          setIsSuggestionsRendered(false);
+          lastSuggestionsHeightRef.current = 0;
+        },
+      });
+    } else if (!showSuggestions) {
+      lastSuggestionsHeightRef.current = 0;
+      setIsSuggestionsRendered(false);
+    }
+  }, [showSuggestions, suggestions.length, isSuggestionsRendered]);
 
   const triggerModalSearch = useCallback((overrideVal?: string) => {
     if (searchInputRef.current) {
@@ -1878,16 +2025,23 @@ Please confirm my booking. Thank you!`;
                           onKeyDown={(e) => {
                             if (e.key === 'ArrowDown') {
                               e.preventDefault();
-                              setSelectedIndex(prev =>
-                                prev < suggestions.length - 1 ? prev + 1 : prev
-                              );
+                              if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                              setSelectedIndex(prev => {
+                                if (prev < 0) return 0;
+                                return Math.min(prev + 1, suggestions.length - 1);
+                              });
                             } else if (e.key === 'ArrowUp') {
                               e.preventDefault();
-                              setSelectedIndex(prev => (prev > -1 ? prev - 1 : -1));
+                              if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                              setSelectedIndex(prev => {
+                                if (prev < 0) return 0;
+                                return Math.max(prev - 1, 0);
+                              });
                             } else if (e.key === 'Enter') {
                               e.preventDefault();
-                              if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-                                const val = suggestions[selectedIndex].label;
+                              const activeIdx = selectedIndex >= 0 ? selectedIndex : 0;
+                              if (showSuggestions && suggestions[activeIdx]) {
+                                const val = suggestions[activeIdx].label;
                                 setDestination(val);
                                 triggerModalSearch(val);
                               } else {
@@ -1916,45 +2070,95 @@ Please confirm my booking. Thank you!`;
                         )}
                       </form>
 
-                      {/* Predictive Autocomplete Dropdown */}
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-3 bg-[#0a0a0b] border border-white/10 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.95)] overflow-hidden flex flex-col p-1.5 z-[100] w-full">
+                      {/* Predictive Autocomplete Dropdown (Apple-Tier Dynamic Island Spring Choreography) */}
+                      {(showSuggestions || isSuggestionsRendered) && suggestions.length > 0 && (
+                        <div 
+                          ref={suggestionsCardRef}
+                          className="absolute top-full left-0 right-0 mt-3 bg-[#0a0a0b]/95 border border-white/15 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.95),0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-3xl overflow-hidden flex flex-col p-1.5 z-[100] w-full transform-gpu will-change-[transform,opacity,filter,height]"
+                        >
                           {suggestions.map((item, idx) => {
                             const isSelected = idx === selectedIndex;
                             return (
                               <button
                                 key={idx}
                                 type="button"
+                                onMouseEnter={() => setSelectedIndex(idx)}
                                 onMouseDown={(e) => {
-                                  e.preventDefault(); // Prevent input blur on item select
+                                  e.preventDefault(); // Prevent input blur on desktop mouse down
+                                }}
+                                onTouchEnd={(e) => {
+                                  e.preventDefault();
+                                  setDestination(item.label);
+                                  triggerModalSearch(item.label);
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setDestination(item.label);
                                   triggerModalSearch(item.label);
                                 }}
                                 className={cn(
-                                  "w-full text-left px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200",
-                                  isSelected ? "bg-white/15 text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                                  "suggestion-item relative w-full text-left px-3.5 py-2 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu active:scale-[0.98]",
+                                  isSelected ? "text-white" : "text-white/60 hover:text-white"
                                 )}
                               >
-                                {item.type === 'destination' ? (
-                                  <MapPin size={13} className="text-white/40 shrink-0" />
-                                ) : (
-                                  <Sparkles size={13} className="text-white/40 shrink-0" />
+                                {/* Apple Spotlight Damped Spring Highlight Pill */}
+                                {isSelected && (
+                                  <motion.div
+                                    layoutId="booking-modal-suggestion-pill"
+                                    className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 550,
+                                      damping: 36,
+                                      mass: 0.5
+                                    }}
+                                  />
                                 )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[10px] font-bold tracking-[0.1em] uppercase truncate">{item.label}</p>
+
+                                <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
+                                  {item.type === 'destination' ? (
+                                    <MapPin size={13} className={cn(
+                                      "shrink-0 transition-all duration-300", 
+                                      isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
+                                    )} />
+                                  ) : (
+                                    <Sparkles size={13} className={cn(
+                                      "shrink-0 transition-all duration-300", 
+                                      isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
+                                    )} />
+                                  )}
+                                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <p className={cn(
+                                      "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
+                                      isSelected ? "text-white font-black" : "text-white/75"
+                                    )}>{item.label}</p>
+                                    {isMobile && item.extra && (
+                                      <span className={cn(
+                                        "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                                        isSelected ? "text-white/70" : "text-white/35"
+                                      )}>
+                                        {item.extra}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {!isMobile && item.extra && (
+                                    <span className={cn(
+                                      "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                                      isSelected 
+                                        ? "text-white/90 bg-white/12 shadow-xs" 
+                                        : "text-white/30 bg-white/[0.04]"
+                                    )}>
+                                      {item.extra}
+                                    </span>
+                                  )}
                                 </div>
-                                {item.extra && (
-                                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-white/30 px-2 py-0.5 bg-white/5 rounded">
-                                    {item.extra}
-                                  </span>
-                                )}
                               </button>
                             );
                           })}
 
-                          <div className="hidden md:flex border-t border-white/5 mt-1.5 pt-1.5 px-3 pb-1 flex justify-between items-center text-[7px] font-black uppercase tracking-[0.15em] text-white/20">
-                            <span>Press ↑↓ to navigate</span>
-                            <span>Enter to select</span>
+                          <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[9px] font-bold uppercase tracking-[0.18em] text-white/55">
+                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↑↓</span> Press to navigate</span>
+                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↵</span> Enter to select</span>
                           </div>
                         </div>
                       )}
