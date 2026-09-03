@@ -2082,6 +2082,10 @@ Please confirm my booking. Thank you!`;
                       {(showSuggestions || isSuggestionsRendered) && suggestions.length > 0 && (
                         <div 
                           ref={suggestionsCardRef}
+                          onTouchCancel={() => {
+                            const isMobileView = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+                            if (isMobileView) setSelectedIndex(-1);
+                          }}
                           className="absolute top-full left-0 right-0 mt-3 bg-[#0a0a0b]/95 border border-white/15 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.95),0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-3xl overflow-hidden flex flex-col p-1.5 z-[100] w-full transform-gpu will-change-[transform,opacity,filter,height]"
                         >
                           {suggestions.map((item, idx) => {
@@ -2104,6 +2108,14 @@ Please confirm my booking. Thank you!`;
                                   e.preventDefault();
                                   setDestination(item.label);
                                   triggerModalSearch(item.label);
+                                  const isMobileView = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+                                  if (isMobileView) {
+                                    setTimeout(() => setSelectedIndex(-1), 150);
+                                  }
+                                }}
+                                onTouchCancel={() => {
+                                  const isMobileView = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+                                  if (isMobileView) setSelectedIndex(-1);
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();

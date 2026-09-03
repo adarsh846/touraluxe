@@ -1148,6 +1148,9 @@ export function FloatingSearch() {
         {isSuggestionsRendered && suggestions.length > 0 && (
           <div
             ref={suggestionsCardRef}
+            onTouchCancel={() => {
+              if (isMobile) setSelectedIndex(-1);
+            }}
             className={cn(
               "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col p-1.5 z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
               isMobile ? "top-full mt-3 left-4 right-4" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
@@ -1189,6 +1192,12 @@ export function FloatingSearch() {
                     e.preventDefault(); // Prevent the subsequent synthetic click
                     setSearchValue(item.label);
                     triggerSearch(item.label);
+                    if (isMobile) {
+                      setTimeout(() => setSelectedIndex(-1), 150);
+                    }
+                  }}
+                  onTouchCancel={() => {
+                    if (isMobile) setSelectedIndex(-1);
                   }}
                   onClick={(e) => {
                     // Desktop fallback (onTouchEnd won't fire on non-touch devices)
