@@ -2082,7 +2082,13 @@ Please confirm my booking. Thank you!`;
                               <button
                                 key={idx}
                                 type="button"
-                                onMouseEnter={() => setSelectedIndex(idx)}
+                                onMouseEnter={(e) => {
+                                  if (e.nativeEvent && (e.nativeEvent as any).pointerType === 'touch') return;
+                                  setSelectedIndex(idx);
+                                }}
+                                onTouchStart={() => {
+                                  setSelectedIndex(idx);
+                                }}
                                 onMouseDown={(e) => {
                                   e.preventDefault(); // Prevent input blur on desktop mouse down
                                 }}
@@ -2097,7 +2103,7 @@ Please confirm my booking. Thank you!`;
                                   triggerModalSearch(item.label);
                                 }}
                                 className={cn(
-                                  "suggestion-item relative w-full text-left px-3.5 py-2 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu active:scale-[0.98]",
+                                  "suggestion-item relative w-full text-left px-3.5 py-3 md:py-2.5 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu select-none active:scale-[0.97] touch-manipulation min-h-[44px] md:min-h-0",
                                   isSelected ? "text-white" : "text-white/60 hover:text-white"
                                 )}
                               >
