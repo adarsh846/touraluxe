@@ -31,6 +31,8 @@ export function Quotes() {
   const containerRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [displayIndex, setDisplayIndex] = useState(0);
+  const isAnimatingRef = useRef(false);
   const { settings } = useSettings();
 
   const QUOTES = (settings.editorial_quotes && JSON.parse(settings.editorial_quotes).length > 0) 
@@ -104,28 +106,34 @@ export function Quotes() {
     return () => ctx.revert();
   }, []); // ← runs once only
 
-  // Quote crossfade — runs on each index change only
+  // Quote crossfade — animate out, swap content at opacity 0, animate in
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
-      tl.to(textRef.current, {
-        opacity: 0,
-        y: -10,
-        duration: 0.5,
-        ease: "power2.inOut",
-      })
-      .call(() => {})
-      .to(textRef.current, {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: "expo.out",
-        stagger: 0.1,
-      }, "+=0.1");
-    }, containerRef);
+    if (currentIndex === displayIndex) return;
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
 
-    return () => ctx.revert();
-  }, [currentIndex]); // ← runs on slide change only
+    const tl = gsap.timeline({
+      onComplete: () => { isAnimatingRef.current = false; }
+    });
+
+    tl.to(textRef.current, {
+      opacity: 0,
+      y: -10,
+      duration: 0.5,
+      ease: "power2.inOut",
+    })
+    .call(() => {
+      // Swap content at opacity 0 — zero visual flash
+      setDisplayIndex(currentIndex);
+    })
+    .to(textRef.current, {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      ease: "expo.out",
+    }, "+=0.08");
+
+  }, [currentIndex, displayIndex]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -188,14 +196,13 @@ export function Quotes() {
         </div>
         
         <p 
-          key={`quote-${currentIndex}`}
           ref={textRef}
           style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           className="text-4xl md:text-7xl font-light italic tracking-tight leading-[1.1] will-change-transform text-black whitespace-pre-wrap"
         >
-          {typeof QUOTES[currentIndex] === 'string' 
-            ? QUOTES[currentIndex] 
-            : QUOTES[currentIndex]?.quote || "The world is waiting. It's time to explore."}
+          {typeof QUOTES[displayIndex] === 'string' 
+            ? QUOTES[displayIndex] 
+            : QUOTES[displayIndex]?.quote || "The world is waiting. It's time to explore."}
         </p>
 
         {/* Minimal Progress Indicators */}
