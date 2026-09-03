@@ -719,10 +719,18 @@ export const BookingContent = memo(function BookingContent({
   const [isSuggestionsRendered, setIsSuggestionsRendered] = useState(false);
   const lastSuggestionsHeightRef = useRef<number>(0);
 
+  // Apple Spotlight UX: Platform-adaptive initial selection
+  // On Desktop (keyboard primary): Auto-select index 0 for immediate Enter execution
+  // On Mobile (touch primary): Default to -1 so no highlight pill obscures items until touched
   useEffect(() => {
     if (showSuggestions && suggestions.length > 0) {
       setIsSuggestionsRendered(true);
-      setSelectedIndex(prev => (prev < 0 || prev >= suggestions.length ? 0 : prev));
+      const isMobileView = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+      if (!isMobileView) {
+        setSelectedIndex(prev => (prev < 0 || prev >= suggestions.length ? 0 : prev));
+      } else {
+        setSelectedIndex(-1);
+      }
     } else if (!showSuggestions) {
       setSelectedIndex(-1);
     }
