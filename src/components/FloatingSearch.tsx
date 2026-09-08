@@ -250,6 +250,9 @@ export function FloatingSearch() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const suggestionsCardRef = useRef<HTMLDivElement>(null);
+  const suggestionsScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
   const [whatsappNumber, setwhatsappNumber] = useState("");
 
   const [isInitialized, setIsInitialized] = useState(false);
@@ -420,6 +423,97 @@ export function FloatingSearch() {
       setIsSuggestionsRendered(true);
     }
   }, [showSuggestions, suggestions.length]);
+
+  // Apple HIG gesture isolation for autocomplete suggestion strip:
+  // 1. Differentiates drag vs tap (>8px movement threshold) to prevent accidental searches
+  // 2. Implements Apple .onDrag keyboard dismissal when user starts scrolling
+  // 3. Prevents touch drag from bleeding into the background webpage
+  // 4. Supports Apple pull-down-to-dismiss gesture (>70px downward drag from top)
+  useEffect(() => {
+    if (!isMobile || !isSuggestionsRendered) return;
+    const card = suggestionsCardRef.current;
+    const scrollEl = suggestionsScrollRef.current;
+    if (!card) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      touchStartPosRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        time: Date.now(),
+      };
+      isDraggingRef.current = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!touchStartPosRef.current || e.touches.length !== 1) return;
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - touchStartPosRef.current.x;
+      const deltaY = currentY - touchStartPosRef.current.y;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      // 1. Detect drag movement (> 8px)
+      if (distance > 8) {
+        if (!isDraggingRef.current) {
+          isDraggingRef.current = true;
+          setSelectedIndex(-1); // Clear button highlight during drag
+          // Apple .onDrag keyboard dismissal: blur input to drop virtual keyboard
+          if (document.activeElement === inputRef.current && inputRef.current) {
+            inputRef.current.blur();
+          }
+        }
+      }
+
+      // 2. Prevent scroll bleed to main window
+      if (scrollEl) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+        const isScrollable = scrollHeight > clientHeight + 2;
+
+        if (!isScrollable) {
+          // Content fits entirely within card: cancel scroll so background page never moves
+          if (e.cancelable) e.preventDefault();
+        } else {
+          // Content is scrollable: allow internal scroll, but cancel overscroll bleed at boundaries
+          const isAtTop = scrollTop <= 0;
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+
+          if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+            if (e.cancelable) e.preventDefault();
+          }
+        }
+      } else {
+        if (e.cancelable) e.preventDefault();
+      }
+
+      // 3. Apple pull-down-to-dismiss gesture:
+      // If user drags down > 70px when at the top of the card, smoothly dismiss search
+      if (deltaY > 70 && (!scrollEl || scrollEl.scrollTop <= 0)) {
+        touchStartPosRef.current = null;
+        handleDismiss();
+      }
+    };
+
+    const onTouchEnd = () => {
+      // Keep isDraggingRef true for 60ms so button onTouchEnd / onClick reads it before reset
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 60);
+      touchStartPosRef.current = null;
+    };
+
+    card.addEventListener("touchstart", onTouchStart, { passive: true });
+    card.addEventListener("touchmove", onTouchMove, { passive: false });
+    card.addEventListener("touchend", onTouchEnd, { passive: true });
+    card.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      card.removeEventListener("touchstart", onTouchStart);
+      card.removeEventListener("touchmove", onTouchMove);
+      card.removeEventListener("touchend", onTouchEnd);
+      card.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [isMobile, isSuggestionsRendered, handleDismiss]);
 
   const lastSuggestionsHeightRef = useRef<number>(0);
 
@@ -1230,8 +1324,8 @@ export function FloatingSearch() {
               if (isMobile) setSelectedIndex(-1);
             }}
             className={cn(
-              "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col p-1.5 z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
-              isMobile ? "top-full mt-3 left-4 right-4" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
+              "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
+              isMobile ? "top-full mt-3 left-4 right-4 max-h-[min(340px,calc(100vh-160px))]" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
             )}
           >
             {/* Apple iOS top-down gradient border ring — refined polished specular sheen */}
@@ -1248,100 +1342,120 @@ export function FloatingSearch() {
             />
             {/* Feathered top specular accent line */}
             <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none z-[3]" />
-            {suggestions.map((item, idx) => {
-              const isSelected = idx === selectedIndex;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onMouseEnter={(e) => {
-                    if (e.nativeEvent && (e.nativeEvent as any).pointerType === 'touch') return;
-                    setSelectedIndex(idx);
-                  }}
-                  onTouchStart={() => {
-                    setSelectedIndex(idx);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent input blur on desktop mouse down
-                  }}
-                  onTouchEnd={(e) => {
-                    // iOS Safari swallows onClick when the virtual keyboard is dismissing.
-                    // onTouchEnd fires reliably before the OS consumes the gesture.
-                    e.preventDefault(); // Prevent the subsequent synthetic click
-                    setSearchValue(item.label);
-                    triggerSearch(item.label);
-                    if (isMobile) {
-                      setTimeout(() => setSelectedIndex(-1), 150);
-                    }
-                  }}
-                  onTouchCancel={() => {
-                    if (isMobile) setSelectedIndex(-1);
-                  }}
-                  onClick={(e) => {
-                    // Desktop fallback (onTouchEnd won't fire on non-touch devices)
-                    e.stopPropagation();
-                    setSearchValue(item.label);
-                    triggerSearch(item.label);
-                  }}
-                  className={cn(
-                    "suggestion-item relative w-full text-left px-3.5 py-3 md:py-2.5 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu select-none active:scale-[0.97] touch-manipulation min-h-[44px] md:min-h-0",
-                    isSelected ? "text-white" : "text-white/60 hover:text-white"
-                  )}
-                >
-                  {/* Apple Spotlight Damped Spring Highlight Pill */}
-                  {isSelected && (
-                    <motion.div
-                      layoutId="floating-search-suggestion-pill"
-                      className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
-                      transition={{
-                        type: "spring",
-                        stiffness: 550,
-                        damping: 36,
-                        mass: 0.5
-                      }}
-                    />
-                  )}
 
-                  <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
-                    {item.type === 'destination' ? (
-                      <MapPin size={13} className={cn(
-                        "shrink-0 transition-all duration-300", 
-                        isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
-                      )} />
-                    ) : (
-                      <Sparkles size={13} className={cn(
-                        "shrink-0 transition-all duration-300", 
-                        isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
-                      )} />
+            {/* Internal scrollable list container with strict overscroll containment */}
+            <div
+              ref={suggestionsScrollRef}
+              className="relative z-10 overflow-y-auto overscroll-contain flex flex-col p-1.5 touch-pan-y scrollbar-none"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                overscrollBehavior: "contain",
+              }}
+            >
+              {suggestions.map((item, idx) => {
+                const isSelected = idx === selectedIndex;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onMouseEnter={(e) => {
+                      if (e.nativeEvent && (e.nativeEvent as any).pointerType === 'touch') return;
+                      setSelectedIndex(idx);
+                    }}
+                    onTouchStart={() => {
+                      setSelectedIndex(idx);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent input blur on desktop mouse down
+                    }}
+                    onTouchEnd={(e) => {
+                      // Prevent accidental selection during swipe/drag gesture
+                      if (isDraggingRef.current) {
+                        e.preventDefault();
+                        return;
+                      }
+                      // iOS Safari swallows onClick when the virtual keyboard is dismissing.
+                      // onTouchEnd fires reliably before the OS consumes the gesture.
+                      e.preventDefault(); // Prevent the subsequent synthetic click
+                      setSearchValue(item.label);
+                      triggerSearch(item.label);
+                      if (isMobile) {
+                        setTimeout(() => setSelectedIndex(-1), 150);
+                      }
+                    }}
+                    onTouchCancel={() => {
+                      if (isMobile) setSelectedIndex(-1);
+                    }}
+                    onClick={(e) => {
+                      if (isDraggingRef.current) {
+                        e.stopPropagation();
+                        return;
+                      }
+                      // Desktop fallback (onTouchEnd won't fire on non-touch devices)
+                      e.stopPropagation();
+                      setSearchValue(item.label);
+                      triggerSearch(item.label);
+                    }}
+                    className={cn(
+                      "suggestion-item relative w-full text-left px-3.5 py-3 md:py-2.5 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu select-none active:scale-[0.97] touch-manipulation min-h-[44px] md:min-h-0",
+                      isSelected ? "text-white" : "text-white/60 hover:text-white"
                     )}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <p className={cn(
-                        "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
-                        isSelected ? "text-white font-black" : "text-white/75"
-                      )}>{item.label}</p>
-                      {isMobile && item.extra && (
+                  >
+                    {/* Apple Spotlight Damped Spring Highlight Pill */}
+                    {isSelected && (
+                      <motion.div
+                        layoutId="floating-search-suggestion-pill"
+                        className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
+                        transition={{
+                          type: "spring",
+                          stiffness: 550,
+                          damping: 36,
+                          mass: 0.5
+                        }}
+                      />
+                    )}
+
+                    <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
+                      {item.type === 'destination' ? (
+                        <MapPin size={13} className={cn(
+                          "shrink-0 transition-all duration-300", 
+                          isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
+                        )} />
+                      ) : (
+                        <Sparkles size={13} className={cn(
+                          "shrink-0 transition-all duration-300", 
+                          isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
+                        )} />
+                      )}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <p className={cn(
+                          "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
+                          isSelected ? "text-white font-black" : "text-white/75"
+                        )}>{item.label}</p>
+                        {isMobile && item.extra && (
+                          <span className={cn(
+                            "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                            isSelected ? "text-white/70" : "text-white/35"
+                          )}>
+                            {item.extra}
+                          </span>
+                        )}
+                      </div>
+                      {!isMobile && item.extra && (
                         <span className={cn(
-                          "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
-                          isSelected ? "text-white/70" : "text-white/35"
+                          "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                          isSelected 
+                            ? "text-white/90 bg-white/12 shadow-xs" 
+                            : "text-white/30 bg-white/[0.04]"
                         )}>
                           {item.extra}
                         </span>
                       )}
                     </div>
-                    {!isMobile && item.extra && (
-                      <span className={cn(
-                        "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
-                        isSelected 
-                          ? "text-white/90 bg-white/12 shadow-xs" 
-                          : "text-white/30 bg-white/[0.04]"
-                      )}>
-                        {item.extra}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
             
             <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[9px] font-bold uppercase tracking-[0.18em] text-white/55">
               <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↑↓</span> Press to navigate</span>
