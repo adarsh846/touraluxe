@@ -134,6 +134,9 @@ export function FloatingSearch() {
   const setIsVisibleWithRef = useCallback((next: boolean) => {
     isVisibleRef.current = next;
     setIsVisible(next);
+    if (next) {
+      setShouldRenderCSS(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -301,6 +304,37 @@ export function FloatingSearch() {
   // Phase 2 target: w-fit plain wrapper (elastic scaleX, scaleY) — matches PackageContent islandInnerRef
   // MUST be a plain div with NO CSS transitions, otherwise transition-all intercepts elastic.out and destroys it
   const islandInnerRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Apple-grade unified dismiss routine — triggers the full stationary Dynamic Island exit animation
+  const handleDismiss = useCallback(() => {
+    if (!isVisibleRef.current && !isFocusedRef.current) return;
+    isFocusedRef.current = false;
+    isButtonClickedRef.current = true;
+    if (inputRef.current) inputRef.current.blur();
+    setShowSuggestions(false);
+    setIsVisibleWithRef(false);
+  }, [setIsVisibleWithRef]);
+
+  // Pause Lenis smooth-scrolling and lock body overflow while mobile search is active or animating
+  // Kept locked throughout shouldRenderCSS (covers entrance + 350ms exit) to guarantee zero scroll bleed on touchscreens
+  useEffect(() => {
+    if (!isMobile) return;
+    if (shouldRenderCSS) {
+      (window as any).__lenis?.stop();
+      document.body.style.setProperty("overflow", "hidden", "important");
+      document.documentElement.style.setProperty("overflow", "hidden", "important");
+    } else {
+      (window as any).__lenis?.start();
+      document.body.style.removeProperty("overflow");
+      document.documentElement.style.removeProperty("overflow");
+    }
+    return () => {
+      (window as any).__lenis?.start();
+      document.body.style.removeProperty("overflow");
+      document.documentElement.style.removeProperty("overflow");
+    };
+  }, [isMobile, shouldRenderCSS]);
 
   // Generate suggestions list on the client in real-time (< 1ms)
   const suggestions = useMemo(() => {
@@ -722,8 +756,8 @@ export function FloatingSearch() {
 
   // Auto-blur search input and dismiss search bar on manual scroll/drag gesture (mobile only)
   // CRITICAL: Ignore touchmove events that originate inside the suggestions dropdown —
-  // even a sub-pixel finger jitter during a tap fires touchmove, which would kill the
-  // search bar before onClick can register on the suggestion button.
+  // Auto-blur search input and dismiss search bar on manual scroll/drag gesture (mobile only)
+  // CRITICAL: Ignore touchmove events that originate inside the suggestions dropdown or search bar
   useEffect(() => {
     if (!isMobile) return;
 
@@ -731,21 +765,23 @@ export function FloatingSearch() {
       // Ignore scroll during the guard window after a Search button tap
       if (Date.now() - lastToggleTapRef.current < TOGGLE_GUARD_MS) return;
 
-      // Never dismiss if the touch originated inside the suggestions card
-      if (suggestionsCardRef.current && e.target instanceof Node && suggestionsCardRef.current.contains(e.target)) {
+      // Never dismiss if the touch originated inside the suggestions card or search island
+      const target = e.target instanceof Node ? e.target : null;
+      if (suggestionsCardRef.current && target && suggestionsCardRef.current.contains(target)) {
+        return;
+      }
+      if (islandContainerRef.current && target && islandContainerRef.current.contains(target)) {
         return;
       }
 
       if (isVisibleRef.current || isFocusedRef.current) {
-        isButtonClickedRef.current = true;
-        if (inputRef.current) inputRef.current.blur();
-        setIsVisibleWithRef(false);
+        handleDismiss();
       }
     };
 
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     return () => window.removeEventListener("touchmove", handleTouchMove);
-  }, [isMobile, setIsVisibleWithRef]);
+  }, [isMobile, handleDismiss]);
 
   useIsomorphicLayoutEffect(() => {
     // searchContainerRef = CSS centering shell (-translate-x-1/2), NEVER animated by GSAP
@@ -777,6 +813,7 @@ export function FloatingSearch() {
       if (innerEl) gsap.killTweensOf(innerEl);
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
+      if (backdropRef.current)     gsap.killTweensOf(backdropRef.current);
 
       if (isResizingRef.current && !isBtnClick) {
         // Fast-path during rapid window resizing: set state instantly to avoid animation flashing
@@ -864,6 +901,15 @@ export function FloatingSearch() {
         }
       } else {
         // ─── MOBILE: Apple UIKit Spring Physics Dynamic Island ───
+        if (backdropRef.current) {
+          gsap.killTweensOf(backdropRef.current);
+          gsap.fromTo(
+            backdropRef.current,
+            { opacity: 0 },
+            { opacity: 1, duration: 0.38, ease: "power2.out", force3D: true }
+          );
+        }
+
         if (!isBtnClick) {
           // Lightweight show for automatic/scroll events — critically damped, no bounce
           gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: SPRING_POSITION, force3D: true });
@@ -950,6 +996,15 @@ export function FloatingSearch() {
       if (innerEl) gsap.killTweensOf(innerEl);
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
+      if (backdropRef.current) {
+        gsap.killTweensOf(backdropRef.current);
+        gsap.to(backdropRef.current, {
+          opacity: 0,
+          duration: 0.3,
+          ease: "power2.in",
+          force3D: true,
+        });
+      }
 
       const hideContainer = () => {
         if (searchContainerRef.current) {
@@ -1128,6 +1183,21 @@ export function FloatingSearch() {
 
   return (
     <>
+      {/* Mobile Apple Spotlight Focus & Touch-Dismiss Backdrop */}
+      {isMobile && shouldRenderCSS && (
+        <div
+          ref={backdropRef}
+          className="fixed inset-0 z-[40] bg-black/60 backdrop-blur-md pointer-events-auto touch-none overscroll-none transform-gpu will-change-[opacity]"
+          style={{ touchAction: "none", opacity: 0, willChange: "opacity" }}
+          onTouchStart={(e) => {
+            // Prevent the underlying page from initiating an active scroll gesture
+            e.preventDefault();
+            handleDismiss();
+          }}
+          onClick={handleDismiss}
+        />
+      )}
+
       {/* CSS centering shell — never GSAP-animated so -translate-x-1/2 is never clobbered */}
       <div
         ref={searchContainerRef}
@@ -1422,11 +1492,8 @@ export function FloatingSearch() {
               <button
                 type="button"
                 onClick={() => {
-                  isButtonClickedRef.current = true;
                   setSearchValue("");
-                  if (inputRef.current) inputRef.current.blur();
-                  setShowSuggestions(false);
-                  setIsVisibleWithRef(false);
+                  handleDismiss();
                 }}
                 className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0"
               >
