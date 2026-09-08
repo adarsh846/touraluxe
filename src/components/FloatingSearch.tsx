@@ -316,25 +316,38 @@ export function FloatingSearch() {
     setIsVisibleWithRef(false);
   }, [setIsVisibleWithRef]);
 
-  // Pause Lenis smooth-scrolling and lock body overflow while mobile search is active or animating
-  // Kept locked throughout shouldRenderCSS (covers entrance + 350ms exit) to guarantee zero scroll bleed on touchscreens
+  // Pause Lenis smooth-scrolling while mobile search is active or animating
+  // Avoids manipulating document.documentElement.style.overflow which causes severe layout thrashing on iOS Safari
   useEffect(() => {
     if (!isMobile) return;
     if (shouldRenderCSS) {
       (window as any).__lenis?.stop();
-      document.body.style.setProperty("overflow", "hidden", "important");
-      document.documentElement.style.setProperty("overflow", "hidden", "important");
     } else {
       (window as any).__lenis?.start();
-      document.body.style.removeProperty("overflow");
-      document.documentElement.style.removeProperty("overflow");
     }
     return () => {
       (window as any).__lenis?.start();
-      document.body.style.removeProperty("overflow");
-      document.documentElement.style.removeProperty("overflow");
     };
   }, [isMobile, shouldRenderCSS]);
+
+  // Intercept touch events natively with passive: false to cancel scroll without layout-thrashing style mutations
+  useEffect(() => {
+    if (!isMobile || !shouldRenderCSS) return;
+    const el = backdropRef.current;
+    if (!el) return;
+
+    const onTouch = (e: TouchEvent) => {
+      e.preventDefault();
+      handleDismiss();
+    };
+
+    el.addEventListener("touchstart", onTouch, { passive: false });
+    el.addEventListener("touchmove", onTouch, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouch);
+      el.removeEventListener("touchmove", onTouch);
+    };
+  }, [isMobile, shouldRenderCSS, handleDismiss]);
 
   // Generate suggestions list on the client in real-time (< 1ms)
   const suggestions = useMemo(() => {
@@ -1183,17 +1196,12 @@ export function FloatingSearch() {
 
   return (
     <>
-      {/* Mobile Apple Spotlight Focus & Touch-Dismiss Backdrop */}
+      {/* Mobile Apple Spotlight Focus & Touch-Dismiss Backdrop (Zero-Shader Pure Alpha) */}
       {isMobile && shouldRenderCSS && (
         <div
           ref={backdropRef}
-          className="fixed inset-0 z-[40] bg-black/60 backdrop-blur-md pointer-events-auto touch-none overscroll-none transform-gpu will-change-[opacity]"
+          className="fixed inset-0 z-[40] bg-black/60 pointer-events-auto touch-none overscroll-none transform-gpu will-change-[opacity]"
           style={{ touchAction: "none", opacity: 0, willChange: "opacity" }}
-          onTouchStart={(e) => {
-            // Prevent the underlying page from initiating an active scroll gesture
-            e.preventDefault();
-            handleDismiss();
-          }}
           onClick={handleDismiss}
         />
       )}
