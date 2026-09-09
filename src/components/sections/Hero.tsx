@@ -270,31 +270,43 @@ export function Hero() {
           {subtitle}
         </p>
 
-        {/* Apple-Tier Dynamic Island Kinetic Glass Pill Segmented Strip */}
+        {/* Apple iOS 26 Liquid Glass Trending Strip */}
         {trendingPills.length > 0 && (
           <div ref={trendingRef} style={{ opacity: 0 }} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
-            <div ref={trendingInnerRef} className="relative inline-flex items-center gap-1.5 p-1.5 rounded-full bg-[#0a0a0c]/65 backdrop-blur-3xl border border-white/10 shadow-[0_20px_45px_rgba(0,0,0,0.75),0_1px_0px_rgba(255,255,255,0.12)_inset] max-w-full overflow-hidden">
-              
-              {/* Apple iOS subtle top-down gradient border ring */}
+            <div
+              ref={trendingInnerRef}
+              className="relative inline-flex items-center gap-2 p-[6px] rounded-full max-w-full overflow-hidden transform-gpu"
+              style={{
+                background: "transparent",
+                backdropFilter: "blur(2.5px)",
+                WebkitBackdropFilter: "blur(2.5px)",
+                border: "1px solid rgba(255,255,255,0.24)",
+                boxShadow: "0 1px 0 rgba(255,255,255,0.25) inset",
+              }}
+            >
+              {/* iOS 26 bright top-edge refraction line */}
               <div
-                className="absolute inset-0 rounded-full pointer-events-none z-[2]"
+                className="absolute inset-x-0 top-0 h-[1px] pointer-events-none z-[4]"
                 style={{
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 40%, rgba(255,255,255,0.00) 75%)",
-                  padding: "1px",
-                  borderRadius: "9999px",
-                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "destination-out",
-                  maskComposite: "exclude",
+                  background: "linear-gradient(90deg, transparent 3%, rgba(255,255,255,0.55) 15%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0.55) 85%, transparent 97%)",
                 }}
               />
 
-              {/* Lead Status Tag — Refined Subtle Gold Badge */}
-              <div ref={trendingTagRef} className="relative z-[3] inline-flex items-center justify-center gap-1.5 h-7 sm:h-8 px-3 rounded-full bg-gradient-to-r from-amber-400/[0.10] via-amber-400/[0.05] to-transparent border border-amber-400/20 text-amber-300/90 shrink-0 shadow-[0_2px_8px_rgba(245,158,11,0.10)]">
-                <Sparkles size={11} className="text-amber-300/80 fill-amber-300/30 animate-pulse" />
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] leading-none">Trending</span>
+              {/* Trending Status Badge */}
+              <div
+                ref={trendingTagRef}
+                className="relative z-[3] inline-flex items-center justify-center gap-1.5 h-[30px] sm:h-[34px] px-3.5 rounded-full shrink-0"
+                style={{
+                  background: "rgba(251,191,36,0.06)",
+                  border: "0.5px solid rgba(251,191,36,0.55)",
+                  boxShadow: "inset 0 0.5px 0 rgba(251,191,36,0.45)",
+                }}
+              >
+                <Sparkles size={11} className="text-amber-300 fill-amber-300/40 animate-pulse drop-shadow-[0_0_4px_rgba(251,191,36,0.3)]" />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] leading-none text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">Trending</span>
               </div>
 
-              {/* Horizontal Scrollable Segment Items */}
+              {/* Horizontal Scrollable Glass Capsule Items */}
               <div 
                 ref={(el) => {
                   (trendingScrollRef as any).current = el;
@@ -324,7 +336,28 @@ export function Hero() {
                   <button
                     key={pkg.id || pkg.title}
                     onClick={() => openModal('PACKAGE', pkg)}
-                    className="inline-flex items-center justify-center h-7 sm:h-8 px-3.5 rounded-full text-[10px] sm:text-[11px] font-medium tracking-wider uppercase text-white/65 bg-white/[0.04] border border-white/10 hover:text-white hover:bg-white/[0.10] hover:border-white/20 active:scale-[0.95] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shrink-0 whitespace-nowrap shadow-xs leading-none"
+                    className="group inline-flex items-center justify-center h-[30px] sm:h-[34px] px-4 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase cursor-pointer shrink-0 whitespace-nowrap leading-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.94]"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "0.5px solid rgba(255,255,255,0.38)",
+                      boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.40)",
+                      color: "rgba(255,255,255,0.85)",
+                      textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                    }}
+                    onMouseEnter={(e) => {
+                      const btn = e.currentTarget;
+                      btn.style.background = "rgba(255,255,255,0.10)";
+                      btn.style.border = "0.5px solid rgba(255,255,255,0.70)";
+                      btn.style.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.60)";
+                      btn.style.color = "rgba(255,255,255,1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      const btn = e.currentTarget;
+                      btn.style.background = "rgba(255,255,255,0.05)";
+                      btn.style.border = "0.5px solid rgba(255,255,255,0.38)";
+                      btn.style.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.40)";
+                      btn.style.color = "rgba(255,255,255,0.85)";
+                    }}
                   >
                     {pkg.title}
                   </button>
@@ -332,10 +365,31 @@ export function Hero() {
 
                 <button
                   onClick={() => openBooking(undefined, "TRENDING_OVERFLOW", "Explore All")}
-                  className="inline-flex items-center justify-center h-7 sm:h-8 px-3.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-amber-300/90 bg-amber-400/[0.08] border border-amber-400/20 hover:text-amber-200 hover:bg-amber-400/[0.14] hover:border-amber-400/35 active:scale-[0.95] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer shrink-0 gap-1.5 whitespace-nowrap shadow-[0_2px_8px_rgba(245,158,11,0.08)] leading-none"
+                  className="group inline-flex items-center justify-center h-[30px] sm:h-[34px] px-4 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider uppercase cursor-pointer shrink-0 gap-1.5 whitespace-nowrap leading-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.94]"
+                  style={{
+                    background: "rgba(251,191,36,0.06)",
+                    border: "0.5px solid rgba(251,191,36,0.50)",
+                    boxShadow: "inset 0 0.5px 0 rgba(251,191,36,0.38)",
+                    color: "rgba(253,224,137,1)",
+                    textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                  }}
+                  onMouseEnter={(e) => {
+                    const btn = e.currentTarget;
+                    btn.style.background = "rgba(251,191,36,0.10)";
+                    btn.style.border = "0.5px solid rgba(251,191,36,0.75)";
+                    btn.style.boxShadow = "inset 0 0.5px 0 rgba(251,191,36,0.55)";
+                    btn.style.color = "rgba(253,230,160,1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    const btn = e.currentTarget;
+                    btn.style.background = "rgba(251,191,36,0.06)";
+                    btn.style.border = "0.5px solid rgba(251,191,36,0.50)";
+                    btn.style.boxShadow = "inset 0 0.5px 0 rgba(251,191,36,0.38)";
+                    btn.style.color = "rgba(253,224,137,1)";
+                  }}
                 >
                   <span>Explore All</span>
-                  <ArrowRight size={10} className="stroke-[2.5]" />
+                  <ArrowRight size={10} className="stroke-[2.5] group-hover:translate-x-0.5 transition-transform duration-300" />
                 </button>
               </div>
 
