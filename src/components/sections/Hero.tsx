@@ -199,12 +199,13 @@ export function Hero() {
     };
 
     let ctx: gsap.Context | null = null;
+    let handlePreloaderComplete: (() => void) | null = null;
     const hasPreloaderFinished = typeof window !== "undefined" && (window as any).preloaderPlayed;
 
     if (hasPreloaderFinished) {
       ctx = startAnimation();
     } else {
-      const handlePreloaderComplete = () => {
+      handlePreloaderComplete = () => {
         ctx = startAnimation();
       };
       window.addEventListener("preloaderComplete", handlePreloaderComplete);
@@ -217,6 +218,9 @@ export function Hero() {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (handlePreloaderComplete) {
+        window.removeEventListener("preloaderComplete", handlePreloaderComplete);
+      }
       if (ctx) ctx.revert();
     };
   }, []);
@@ -272,10 +276,14 @@ export function Hero() {
 
         {/* Apple iOS 26 Liquid Glass Trending Strip */}
         {trendingPills.length > 0 && (
-          <div ref={trendingRef} style={{ opacity: 0 }} className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none">
+          <div
+            ref={trendingRef}
+            style={{ opacity: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+            className="flex items-center justify-center mb-6 w-full max-w-full px-4 select-none transform-gpu will-change-[transform,opacity]"
+          >
             <div
               ref={trendingInnerRef}
-              className="relative inline-flex items-center gap-2 p-[6px] rounded-full max-w-full overflow-hidden transform-gpu"
+              className="relative inline-flex items-center gap-2 p-[6px] rounded-full max-w-full overflow-hidden transform-gpu will-change-transform"
               style={{
                 background: "transparent",
                 backdropFilter: "blur(2.5px)",
@@ -316,20 +324,25 @@ export function Hero() {
                 onScroll={() => {
                   const el = trendingScrollRef.current;
                   if (!el) return;
-                  const maxScroll = el.scrollWidth - el.clientWidth;
-                  if (maxScroll <= 0) {
-                    el.style.maskImage = 'none';
-                    el.style.webkitMaskImage = 'none';
-                    return;
-                  }
-                  const leftOpacity = Math.min(el.scrollLeft / 20, 1);
-                  const rightRemaining = maxScroll - el.scrollLeft;
-                  const rightOpacity = Math.min(rightRemaining / 20, 1);
-                  const leftFade = Math.round(leftOpacity * 16);
-                  const rightFade = Math.round(rightOpacity * 16);
-                  const mask = `linear-gradient(to right, transparent, black ${leftFade}px, black calc(100% - ${rightFade}px), transparent)`;
-                  el.style.maskImage = mask;
-                  el.style.webkitMaskImage = mask;
+                  if ((el as any)._ticking) return;
+                  (el as any)._ticking = true;
+                  requestAnimationFrame(() => {
+                    (el as any)._ticking = false;
+                    const maxScroll = el.scrollWidth - el.clientWidth;
+                    if (maxScroll <= 0) {
+                      el.style.maskImage = 'none';
+                      el.style.webkitMaskImage = 'none';
+                      return;
+                    }
+                    const leftOpacity = Math.min(el.scrollLeft / 20, 1);
+                    const rightRemaining = maxScroll - el.scrollLeft;
+                    const rightOpacity = Math.min(rightRemaining / 20, 1);
+                    const leftFade = Math.round(leftOpacity * 16);
+                    const rightFade = Math.round(rightOpacity * 16);
+                    const mask = `linear-gradient(to right, transparent, black ${leftFade}px, black calc(100% - ${rightFade}px), transparent)`;
+                    el.style.maskImage = mask;
+                    el.style.webkitMaskImage = mask;
+                  });
                 }}
               >
                 {trendingPills.map((pkg) => (

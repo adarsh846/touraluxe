@@ -17,6 +17,20 @@ const NAV_LINKS = [
   { name: "About Us", href: "about", offset: 0 },
 ];
 
+// ─── Apple UIKit Spring Physics ───
+// Real damped harmonic oscillator matching CASpringAnimation / UISpringTimingParameters.
+function softSpring(zeta: number = 0.76, omega: number = 16) {
+  const omegaD = omega * Math.sqrt(1 - zeta * zeta);
+  return (t: number) =>
+    1 - Math.exp(-zeta * omega * t) *
+    (Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t));
+}
+
+const SPRING_BOUNCY   = softSpring(0.55, 14); // Visible 2-3 bounce oscillations for scale
+const SPRING_SCALE    = softSpring(0.62, 15); // Scale morph — clear bounce, settles fast
+const SPRING_EXPAND   = softSpring(0.55, 12); // ScaleX expansion — widest bounce, organic settle
+const SPRING_POS_SOFT = softSpring(0.68, 16); // Y position with subtle overshoot
+
 export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,6 +45,7 @@ export function Navbar() {
   const pillWrapperRef = useRef<HTMLDivElement>(null);
   const pillInnerRef = useRef<HTMLDivElement>(null);
   const pillIconsRef = useRef<HTMLDivElement>(null);
+  const pillBookRef = useRef<HTMLDivElement>(null);
   const pillEntrancePlayed = useRef(false);
 
   useEffect(() => {
@@ -57,15 +72,19 @@ export function Navbar() {
     }
   }, []);
 
-  // ── Dynamic Island entrance for bottom pill ──────────────────────────────
-  // Mirrors the desktop FloatingSearch 4-phase Apple Dynamic Island choreography:
-  //   Phase 1: seed rises from below  (expo.out 0.6s)
-  //   Phase 2: pill elastically expands to full width (elastic.out 0.9s)
-  //   Phase 3: icons / labels fade in (power3.out 0.5s)
+  // ── Dynamic Island Apple UIKit Spring Entrance for Mobile Bottom Pill ──────────────
+  // Matches mobile FloatingSearch:
+  //   1. Compressed seed initial state (y: 70, scale: 0.65, blur: 32px, scaleX: 0.55)
+  //   2. SPRING_POS_SOFT for vertical rise with subtle overshoot
+  //   3. SPRING_BOUNCY for container scale with harmonic bounce oscillations
+  //   4. Balanced Apple GPU spatial depth blur resolution to 0px
+  //   5. SPRING_EXPAND for wide organic scaleX morph
+  //   6. Standout center Book button elastic pop-in
   useLayoutEffect(() => {
     const wrapperEl = pillWrapperRef.current;
     const innerEl   = pillInnerRef.current;
     const iconsEl   = pillIconsRef.current;
+    const bookEl    = pillBookRef.current;
     if (!wrapperEl || !innerEl || !iconsEl) return;
 
     if (!isPreloaderCompleted) {
@@ -76,31 +95,90 @@ export function Navbar() {
     if (pillEntrancePlayed.current) return;
     pillEntrancePlayed.current = true;
 
-    // Initial compressed-seed state — opacity:0 hides white border ring until fully risen
-    gsap.set(wrapperEl, { y: 60, opacity: 0, scale: 0.4, filter: "blur(32px)" });
-    gsap.set(innerEl,   { scaleX: 0.3, scaleY: 0.85 });
-    gsap.set(iconsEl,   { opacity: 0 });
+    // Initial compressed-seed state matching mobile FloatingSearch launch
+    gsap.set(wrapperEl, { y: 70, opacity: 0, scale: 0.65, filter: "blur(32px)" });
+    gsap.set(innerEl,   { scaleX: 0.55, scaleY: 0.7 });
+    gsap.set(iconsEl,   { opacity: 0, y: 8 });
+    if (bookEl) {
+      gsap.set(bookEl,  { scale: 0.4, opacity: 0 });
+    }
 
-    const tl = gsap.timeline({ delay: 0.2 });
+    const delay = 0.15;
 
-    // Phase 1: seed rises out of blur(32px) and fades in from bottom
-    tl.to(wrapperEl, {
-      y: 0, opacity: 1, scale: 1, filter: "blur(0px)",
-      duration: 0.65, ease: "power3.out", force3D: true,
-      clearProps: "scale,y,opacity,filter",
-    })
-    // Phase 2: pill elastically expands to full width
-    .to(innerEl, {
-      scaleX: 1, scaleY: 1,
-      duration: 0.85, ease: "elastic.out(1.0, 0.5)", force3D: true,
-      clearProps: "scaleX,scaleY",
-    }, "-=0.35")
-    // Phase 3: icons & labels fade in
-    .to(iconsEl, {
+    // Y position: spring with subtle overshoot
+    gsap.to(wrapperEl, {
+      y: 0,
+      duration: 0.75,
+      ease: SPRING_POS_SOFT,
+      force3D: true,
+      delay,
+      clearProps: "y",
+    });
+
+    // Scale: bouncy spring — visible overshoot past 1.0 then settle back
+    gsap.to(wrapperEl, {
+      scale: 1,
+      duration: 0.85,
+      ease: SPRING_BOUNCY,
+      force3D: true,
+      delay,
+      clearProps: "scale",
+    });
+
+    // Balanced Apple GPU spatial depth blur resolution
+    gsap.to(wrapperEl, {
+      filter: "blur(0px)",
       opacity: 1,
-      duration: 0.45, ease: "power3.out",
-      clearProps: "opacity",
-    }, "-=0.55");
+      duration: 0.48,
+      ease: "power2.out",
+      force3D: true,
+      delay,
+      onComplete: () => {
+        gsap.set(wrapperEl, { clearProps: "filter,opacity" });
+      },
+    });
+
+    // Inner capsule expansion: bounciest spring — scaleX overshoots visibly, scaleY settles
+    gsap.to(innerEl, {
+      scaleX: 1,
+      duration: 0.9,
+      ease: SPRING_EXPAND,
+      force3D: true,
+      delay: delay + 0.03,
+      clearProps: "scaleX",
+    });
+    gsap.to(innerEl, {
+      scaleY: 1,
+      duration: 0.75,
+      ease: SPRING_SCALE,
+      force3D: true,
+      delay: delay + 0.02,
+      clearProps: "scaleY",
+    });
+
+    // Icons content slides in smoothly with spring
+    gsap.to(iconsEl, {
+      opacity: 1,
+      y: 0,
+      duration: 0.4,
+      ease: "power2.out",
+      force3D: true,
+      delay: delay + 0.08,
+      clearProps: "opacity,y",
+    });
+
+    // Center Book button: bouncy pop-in matching mobile dynamic island action
+    if (bookEl) {
+      gsap.to(bookEl, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.7,
+        ease: SPRING_BOUNCY,
+        force3D: true,
+        delay: delay + 0.1,
+        clearProps: "scale,opacity",
+      });
+    }
   }, [isPreloaderCompleted]);
 
   useEffect(() => {
@@ -336,7 +414,11 @@ export function Navbar() {
       </div>
 
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
-      <div ref={pillWrapperRef} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md" style={{ opacity: 0 }}>
+      <div
+        ref={pillWrapperRef}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md transform-gpu will-change-[transform,opacity]"
+        style={{ opacity: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+      >
         {/* iOS 26 gradient border ring: bright top rim, fading sides, pure dark black bottom */}
         <div ref={pillInnerRef}
           className="relative p-[1px] rounded-full transform-gpu will-change-transform bg-[#0a0a0c]/96 backdrop-blur-3xl border-t border-x border-white/16 border-b-transparent shadow-[0_25px_65px_rgba(0,0,0,0.95),0_1px_0px_rgba(255,255,255,0.18)_inset]"
@@ -382,7 +464,7 @@ export function Navbar() {
               </button>
 
               {/* Book Now (Center Standout Action) */}
-              <div className="flex-1 flex justify-center -translate-y-3.5 relative">
+              <div ref={pillBookRef} className="flex-1 flex justify-center -translate-y-3.5 relative">
                 <Magnetic>
                   <button
                     onClick={() => {
