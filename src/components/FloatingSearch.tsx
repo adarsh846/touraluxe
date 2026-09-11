@@ -87,17 +87,20 @@ function criticalSpring(omega: number = 20) {
  */
 function softSpring(zeta: number = 0.76, omega: number = 16) {
   const omegaD = omega * Math.sqrt(1 - zeta * zeta); // damped frequency
-  return (t: number) =>
+  const raw = (t: number) =>
     1 - Math.exp(-zeta * omega * t) *
     (Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t));
+  const endVal = raw(1);
+  return (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : raw(t) / endVal);
 }
 
-// Pre-computed spring instances (avoid creating closures per animation frame)
-const SPRING_POSITION  = criticalSpring(20);     // Y/x movement — snappy, no bounce
-const SPRING_BOUNCY    = softSpring(0.55, 14);   // Visible 2-3 bounce oscillations for scale
-const SPRING_SCALE     = softSpring(0.62, 15);   // Scale morph — clear bounce, settles fast
-const SPRING_EXPAND    = softSpring(0.55, 12);   // ScaleX expansion — widest bounce, organic settle
-const SPRING_POS_SOFT  = softSpring(0.68, 16);   // Y position with subtle overshoot
+// Pre-computed Apple Dynamic Island calibrated harmonic springs:
+const SPRING_POSITION   = criticalSpring(20);     // Y/x movement — snappy, no bounce
+const SPRING_BOUNCY     = softSpring(0.48, 14);   // Visible ~18% overshoot with 2-3 organic decaying oscillations
+const SPRING_SCALE      = softSpring(0.55, 15);   // Clean, snappy scaleY settle
+const SPRING_EXPAND     = softSpring(0.48, 13);   // Rubbery horizontal expansion and elastic snapback
+const SPRING_POS_BOUNCY = softSpring(0.50, 14);   // Vertical drop/rise with genuine overshoot & settling rebound
+const SPRING_POS_SOFT   = softSpring(0.60, 15);   // Subtle position damping for desktop/dropdowns
 
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
@@ -1030,61 +1033,61 @@ export function FloatingSearch() {
 
         if (currentOpacity < 0.1) {
           // ─── FULL LAUNCH: Dynamic Island Bouncy Spring Entrance + Balanced Apple Spatial Blur ───
-          gsap.set(islandEl, { y: -60, opacity: 0, scale: 0.65, filter: "blur(32px)" });
-          if (innerEl) gsap.set(innerEl, { scaleX: 0.55, scaleY: 0.7 });
-          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
-          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
+          gsap.set(islandEl, { y: -75, opacity: 0, scale: 0.48, filter: "blur(24px)" });
+          if (innerEl) gsap.set(innerEl, { scaleX: 0.38, scaleY: 0.65 });
+          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -16 });
+          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.30 });
 
-          // Y position: spring with subtle overshoot
+          // Y position: energetic drop with genuine vertical overshoot past 0, dipping and rebounding into place
           gsap.to(islandEl, {
-            y: 0, duration: 0.75, ease: SPRING_POS_SOFT, force3D: true,
+            y: 0, duration: 0.95, ease: SPRING_POS_BOUNCY, force3D: true,
           });
-          // Scale: bouncy spring — visible overshoot past 1.0 then settle back
+          // Scale: bouncy harmonic spring — visible ~18% overshoot past 1.0 then settle back
           gsap.to(islandEl, {
-            scale: 1, duration: 0.85, ease: SPRING_BOUNCY, force3D: true,
+            scale: 1, duration: 0.95, ease: SPRING_BOUNCY, force3D: true,
           });
           // Balanced Apple GPU spatial depth blur resolution
           gsap.to(islandEl, {
-            filter: "blur(0px)", opacity: 1, duration: 0.48, ease: "power2.out", force3D: true,
+            filter: "blur(0px)", opacity: 1, duration: 0.42, ease: "power2.out", force3D: true,
             onComplete: () => {
               gsap.set(islandEl, { clearProps: "filter" });
             }
           });
 
-          // Inner capsule expansion: bounciest spring — scaleX overshoots visibly
+          // Inner capsule expansion: bounciest spring — scaleX rubbery stretch & organic settle
           if (innerEl) {
             gsap.to(innerEl, {
               scaleX: 1,
-              duration: 0.9, ease: SPRING_EXPAND, force3D: true, delay: 0.03,
+              duration: 1.02, ease: SPRING_EXPAND, force3D: true, delay: 0.02,
             });
             gsap.to(innerEl, {
               scaleY: 1,
-              duration: 0.75, ease: SPRING_SCALE, force3D: true, delay: 0.02,
+              duration: 0.82, ease: SPRING_SCALE, force3D: true, delay: 0.01,
             });
           }
 
           // Content slides in with bouncy spring on position
           if (inputAreaRef.current) {
             gsap.to(inputAreaRef.current, {
-              opacity: 1, duration: 0.25, ease: 'power2.out', force3D: true, delay: 0.08,
+              opacity: 1, duration: 0.35, ease: 'power2.out', force3D: true, delay: 0.06,
             });
             gsap.to(inputAreaRef.current, {
-              x: 0, duration: 0.6, ease: SPRING_POS_SOFT, force3D: true, delay: 0.08,
+              x: 0, duration: 0.65, ease: SPRING_POS_BOUNCY, force3D: true, delay: 0.06,
             });
           }
 
-          // Cancel button: bouncy scale pop-in
+          // Cancel button: Apple circular spring pop-in
           if (searchActionRef.current) {
             gsap.to(searchActionRef.current, {
-              opacity: 1, duration: 0.22, ease: 'power2.out', force3D: true, delay: 0.12,
+              opacity: 1, duration: 0.28, ease: 'power2.out', force3D: true, delay: 0.09,
             });
             gsap.to(searchActionRef.current, {
-              scale: 1, duration: 0.7, ease: SPRING_BOUNCY, force3D: true, delay: 0.12,
+              scale: 1, duration: 0.85, ease: SPRING_BOUNCY, force3D: true, delay: 0.09,
             });
           }
 
-          // Clean up after springs fully settle
-          gsap.delayedCall(1.2, () => {
+          // Clean up after all springs have fully settled to 0 velocity
+          gsap.delayedCall(1.25, () => {
             if (islandEl) gsap.set(islandEl, { clearProps: 'scale,y,filter' });
             if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
             if (inputAreaRef.current) gsap.set(inputAreaRef.current, { clearProps: 'x' });

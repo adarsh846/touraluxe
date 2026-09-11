@@ -21,15 +21,19 @@ const NAV_LINKS = [
 // Real damped harmonic oscillator matching CASpringAnimation / UISpringTimingParameters.
 function softSpring(zeta: number = 0.76, omega: number = 16) {
   const omegaD = omega * Math.sqrt(1 - zeta * zeta);
-  return (t: number) =>
+  const raw = (t: number) =>
     1 - Math.exp(-zeta * omega * t) *
     (Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t));
+  const endVal = raw(1);
+  return (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : raw(t) / endVal);
 }
 
-const SPRING_BOUNCY   = softSpring(0.55, 14); // Visible 2-3 bounce oscillations for scale
-const SPRING_SCALE    = softSpring(0.62, 15); // Scale morph — clear bounce, settles fast
-const SPRING_EXPAND   = softSpring(0.55, 12); // ScaleX expansion — widest bounce, organic settle
-const SPRING_POS_SOFT = softSpring(0.68, 16); // Y position with subtle overshoot
+// Apple Dynamic Island calibrated harmonic springs (smooth, bouncy, zero cutoff jitter):
+const SPRING_BOUNCY     = softSpring(0.48, 14); // Bouncy scale with ~18% overshoot and organic settle
+const SPRING_SCALE      = softSpring(0.55, 15); // Clean, snappy scaleY settle
+const SPRING_EXPAND     = softSpring(0.48, 13); // Rubbery horizontal expansion and elastic snapback
+const SPRING_POS_BOUNCY = softSpring(0.52, 14); // Vertical rise with smooth overshoot & settle
+const SPRING_BOOK_POP   = softSpring(0.46, 15); // Standout Book button elastic pop-in
 
 export function Navbar() {
   const router = useRouter();
@@ -73,13 +77,13 @@ export function Navbar() {
   }, []);
 
   // ── Dynamic Island Apple UIKit Spring Entrance for Mobile Bottom Pill ──────────────
-  // Matches mobile FloatingSearch:
-  //   1. Compressed seed initial state (y: 70, scale: 0.65, blur: 32px, scaleX: 0.55)
-  //   2. SPRING_POS_SOFT for vertical rise with subtle overshoot
-  //   3. SPRING_BOUNCY for container scale with harmonic bounce oscillations
-  //   4. Balanced Apple GPU spatial depth blur resolution to 0px
-  //   5. SPRING_EXPAND for wide organic scaleX morph
-  //   6. Standout center Book button elastic pop-in
+  // Authentic bouncy Apple Dynamic Island entrance:
+  //   1. Compressed seed initial state (y: 85, scale: 0.45, blur: 24px, scaleX: 0.35)
+  //   2. SPRING_POS_BOUNCY: genuine vertical overshoot & liquid settling rebound
+  //   3. SPRING_BOUNCY: container scale harmonic bounce oscillations
+  //   4. Spatial depth blur dissolves cleanly to 0px
+  //   5. SPRING_EXPAND: wide rubbery scaleX liquid stretch & snapback
+  //   6. Center Book button hyper-bouncy pop-in
   useLayoutEffect(() => {
     const wrapperEl = pillWrapperRef.current;
     const innerEl   = pillInnerRef.current;
@@ -95,90 +99,89 @@ export function Navbar() {
     if (pillEntrancePlayed.current) return;
     pillEntrancePlayed.current = true;
 
-    // Initial compressed-seed state matching mobile FloatingSearch launch
-    gsap.set(wrapperEl, { y: 70, opacity: 0, scale: 0.65, filter: "blur(32px)" });
-    gsap.set(innerEl,   { scaleX: 0.55, scaleY: 0.7 });
-    gsap.set(iconsEl,   { opacity: 0, y: 8 });
+    // Initial compressed-seed state — tight seed with high elastic potential energy
+    gsap.set(wrapperEl, { y: 85, opacity: 0, scale: 0.45, filter: "blur(24px)" });
+    gsap.set(innerEl,   { scaleX: 0.35, scaleY: 0.65 });
+    gsap.set(iconsEl,   { opacity: 0, y: 12 });
     if (bookEl) {
-      gsap.set(bookEl,  { scale: 0.4, opacity: 0 });
+      gsap.set(bookEl,  { scale: 0.25, opacity: 0 });
     }
 
-    const delay = 0.15;
+    const delay = 0.12;
 
-    // Y position: spring with subtle overshoot
+    // 1. Y position: energetic rise with true vertical overshoot past 0, dipping and snapping into place
     gsap.to(wrapperEl, {
       y: 0,
-      duration: 0.75,
-      ease: SPRING_POS_SOFT,
+      duration: 0.95,
+      ease: SPRING_POS_BOUNCY,
       force3D: true,
       delay,
-      clearProps: "y",
     });
 
-    // Scale: bouncy spring — visible overshoot past 1.0 then settle back
+    // 2. Scale: bouncy harmonic spring — puffs past 1.0 to ~1.18 then rebounds
     gsap.to(wrapperEl, {
       scale: 1,
-      duration: 0.85,
+      duration: 1.0,
       ease: SPRING_BOUNCY,
       force3D: true,
       delay,
-      clearProps: "scale",
     });
 
-    // Balanced Apple GPU spatial depth blur resolution
+    // 3. Balanced Apple GPU spatial depth blur resolution
     gsap.to(wrapperEl, {
       filter: "blur(0px)",
       opacity: 1,
-      duration: 0.48,
+      duration: 0.42,
       ease: "power2.out",
       force3D: true,
       delay,
-      onComplete: () => {
-        gsap.set(wrapperEl, { clearProps: "filter,opacity" });
-      },
     });
 
-    // Inner capsule expansion: bounciest spring — scaleX overshoots visibly, scaleY settles
+    // 4. Inner capsule expansion: wide rubbery scaleX liquid stretch & settle
     gsap.to(innerEl, {
       scaleX: 1,
-      duration: 0.9,
+      duration: 1.05,
       ease: SPRING_EXPAND,
       force3D: true,
-      delay: delay + 0.03,
-      clearProps: "scaleX",
+      delay: delay + 0.02,
     });
     gsap.to(innerEl, {
       scaleY: 1,
-      duration: 0.75,
+      duration: 0.85,
       ease: SPRING_SCALE,
       force3D: true,
-      delay: delay + 0.02,
-      clearProps: "scaleY",
+      delay: delay + 0.01,
     });
 
-    // Icons content slides in smoothly with spring
+    // 5. Icons content slides in smoothly with spring
     gsap.to(iconsEl, {
       opacity: 1,
       y: 0,
-      duration: 0.4,
-      ease: "power2.out",
+      duration: 0.55,
+      ease: SPRING_POS_BOUNCY,
       force3D: true,
-      delay: delay + 0.08,
-      clearProps: "opacity,y",
+      delay: delay + 0.06,
     });
 
-    // Center Book button: bouncy pop-in matching mobile dynamic island action
+    // 6. Center Book button: standout elastic scale pop-in centered on its elevated slot
     if (bookEl) {
       gsap.to(bookEl, {
         scale: 1,
         opacity: 1,
-        duration: 0.7,
-        ease: SPRING_BOUNCY,
+        duration: 0.85,
+        ease: SPRING_BOOK_POP,
         force3D: true,
-        delay: delay + 0.1,
-        clearProps: "scale,opacity",
+        delay: delay + 0.08,
       });
     }
+
+    // Unified cleanup: wait until ALL springs have fully rested to avoid mid-flight stripping or jitter
+    gsap.delayedCall(1.25, () => {
+      if (wrapperEl) gsap.set(wrapperEl, { clearProps: "y,scale,filter,opacity" });
+      if (innerEl) gsap.set(innerEl, { clearProps: "scaleX,scaleY" });
+      if (iconsEl) gsap.set(iconsEl, { clearProps: "opacity,y" });
+      if (bookEl) gsap.set(bookEl, { clearProps: "scale,opacity" });
+    });
   }, [isPreloaderCompleted]);
 
   useEffect(() => {
@@ -416,7 +419,7 @@ export function Navbar() {
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
       <div
         ref={pillWrapperRef}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md transform-gpu will-change-[transform,opacity]"
+        className="fixed bottom-6 left-0 right-0 mx-auto z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md transform-gpu will-change-[transform,opacity] touch-manipulation"
         style={{ opacity: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
         {/* iOS 26 gradient border ring: bright top rim, fading sides, pure dark black bottom */}
@@ -445,10 +448,10 @@ export function Navbar() {
                   setIsMobileMenuOpen(false);
                   window.dispatchEvent(new CustomEvent("open-mobile-search"));
                 }}
-                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
-                <Search size={20} className="opacity-90" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Search</span>
+                <Search size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90 leading-none">Search</span>
               </button>
 
               {/* Destinations */}
@@ -457,29 +460,32 @@ export function Navbar() {
                   setIsMobileMenuOpen(false);
                   router.push("/destinations");
                 }}
-                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
-                <Globe size={20} className={cn(pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "opacity-90")} />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Places</span>
+                <Globe size={20} className={cn("transition-transform duration-200 group-hover:scale-110 group-active:scale-90", pathname === "/destinations" && !isMobileMenuOpen ? "text-white opacity-100" : "opacity-90")} />
+                <span className={cn("text-[9px] uppercase tracking-wider font-bold scale-90 leading-none", pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "")}>Places</span>
+                {pathname === "/destinations" && !isMobileMenuOpen && (
+                  <span className="absolute bottom-0 w-1 h-1 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-pulse" />
+                )}
               </button>
 
               {/* Book Now (Center Standout Action) */}
-              <div ref={pillBookRef} className="flex-1 flex justify-center -translate-y-3.5 relative">
-                <Magnetic>
+              <div className="flex-1 flex justify-center -translate-y-3.5 relative">
+                <div ref={pillBookRef} className="will-change-transform transform-gpu flex items-center justify-center">
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
                     }}
-                    className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-all"
+                    className="group flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black transition-transform duration-200 hover:scale-105 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
                     style={{
-                      boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px_28px_rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
+                      boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px 28px rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
                     }}
                   >
-                    <Calendar size={22} className="stroke-[2.5]" />
+                    <Calendar size={22} className="stroke-[2.5] transition-transform duration-200 group-hover:scale-110 group-active:scale-95" />
                     <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
                   </button>
-                </Magnetic>
+                </div>
               </div>
 
               {/* Services */}
@@ -495,28 +501,47 @@ export function Navbar() {
                     scrollToSection("services", -80);
                   }
                 }}
-                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
-                <Sparkles size={20} className="opacity-90" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Services</span>
+                <Sparkles size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
+                <span className="text-[9px] uppercase tracking-wider font-bold scale-90 leading-none">Services</span>
               </button>
 
-              {/* Menu / Close */}
+              {/* Menu / Close with Apple Rotational Icon & Flip Morph */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all py-1 active:scale-95"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
-                {isMobileMenuOpen ? (
-                  <>
-                    <X size={20} className="text-white" />
-                    <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Close</span>
-                  </>
-                ) : (
-                  <>
-                    <Menu size={20} className="opacity-90" />
-                    <span className="text-[9px] uppercase tracking-wider font-bold scale-90">Menu</span>
-                  </>
-                )}
+                <div className="relative w-5 h-5 flex items-center justify-center">
+                  <Menu
+                    size={20}
+                    className={cn(
+                      "absolute inset-0 m-auto transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu",
+                      isMobileMenuOpen ? "opacity-0 rotate-90 scale-75" : "opacity-90 rotate-0 scale-100 text-white/70 group-hover:text-white"
+                    )}
+                  />
+                  <X
+                    size={20}
+                    className={cn(
+                      "absolute inset-0 m-auto transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu",
+                      isMobileMenuOpen ? "opacity-100 rotate-0 scale-100 text-white" : "opacity-0 -rotate-90 scale-75"
+                    )}
+                  />
+                </div>
+                <div className="relative h-[11px] overflow-hidden flex items-center justify-center">
+                  <span className={cn(
+                    "text-[9px] uppercase tracking-wider font-bold scale-90 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none",
+                    isMobileMenuOpen ? "-translate-y-3 opacity-0" : "translate-y-0 opacity-90"
+                  )}>
+                    Menu
+                  </span>
+                  <span className={cn(
+                    "absolute text-[9px] uppercase tracking-wider font-bold scale-90 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none text-white",
+                    isMobileMenuOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                  )}>
+                    Close
+                  </span>
+                </div>
               </button>
             </div>
           </div>
