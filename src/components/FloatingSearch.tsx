@@ -94,13 +94,14 @@ function softSpring(zeta: number = 0.76, omega: number = 16) {
   return (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : raw(t) / endVal);
 }
 
-// Pre-computed Apple Dynamic Island calibrated harmonic springs:
+// Pre-computed spring instances (avoid creating closures per animation frame)
 const SPRING_POSITION   = criticalSpring(20);     // Y/x movement — snappy, no bounce
-const SPRING_BOUNCY     = softSpring(0.48, 14);   // Visible ~18% overshoot with 2-3 organic decaying oscillations
-const SPRING_SCALE      = softSpring(0.55, 15);   // Clean, snappy scaleY settle
-const SPRING_EXPAND     = softSpring(0.48, 13);   // Rubbery horizontal expansion and elastic snapback
-const SPRING_POS_BOUNCY = softSpring(0.50, 14);   // Vertical drop/rise with genuine overshoot & settling rebound
-const SPRING_POS_SOFT   = softSpring(0.60, 15);   // Subtle position damping for desktop/dropdowns
+const SPRING_BOUNCY     = softSpring(0.42, 13);   // Ultra-bouncy iOS 26 Dynamic Island scale spring (~24% overshoot)
+const SPRING_SCALE      = softSpring(0.48, 14);   // Clean, fluid scaleY bounce & settle
+const SPRING_EXPAND     = softSpring(0.40, 12);   // ScaleX expansion — rubbery liquid stretch & snapback
+const SPRING_POS_BOUNCY = softSpring(0.44, 13);   // Y position with energetic iOS overshoot & rebound
+const SPRING_POS_SOFT   = softSpring(0.50, 14);   // Balanced bounce for dropdown morphs
+const SPRING_POP        = softSpring(0.40, 14);   // Standout elastic pop-in for buttons
 
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
@@ -126,6 +127,7 @@ export function FloatingSearch() {
 
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isButtonClickedRef = useRef(false);
+  const settleTweenRef = useRef<gsap.core.Tween | null>(null);
   // Timestamp of last Search button tap — used instead of a boolean+timer lock to avoid
   // colliding setTimeout calls on rapid double-taps (a timer from Tap1 can fire during Tap2's lock window)
   const lastToggleTapRef = useRef(0);
@@ -144,6 +146,7 @@ export function FloatingSearch() {
 
   useEffect(() => {
     const handleOpenSearch = () => {
+      settleTweenRef.current?.kill();
       const now = Date.now();
       // Apple Spotlight debouncing lock (400ms): ignore rapid repeated taps during transition to prevent animation tearing & history thrashing
       if (now - lastToggleTapRef.current < 400) return;
@@ -314,6 +317,7 @@ export function FloatingSearch() {
 
   // Apple-grade unified dismiss routine — triggers the full stationary Dynamic Island exit animation
   const handleDismiss = useCallback(() => {
+    settleTweenRef.current?.kill();
     if (!isVisibleRef.current && !isFocusedRef.current) return;
     isFocusedRef.current = false;
     isButtonClickedRef.current = true;
@@ -542,24 +546,23 @@ export function FloatingSearch() {
           { height: previousHeight },
           { 
             height: targetHeight, 
-            filter: "blur(0px)", 
-            duration: 0.35, 
+            duration: 0.30, 
             ease: SPRING_POS_SOFT, 
+            force3D: true,
             onComplete: () => {
-              gsap.set(card, { clearProps: "height,filter" });
+              gsap.set(card, { clearProps: "height" });
             } 
           }
         );
       } else {
-        // Phase 1: Capsule seed expansion with iOS Dynamic Island spring overshoot & dramatic Apple spatial depth blur
+        // Phase 1: iOS 26 Dynamic Island bouncy expansion
         gsap.fromTo(
           card,
           {
             opacity: 0,
-            scaleY: 0.35,
-            scaleX: 0.8,
+            scaleY: 0.50,
+            scaleX: 0.86,
             y: isMobile ? -14 : 14,
-            filter: "blur(40px)",
             transformOrigin: isMobile ? "top center" : "bottom center",
           },
           {
@@ -567,12 +570,11 @@ export function FloatingSearch() {
             scaleY: 1,
             scaleX: 1,
             y: 0,
-            filter: "blur(0px)",
-            duration: 0.62,
+            duration: 0.65,
             ease: SPRING_BOUNCY,
             force3D: true,
             onComplete: () => {
-              gsap.set(card, { clearProps: "filter,height" });
+              gsap.set(card, { clearProps: "height" });
             }
           }
         );
@@ -580,29 +582,24 @@ export function FloatingSearch() {
 
       lastSuggestionsHeightRef.current = targetHeight;
 
-      // Phase 2: Spatial staggered row unfold with intense Apple depth blur focus
+      // Phase 2: Spatial staggered row unfold with iOS spring bounce
       if (items.length > 0) {
         gsap.fromTo(
           items,
           {
             opacity: 0,
-            y: isMobile ? -14 : 14,
+            y: isMobile ? -10 : 10,
             scale: 0.92,
-            filter: "blur(16px)",
           },
           {
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: "blur(0px)",
-            duration: 0.48,
-            stagger: 0.04,
+            duration: 0.45,
+            stagger: 0.035,
             ease: SPRING_BOUNCY,
-            delay: 0.04,
+            delay: 0.03,
             force3D: true,
-            onComplete: () => {
-              gsap.set(items, { clearProps: "filter" });
-            }
           }
         );
       }
@@ -617,22 +614,20 @@ export function FloatingSearch() {
       if (items.length > 0) {
         gsap.to(items, {
           opacity: 0,
-          y: isMobile ? -8 : 8,
-          filter: "blur(14px)",
-          duration: 0.18,
-          ease: "power2.in",
+          y: isMobile ? -4 : 4,
+          duration: 0.15,
+          ease: "power2.out",
           force3D: true,
         });
       }
 
       gsap.to(card, {
         opacity: 0,
-        scaleY: 0.3,
-        scaleX: 0.8,
-        y: isMobile ? -14 : 14,
-        filter: "blur(32px)",
-        duration: 0.26,
-        ease: "power3.in",
+        scaleY: 0.80,
+        scaleX: 0.94,
+        y: isMobile ? -8 : 8,
+        duration: 0.20,
+        ease: "power2.inOut",
         force3D: true,
         onComplete: () => {
           setIsSuggestionsRendered(false);
@@ -736,7 +731,7 @@ export function FloatingSearch() {
             setPlaceholder(w < 400 ? "Search" : "Search destinations");
             if (islandContainerRef.current) {
               gsap.killTweensOf(islandContainerRef.current);
-              gsap.set(islandContainerRef.current, { opacity: 0, y: -120 });
+              gsap.set(islandContainerRef.current, { opacity: 0, y: -45 });
             }
           } else {
             // Desktop: Ambient floating search bar — visible by default near top
@@ -908,8 +903,8 @@ export function FloatingSearch() {
       return;
     }
 
-    const startY = isMobile ? -120 : 80;
-    const hideY  = isMobile ? -120 : 80;
+    const startY = isMobile ? -54 : 80;
+    const hideY  = isMobile ? -48 : 80;
 
     const isBtnClick = isButtonClickedRef.current;
     isButtonClickedRef.current = false;
@@ -1011,97 +1006,89 @@ export function FloatingSearch() {
         }
       } else {
         // ─── MOBILE: Apple UIKit Spring Physics Dynamic Island ───
+        settleTweenRef.current?.kill();
+
         if (backdropRef.current) {
           gsap.killTweensOf(backdropRef.current);
           gsap.fromTo(
             backdropRef.current,
             { opacity: 0 },
-            { opacity: 1, duration: 0.38, ease: "power2.out", force3D: true }
+            { opacity: 1, duration: 0.35, ease: "power2.out", force3D: true }
           );
-        }
-
-        if (!isBtnClick) {
-          // Lightweight show for automatic/scroll events — critically damped, no bounce
-          gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: SPRING_POSITION, force3D: true });
-          if (innerEl) gsap.to(innerEl, { scaleX: 1, scaleY: 1, duration: 0.35, ease: SPRING_POSITION, force3D: true });
-          if (inputAreaRef.current) gsap.to(inputAreaRef.current, { opacity: 1, x: 0, duration: 0.3, ease: SPRING_POSITION, force3D: true });
-          if (searchActionRef.current) gsap.to(searchActionRef.current, { opacity: 1, scale: 1, duration: 0.3, ease: SPRING_POSITION, force3D: true });
-          return;
         }
 
         const currentOpacity = Number(gsap.getProperty(islandEl, "opacity") || 0);
 
         if (currentOpacity < 0.1) {
-          // ─── FULL LAUNCH: Dynamic Island Bouncy Spring Entrance + Balanced Apple Spatial Blur ───
-          gsap.set(islandEl, { y: -75, opacity: 0, scale: 0.48, filter: "blur(24px)" });
-          if (innerEl) gsap.set(innerEl, { scaleX: 0.38, scaleY: 0.65 });
-          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -16 });
-          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.30 });
+          // ─── FULL LAUNCH: iOS 26 Dynamic Island Ultra-Bouncy Spring Entrance ───
+          // High elastic potential energy seed state
+          gsap.set(islandEl, { y: startY, opacity: 0, scale: 0.52 });
+          if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.68 });
+          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -12 });
+          if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.35 });
 
-          // Y position: energetic drop with genuine vertical overshoot past 0, dipping and rebounding into place
+          // Y position: energetic drop with Apple Dynamic Island overshoot & settle
           gsap.to(islandEl, {
-            y: 0, duration: 0.95, ease: SPRING_POS_BOUNCY, force3D: true,
+            y: 0, duration: 0.88, ease: SPRING_POS_BOUNCY, force3D: true,
           });
-          // Scale: bouncy harmonic spring — visible ~18% overshoot past 1.0 then settle back
+          // Scale: bouncy harmonic spring — visible overshoot past 1.0 to ~1.22 then rebounds
           gsap.to(islandEl, {
-            scale: 1, duration: 0.95, ease: SPRING_BOUNCY, force3D: true,
+            scale: 1, duration: 0.92, ease: SPRING_BOUNCY, force3D: true,
           });
-          // Balanced Apple GPU spatial depth blur resolution
+          // Pure alpha fade-in
           gsap.to(islandEl, {
-            filter: "blur(0px)", opacity: 1, duration: 0.42, ease: "power2.out", force3D: true,
-            onComplete: () => {
-              gsap.set(islandEl, { clearProps: "filter" });
-            }
+            opacity: 1, duration: 0.26, ease: "power2.out", force3D: true,
           });
 
-          // Inner capsule expansion: bounciest spring — scaleX rubbery stretch & organic settle
+          // Inner capsule expansion: wide rubbery scaleX liquid stretch & snapback
           if (innerEl) {
             gsap.to(innerEl, {
               scaleX: 1,
-              duration: 1.02, ease: SPRING_EXPAND, force3D: true, delay: 0.02,
+              duration: 0.96, ease: SPRING_EXPAND, force3D: true, delay: 0.02,
             });
             gsap.to(innerEl, {
               scaleY: 1,
-              duration: 0.82, ease: SPRING_SCALE, force3D: true, delay: 0.01,
+              duration: 0.78, ease: SPRING_SCALE, force3D: true, delay: 0.01,
             });
           }
 
-          // Content slides in with bouncy spring on position
+          // Content slides in smoothly with spring
           if (inputAreaRef.current) {
             gsap.to(inputAreaRef.current, {
-              opacity: 1, duration: 0.35, ease: 'power2.out', force3D: true, delay: 0.06,
+              opacity: 1, duration: 0.30, ease: 'power2.out', force3D: true, delay: 0.05,
             });
             gsap.to(inputAreaRef.current, {
-              x: 0, duration: 0.65, ease: SPRING_POS_BOUNCY, force3D: true, delay: 0.06,
+              x: 0, duration: 0.55, ease: SPRING_POS_BOUNCY, force3D: true, delay: 0.05,
             });
           }
 
-          // Cancel button: Apple circular spring pop-in
+          // Cancel button: standout elastic pop-in
           if (searchActionRef.current) {
             gsap.to(searchActionRef.current, {
-              opacity: 1, duration: 0.28, ease: 'power2.out', force3D: true, delay: 0.09,
+              opacity: 1, duration: 0.28, ease: 'power2.out', force3D: true, delay: 0.08,
             });
             gsap.to(searchActionRef.current, {
-              scale: 1, duration: 0.85, ease: SPRING_BOUNCY, force3D: true, delay: 0.09,
+              scale: 1, duration: 0.75, ease: SPRING_POP, force3D: true, delay: 0.08,
             });
           }
 
-          // Clean up after all springs have fully settled to 0 velocity
-          gsap.delayedCall(1.25, () => {
+          // Clean up after all spring oscillations have settled
+          settleTweenRef.current = gsap.delayedCall(1.15, () => {
             if (islandEl) gsap.set(islandEl, { clearProps: 'scale,y,filter' });
             if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
             if (inputAreaRef.current) gsap.set(inputAreaRef.current, { clearProps: 'x' });
             if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'scale' });
           });
         } else {
-          // Rapid click interrupt: restore from mid-flight with critically damped spring
-          if (innerEl) gsap.to(innerEl, { scaleX: 1, scaleY: 1, duration: 0.5, ease: SPRING_POSITION, force3D: true });
-          if (inputAreaRef.current) gsap.to(inputAreaRef.current, { opacity: 1, x: 0, duration: 0.4, ease: SPRING_POSITION, force3D: true });
-          if (searchActionRef.current) gsap.to(searchActionRef.current, { opacity: 1, scale: 1, duration: 0.5, ease: SPRING_SCALE, force3D: true });
-          gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.5, ease: SPRING_POSITION, force3D: true });
+          // Rapid click interrupt: restore from mid-flight with organic springs
+          if (innerEl) gsap.to(innerEl, { scaleX: 1, scaleY: 1, duration: 0.55, ease: SPRING_EXPAND, force3D: true });
+          if (inputAreaRef.current) gsap.to(inputAreaRef.current, { opacity: 1, x: 0, duration: 0.40, ease: 'power2.out', force3D: true });
+          if (searchActionRef.current) gsap.to(searchActionRef.current, { opacity: 1, scale: 1, duration: 0.55, ease: SPRING_POP, force3D: true });
+          gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, duration: 0.55, ease: SPRING_POS_BOUNCY, force3D: true });
         }
       }
     } else {
+      settleTweenRef.current?.kill();
       gsap.killTweensOf(islandEl);
       if (innerEl) gsap.killTweensOf(innerEl);
       if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
@@ -1110,8 +1097,8 @@ export function FloatingSearch() {
         gsap.killTweensOf(backdropRef.current);
         gsap.to(backdropRef.current, {
           opacity: 0,
-          duration: 0.3,
-          ease: "power2.in",
+          duration: 0.26,
+          ease: "power2.out",
           force3D: true,
         });
       }
@@ -1125,7 +1112,7 @@ export function FloatingSearch() {
       if (isResizingRef.current && !isBtnClick) {
         gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.88, clearProps: "filter" });
         if (innerEl) gsap.set(innerEl, { scaleX: 0.7, scaleY: 0.85 });
-        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -10 : 20 });
+        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -8 : 20 });
         if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.7 });
         hideContainer();
       } else if (!isMobile) {
@@ -1150,46 +1137,37 @@ export function FloatingSearch() {
             hideContainer();
           }
         });
-      } else if (!isBtnClick) {
-        // Lightweight hide — critically damped retraction for mobile
-        gsap.to(islandEl, { 
-          y: hideY, opacity: 0, scale: 0.95, duration: 0.35, ease: SPRING_POSITION, force3D: true,
-          onComplete: () => {
-            gsap.set(islandEl, { clearProps: "filter" });
-            hideContainer();
-          }
-        });
       } else {
-        // ─── APPLE DYNAMIC ISLAND EXIT: Single-Pass Reverse Spring Retraction ───
+        // ─── MOBILE: Apple Dynamic Island Smooth Retraction ───
         if (searchActionRef.current) {
           gsap.to(searchActionRef.current, {
-            opacity: 0, scale: 0.7,
-            duration: 0.18, ease: 'power2.in', force3D: true
+            opacity: 0, scale: 0.85,
+            duration: 0.18, ease: 'power2.out', force3D: true
           });
         }
         if (inputAreaRef.current) {
           gsap.to(inputAreaRef.current, {
-            opacity: 0, x: isMobile ? -10 : 20,
-            duration: 0.2, ease: 'power2.in', force3D: true
+            opacity: 0, x: -8,
+            duration: 0.18, ease: 'power2.out', force3D: true
           });
         }
 
-        // Inner capsule compresses
+        // Inner capsule smoothly compresses toward seed
         if (innerEl) {
           gsap.to(innerEl, {
-            scaleX: 0.7, scaleY: 0.85,
-            duration: 0.28, ease: 'power3.in', force3D: true, delay: 0.04,
+            scaleX: 0.75, scaleY: 0.85,
+            duration: 0.24, ease: 'power2.inOut', force3D: true
           });
         }
 
-        // Seed retracts into bezel with balanced Apple spatial blur
+        // Island container ascends gracefully into bezel and dissolves
         gsap.to(islandEl, {
-          y: hideY, scale: 0.88, filter: "blur(24px)",
-          duration: 0.32, ease: 'power3.in', force3D: true, delay: 0.04,
+          y: hideY, scale: 0.90,
+          duration: 0.26, ease: 'power2.inOut', force3D: true,
         });
         gsap.to(islandEl, {
           opacity: 0,
-          duration: 0.24, ease: 'power2.in', force3D: true, delay: 0.08,
+          duration: 0.22, ease: 'power2.out', force3D: true, delay: 0.03,
           onComplete: () => {
             gsap.set(islandEl, { clearProps: "filter" });
             hideContainer();
@@ -1197,7 +1175,7 @@ export function FloatingSearch() {
         });
 
         // Cleanup after exit settles
-        gsap.delayedCall(0.45, () => {
+        settleTweenRef.current = gsap.delayedCall(0.30, () => {
           if (innerEl) gsap.set(innerEl, { clearProps: 'scaleX,scaleY' });
           if (inputAreaRef.current) gsap.set(inputAreaRef.current, { clearProps: 'opacity,x' });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { clearProps: 'opacity,scale' });
@@ -1620,7 +1598,7 @@ export function FloatingSearch() {
                   setSearchValue("");
                   handleDismiss();
                 }}
-                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-colors duration-150 shrink-0"
               >
                 Cancel
               </button>
