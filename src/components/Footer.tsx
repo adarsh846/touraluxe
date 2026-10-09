@@ -53,14 +53,14 @@ export function Footer() {
               </div>
             </a>
           </Magnetic>
-          <p className="max-w-xs text-sm text-muted">
+          <p className="max-w-xs text-sm text-[#a1a1a6] leading-relaxed">
             We don&apos;t sell trips. We craft transcendent experiences for the world&apos;s most discerning travelers.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-10 sm:gap-24">
           <div className="flex flex-col items-start gap-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Services</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mb-2">Services</h4>
             {servicesList.map((item) => (
               <Magnetic key={item.id}>
                 <button 
@@ -68,7 +68,7 @@ export function Footer() {
                     scrollToSection("services", -80);
                     window.dispatchEvent(new CustomEvent('open-service-modal', { detail: { serviceId: item.id } }));
                   }} 
-                  className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left"
+                  className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left"
                 >
                   {item.title}
                 </button>
@@ -77,23 +77,23 @@ export function Footer() {
           </div>
           
           <div className="flex flex-col items-start gap-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">Company</h4>
-            <Magnetic><button onClick={() => scrollToSection("quotes")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Philosophy</button></Magnetic>
-            <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
-            <Magnetic><button onClick={() => openModal('CONTACT', null, 'FOOTER_CONTACT_BTN')} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
-            <Magnetic><button onClick={() => openModal('PORTAL')} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Track Your Booking</button></Magnetic>
-            <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-foreground hover:underline underline-offset-4 bg-transparent border-none outline-none text-left">Terms & Conditions</button></Magnetic>
+            <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50 mb-2">Company</h4>
+            <Magnetic><button onClick={() => scrollToSection("quotes")} className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left">Philosophy</button></Magnetic>
+            <Magnetic><button onClick={() => scrollToSection("featured")} className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left">Journal</button></Magnetic>
+            <Magnetic><button onClick={() => openModal('CONTACT', null, 'FOOTER_CONTACT_BTN')} className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left">Contact</button></Magnetic>
+            <Magnetic><button onClick={() => openModal('PORTAL')} className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left">Track Your Booking</button></Magnetic>
+            <Magnetic><button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="text-sm font-medium text-white/80 hover:text-white transition-colors bg-transparent border-none outline-none text-left">Terms & Conditions</button></Magnetic>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1200px] mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p className="text-xs text-muted">
+      <div className="mx-auto max-w-[1200px] mt-16 pt-8 border-t border-white/12 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p className="text-xs text-[#a1a1a6]">
           &copy; {new Date().getFullYear()} TouraLuxe. All rights reserved.
         </p>
-        <p className="text-xs text-muted flex items-center gap-1">
+        <p className="text-xs text-[#a1a1a6] flex items-center gap-1.5">
           <span>Handcrafted with</span>
-          <Heart size={14} className="fill-red-500/70 stroke-none relative top-[0.5px]" />
+          <Heart size={14} className="fill-red-500/80 stroke-none relative top-[0.5px]" />
           <span>by ADARSH.</span>
         </p>
       </div>

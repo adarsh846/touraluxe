@@ -94,7 +94,7 @@ export function DestinationPortalContent() {
               <Globe size={14} strokeWidth={2} className="text-blue-400" />
             </div>
             <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/50">
-              Global Manifest
+              Global Portfolio
             </span>
           </div>
 

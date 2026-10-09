@@ -129,12 +129,12 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
         data-lenis-prevent
       >
         {/* Filter icon label */}
-        <div className="shrink-0 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white/20 pr-2">
-          <SlidersHorizontal size={11} strokeWidth={2.5} />
+        <div className="shrink-0 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60 pr-2">
+          <SlidersHorizontal size={12} strokeWidth={2.5} />
           <span className="hidden sm:inline">Filters</span>
         </div>
 
-        <div className="shrink-0 w-px h-4 bg-white/[0.06]" />
+        <div className="shrink-0 w-px h-4 bg-white/15" />
 
         {/* Filter Pills */}
         {(Object.keys(optionsMap) as (keyof typeof optionsMap)[]).map((key) => {
@@ -163,8 +163,8 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold transition-all border whitespace-nowrap",
                   isActive
-                    ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                    : "bg-white/[0.03] text-white/40 border-white/10 hover:border-white/20"
+                    ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.25)]"
+                    : "bg-[#161618]/80 text-white/75 border-white/15 hover:border-white/30 hover:text-white backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
                 )}
               >
                 <span>{displayLabel}</span>
@@ -178,17 +178,17 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
               {openDropdown === key && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setOpenDropdown(null)} />
-                  <div className="absolute top-full left-0 mt-2 z-50 min-w-[200px] bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+                  <div className="absolute top-full left-0 mt-2 z-50 min-w-[200px] bg-[#1c1c1e] border border-white/15 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-left backdrop-blur-2xl">
                     <div className="max-h-[300px] overflow-y-auto scrollbar-hide">
                       {options.map((opt) => (
                         <button
                           key={opt.value}
                           onClick={() => setFilter(key, opt.value)}
                           className={cn(
-                            "w-full text-left px-5 py-3.5 text-[12px] font-bold transition-all border-b border-white/[0.03] last:border-0 flex items-center justify-between",
+                            "w-full text-left px-5 py-3.5 text-[12px] font-bold transition-all border-b border-white/[0.04] last:border-0 flex items-center justify-between",
                             (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value))
                               ? "bg-white/10 text-white"
-                              : "text-white/60 hover:bg-white/5"
+                              : "text-white/70 hover:bg-white/10 hover:text-white"
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                               "w-3.5 h-3.5 rounded border transition-all flex items-center justify-center",
                               (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value))
                                 ? "bg-white border-white text-black"
-                                : "border-white/20"
+                                : "border-white/25"
                             )}>
                               {(key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value)) && (
                                 <X size={10} strokeWidth={4} />
@@ -207,7 +207,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
                           {opt.value !== "" && (
                             <span className={cn(
                               "text-[10px] px-2 py-0.5 rounded-full border",
-                              (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value)) ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 opacity-40"
+                              (key === 'sort' ? currentValue === opt.value : (currentValue as string[]).includes(opt.value)) ? "bg-white/10 border-white/20 text-white" : "bg-white/5 border-white/10 text-white/60"
                             )}>
                               {/* Calculate count for this specific option */}
                               {key === 'duration' && packages.filter(p => {

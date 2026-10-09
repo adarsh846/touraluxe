@@ -191,23 +191,23 @@ export function Featured() {
                       </h3>
                       
                       {/* Poetical Concierge Summary */}
-                      <p className="text-xs md:text-sm text-[#86868b] tracking-wide leading-relaxed font-light italic">
+                      <p className="text-xs md:text-sm text-[#a1a1a6] tracking-wide leading-relaxed font-normal italic">
                         &ldquo;{quote}&rdquo;
                       </p>
 
                       {/* Luxury Travel Manifest details */}
-                      <div className="grid grid-cols-1 xs:grid-cols-3 gap-y-3 gap-x-4 xs:gap-4 w-full py-4 my-2 border-y border-white/5 text-left">
+                      <div className="grid grid-cols-1 xs:grid-cols-3 gap-y-3 gap-x-4 xs:gap-4 w-full py-4 my-2 border-y border-white/12 text-left">
                         <div className="min-w-0">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Duration</p>
-                          <p className="text-[10px] font-bold text-white/70">{exp.duration || 'Flexible'}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#86868b] mb-1">Duration</p>
+                          <p className="text-xs font-semibold text-white/95">{exp.duration || 'Flexible'}</p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Ideal For</p>
-                          <p className="text-[10px] font-bold text-white/70">{exp.guests || 'Couples, Families'}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#86868b] mb-1">Ideal For</p>
+                          <p className="text-xs font-semibold text-white/95">{exp.guests || 'Couples, Families'}</p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mb-1">Flight Status</p>
-                          <p className="text-[10px] font-bold text-white/70">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#86868b] mb-1">Flight Status</p>
+                          <p className="text-xs font-semibold text-white/95">
                             {exp.flights_status === 'included'
                               ? `Included ${exp.flight_type ? `(${exp.flight_type})` : ''}`
                               : exp.flights_status === 'on_request'
@@ -219,14 +219,14 @@ export function Featured() {
 
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-lg text-white/80 font-medium">
-                            {pricing.formattedFinal} <span className="text-[9px] opacity-50 uppercase tracking-widest ml-1">/ Person</span>
+                          <span className="text-lg text-white font-semibold">
+                            {pricing.formattedFinal} <span className="text-[10px] text-white/60 uppercase tracking-widest ml-1 font-normal">/ Person</span>
                           </span>
                           {pricing.hasSavings && (
-                            <span className="text-xs text-white/20 line-through">{pricing.formattedOriginal}</span>
+                            <span className="text-xs text-white/60 font-medium line-through decoration-rose-400/80">{pricing.formattedOriginal}</span>
                           )}
                         </div>
-                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/20">
+                        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#86868b]">
                           {pricing.taxLabel}
                         </span>
                       </div>
@@ -234,7 +234,7 @@ export function Featured() {
                       <Magnetic>
                         <button
                           onClick={() => openModal('PACKAGE', exp)}
-                          className="mt-4 bg-white/5 border border-white/10 hover:border-amber-400/80 px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-[0.25em] text-white/70 hover:text-white transition-all duration-700 hover:bg-white/[0.08]"
+                          className="mt-4 bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 hover:border-white px-7 py-3 rounded-full text-[11px] font-bold uppercase tracking-[0.18em] transition-all duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.2)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)] active:scale-95"
                         >
                           Request Access
                         </button>

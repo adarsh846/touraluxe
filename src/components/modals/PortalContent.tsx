@@ -257,7 +257,7 @@ export const PortalContent = memo(function PortalContent({
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Booking Reference ID *</label>
                 <div className="relative flex items-center">
-                  <Search size={13} className="absolute left-4.5 text-white/25" />
+                  <Search size={13} className="absolute left-4.5 text-white/50" />
                   <input 
                     type="text" 
                     required
@@ -271,15 +271,15 @@ export const PortalContent = memo(function PortalContent({
                       }
                     }}
                     placeholder="e.g. TRX-XXXXXXXX" 
-                    className="w-full bg-white/[0.03] border border-white/10 focus:border-white/25 rounded-xl pl-11 pr-5 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all uppercase"
+                    className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl pl-11 pr-5 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all uppercase shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                   />
                 </div>
               </div>
 
               {/* Verification Control */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Verify Using *</label>
-                <div className="flex w-full p-0.5 h-9 rounded-lg bg-[#121214] border border-white/[0.05] relative">
+                <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Verify Using *</label>
+                <div className="flex w-full p-0.5 h-9 rounded-lg bg-[#121214] border border-white/15 relative shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                   {(["email", "phone"] as const).map((type) => (
                     <button
                       key={type}
@@ -288,10 +288,10 @@ export const PortalContent = memo(function PortalContent({
                         setVerificationType(type);
                         setVerificationValue("");
                       }}
-                      className={`flex-1 h-full flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all duration-300 rounded-md z-10 ${
+                      className={`flex-1 h-full flex items-center justify-center text-[10px] font-bold uppercase tracking-wider transition-all duration-300 rounded-md z-10 ${
                         verificationType === type
                           ? "bg-white text-black shadow-md"
-                          : "text-white/30 hover:text-white"
+                          : "text-white/60 hover:text-white"
                       }`}
                     >
                       {type === "email" ? "Email Address" : "Phone Number"}
@@ -303,33 +303,33 @@ export const PortalContent = memo(function PortalContent({
               {/* Dynamic Contact Field */}
               {verificationType === "email" ? (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Registered Email *</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Registered Email *</label>
                   <input 
                     type="email" 
                     required
                     value={verificationValue}
                     onChange={(e) => setVerificationValue(e.target.value)}
                     placeholder="your@email.com" 
-                    className="w-full bg-white/[0.03] border border-white/10 focus:border-white/25 rounded-xl px-5 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all"
+                    className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl px-5 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                   />
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5 relative">
-                  <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Registered Phone *</label>
-                  <div className="flex items-center gap-3 w-full bg-white/[0.03] border border-white/10 focus-within:border-white/25 rounded-xl px-4 py-2 transition-all">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Registered Phone *</label>
+                  <div className="flex items-center gap-3 w-full bg-[#121214] border border-white/15 focus-within:border-white/40 focus-within:ring-1 focus-within:ring-white/20 rounded-xl px-4 py-2 transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                     <div className="relative shrink-0">
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
                           setCountryMenuOpen(!countryMenuOpen);
                         }}
-                        className="flex items-center gap-1 px-1.5 py-1 cursor-pointer hover:bg-white/10 rounded bg-white/5 border border-white/5 transition-all"
+                        className="flex items-center gap-1 px-1.5 py-1 cursor-pointer hover:bg-white/10 rounded bg-white/5 border border-white/10 transition-all"
                       >
                         <span className="text-xs">{selectedCountry.flag}</span>
-                        <span className="text-[9px] font-bold text-white/60">{selectedCountry.code}</span>
+                        <span className="text-[10px] font-bold text-white/80">{selectedCountry.code}</span>
                       </div>
                       {countryMenuOpen && (
-                        <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#121214] border border-white/10 rounded-xl shadow-2xl z-[150] scrollbar-hide">
+                        <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#1c1c1e] border border-white/15 rounded-xl shadow-2xl z-[150] scrollbar-hide backdrop-blur-2xl">
                           {[
                             { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
                             { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
@@ -349,9 +349,9 @@ export const PortalContent = memo(function PortalContent({
                             >
                               <div className="flex items-center gap-2">
                                 <span className="text-xs">{c.flag}</span>
-                                <span className="text-[9px] font-bold text-white/70">{c.name}</span>
+                                <span className="text-[10px] font-bold text-white/80">{c.name}</span>
                               </div>
-                              <span className="text-[9px] font-black text-white/30">{c.code}</span>
+                              <span className="text-[9px] font-black text-white/40">{c.code}</span>
                             </div>
                           ))}
                         </div>
@@ -365,14 +365,14 @@ export const PortalContent = memo(function PortalContent({
                       maxLength={selectedCountry.length}
                       placeholder="Phone digits"
                       onFocus={() => setCountryMenuOpen(false)}
-                      className="flex-1 bg-transparent text-xs text-white placeholder:text-white/20 focus:outline-none py-0.5"
+                      className="flex-1 bg-transparent text-xs text-white placeholder:text-white/45 focus:outline-none py-0.5"
                     />
                   </div>
                 </div>
               )}
 
               <div className="pt-2 flex items-center justify-between">
-                <span className="text-[9px] text-white/20">* Required fields</span>
+                <span className="text-[10px] text-white/50">* Required fields</span>
                 <Magnetic>
                   <button 
                     type="submit"

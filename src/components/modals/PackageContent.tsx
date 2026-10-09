@@ -1088,7 +1088,7 @@ Could you please share details on availability and custom options? Thank you!`;
 
                 {/* Receipt Card Breakdown */}
                 <div className="w-full md:w-[360px] shrink-0 bg-black/60 rounded-[2rem] p-6 md:p-8 border border-white/15 space-y-5 shadow-2xl">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-5 border-b border-white/15 pb-4">Manifest Breakdown</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-5 border-b border-white/15 pb-4">Price Breakdown</h4>
                   
                   <div className="flex justify-between items-center text-sm text-white/95 font-medium">
                     <span>Base (Land)</span>
@@ -1240,7 +1240,7 @@ Could you please share details on availability and custom options? Thank you!`;
                     <p className="text-[10px] sm:text-[10.5px] md:text-[11.5px] leading-relaxed text-white/90 font-medium whitespace-pre-line">
                       {soulOfJourney || (
                         <>
-                          Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "souls seeking beauty"}</span>, this sanctuary is best explored during the <span className="text-amber-400 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
+                          Every day is an unwritten chapter of your life's greatest story. Handcrafted to evoke wonder for <span className="text-white font-bold">{experience.guests || "discerning travelers"}</span>, this sanctuary is best explored during the <span className="text-amber-400 font-bold">{experience.season || "optimal season"}</span> to capture local magic at its peak. Premium transfers and regional flight connections are <span className="text-blue-400 font-bold">{experience.flights_status === 'included' ? "fully inclusive" : experience.flights_status === 'on_request' ? "available on request" : "excluded (land-only tier)"}</span>.
                         </>
                       )}
                     </p>

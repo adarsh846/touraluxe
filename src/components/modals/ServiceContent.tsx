@@ -327,7 +327,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                       </div>
                     ) : (
                       <div className="py-12 px-8 rounded-3xl md:rounded-[28px] bg-white/[0.02] border border-dashed border-white/20 flex flex-col items-center text-center">
-                        <p className="text-[14px] text-white/60 font-medium italic">Our curators are currently preparing new missions in this sector.</p>
+                        <p className="text-[14px] text-white/60 font-medium italic">New journeys in this collection are currently being handcrafted.</p>
                       </div>
                     )}
                   </div>

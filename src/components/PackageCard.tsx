@@ -80,17 +80,17 @@ export const PackageCard = memo(function PackageCard({
             <div className="flex flex-col flex-1 p-5 md:p-6 justify-between gap-5 bg-[#0f0f12]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/50">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#86868b]">
                     {pkg.duration}
                   </span>
                   {pkg.flights_status === 'included' ? (
-                    <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/15">
-                      <Plane size={9} />
+                    <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                      <Plane size={10} />
                       <span>Flights Included</span>
                     </div>
                   ) : pkg.flights_status === 'on_request' ? (
-                    <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-sky-400/80 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/15">
-                      <Plane size={9} />
+                    <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                      <Plane size={10} />
                       <span>Flights on Request</span>
                     </div>
                   ) : null}
@@ -100,9 +100,9 @@ export const PackageCard = memo(function PackageCard({
                   <h3 className="text-lg md:text-xl font-bold tracking-tight text-white leading-tight group-hover:text-amber-400 transition-colors duration-500">
                     {pkg.title}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-white/40">
-                    <MapPin size={10} className="shrink-0" />
-                    <span className="text-[8.5px] font-black uppercase tracking-[0.18em] truncate">
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <MapPin size={11} className="shrink-0 text-amber-400/80" />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] truncate">
                       {routeStart ? `${routeStart}${routeEnd ? ` ➔ ${routeEnd}` : ""}` : pkg.location}
                     </span>
                   </div>
@@ -123,11 +123,11 @@ export const PackageCard = memo(function PackageCard({
                         </span>
                       )}
                     </div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#86868b]">
                       Per person · {pricing.taxLabel}
                     </p>
                   </div>
-                  <div className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center translate-y-1 opacity-0 scale-90 group-hover:translate-y-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-500 shadow-lg shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center transition-all duration-500 shadow-lg shrink-0 opacity-100 lg:opacity-0 lg:translate-y-1 lg:scale-90 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-hover:scale-100">
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </div>
                 </div>
@@ -204,7 +204,7 @@ export const PackageCard = memo(function PackageCard({
                         </>
                       ) : pkg.duration}
                     </p>
-                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block drop-shadow-md">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/65 block drop-shadow-md">
                       Duration
                     </span>
                   </div>
@@ -223,7 +223,7 @@ export const PackageCard = memo(function PackageCard({
                     <p className="text-[clamp(1.4rem,3.5vw,2rem)] font-black text-white tracking-tighter leading-none drop-shadow-xl">
                       {pricing?.formattedFinal}
                     </p>
-                    <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block mt-1 drop-shadow-md">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/65 block mt-1 drop-shadow-md">
                       Per Person
                     </span>
                   </div>
@@ -262,7 +262,7 @@ export const PackageCard = memo(function PackageCard({
           <div className="absolute inset-0 p-8 flex flex-col justify-end">
             <div className="flex items-end justify-between gap-4">
               <div className="text-left space-y-1">
-                <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70 block">
                   Trending Destiny
                 </span>
                 <h3 className="text-xl md:text-2xl font-black tracking-tight text-white/90 italic">
@@ -270,8 +270,8 @@ export const PackageCard = memo(function PackageCard({
                 </h3>
               </div>
 
-              <div className="w-10 h-10 rounded-full bg-white/15 border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all duration-500 shadow-2xl">
-                <ArrowRight size={18} strokeWidth={2.5} className="text-white" />
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-500 shadow-2xl opacity-100 lg:opacity-0 lg:translate-y-2 lg:group-hover/card:translate-y-0 lg:group-hover/card:opacity-100 group-hover/card:bg-white group-hover/card:text-black">
+                <ArrowRight size={18} strokeWidth={2.5} className="text-white group-hover/card:text-black transition-colors" />
               </div>
             </div>
           </div>

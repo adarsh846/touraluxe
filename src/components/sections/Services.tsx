@@ -58,8 +58,8 @@ export const SERVICES = [
     id: 4,
     title: "Luxury Honeymoons",
     tagline: "Absolute romantic perfection.",
-    desc: "Choreographed romantic immersions where every detail is executed to achieve flawlessness.",
-    fullDesc: "We craft the perfect beginning to your forever. Every detail—from the precise thread count of your linens to the timing of a private sunset dinner on a deserted sandbank—is choreographed to achieve absolute romantic perfection. Our Eternal Escapes are more than trips; they are immortal immersions in love, curated for those who demand nothing less than a flawless reality.",
+    desc: "Unforgettable romantic journeys where every moment is thoughtfully curated.",
+    fullDesc: "We craft the perfect beginning to your forever. Every detail—from the finest private villas to an intimate sunset dinner on a secluded sandbank—is seamlessly tailored for you. Our romantic escapes are more than getaways; they are unforgettable journeys of connection, handcrafted for couples who appreciate effortless luxury and discretion.",
     image: "/assets/services/honeymoon.png",
     highlights: ["Overwater Villas", "Private Island Dining", "Couples' Wellness", "Bespoke Romance Concierge"],
     cta: "Plan Your Honeymoon",
@@ -192,9 +192,9 @@ export function Services() {
     <section ref={containerRef} id="services" className="scroll-mt-20 pt-[clamp(2.5rem,5vw,4rem)] pb-[clamp(5rem,8vw,8rem)] px-[clamp(1.5rem,4vw,4rem)] w-full bg-black text-foreground flex flex-col items-center">
       <div className="max-w-[1200px] w-full mx-auto">
         <div className="services-header mb-[clamp(3rem,6vw,5rem)] max-w-2xl">
-          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-[#86868b] mb-3 opacity-0">Our Services</p>
-          <h2 className="text-[clamp(2rem,8vw,3.75rem)] leading-tight text-balance font-semibold tracking-tight mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
-          <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] text-pretty text-[#86868b] tracking-wide opacity-0">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
+          <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-amber-400/90 mb-3 opacity-0">Our Services</p>
+          <h2 className="text-[clamp(2rem,8vw,3.75rem)] leading-tight text-balance font-semibold tracking-tight text-white mb-6 opacity-0">{settings.services_title || "Beyond First Class."}</h2>
+          <p className="text-[clamp(0.875rem,2.5vw,1.125rem)] text-pretty text-[#a1a1a6] tracking-wide opacity-0">{settings.services_description || "Our specialized divisions cater to every facet of high-end lifestyle and corporate excellence."}</p>
         </div>
 
         <div 
@@ -208,7 +208,7 @@ export function Services() {
               onClick={() => openModal('SERVICES', service)}
             >
               <Magnetic intensity={0.08} className="block w-full h-full">
-                <div className="group relative h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/40 border border-white/10 hover:border-amber-400/80 transition-all duration-700 cursor-pointer hover:translate-y-[-4px] hover:shadow-[0_0_40px_rgba(251,191,36,0.08)]">
+                <div className="group relative h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/60 border border-white/15 hover:border-amber-400/80 transition-all duration-700 cursor-pointer hover:translate-y-[-4px] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_40px_rgba(251,191,36,0.12)]">
                   {/* Background Image Container */}
                   <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
                     <Image 
@@ -217,19 +217,19 @@ export function Services() {
                       fill 
                       className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-[1.04]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent transition-opacity duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent transition-opacity duration-700" />
                   </div>
 
                   {/* Content Overlay */}
                   <div className="absolute inset-0 z-10 p-8 flex flex-col justify-between">
-                    <div className="text-white/40 group-hover:text-amber-400/90 transition-all duration-500 transform group-hover:translate-y-[-4px] scale-110 origin-top-left">
+                    <div className="text-white/80 group-hover:text-amber-400 transition-all duration-500 transform group-hover:translate-y-[-4px] scale-110 origin-top-left">
                       {service.icon}
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex items-end justify-between">
                         <div className="space-y-1">
-                          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 group-hover:text-white/60 transition-colors">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-amber-300/90 transition-colors">
                             Service Division
                           </p>
                           <h3 
@@ -240,12 +240,12 @@ export function Services() {
                           </h3>
                         </div>
                         
-                        {/* Interaction Indicator */}
-                        <div className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 shadow-2xl">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        {/* Interaction Indicator — Always visible on mobile, reveals on desktop hover */}
+                        <div className="w-9 h-9 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 shadow-xl opacity-100 lg:opacity-0 lg:translate-y-2 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 group-hover:bg-white group-hover:text-black">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white group-hover:text-black transition-colors"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                         </div>
                       </div>
-                      <p className="text-[11px] text-[#86868b] leading-relaxed line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <p className="text-xs text-[#a1a1a6] leading-relaxed line-clamp-2 opacity-90 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-500">
                         {service.desc}
                       </p>
                     </div>

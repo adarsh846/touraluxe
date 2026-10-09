@@ -68,27 +68,27 @@ export const CtaContent = memo(function CtaContent({ isActive, onScroll, startCl
           {!isSubmitted ? (
             <div className="max-w-xl mx-auto">
               <div className="mb-8 md:mb-10 mt-10 text-center px-4">
-                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-[#86868b]">Curated Inquiry</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400/90">Curated Inquiry</span>
                 <h3 className="text-[clamp(1.5rem,5vw,2.25rem)] font-semibold tracking-tight text-white mt-2 leading-tight">Let&apos;s craft your experience.</h3>
-                <p className="text-sm md:text-base text-[#86868b] mt-3">Provide your details and our lead curators will reach out within 24 hours.</p>
+                <p className="text-sm md:text-base text-[#a1a1a6] mt-3">Provide your details and our lead curators will reach out within 24 hours.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="modal-form grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Full Name</label>
-                  <input required type="text" placeholder="Your full name" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Full Name</label>
+                  <input required type="text" placeholder="Your full name" className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Email Address</label>
-                  <input required type="email" placeholder="your@email.com" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Email Address</label>
+                  <input required type="email" placeholder="your@email.com" className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" />
                 </div>
                 <div className="md:col-span-2 flex flex-col gap-2">
-                  <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Dream Destination</label>
-                  <input type="text" placeholder="e.g. Maldives, Swiss Alps, Amalfi Coast" className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all" />
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Dream Destination</label>
+                  <input type="text" placeholder="e.g. Maldives, Swiss Alps, Amalfi Coast" className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-2xl px-5 py-3.5 md:py-4 text-sm md:text-[15px] text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" />
                 </div>
                 <div className="md:col-span-2 flex flex-col gap-2">
-                  <label className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.2em] text-[#86868b] ml-1">Your Vision</label>
-                  <textarea rows={4} placeholder="Share your vision for the perfect trip..." className="w-full bg-white/[0.03] border border-white/10 rounded-3xl px-5 py-4 text-sm md:text-[15px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-all resize-none" />
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Your Vision</label>
+                  <textarea rows={4} placeholder="Share your vision for the perfect trip..." className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-3xl px-5 py-4 text-sm md:text-[15px] text-white placeholder:text-white/45 focus:outline-none transition-all resize-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]" />
                 </div>
                 
                 <div className="md:col-span-2 pt-4 mb-12">

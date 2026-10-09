@@ -68,8 +68,8 @@ const DOSSIER_PROTOCOL = {
   LABELS: {
     NIGHTS_DAYS: (n: number, d: number) => `${n} Nights / ${d} Days`,
     LEAD_TRAVELER: "Lead Traveler",
-    SPECIAL_DESIRES: "Special Desires",
-    PARTY_MANIFEST: "Party Manifest",
+    SPECIAL_DESIRES: "Special Requests",
+    PARTY_MANIFEST: "Travel Companions",
     FULL_NAME: "Full Name",
     EMAIL: "Email Address",
     CONTACT: "Contact Number",
@@ -79,7 +79,7 @@ const DOSSIER_PROTOCOL = {
     BASE_RATE: "Base Rate",
     TAXES_LABEL: (rate: number) => `Taxes (${rate}%)`,
     INVESTMENT_HEADER: "Itinerary Investment",
-    TOTAL_UNIFIED: "Unified Final Total",
+    TOTAL_UNIFIED: "Estimated Investment",
     TOTAL_PRE_TAX: "Pre-Tax Total",
     TAX_INCL: "Incl. Tax",
     TAX_EXCL: "Excl. Tax"
@@ -87,7 +87,7 @@ const DOSSIER_PROTOCOL = {
   FALLBACKS: {
     LOCATION: "Bespoke Journey",
     REFERENCE_PREFIX: "TRX-",
-    ESTABLISHED_TITLE: "Established",
+    ESTABLISHED_TITLE: "Inquiry Received",
     CLOSE_ACTION: "Close"
   }
 };
@@ -1852,13 +1852,15 @@ Please confirm my booking. Thank you!`;
   const canSubmit = Boolean(
     customerName.trim().length >= 3 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
-    customerPhone.trim().length === selectedCountry.length &&
-    (internalPackage?.isCustom || additionalGuests.every(guest => {
+    customerPhone.trim().length === selectedCountry.length
+    /* Apple-Like Frictionless WhatsApp Handoff: companion manifest details are handled conversationally by concierge on WhatsApp
+    && (internalPackage?.isCustom || additionalGuests.every(guest => {
       const nameValid = (guest?.name?.trim()?.length || 0) >= 2;
       if (guest.type === 'adult') return nameValid;
       const ageValid = (guest?.age?.trim()?.length || 0) >= 1;
       return nameValid && ageValid;
     }))
+    */
   );
 
   const isPhaseValid = React.useMemo(() => {
@@ -2751,7 +2753,7 @@ Please confirm my booking. Thank you!`;
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Enter your name"
-                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-0.5"
+                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all mt-0.5"
                                       />
                                     </div>
 
@@ -2765,7 +2767,7 @@ Please confirm my booking. Thank you!`;
                                         value={customerEmail}
                                         onChange={(e) => setCustomerEmail(e.target.value)}
                                         placeholder="Email address"
-                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-0.5"
+                                        className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all mt-0.5"
                                       />
                                     </div>
 
@@ -2784,7 +2786,7 @@ Please confirm my booking. Thank you!`;
                                             <span className="text-[10px] font-bold text-white/60">{selectedCountry.code}</span>
                                           </div>
                                           {countryMenuOpen && (
-                                            <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#0c0c0e]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-in-from-top-2 zoom-in-95 duration-200 scrollbar-hide">
+                                            <div className="absolute bottom-full left-0 mb-2 w-48 max-h-40 overflow-y-auto bg-[#0c0c0e]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-2xl z-[150] animate-in fade-in slide-from-top-2 zoom-in-95 duration-200 scrollbar-hide">
                                               {[
                                                 { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
                                                 { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
@@ -2811,7 +2813,7 @@ Please confirm my booking. Thank you!`;
                                           maxLength={selectedCountry.length}
                                           placeholder="Phone number"
                                           onFocus={() => setCountryMenuOpen(false)}
-                                          className="flex-1 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all"
+                                          className="flex-1 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all"
                                         />
                                       </div>
                                     </div>
@@ -2878,7 +2880,7 @@ Please confirm my booking. Thank you!`;
                                             {internalPackage?.departure_cities?.map((city: string) => (
                                               <button key={city} type="button" onClick={() => setDepartureCity(city)} className={cn("px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all", departureCity === city ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30")}>{city}</button>
                                             ))}
-                                            <input type="text" value={departureCity} onChange={(e) => setDepartureCity(e.target.value)} placeholder="Enter departure city..." className="bg-transparent border-b border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 px-2 py-1 min-w-[150px]" />
+                                            <input type="text" value={departureCity} onChange={(e) => setDepartureCity(e.target.value)} placeholder="Enter departure city..." className="bg-transparent border-b border-white/10 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-white/30 px-2 py-1 min-w-[150px]" />
                                           </div>
                                         </div>
                                       </div>
@@ -2947,17 +2949,30 @@ Please confirm my booking. Thank you!`;
                                         );
                                       })}
                                     </div>
-                                  </div>
+                                </div>
                                 )}
 
-                                {/* Section 2: Group Manifesto (If > 1 Guest and not custom package) */}
-                                {(adults > 1 || kids > 0 || infants > 0) && !internalPackage?.isCustom && (
+                                {/* 
+                                  ========================================================================
+                                  APPLE-LIKE DESIGN PHILOSOPHY: Frictionless & Focused
+                                  "Never ask the user for information you don't immediately need to fulfill the current action."
+
+                                  For the initial WhatsApp handoff, we only need:
+                                  1. Lead Booker Identity: Name, Email, Phone Number, Departure Hub.
+                                  2. Trip Scope: Destination, Dates, and Traveler Counts (Adults, Children, Infants).
+                                  3. Intent / Wishes: The existing "Special Requests" notes textarea.
+
+                                  Companion passport/manifest details are gathered conversationally by the concierge on WhatsApp.
+                                  Preserved below (commented out / disabled from rendering).
+                                  ========================================================================
+                                */}
+                                {false && (adults > 1 || kids > 0 || infants > 0) && !internalPackage?.isCustom && (
                                   <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                         Group Manifesto
                                       </span>
-                                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
+                                      <span className="text-[9px] font-bold text-[#86868b] uppercase tracking-widest">
                                         {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}{infants > 0 ? ` • ${infants} ${infants === 1 ? 'INFANT' : 'INFANTS'}` : ''}
                                       </span>
                                     </div>
@@ -2965,9 +2980,9 @@ Please confirm my booking. Thank you!`;
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                       {/* Additional Adults */}
                                       {Array.from({ length: adults - 1 }).map((_, i) => (
-                                        <div key={`adult-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
-                                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
-                                            Guest {i + 2} <span className="text-[7px] text-white/20 pl-1">(Adult)</span>
+                                        <div key={`adult-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
+                                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
+                                            Guest {i + 2} <span className="text-[9px] text-white/50 pl-1 font-normal">(Adult)</span>
                                           </span>
                                           <input
                                             type="text"
@@ -2978,7 +2993,7 @@ Please confirm my booking. Thank you!`;
                                               if (next[i]) next[i].name = e.target.value;
                                               setAdditionalGuests(next);
                                             }}
-                                            className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none transition-all mt-1"
+                                            className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all mt-1"
                                           />
                                         </div>
                                       ))}
@@ -2987,9 +3002,9 @@ Please confirm my booking. Thank you!`;
                                       {Array.from({ length: kids }).map((_, i) => {
                                         const guestIdx = (adults - 1) + i;
                                         return (
-                                          <div key={`child-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
-                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
-                                              Guest {adults + i + 1} <span className="text-[7px] text-white/20 pl-1">(Child)</span>
+                                          <div key={`child-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
+                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
+                                              Guest {adults + i + 1} <span className="text-[9px] text-white/50 pl-1 font-normal">(Child)</span>
                                             </span>
                                             <div className="flex items-center gap-3 w-full mt-1">
                                               <input
@@ -3001,7 +3016,7 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].name = e.target.value;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none"
+                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none"
                                               />
                                               <div className="w-[1px] h-4 bg-white/10 self-center" />
                                               <input
@@ -3017,7 +3032,7 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].age = clamped;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none text-center"
+                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none text-center"
                                               />
                                             </div>
                                           </div>
@@ -3028,9 +3043,9 @@ Please confirm my booking. Thank you!`;
                                       {Array.from({ length: infants }).map((_, i) => {
                                         const guestIdx = (adults - 1) + kids + i;
                                         return (
-                                          <div key={`infant-${i}`} className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] p-4 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] h-24">
-                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
-                                              Guest {adults + kids + i + 1} <span className="text-[7px] text-white/20 pl-1">(Infant)</span>
+                                          <div key={`infant-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
+                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
+                                              Guest {adults + kids + i + 1} <span className="text-[9px] text-white/50 pl-1 font-normal">(Infant)</span>
                                             </span>
                                             <div className="flex items-center gap-3 w-full mt-1">
                                               <input
@@ -3042,7 +3057,7 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].name = e.target.value;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none"
+                                                className="flex-1 min-w-0 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none"
                                               />
                                               <div className="w-[1px] h-4 bg-white/10 self-center" />
                                               <input
@@ -3058,7 +3073,7 @@ Please confirm my booking. Thank you!`;
                                                   if (next[guestIdx]) next[guestIdx].age = clamped;
                                                   setAdditionalGuests(next);
                                                 }}
-                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/20 focus:outline-none text-center"
+                                                className="w-12 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none text-center"
                                               />
                                             </div>
                                           </div>
@@ -3072,14 +3087,14 @@ Please confirm my booking. Thank you!`;
                                 <div className="space-y-4 md:space-y-5 group/notes">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-                                      Special Requests <span className="text-[8px] md:text-[10px] opacity-40 ml-1">(Optional)</span>
+                                      Special Requests <span className="text-[9px] md:text-[10px] text-white/50 ml-1 font-normal">(Optional)</span>
                                     </span>
                                   </div>
                                   <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     placeholder="Dietary requirements, accessibility needs, anniversary celebrations..."
-                                    className="w-full h-44 md:h-56 bg-white/[0.02] border border-white/10 rounded-[20px] p-4 text-sm font-medium tracking-wide text-white placeholder:text-white/20 focus:outline-none focus:bg-white/[0.04] focus:border-white/30 transition-all resize-none scrollbar-hide shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]"
+                                    className="w-full h-44 md:h-56 bg-[#121214] border border-white/15 rounded-[20px] p-4 text-sm font-medium tracking-wide text-white placeholder:text-white/45 focus:outline-none focus:bg-[#161619] focus:border-white/40 transition-all resize-none scrollbar-hide shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                                   />
                                 </div>
                               </div>
@@ -3130,7 +3145,7 @@ Please confirm my booking. Thank you!`;
                       {STATUS_REVIEW}
                     </h3>
                     <p className="text-[clamp(8px,1.5vw,11px)] font-bold uppercase tracking-[0.4em] text-white/60">
-                      Double-check your curated details for secure transmission
+                      Review your itinerary details before confirming
                     </p>
                   </div>
 

@@ -143,7 +143,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                   {settings.contact_header_title || "Let's Craft Your Journey"}
                 </h2>
                 <p className="text-xs md:text-sm text-white/50 leading-relaxed max-w-sm">
-                  {settings.contact_section_description || "Whether co-creating a customized travel itinerary or managing a group manifest, our lifestyle curating specialists respond within hours."}
+                  {settings.contact_section_description || "Whether co-creating a bespoke travel itinerary or planning a private group journey, our dedicated travel designers respond within hours."}
                 </p>
               </div>
 
@@ -266,7 +266,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-1.5">
                     <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
-                      {settings.contact_form_subtitle || "Inquiry Manifest"}
+                      {settings.contact_form_subtitle || "Inquiry Details"}
                     </span>
                     <h3 className="text-lg font-bold tracking-tight text-white">
                       {settings.contact_form_title || "Submit Your Details"}
@@ -284,48 +284,48 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Name */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Full Name *</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Full Name *</label>
                         <input 
                           type="text" 
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="Enter your full name" 
-                          className="w-full bg-white/[0.02] border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all"
+                          className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                         />
                       </div>
 
                       {/* Email */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Email Address *</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Email Address *</label>
                         <input 
                           type="email" 
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your@email.com" 
-                          className="w-full bg-white/[0.02] border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all"
+                          className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                         />
                       </div>
                     </div>
 
                     {/* Phone Input with Country Code Selector */}
                     <div className="flex flex-col gap-1.5 relative">
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Phone Number *</label>
-                      <div className="flex items-center gap-3 w-full bg-white/[0.02] border border-white/10 focus-within:border-white/30 rounded-xl px-4 py-2 transition-all">
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Phone Number *</label>
+                      <div className="flex items-center gap-3 w-full bg-[#121214] border border-white/15 focus-within:border-white/40 focus-within:ring-1 focus-within:ring-white/20 rounded-xl px-4 py-2 transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
                         <div className="relative shrink-0">
                           <div 
                             onClick={(e) => {
                               e.stopPropagation();
                               setCountryMenuOpen(!countryMenuOpen);
                             }}
-                            className="flex items-center gap-1 px-2.5 py-1.5 cursor-pointer hover:bg-white/10 rounded-lg bg-white/5 border border-white/5 transition-all"
+                            className="flex items-center gap-1 px-2.5 py-1.5 cursor-pointer hover:bg-white/10 rounded-lg bg-white/5 border border-white/10 transition-all"
                           >
                             <span className="text-xs">{selectedCountry.flag}</span>
-                            <span className="text-[9px] font-bold text-white/70">{selectedCountry.code}</span>
+                            <span className="text-[10px] font-bold text-white/80">{selectedCountry.code}</span>
                           </div>
                           {countryMenuOpen && (
-                            <div className="absolute top-full left-0 mt-2 w-44 max-h-36 overflow-y-auto bg-[#121214] border border-white/10 rounded-lg shadow-2xl z-[150] scrollbar-hide">
+                            <div className="absolute top-full left-0 mt-2 w-44 max-h-36 overflow-y-auto bg-[#1c1c1e] border border-white/15 rounded-lg shadow-2xl z-[150] scrollbar-hide backdrop-blur-2xl">
                               {[
                                 { flag: "🇮🇳", code: "+91", name: "India", length: 10 },
                                 { flag: "🇺🇸", code: "+1", name: "USA", length: 10 },
@@ -345,9 +345,9 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs">{c.flag}</span>
-                                    <span className="text-[9px] font-bold text-white/70">{c.name}</span>
+                                    <span className="text-[10px] font-bold text-white/80">{c.name}</span>
                                   </div>
-                                  <span className="text-[8px] font-black text-white/30">{c.code}</span>
+                                  <span className="text-[9px] font-black text-white/40">{c.code}</span>
                                 </div>
                               ))}
                             </div>
@@ -361,44 +361,44 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                           maxLength={selectedCountry.length}
                           placeholder="Enter your phone number"
                           onFocus={() => setCountryMenuOpen(false)}
-                          className="flex-1 bg-transparent text-xs text-white placeholder:text-white/20 focus:outline-none py-1"
+                          className="flex-1 bg-transparent text-xs text-white placeholder:text-white/45 focus:outline-none py-1"
                         />
                       </div>
                     </div>
 
                     {/* Dream Destination */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Dream Destination (Optional)</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Dream Destination (Optional)</label>
                       <input 
                         type="text" 
                         value={dreamDestination}
                         onChange={(e) => setDreamDestination(e.target.value)}
                         placeholder="e.g. Maldives, Swiss Alps, Amalfi Coast" 
-                        className="w-full bg-white/[0.02] border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all"
+                        className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                       />
                     </div>
 
                     {/* Your Vision / Message */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Your Vision / Inquiry Message *</label>
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a1a1a6] ml-1">Your Vision / Inquiry Message *</label>
                       <textarea 
                         required
                         rows={3}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Share your vision for the perfect trip..." 
-                        className="w-full bg-white/[0.02] border border-white/10 focus:border-white/30 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/20 focus:outline-none transition-all resize-none scrollbar-hide"
+                        className="w-full bg-[#121214] border border-white/15 focus:border-white/40 focus:ring-1 focus:ring-white/20 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/45 focus:outline-none transition-all resize-none scrollbar-hide shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]"
                       />
                     </div>
                   </div>
 
                   <div className="pt-2 flex items-center justify-between">
-                    <span className="text-[9px] text-white/30">* Required fields</span>
+                    <span className="text-[10px] text-white/50">* Required fields</span>
                     <Magnetic>
                       <button 
                         type="submit"
                         disabled={isSubmitting}
-                        className="group px-7 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                        className="group px-7 py-3 bg-white text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none shadow-lg"
                       >
                         {isSubmitting ? (
                           <>Transmitting...</>
