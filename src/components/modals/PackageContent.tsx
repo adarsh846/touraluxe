@@ -1572,3 +1572,5 @@ Could you please share details on availability and custom options? Thank you!`;
     </div>
   );
 });
+
+PackageContent.displayName = "PackageContent";

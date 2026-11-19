@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    let fallbackTimeout = setTimeout(() => {
+    const fallbackTimeout = setTimeout(() => {
       if (isMounted) setLoading(false);
     }, 5000); // 5s absolute circuit breaker
 
