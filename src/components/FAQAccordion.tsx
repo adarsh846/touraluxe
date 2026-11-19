@@ -53,7 +53,7 @@ export function FAQAccordion({ items, title = "Frequently Asked Questions" }: FA
                   "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 border",
                   isOpen 
                     ? "bg-white/15 border-white/30 text-white rotate-45 shadow-[0_2px_10px_rgba(255,255,255,0.1)]" 
-                    : "bg-white/5 border-white/10 text-white/40 rotate-0 hover:text-white hover:bg-white/10"
+                    : "bg-white/5 border-white/10 text-white/60 rotate-0 hover:text-white hover:bg-white/10"
                 )}>
                   <Plus
                     size={15}

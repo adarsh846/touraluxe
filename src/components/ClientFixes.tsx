@@ -23,9 +23,13 @@ export function ClientFixes() {
     
     style.innerHTML = `
       * , *:hover, *:active, *:focus, *:focus-within, 
-      a, button, [role="button"], input, select, textarea, label {
+      a, button, [role="button"], label {
         cursor: url('${blank}'), none !important;
         -webkit-cursor: none !important;
+      }
+      input, textarea, select {
+        cursor: text !important;
+        -webkit-cursor: text !important;
       }
       html, body {
         cursor: url('${blank}'), none !important;

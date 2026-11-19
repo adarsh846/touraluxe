@@ -110,13 +110,14 @@ export function DestinationNavbar({
             {/* In modal: trigger cinematic exit. On page: hard nav to avoid interception. */}
             <button
               onClick={onBack ?? handlePageBack}
+              aria-label="Go back"
               className="relative group block"
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-              <div className="relative px-3.5 md:px-5 h-9 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
+              <div className="relative px-3.5 md:px-5 h-9 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
                 <ArrowLeft strokeWidth={2.5} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] group-hover/backbtn:-translate-x-1 transition-transform shrink-0" />
-                <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.12em] md:tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors whitespace-nowrap">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] md:tracking-[0.24em] text-white/70 group-hover:text-black/80 transition-colors whitespace-nowrap">
                   {backLabel}
                 </span>
               </div>
@@ -127,11 +128,12 @@ export function DestinationNavbar({
           <Magnetic>
             <button
               onClick={onX ?? handlePageClose}
+              aria-label="Close"
               className="relative group block"
             >
               <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
               <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-              <div className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90">
+              <div className="relative w-9 h-9 md:w-10 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90">
                 <X strokeWidth={2.5} className="w-4 h-4 md:w-5 md:h-5" />
               </div>
             </button>

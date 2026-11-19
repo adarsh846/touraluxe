@@ -311,7 +311,7 @@ export function Hero() {
                 }}
               >
                 <Sparkles size={11} className="text-amber-300 fill-amber-300/40 animate-pulse drop-shadow-[0_0_4px_rgba(251,191,36,0.3)]" />
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] leading-none text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">Trending</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] leading-none text-amber-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">Trending</span>
               </div>
 
               {/* Horizontal Scrollable Glass Capsule Items */}
@@ -425,7 +425,7 @@ export function Hero() {
             <div className="w-[1.5px] h-[5px] bg-[#a18cd1] rounded-full animate-bounce" />
           </div>
         ) * /}
-        <span className="text-[7px] font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#a18cd1] to-[#fbc2eb] bg-clip-text text-transparent opacity-80">Scroll</span>
+        <span className="text-[10px] font-black tracking-[0.25em] uppercase bg-gradient-to-r from-[#a18cd1] to-[#fbc2eb] bg-clip-text text-transparent opacity-80">Scroll</span>
       </div>
       */}
     </section>

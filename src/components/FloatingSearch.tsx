@@ -1434,8 +1434,8 @@ export function FloatingSearch() {
                         )}>{item.label}</p>
                         {isMobile && item.extra && (
                           <span className={cn(
-                            "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
-                            isSelected ? "text-white/70" : "text-white/35"
+                            "text-[10px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                            isSelected ? "text-white/80" : "text-white/50"
                           )}>
                             {item.extra}
                           </span>
@@ -1443,10 +1443,10 @@ export function FloatingSearch() {
                       </div>
                       {!isMobile && item.extra && (
                         <span className={cn(
-                          "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                          "text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
                           isSelected 
                             ? "text-white/90 bg-white/12 shadow-xs" 
-                            : "text-white/30 bg-white/[0.04]"
+                            : "text-white/50 bg-white/[0.04]"
                         )}>
                           {item.extra}
                         </span>
@@ -1457,9 +1457,9 @@ export function FloatingSearch() {
               })}
             </div>
             
-            <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[9px] font-bold uppercase tracking-[0.18em] text-white/55">
-              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↑↓</span> Press to navigate</span>
-              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↵</span> Enter to select</span>
+            <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">
+              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↑↓</span> Press to navigate</span>
+              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↵</span> Enter to select</span>
             </div>
           </div>
         )}
@@ -1599,8 +1599,9 @@ export function FloatingSearch() {
               <Magnetic>
                 <button
                   type="submit"
+                  aria-label="Explore matching experiences"
                   style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}
-                  className="text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.25em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
+                  className="text-black text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
                 >
                   <span>Explore</span>
                   <ArrowRight size={10} className="stroke-[3]" />
@@ -1617,7 +1618,8 @@ export function FloatingSearch() {
                   setSearchValue("");
                   handleDismiss();
                 }}
-                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0"
+                aria-label="Dismiss search"
+                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0 touch-target-44"
               >
                 Cancel
               </button>

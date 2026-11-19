@@ -155,7 +155,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 shrink-0">
                       <MapPin size={14} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Our Offices</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Our Offices</span>
                   </div>
                   <div className="mt-3 space-y-1">
                     {offices.map((office) => {
@@ -185,7 +185,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 shrink-0">
                       <Mail size={14} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Direct Lines</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Direct Lines</span>
                   </div>
                   <div className="mt-3 space-y-1">
                     <a href={`mailto:${settings.contact_email || "hello@touraluxe.com"}`} className="block text-xs font-semibold text-white hover:text-white/80 transition-colors truncate">
@@ -203,7 +203,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 shrink-0">
                       <Clock size={14} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Operation Hours</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Operation Hours</span>
                   </div>
                   <div className="mt-2.5 grid grid-cols-2 gap-2">
                     {hours.map((line, idx) => (
@@ -226,7 +226,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                       <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 shrink-0 group-hover/loc:bg-white/10 transition-colors">
                         <Navigation size={13} />
                       </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Corporate Headquarters</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Corporate Headquarters</span>
                     </div>
                     <p className="mt-2 text-xs text-white/60 leading-relaxed group-hover/loc:text-white/80 transition-colors truncate">
                       {settings.contact_address}
@@ -265,7 +265,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-1.5">
-                    <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+                    <span className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
                       {settings.contact_form_subtitle || "Inquiry Details"}
                     </span>
                     <h3 className="text-lg font-bold tracking-tight text-white">
@@ -347,7 +347,7 @@ export const ContactContent = memo(function ContactContent({ isActive, onScroll,
                                     <span className="text-xs">{c.flag}</span>
                                     <span className="text-[10px] font-bold text-white/80">{c.name}</span>
                                   </div>
-                                  <span className="text-[9px] font-black text-white/40">{c.code}</span>
+                                  <span className="text-[10px] font-bold text-white/70">{c.code}</span>
                                 </div>
                               ))}
                             </div>

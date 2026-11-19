@@ -216,7 +216,7 @@ export function Preloader() {
       {/* Brand Tagline Ticker */}
       <div
         ref={progressTextRef}
-        className="relative z-10 mt-4 sm:mt-5 px-4 text-center text-[9px] sm:text-[10px] font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase bg-gradient-to-r from-emerald-200/90 via-amber-200/90 to-emerald-200/90 bg-clip-text text-transparent"
+        className="relative z-10 mt-4 sm:mt-5 px-4 text-center text-[10px] sm:text-[11px] font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase bg-gradient-to-r from-emerald-200/90 via-amber-200/90 to-emerald-200/90 bg-clip-text text-transparent"
       >
         LUXURY REDEFINED — 0%
       </div>

@@ -273,7 +273,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
                       
                       <div className="absolute inset-0 p-6 flex flex-col justify-between">
                         <div className="flex justify-end">
-                          <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[8px] font-black uppercase tracking-[0.2em] text-white/60">
+                          <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
                             {dest.region || "Discovery"}
                           </div>
                         </div>
@@ -281,11 +281,11 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
                         <div className="space-y-4">
                           <div className="space-y-1">
                             <h3 className="text-2xl font-bold text-white tracking-tight leading-none group-hover:translate-x-1 transition-transform duration-700">{dest.name}</h3>
-                            {dest.country && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{dest.country}</p>}
+                            {dest.country && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">{dest.country}</p>}
                           </div>
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-700">
-                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/60">Explore Journey</span>
-                            <ArrowRight size={12} className="text-white/40" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Explore Journey</span>
+                            <ArrowRight size={12} className="text-white/60" />
                           </div>
                         </div>
                       </div>

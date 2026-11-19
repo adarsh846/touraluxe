@@ -451,7 +451,7 @@ export function Navbar() {
                 className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
                 <Search size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90 leading-none">Search</span>
+                <span className="text-[10px] uppercase tracking-[0.06em] font-semibold leading-none">Search</span>
               </button>
 
               {/* Destinations */}
@@ -463,7 +463,7 @@ export function Navbar() {
                 className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
                 <Globe size={20} className={cn("transition-transform duration-200 group-hover:scale-110 group-active:scale-90", pathname === "/destinations" && !isMobileMenuOpen ? "text-white opacity-100" : "opacity-90")} />
-                <span className={cn("text-[9px] uppercase tracking-wider font-bold scale-90 leading-none", pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "")}>Places</span>
+                <span className={cn("text-[10px] uppercase tracking-[0.06em] font-semibold leading-none", pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "")}>Places</span>
                 {pathname === "/destinations" && !isMobileMenuOpen && (
                   <span className="absolute bottom-0 w-1 h-1 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-pulse" />
                 )}
@@ -483,7 +483,7 @@ export function Navbar() {
                     }}
                   >
                     <Calendar size={22} className="stroke-[2.5] transition-transform duration-200 group-hover:scale-110 group-active:scale-95" />
-                    <span className="text-[8px] uppercase tracking-tighter font-black mt-0.5">Book</span>
+                    <span className="text-[10px] uppercase tracking-tight font-black mt-0.5">Book</span>
                   </button>
                 </div>
               </div>
@@ -504,7 +504,7 @@ export function Navbar() {
                 className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
               >
                 <Sparkles size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
-                <span className="text-[9px] uppercase tracking-wider font-bold scale-90 leading-none">Services</span>
+                <span className="text-[10px] uppercase tracking-[0.06em] font-semibold leading-none">Services</span>
               </button>
 
               {/* Menu / Close with Apple Rotational Icon & Flip Morph */}
@@ -530,13 +530,13 @@ export function Navbar() {
                 </div>
                 <div className="relative h-[11px] overflow-hidden flex items-center justify-center">
                   <span className={cn(
-                    "text-[9px] uppercase tracking-wider font-bold scale-90 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none",
+                    "text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none",
                     isMobileMenuOpen ? "-translate-y-3 opacity-0" : "translate-y-0 opacity-90"
                   )}>
                     Menu
                   </span>
                   <span className={cn(
-                    "absolute text-[9px] uppercase tracking-wider font-bold scale-90 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none text-white",
+                    "absolute text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none text-white",
                     isMobileMenuOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
                   )}>
                     Close

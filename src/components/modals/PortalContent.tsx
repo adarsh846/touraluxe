@@ -217,13 +217,13 @@ export const PortalContent = memo(function PortalContent({
               className="object-contain translate-y-[2px]"
             />
           </div>
-          <span className="hidden sm:inline-block text-[9px] font-black uppercase tracking-[0.3em] text-white/30 border-l border-white/10 pl-4 py-0.5">
+          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-[0.2em] text-white/70 border-l border-white/10 pl-4 py-0.5">
             Booking Tracker
           </span>
         </div>
         <div className="flex items-center gap-4">
           {time && (
-            <div className="text-[10px] font-mono tracking-widest text-white/40 uppercase hidden sm:block">
+            <div className="text-[10px] font-mono tracking-widest text-white/60 uppercase hidden sm:block">
               GMT {time}
             </div>
           )}
@@ -240,7 +240,7 @@ export const PortalContent = memo(function PortalContent({
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white uppercase italic">
                 Track Your Booking
               </h2>
-              <p className="text-xs text-white/50 leading-relaxed max-w-sm mx-auto">
+              <p className="text-xs text-white/60 leading-relaxed max-w-sm mx-auto">
                 Enter your booking ID and email or phone number to view your live travel itinerary and status.
               </p>
             </div>
@@ -255,7 +255,7 @@ export const PortalContent = memo(function PortalContent({
 
               {/* Reference ID input */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#86868b] ml-1">Booking Reference ID *</label>
+                <label className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70 ml-1">Booking Reference ID *</label>
                 <div className="relative flex items-center">
                   <Search size={13} className="absolute left-4.5 text-white/50" />
                   <input 
@@ -351,7 +351,7 @@ export const PortalContent = memo(function PortalContent({
                                 <span className="text-xs">{c.flag}</span>
                                 <span className="text-[10px] font-bold text-white/80">{c.name}</span>
                               </div>
-                              <span className="text-[9px] font-black text-white/40">{c.code}</span>
+                              <span className="text-[10px] font-bold text-white/70">{c.code}</span>
                             </div>
                           ))}
                         </div>
@@ -398,27 +398,27 @@ export const PortalContent = memo(function PortalContent({
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#86868b]">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                     Booking Active
                   </span>
                 </div>
 
                 <div className="space-y-4">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#86868b] block mb-1">Your Package</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/70 block mb-1">Your Package</span>
                   <h2 className="text-2xl md:text-[26px] font-bold text-white tracking-tight italic uppercase leading-tight line-clamp-2">
                     {booking.package_name}
                   </h2>
-                  <p className="text-xs text-white/45">
-                    Booking ID: <span className="font-mono text-white/70">TRX-{booking.id.slice(0, 8).toUpperCase()}</span>
+                  <p className="text-xs text-white/60">
+                    Booking ID: <span className="font-mono text-white/80">TRX-{booking.id.slice(0, 8).toUpperCase()}</span>
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/[0.05]">
                     <div>
-                      <span className="text-[8px] font-bold uppercase tracking-widest text-[#86868b] block mb-0.5">Travelers</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70 block mb-0.5">Travelers</span>
                       <span className="text-xs font-bold text-white/90">{booking.traveler_count || 1} Guests</span>
                     </div>
                     <div>
-                      <span className="text-[8px] font-bold uppercase tracking-widest text-[#86868b] block mb-0.5">Total Value</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70 block mb-0.5">Total Value</span>
                       <span className="text-xs font-bold text-white/90">
                         {booking.total_amount && booking.total_amount > 0 
                           ? `₹${Number(booking.total_amount).toLocaleString()}` 
@@ -433,10 +433,10 @@ export const PortalContent = memo(function PortalContent({
               {/* Bottom Security Note */}
               <div className="hidden md:flex flex-col gap-2 pt-6 border-t border-white/[0.03]">
                 <div className="flex gap-2 items-center">
-                  <Lock size={11} className="text-white/30" />
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-white/40">Secure Access</span>
+                  <Lock size={11} className="text-white/50" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">Secure Access</span>
                 </div>
-                <p className="text-[9px] text-white/30 leading-normal">
+                <p className="text-[10px] text-white/65 leading-normal">
                   Your details are secure. Identity verification ensures only authorized guests can view active travel itineraries.
                 </p>
               </div>
@@ -466,17 +466,17 @@ export const PortalContent = memo(function PortalContent({
                             step.status === "completed" ? "text-white/80" :
                             step.status === "active" ? "text-white" :
                             step.status === "error" ? "text-red-400" :
-                            "text-white/20"
+                            "text-white/40"
                           }`}>
                             {step.title}
                           </span>
                           {step.status === "completed" && <CheckCircle2 size={10} className="text-emerald-500/80" />}
                         </div>
 
-                        <p className={`text-[9.5px] leading-relaxed ${
-                          step.status === "completed" ? "text-white/35" :
-                          step.status === "active" ? "text-white/55" :
-                          "text-white/15"
+                        <p className={`text-[10.5px] leading-relaxed ${
+                          step.status === "completed" ? "text-white/50" :
+                          step.status === "active" ? "text-white/70" :
+                          "text-white/30"
                         }`}>
                           {step.desc}
                         </p>
@@ -489,10 +489,10 @@ export const PortalContent = memo(function PortalContent({
                     
                     {/* Travel Dates */}
                     <div className="flex items-center gap-3 bg-white/[0.01] border border-white/[0.04] p-3 rounded-xl">
-                      <Calendar size={13} className="text-white/30" />
+                      <Calendar size={13} className="text-white/50" />
                       <div>
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block">Travel Dates</span>
-                        <span className="text-[11px] font-bold text-white/70">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block">Travel Dates</span>
+                        <span className="text-[11px] font-bold text-white/90">
                           {parsedDetails?.dates && parsedDetails.dates !== "to" ? parsedDetails.dates : "Flexible"}
                         </span>
                       </div>
@@ -500,10 +500,10 @@ export const PortalContent = memo(function PortalContent({
 
                     {/* Departure City */}
                     <div className="flex items-center gap-3 bg-white/[0.01] border border-white/[0.04] p-3 rounded-xl">
-                      <Plane size={13} className="text-white/30" />
+                      <Plane size={13} className="text-white/50" />
                       <div>
-                        <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block">Departure City</span>
-                        <span className="text-[11px] font-bold text-white/70 font-mono">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block">Departure City</span>
+                        <span className="text-[11px] font-bold text-white/90 font-mono">
                           {parsedDetails?.departureHub && parsedDetails.departureHub !== "Not Specified" ? parsedDetails.departureHub : "To Be Confirmed"}
                         </span>
                       </div>
@@ -514,8 +514,8 @@ export const PortalContent = memo(function PortalContent({
                   {/* Special requests */}
                   {parsedDetails?.notes && (
                     <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-lg">
-                      <span className="text-[7.5px] font-bold uppercase tracking-wider text-white/30 block mb-0.5">Special Requests</span>
-                      <p className="text-[10px] text-white/40 leading-relaxed italic">"{parsedDetails.notes}"</p>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 block mb-0.5">Special Requests</span>
+                      <p className="text-[11px] text-white/60 leading-relaxed italic">&ldquo;{parsedDetails.notes}&rdquo;</p>
                     </div>
                   )}
 
@@ -526,7 +526,7 @@ export const PortalContent = memo(function PortalContent({
                   <Magnetic>
                     <button 
                       onClick={resetPortal}
-                      className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[9px] font-bold uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5 touch-target-44"
                     >
                       <RotateCcw size={11} />
                       Check Another
@@ -537,7 +537,7 @@ export const PortalContent = memo(function PortalContent({
                       href={getWhatsAppSupportUrl()} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="group/wa relative overflow-hidden flex-1 px-6 py-2.5 rounded-full bg-[#25D366] text-black text-[9.5px] font-black uppercase tracking-wider transition-all duration-700 active:scale-95 text-center flex items-center justify-center cursor-pointer shadow-[0_4px_15px_rgba(37,211,102,0.2)]"
+                      className="group/wa relative overflow-hidden flex-1 px-6 py-2.5 rounded-full bg-[#25D366] text-black text-[10px] font-black uppercase tracking-wider transition-all duration-700 active:scale-95 text-center flex items-center justify-center cursor-pointer shadow-[0_4px_15px_rgba(37,211,102,0.2)] touch-target-44"
                     >
                       <div className="relative z-10 flex items-center justify-center gap-1.5">
                         <svg className="w-3.5 h-3.5 text-black shrink-0" viewBox="0 0 448 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">

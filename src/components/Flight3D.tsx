@@ -177,6 +177,42 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       const flightWrapper = containerRef?.current || document.getElementById("flight-wrapper");
       if (!flightWrapper) return;
 
+      const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReducedMotion) {
+        //  Apple HIG Accessibility: Under reduced motion, bypass aggressive camera dives & barrel rolls.
+        // Lock plane into centerpiece Phase 4 "Hero Cruise" pose directly in view.
+        planeGroup.position.set(0, 0, -55);
+        planeGroup.rotation.set(tau * 0.25, 0, 0);
+        light.position.set(40, 0, 130);
+
+        myPlane.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            if (mesh.material) {
+              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              materials.forEach((mat) => {
+                if (mat) (mat as any).opacity = 1;
+              });
+            }
+          }
+        });
+
+        // Gentle, stationary floating breath (no disorienting parallax or camera dive)
+        gsap.to(planeGroup.position, {
+          y: "+=2.5",
+          duration: 3.5,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+          onUpdate: render,
+        });
+
+        render();
+        canvasContainerRef.current.style.opacity = "1";
+        return;
+      }
+
       const sectionDuration = 1;
 
       // Scale flight path x-positions on narrow screens to keep S-curves proportional
@@ -329,48 +365,51 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
         // Build flight path timeline for the first time
         rebuildTimeline();
 
-        const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
-        const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
-        const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
+        const prefersReduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!prefersReduced) {
+          const grounds = flightWrapper.querySelectorAll(".gsap-ground-parallax");
+          const deepClouds = flightWrapper.querySelectorAll(".gsap-clouds-deep");
+          const foregroundClouds = flightWrapper.querySelectorAll(".gsap-clouds-foreground");
 
-        grounds.forEach((groundNode) => {
-          gsap.to(groundNode, {
-            y: "30%",
-            force3D: true,
-            scrollTrigger: {
-              trigger: flightWrapper,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
-            },
+          grounds.forEach((groundNode) => {
+            gsap.to(groundNode, {
+              y: "30%",
+              force3D: true,
+              scrollTrigger: {
+                trigger: flightWrapper,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+              },
+            });
           });
-        });
 
-        deepClouds.forEach((cloudNode) => {
-          gsap.from(cloudNode, {
-            y: "20%",
-            force3D: true,
-            scrollTrigger: {
-              trigger: flightWrapper,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
-            },
+          deepClouds.forEach((cloudNode) => {
+            gsap.from(cloudNode, {
+              y: "20%",
+              force3D: true,
+              scrollTrigger: {
+                trigger: flightWrapper,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+              },
+            });
           });
-        });
 
-        foregroundClouds.forEach((cloudNode) => {
-          gsap.from(cloudNode, {
-            y: "25%",
-            force3D: true,
-            scrollTrigger: {
-              trigger: flightWrapper,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true,
-            },
+          foregroundClouds.forEach((cloudNode) => {
+            gsap.from(cloudNode, {
+              y: "25%",
+              force3D: true,
+              scrollTrigger: {
+                trigger: flightWrapper,
+                start: "top bottom",
+                end: "bottom top",
+                scrub: true,
+              },
+            });
           });
-        });
+        }
       },
       undefined,
       (err) => {
@@ -412,6 +451,7 @@ export function Flight3D({ containerRef, pathName = "classic-touraluxe" }: Fligh
       if (flightTimeline) flightTimeline.kill();
       gsap.killTweensOf(".gsap-clouds-parallax");
       gsap.killTweensOf(".gsap-ground-parallax");
+      gsap.killTweensOf(planeGroup.position);
       scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;

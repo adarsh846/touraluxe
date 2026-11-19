@@ -251,7 +251,7 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
 
                   {/* Scroll Indicator */}
                   <div className="absolute bottom-10 right-[clamp(1.5rem,6vw,4rem)] flex items-center gap-3 animate-pulse pointer-events-none z-30 opacity-60">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white">Scroll</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/90">Scroll</span>
                     <svg className="w-3.5 h-3.5 text-white animate-bounce" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4 6l4 4 4-4" />
                     </svg>
@@ -271,12 +271,12 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
 
                     {/* Right Column: Highlights styled as a premium card */}
                     <div className="lg:col-span-5 bg-white/[0.02] border border-white/5 p-6 md:p-8 rounded-3xl backdrop-blur-xl">
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#86868b] mb-5">Division Highlights</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1a6] mb-5">Division Highlights</h4>
                       <div className="space-y-4">
                         {service.highlights?.map((item: string, i: number) => (
                           <div key={i} className="flex items-start gap-3">
-                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0" />
-                            <span className="text-xs md:text-sm text-white/70 font-semibold leading-relaxed">{item}</span>
+                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/60 flex-shrink-0" />
+                            <span className="text-xs md:text-sm text-white/80 font-semibold leading-relaxed">{item}</span>
                           </div>
                         ))}
                       </div>
@@ -288,10 +288,10 @@ export const ServiceContent = memo(function ServiceContent({ data: service, isAc
                   <div className="mb-12 pt-12 border-t border-white/[0.08]">
                     <div className="flex items-center justify-between mb-8">
                       <div className="flex items-center gap-4">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#86868b]">Best destinations for {service.title}</h4>
+                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#a1a1a6]">Best destinations for {service.title}</h4>
                       </div>
                       {!isDiscoveryLoading && livePackages.length > 0 && (
-                        <span className="px-3 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/50 uppercase tracking-widest animate-pulse whitespace-nowrap shrink-0">Live Catalog</span>
+                        <span className="px-3 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-white/70 uppercase tracking-widest animate-pulse whitespace-nowrap shrink-0">Live Catalog</span>
                       )}
                     </div>
 

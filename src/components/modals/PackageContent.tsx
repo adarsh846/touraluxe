@@ -662,7 +662,7 @@ Could you please share details on availability and custom options? Thank you!`;
              >
                 <div className="flex items-center gap-3 md:gap-4">
                   <div className="w-8 md:w-12 h-[1px] bg-white/25" />
-                  <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-white/60 whitespace-nowrap">Best For</span>
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.24em] md:tracking-[0.3em] text-white/70 whitespace-nowrap">Best For</span>
                   <div className="w-8 md:w-12 h-[1px] bg-white/25" />
                 </div>
                 
@@ -674,7 +674,7 @@ Could you please share details on availability and custom options? Thank you!`;
                           const matchingService = servicesList.find((s: any) => s.title === cat);
                           if (matchingService) openModal('SERVICES', matchingService);
                         }}
-                        className="group/badge relative text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-white/80 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/20 bg-white/[0.05] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"
+                        className="group/badge relative text-[10px] md:text-xs font-bold uppercase tracking-[0.14em] md:tracking-[0.2em] text-white/85 px-4 md:px-6 py-2 md:py-2.5 rounded-full border border-white/20 bg-white/[0.05] backdrop-blur-xl transition-all duration-700 hover:bg-white hover:text-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-95 whitespace-nowrap overflow-hidden"
                       >
                         <span className="relative z-10">{cat}</span>
                       </button>
@@ -689,7 +689,7 @@ Could you please share details on availability and custom options? Thank you!`;
             className="absolute bottom-24 md:bottom-32 left-1/2 -translate-x-1/2 pointer-events-none z-50 opacity-0"
           >
             <div className="flex flex-col items-center gap-2 animate-bounce">
-              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/80 drop-shadow-md">Scroll</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/80 drop-shadow-md">Scroll</span>
               <ChevronRight size={16} className="text-white/70 rotate-90" strokeWidth={2.5} />
             </div>
           </div>
@@ -733,21 +733,21 @@ Could you please share details on availability and custom options? Thank you!`;
                  {experience.duration && (
                    <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
                      <Clock className="text-amber-400/80 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Duration</span>
+                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/70">Duration</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.duration}</span>
                    </div>
                  )}
                  {experience.season && (
                    <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
                      <Compass className="text-indigo-400/80 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Season</span>
+                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/70">Season</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">{experience.season}</span>
                    </div>
                  )}
                  {experience.flights_status && experience.flights_status !== "excluded" && (
                    <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
                      <Plane className="text-sky-400/80 mb-1" size={22} />
-                     <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Flights</span>
+                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/70">Flights</span>
                      <span className="text-sm md:text-base font-bold text-white tracking-tight">
                        {experience.flights_status === 'included' ? "Included" : "On Request"}
                      </span>
@@ -756,7 +756,7 @@ Could you please share details on availability and custom options? Thank you!`;
                  {experience.max_group_size != null && (
                    <div className="bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 flex flex-col gap-2 hover:bg-white/[0.08] transition-colors">
                        <Users className="text-emerald-400/80 mb-1" size={22} />
-                       <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/60">Group Size</span>
+                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/70">Group Size</span>
                        <span className="text-sm md:text-base font-bold text-white tracking-tight">
                          {experience.min_group_size ?? 1} - {experience.max_group_size} Pax
                        </span>
@@ -767,7 +767,7 @@ Could you please share details on availability and custom options? Thank you!`;
               {/* Middle Row: Highlights & Inclusions */}
               {experience.highlights && experience.highlights.length > 0 && (
                 <div className="md:col-span-7 bg-gradient-to-br from-white/[0.06] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 flex flex-col justify-center">
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60 mb-6 block">Highlights</span>
+                  <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70 mb-6 block">Highlights</span>
                   <ul className="space-y-4">
                     {experience.highlights.map((h: string, i: number) => (
                       <li key={i} className="flex items-start gap-4">
@@ -782,7 +782,7 @@ Could you please share details on availability and custom options? Thank you!`;
               <div className="md:col-span-5 flex flex-col gap-3 md:gap-4">
                  {experience.inclusions && experience.inclusions.length > 0 && (
                    <div className="flex-1 bg-white/[0.05] border border-white/20 rounded-[2rem] p-6 md:p-8 flex flex-col">
-                     <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400 mb-5 block">Inclusions</span>
+                     <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-400 mb-5 block">Inclusions</span>
                      <div className="flex flex-wrap gap-2">
                        {experience.inclusions.map((inc: string, i: number) => (
                          <span key={i} className="text-[11px] md:text-xs font-semibold text-white/90 bg-white/15 border border-white/25 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(52,211,153,0.05)]">
@@ -794,7 +794,7 @@ Could you please share details on availability and custom options? Thank you!`;
                  )}
                  {experience.exclusions && experience.exclusions.length > 0 && (
                    <div className="flex-1 bg-red-500/[0.06] border border-red-500/20 rounded-[2rem] p-6 md:p-8 flex flex-col">
-                     <span className="text-[9px] font-black uppercase tracking-[0.4em] text-red-400 mb-5 block">Exclusions</span>
+                     <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-red-400 mb-5 block">Exclusions</span>
                      <div className="flex flex-wrap gap-2">
                        {experience.exclusions.map((exc: string, i: number) => (
                          <span key={i} className="text-[11px] md:text-xs font-semibold text-white/80 bg-red-500/15 border border-red-500/25 px-3 py-1.5 rounded-full flex items-center gap-1.5 whitespace-nowrap shadow-[0_0_15px_rgba(251,113,133,0.05)]">
@@ -810,7 +810,7 @@ Could you please share details on availability and custom options? Thank you!`;
               {addons && addons.length > 0 && (
                 <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.05] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">Optional Enhancements</span>
+                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">Optional Enhancements</span>
                   </div>
                   <p className="text-xs md:text-sm text-white/70 leading-relaxed italic max-w-2xl">
                     Enhance your itinerary with these curated excursions and custom services, available to select during booking.
@@ -831,7 +831,7 @@ Could you please share details on availability and custom options? Thank you!`;
                         <div key={idx} className="p-5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/15 hover:border-white/30 transition-all duration-300 flex flex-col justify-between gap-4 group/addon">
                           <div className="space-y-1">
                             <h4 className="text-sm font-bold text-white/95 group-hover/addon:text-white transition-colors">{addon.name}</h4>
-                            <span className="text-[8px] font-black text-white/55 uppercase tracking-[0.25em]">{addon.type.replace('_', ' ')}</span>
+                            <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.15em]">{addon.type.replace('_', ' ')}</span>
                           </div>
                           <div className="flex items-center justify-between border-t border-white/10 pt-3">
                             <span className="text-[10px] text-white/60 uppercase tracking-wider">Est. Cost</span>
@@ -848,7 +848,7 @@ Could you please share details on availability and custom options? Thank you!`;
               {seasonsList && seasonsList.length > 0 && (
                 <div className="col-span-1 md:col-span-12 bg-gradient-to-br from-white/[0.05] to-transparent border border-white/20 rounded-[2rem] p-8 md:p-10 space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60">Best Time to Visit</span>
+                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">Best Time to Visit</span>
                   </div>
                   <p className="text-xs md:text-sm text-white/70 leading-relaxed italic max-w-2xl">
                     Gain deep insight into the regional weather, pricing tiers, and unique cultural events across travel seasons.
@@ -918,7 +918,7 @@ Could you please share details on availability and custom options? Thank you!`;
                           <SmoothHeight isOpen={isExpanded}>
                             <div className="border-t border-white/20 p-5 md:p-6 space-y-4">
                               <div className="space-y-1">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/65">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/75">
                                   What To Expect
                                 </span>
                               </div>
@@ -959,7 +959,7 @@ Could you please share details on availability and custom options? Thank you!`;
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-50 pointer-events-none" />
                 <div className="relative z-10 space-y-8">
                   <div className="text-center md:text-left">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">The Route</span>
+                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70 mb-3 block">The Route</span>
                     <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight leading-none">Destinations Covered</h3>
                   </div>
                   <div className="flex flex-col md:flex-row md:flex-wrap items-center gap-3 md:gap-6 pt-4 justify-center md:justify-start w-full">
@@ -990,7 +990,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 md:mb-16">
                  <div className="text-center md:text-left">
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Itinerary</span>
+                   <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70 mb-3 block">Itinerary</span>
                    <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Day by Day Plan.</h2>
                  </div>
                  {pdfUrl && (
@@ -1021,7 +1021,7 @@ Could you please share details on availability and custom options? Thank you!`;
             <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
                  <div>
-                   <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Visuals</span>
+                   <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70 mb-3 block">Visuals</span>
                    <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Gallery.</h2>
                  </div>
                  <button 
@@ -1064,7 +1064,7 @@ Could you please share details on availability and custom options? Thank you!`;
           {/* 6. PRICING (Clean Tabular Layout) */}
           <section className="px-4 md:px-8 max-w-7xl mx-auto w-full">
              <div className="text-center md:text-left mb-10 md:mb-12">
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60 mb-3 block">Investment</span>
+               <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.24em] text-white/70 mb-3 block">Investment</span>
                <h2 className="text-[clamp(2.5rem,6vw,4.5rem)] font-bold text-white tracking-tight leading-none">Pricing Details.</h2>
              </div>
 
@@ -1081,7 +1081,7 @@ Could you please share details on availability and custom options? Thank you!`;
                    <span className="text-[clamp(3.5rem,8vw,5.5rem)] font-bold text-white tracking-tighter leading-none tabular-nums">
                      {pricing.formattedFinal}
                    </span>
-                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/60 mt-3 block">
+                   <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/70 mt-3 block">
                      Per Person · {pricing.taxLabel}
                    </span>
                 </div>
@@ -1128,6 +1128,7 @@ Could you please share details on availability and custom options? Thank you!`;
               <Magnetic intensity={0.2}>
                 <button 
                   onClick={() => openModal('BOOKING', experience)}
+                  aria-label="Reserve This Journey"
                   className="group/btn flex flex-col items-center gap-6"
                 >
                   <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/20 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/btn:border-white/45 group-hover/btn:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
@@ -1135,7 +1136,7 @@ Could you please share details on availability and custom options? Thank you!`;
                       <ChevronRight size={32} strokeWidth={2} className="group-hover/btn:translate-x-0.5 transition-transform duration-500" />
                     </div>
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/70 group-hover/btn:text-white group-hover/btn:tracking-[0.5em] transition-all duration-700 select-none">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/70 group-hover/btn:text-white group-hover/btn:tracking-[0.3em] transition-all duration-700 select-none">
                     Reserve This Journey
                   </span>
                 </button>
@@ -1146,6 +1147,7 @@ Could you please share details on availability and custom options? Thank you!`;
                     href={getWhatsAppEnquiryUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="Enquire via WhatsApp"
                     className="group/wa-btn flex flex-col items-center gap-6 cursor-pointer"
                   >
                     <div className="w-18 h-18 md:w-22 md:h-22 rounded-full border border-white/20 flex items-center justify-center p-1.5 transition-all duration-700 group-hover/wa-btn:border-[#25D366]/45 group-hover/wa-btn:shadow-[0_0_30px_rgba(37,211,102,0.05)]">
@@ -1155,7 +1157,7 @@ Could you please share details on availability and custom options? Thank you!`;
                         </svg>
                       </div>
                     </div>
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/70 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.5em] transition-all duration-700 select-none">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/70 group-hover/wa-btn:text-white group-hover/wa-btn:tracking-[0.3em] transition-all duration-700 select-none">
                       Enquire via WhatsApp
                     </span>
                   </a>
@@ -1219,14 +1221,14 @@ Could you please share details on availability and custom options? Thank you!`;
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Sparkles size={10} className="text-amber-400/90 animate-pulse" />
-                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 block leading-none">Journey Summary</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-400 block leading-none">Journey Summary</span>
                       </div>
                       <h4 className="text-[12px] sm:text-[13px] md:text-[16px] font-bold text-white tracking-tight leading-tight sm:leading-none font-sans">{experience.title}</h4>
                       {experience.tagline && (
-                        <p className="text-[9px] sm:text-[9.5px] md:text-[10.5px] text-white/70 italic font-medium leading-tight sm:leading-none mt-1 sm:mt-1.5 font-sans">{experience.tagline}</p>
+                        <p className="text-[10px] sm:text-[10.5px] md:text-[11px] text-white/70 italic font-medium leading-tight sm:leading-none mt-1 sm:mt-1.5 font-sans">{experience.tagline}</p>
                       )}
                     </div>
-                    <span className="shrink-0 px-2 sm:px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-[7.5px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white leading-none">
+                    <span className="shrink-0 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold uppercase tracking-wider text-white leading-none">
                       {experience.duration}
                     </span>
                   </div>
@@ -1236,7 +1238,7 @@ Could you please share details on availability and custom options? Thank you!`;
  
                   {/* Natural Prose Introduction */}
                   <div className="relative z-10 space-y-1.5 font-sans">
-                    <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">The Soul of the Journey</span>
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">The Soul of the Journey</span>
                     <p className="text-[10px] sm:text-[10.5px] md:text-[11.5px] leading-relaxed text-white/90 font-medium whitespace-pre-line">
                       {soulOfJourney || (
                         <>
@@ -1251,13 +1253,13 @@ Could you please share details on availability and custom options? Thank you!`;
                     <>
                       <div className="w-full h-px bg-white/20 relative z-10" />
                       <div className="relative z-10 space-y-1.5">
-                        <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Destinations Covered</span>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[9.5px] sm:text-[10px] md:text-[11px] font-bold text-white/95">
+                        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">Destinations Covered</span>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[10px] sm:text-[11px] font-bold text-white/95">
                           {destinationsCovered.map((dest: string, i: number) => (
                             <div key={i} className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/15 text-[9px] sm:text-[9.5px] font-medium text-white/90">{dest}</span>
+                              <span className="px-2 py-0.5 rounded bg-white/10 border border-white/15 text-[10px] sm:text-[10.5px] font-medium text-white/90">{dest}</span>
                               {i < destinationsCovered.length - 1 && (
-                                <span className="text-white/40 text-[8px] font-light">/</span>
+                                <span className="text-white/50 text-[10px] font-light">/</span>
                               )}
                             </div>
                           ))}
@@ -1273,10 +1275,10 @@ Could you please share details on availability and custom options? Thank you!`;
                       <div className="relative z-10 grid grid-cols-2 gap-3 sm:gap-4">
                         {experience.highlights && experience.highlights.length > 0 && (
                           <div className="space-y-1.5">
-                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Highlights</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">Highlights</span>
                             <div className="space-y-1">
                               {experience.highlights.slice(0, 2).map((h: string, i: number) => (
-                                <div key={i} className="flex items-start gap-1.5 text-[9px] sm:text-[9.5px] md:text-[10px] text-white/85 leading-tight">
+                                <div key={i} className="flex items-start gap-1.5 text-[10px] sm:text-[11px] text-white/85 leading-tight">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400/60 mt-[5px] shrink-0" />
                                   <span>{h}</span>
                                 </div>
@@ -1286,10 +1288,10 @@ Could you please share details on availability and custom options? Thank you!`;
                         )}
                         {experience.inclusions && experience.inclusions.length > 0 && (
                           <div className="space-y-1.5">
-                            <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Inclusions</span>
+                            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">Inclusions</span>
                             <div className="space-y-1">
                               {experience.inclusions.slice(0, 2).map((inc: string, i: number) => (
-                                <div key={i} className="flex items-start gap-1.5 text-[9px] sm:text-[9.5px] md:text-[10px] text-white/85 leading-tight">
+                                <div key={i} className="flex items-start gap-1.5 text-[10px] sm:text-[11px] text-white/85 leading-tight">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 mt-[5px] shrink-0" />
                                   <span>{inc}</span>
                                 </div>
@@ -1305,14 +1307,14 @@ Could you please share details on availability and custom options? Thank you!`;
                   <div className="w-full h-px bg-white/20 relative z-10" />
                   <div className="relative z-10 flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <span className="block text-[8px] font-black uppercase tracking-[0.2em] text-white/60">Investment Total</span>
-                      <span className="text-[9.5px] sm:text-[10px] md:text-[11px] font-medium text-white/60 italic">Subject to tier options</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">Investment Total</span>
+                      <span className="text-[10px] sm:text-[10.5px] md:text-[11px] font-medium text-white/70 italic">Subject to tier options</span>
                     </div>
                     <div className="text-right">
                       <p className="text-[12px] sm:text-[13px] md:text-[16px] font-black text-emerald-400 tabular-nums">
-                        {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")} <span className="text-[8px] sm:text-[8.5px] md:text-[9px] text-white/70 font-normal font-sans">/ traveler</span>
+                        {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")} <span className="text-[10px] text-white/70 font-normal font-sans">/ traveler</span>
                       </p>
-                      <p className="text-[7px] sm:text-[7.5px] md:text-[8px] font-bold text-white/60 uppercase tracking-widest leading-none mt-0.5">
+                      <p className="text-[10px] font-bold text-white/70 uppercase tracking-wider leading-none mt-0.5">
                         {pricing.taxLabel}
                       </p>
                     </div>
@@ -1391,17 +1393,17 @@ Could you please share details on availability and custom options? Thank you!`;
               >
                 <div className="flex flex-col items-center min-w-0 flex-1">
                   {/* Label — centered above price, matching desktop */}
-                  <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/55 leading-none mb-0.5">Investment</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70 leading-none mb-0.5">Investment</span>
                   
                   {/* Primary Price Area */}
                   <div className="flex items-baseline gap-1 justify-center">
-                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] mr-0.5 select-none leading-none">
+                    <span className="font-bold uppercase tracking-wider text-white/70 text-[10px] mr-0.5 select-none leading-none">
                       From
                     </span>
                     <span className="text-[clamp(1.1rem,5.5vw,1.35rem)] font-black text-white leading-none tabular-nums tracking-tighter animate-in fade-in duration-300">
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-[7.5px] font-black uppercase tracking-wider text-white/60 leading-none">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/70 leading-none">
                       / Person
                     </span>
                   </div>
@@ -1410,12 +1412,12 @@ Could you please share details on availability and custom options? Thank you!`;
                   <div className="flex items-center gap-1.5 flex-wrap justify-center">
                     {pricing.hasSavings && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[7.5px] font-semibold text-white/70 line-through decoration-rose-400/80 tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
-                        <span className="text-[7px] font-black uppercase text-emerald-400">−{pricing.discountPercent}%</span>
+                        <span className="text-[10px] font-semibold text-white/70 line-through decoration-rose-400/80 tabular-nums">{pricing.symbol}{pricing.originalTotal.toLocaleString()}</span>
+                        <span className="text-[10px] font-bold uppercase text-emerald-400">−{pricing.discountPercent}%</span>
                       </div>
                     )}
                     {(pricing.taxLabel) && (
-                      <span className="text-[7px] font-bold text-white/50 uppercase tracking-wide">{pricing.taxLabel}</span>
+                      <span className="text-[10px] font-bold text-white/70 uppercase tracking-wide">{pricing.taxLabel}</span>
                     )}
                   </div>
                 </div>
@@ -1425,19 +1427,19 @@ Could you please share details on availability and custom options? Thank you!`;
               <div className="hidden lg:flex items-center min-w-0" ref={segmentsRef}>
                 <div className="flex flex-col items-center justify-center px-4">
                   {/* Label */}
-                  <span className="font-black uppercase text-white/70 whitespace-nowrap text-center mb-0.5 text-[7px] tracking-[0.4em]">
+                  <span className="font-bold uppercase text-white/70 whitespace-nowrap text-center mb-0.5 text-[10px] tracking-[0.24em]">
                     Investment
                   </span>
                   
                   {/* Primary Price Row */}
                   <div className="flex items-baseline justify-center gap-1.5">
-                    <span className="font-black uppercase tracking-widest text-white/60 text-[8px] select-none leading-none">
+                    <span className="font-bold uppercase tracking-wider text-white/70 text-[10px] select-none leading-none">
                       From
                     </span>
                     <span className="font-bold tracking-tighter text-white/90 leading-none tabular-nums whitespace-nowrap text-[clamp(1.2rem,4vw,1.75rem)]">
                       {pricing.symbol}{pricing.finalTotal.toLocaleString("en-IN")}
                     </span>
-                    <span className="font-bold uppercase tracking-wider text-white/60 leading-none whitespace-nowrap text-[8px]">
+                    <span className="font-bold uppercase tracking-wider text-white/70 leading-none whitespace-nowrap text-[10px]">
                       / Person
                     </span>
                   </div>
@@ -1446,16 +1448,16 @@ Could you please share details on availability and custom options? Thank you!`;
                   <div className="flex items-center gap-2 justify-center mt-0.5">
                     {pricing.hasSavings && (
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold tracking-tight text-white/70 line-through decoration-rose-400/80 whitespace-nowrap text-[8.5px] tabular-nums">
+                        <span className="font-semibold tracking-tight text-white/70 line-through decoration-rose-400/80 whitespace-nowrap text-[10px] tabular-nums">
                           {pricing.symbol}{pricing.originalTotal.toLocaleString()}
                         </span>
-                        <span className="font-black uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[7.5px]">
+                        <span className="font-bold uppercase tracking-wider text-emerald-400 leading-none whitespace-nowrap text-[10px]">
                           Save {pricing.discountPercent}%
                         </span>
                       </div>
                     )}
                     {(pricing.shouldAddTaxLabel || pricing.isInclusive) && (
-                      <span className="font-bold uppercase tracking-wider text-white/50 leading-none whitespace-nowrap text-[7px]">
+                      <span className="font-bold uppercase tracking-wider text-white/70 leading-none whitespace-nowrap text-[10px]">
                         {pricing.taxLabel}
                       </span>
                     )}
@@ -1471,7 +1473,8 @@ Could you please share details on availability and custom options? Thank you!`;
                       href={getWhatsAppEnquiryUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group/wa relative overflow-hidden rounded-full bg-[#25D366] text-black transition-all duration-300 active:scale-95 flex items-center justify-center cursor-pointer
+                      aria-label="Enquire via WhatsApp"
+                      className="group/wa relative overflow-hidden rounded-full bg-[#25D366] text-black transition-all duration-300 active:scale-95 flex items-center justify-center cursor-pointer touch-target-44
                         h-10 lg:h-12 w-10 lg:w-auto lg:px-6 shadow-[0_4px_15px_rgba(37,211,102,0.25)]"
                     >
                       <div className="relative z-10 flex items-center justify-center gap-1.5">
@@ -1489,7 +1492,8 @@ Could you please share details on availability and custom options? Thank you!`;
                 <Magnetic intensity={0.3}>
                   <button 
                     onClick={() => openModal('BOOKING', experience)}
-                    className="group/btn relative overflow-hidden rounded-full bg-white text-black transition-all duration-300 active:scale-95 flex items-center justify-center
+                    aria-label="Reserve This Experience"
+                    className="group/btn relative overflow-hidden rounded-full bg-white text-black transition-all duration-300 active:scale-95 flex items-center justify-center touch-target-44
                       h-10 lg:h-12 w-10 lg:w-auto lg:px-8 shadow-[0_4px_15px_rgba(255,255,255,0.15)]"
                   >
                     <div className="relative z-10 flex items-center justify-center gap-1.5">
@@ -1525,7 +1529,8 @@ Could you please share details on availability and custom options? Thank you!`;
             </div>
             <button
               onClick={() => setIsLightboxOpen(false)}
-              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors active:scale-95"
+              aria-label="Close photo gallery"
+              className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors active:scale-95 touch-target-44"
             >
               <X size={20} />
             </button>
@@ -1547,13 +1552,15 @@ Could you please share details on availability and custom options? Thank you!`;
             <>
               <button 
                 onClick={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : experience.gallery.length - 1)}
-                className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/20 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 z-[410]"
+                aria-label="Previous photo"
+                className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/20 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 z-[410] touch-target-44"
               >
                 <ChevronRight size={28} className="rotate-180" strokeWidth={1.5} />
               </button>
               <button 
                 onClick={() => setCurrentImageIndex(prev => prev < experience.gallery.length - 1 ? prev + 1 : 0)}
-                className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/20 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 z-[410]"
+                aria-label="Next photo"
+                className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/20 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 z-[410] touch-target-44"
               >
                 <ChevronRight size={28} strokeWidth={1.5} />
               </button>

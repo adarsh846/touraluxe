@@ -297,18 +297,18 @@ export function Featured() {
                   {/* Text Content */}
                   <div className="w-full md:w-2/5 flex flex-col items-start gap-[clamp(1.25rem,3vw,1.5rem)] p-[clamp(1rem,3vw,1.5rem)]">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none max-w-[180px] sm:max-w-[240px] overflow-hidden">
+                      <span className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 leading-none max-w-[180px] sm:max-w-[240px] overflow-hidden">
                         <MapPin size={9} className="shrink-0" />
                         <span className="leading-none truncate">{exp.location}</span>
                       </span>
                       {exp.flights_status === 'included' && (
-                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
                           <Plane size={9} className="shrink-0" />
                           <span className="leading-none">Flights Incl.</span>
                         </span>
                       )}
                       {exp.flights_status === 'on_request' && (
-                        <span className="inline-flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-400/90 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 leading-none whitespace-nowrap">
                           <Plane size={9} className="shrink-0" />
                           <span className="leading-none">Flights on Req.</span>
                         </span>

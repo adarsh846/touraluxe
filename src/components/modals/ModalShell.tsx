@@ -296,12 +296,13 @@ export function ModalShell() {
             <div ref={alertRef} className="relative w-full max-w-[min(450px,90vw)] md:max-w-max mx-auto bg-[#0a0a0b]/98 backdrop-blur-3xl border border-white/10 p-3 md:px-5 md:py-2.5 rounded-2xl md:rounded-full flex items-start md:items-center gap-3 shadow-2xl transition-all duration-500 pointer-events-auto min-w-0">
               <AlertCircle className="w-3.5 h-3.5 text-red-500/80 shrink-0 mt-0.5 md:mt-0" />
               <div className="flex-1 flex items-start justify-between gap-4 min-w-0">
-                <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.12em] md:tracking-[0.15em] text-white/70 leading-normal md:leading-none py-0.5 md:py-0 min-w-0 break-words">
+                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.12em] md:tracking-[0.15em] text-white/70 leading-normal md:leading-none py-0.5 md:py-0 min-w-0 break-words">
                   {error}
                 </span>
                 <button 
                   onClick={() => setError(null)}
-                  className="text-[8px] md:text-[10px] uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors font-black pr-1 shrink-0 mt-0.5 md:mt-0"
+                  aria-label="Dismiss alert"
+                  className="text-[10px] uppercase tracking-widest text-white/50 hover:text-white/80 transition-colors font-bold pr-1 shrink-0 mt-0.5 md:mt-0 touch-target-44"
                 >
                   ✕
                 </button>
@@ -369,14 +370,14 @@ export function ModalShell() {
                   <Fragment key={step.id}>
                     <div className="flex items-center gap-2.5 group/step">
                       <div className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all duration-700 border",
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-700 border",
                         step.id === currentPhase ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110" : 
-                        step.id < currentPhase ? "bg-white/30 text-white border-transparent" : "border-white/20 text-white/40"
+                        step.id < currentPhase ? "bg-white/30 text-white border-transparent" : "border-white/20 text-white/50"
                       )}>
                         {step.id < currentPhase ? <Check size={10} strokeWidth={3} /> : `0${step.id}`}
                       </div>
                       {step.id === currentPhase && (
-                        <span className="text-[8px] font-bold uppercase tracking-[0.3em] text-white animate-in fade-in slide-in-from-left-2 duration-700">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white animate-in fade-in slide-in-from-left-2 duration-700">
                           {step.label}
                         </span>
                       )}
@@ -402,10 +403,11 @@ export function ModalShell() {
                   <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
                   <button 
                     onClick={handleBackAction} 
-                    className="relative px-3.5 md:px-5 h-9 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn"
+                    aria-label="Go back"
+                    className="relative px-3.5 md:px-5 h-9 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn"
                   >
                     <ArrowLeft strokeWidth={2.5} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] group-hover/backbtn:-translate-x-1 transition-transform shrink-0" />
-                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.12em] md:tracking-[0.3em] text-white/60 group-hover:text-black/70 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] md:tracking-[0.24em] text-white/70 group-hover:text-black/80 transition-colors animate-in fade-in slide-in-from-right-2 duration-700">
                       {(() => {
                         // Contextual Source Mapping - Harmonized Site Terminology
                         const getOrigin = (src: string) => {
@@ -457,7 +459,8 @@ export function ModalShell() {
                 <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
                 <button 
                   onClick={handleCloseClick} 
-                  className="relative w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
+                  aria-label="Close modal"
+                  className="relative w-9 h-9 md:w-10 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90"
                 >
                   <X strokeWidth={2.5} className="w-4 h-4 md:w-5 md:h-5" />
                 </button>

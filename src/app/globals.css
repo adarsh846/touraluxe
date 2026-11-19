@@ -21,6 +21,22 @@
   min-height: calc(var(--vh, 1vh) * 100);
 }
 
+@utility touch-target-44 {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -49,8 +65,12 @@ body {
 /* Force complete native cursor hiding on non-touch devices only */
 @media (hover: hover) and (pointer: fine) {
   * , *:hover, *:active, *:focus, *:focus-within, 
-  a, button, [role="button"], input, select, textarea, label {
+  a, button, [role="button"], label {
     cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='), none !important;
+  }
+
+  input, textarea, select {
+    cursor: text !important;
   }
 
   html, body {

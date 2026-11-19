@@ -2162,8 +2162,8 @@ Please confirm my booking. Thank you!`;
                                     )}>{item.label}</p>
                                     {isMobile && item.extra && (
                                       <span className={cn(
-                                        "text-[7.5px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
-                                        isSelected ? "text-white/70" : "text-white/35"
+                                        "text-[10px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                                        isSelected ? "text-white/80" : "text-white/50"
                                       )}>
                                         {item.extra}
                                       </span>
@@ -2171,10 +2171,10 @@ Please confirm my booking. Thank you!`;
                                   </div>
                                   {!isMobile && item.extra && (
                                     <span className={cn(
-                                      "text-[8px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                                      "text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
                                       isSelected 
                                         ? "text-white/90 bg-white/12 shadow-xs" 
-                                        : "text-white/30 bg-white/[0.04]"
+                                        : "text-white/50 bg-white/[0.04]"
                                     )}>
                                       {item.extra}
                                     </span>
@@ -2184,9 +2184,9 @@ Please confirm my booking. Thank you!`;
                             );
                           })}
 
-                          <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[9px] font-bold uppercase tracking-[0.18em] text-white/55">
-                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↑↓</span> Press to navigate</span>
-                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/70 font-mono text-[8px]">↵</span> Enter to select</span>
+                          <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">
+                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↑↓</span> Press to navigate</span>
+                            <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↵</span> Enter to select</span>
                           </div>
                         </div>
                       )}
@@ -2288,7 +2288,7 @@ Please confirm my booking. Thank you!`;
                                   setInternalPackage(customPkg);
                                   setDiscoveryPhase(2);
                                 }}
-                                className="w-fit md:w-auto px-6 py-2.5 md:px-8 md:py-3.5 bg-white text-black rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] whitespace-nowrap"
+                                className="w-fit md:w-auto px-6 py-2.5 md:px-8 md:py-3.5 bg-white text-black rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] whitespace-nowrap"
                               >
                                 Let's Craft Your {(sovereignResponse as any).tool_call?.parameters?.destination || "Unique"} Journey
                               </button>
@@ -2317,7 +2317,7 @@ Please confirm my booking. Thank you!`;
 
                           {/* Reasoning Stream (The Intelligence) */}
                           <div className="flex flex-col items-center gap-2 max-w-md text-center">
-                            <p className="text-[9px] font-medium leading-relaxed text-white/40 italic animate-in fade-in slide-in-from-bottom-2 duration-1000">
+                            <p className="text-[10.5px] font-medium leading-relaxed text-white/70 italic animate-in fade-in slide-in-from-bottom-2 duration-1000">
                               {isThinking ? (
                                 <span className="flex items-center gap-2">
                                   <span className="w-1 h-1 rounded-full bg-white/20 animate-bounce [animation-delay:-0.3s]" />
@@ -2331,8 +2331,8 @@ Please confirm my booking. Thank you!`;
                             {/* Tool Call Indicator (The Agency) */}
                             {sovereignResponse?.tool_call && !isThinking && (
                               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 animate-in zoom-in duration-500">
-                                <Command size={10} className="text-white/40" />
-                                <span className="text-[7px] font-black uppercase tracking-widest text-white/60">
+                                <Command size={10} className="text-white/60" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                                   Applied Tool: {sovereignResponse.tool_call.name}
                                 </span>
                               </div>
@@ -2386,7 +2386,7 @@ Please confirm my booking. Thank you!`;
                     ) : (
                       <div className="w-full flex-1 flex flex-col animate-in fade-in duration-1000 min-h-0">
                         <div className="flex items-center gap-4 px-5 md:px-[clamp(2rem,6vw,4rem)] mb-6 md:mb-10 flex-shrink-0">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.6em] text-white/70 sm:whitespace-nowrap">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/70 sm:whitespace-nowrap">
                             {isThinking
                               ? "Seeking the extraordinary..."
                               : sovereignState === 'ESCALATING'
@@ -2456,7 +2456,7 @@ Please confirm my booking. Thank you!`;
                           </h2>
                           <div className="flex items-center justify-center gap-4 pt-1">
                             <div className="w-8 md:w-12 h-[1px] bg-white/10" />
-                            <span className="text-[6px] md:text-[8px] font-bold uppercase tracking-[0.8em] text-white/40 pl-[0.8em]">
+                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.4em] text-white/60 pl-[0.4em]">
                               {internalPackage?.location || "Bespoke"}
                             </span>
                             <div className="w-8 md:w-12 h-[1px] bg-white/10" />
@@ -2597,12 +2597,12 @@ Please confirm my booking. Thank you!`;
                                       </span>
 
                                       {/* Subtle Duration Badge */}
-                                      <div className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 opacity-60">
-                                        <span className="text-[6px] font-black uppercase tracking-widest text-white/40">
+                                      <div className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 flex items-center gap-1.5 opacity-80">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                                           {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate ? startDate : endDate).getTime()) / (1000 * 60 * 60 * 24)))} Nights
                                         </span>
-                                        <div className="w-[1px] h-1.5 bg-white/10" />
-                                        <span className="text-[6px] font-black uppercase tracking-widest text-white/40">
+                                        <div className="w-[1px] h-2 bg-white/10" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                                           {Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate ? startDate : endDate).getTime()) / (1000 * 60 * 60 * 24))) + 1} Days
                                         </span>
                                       </div>
@@ -2669,7 +2669,7 @@ Please confirm my booking. Thank you!`;
                                     onMouseLeave={() => setHoveredPaxType(null)}
                                     className="flex-1 relative flex flex-col items-center justify-center gap-1.5 py-4 md:py-0 group/segment transition-all cursor-pointer"
                                   >
-                                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.3em] md:tracking-[0.5em] text-white/75 group-hover/segment:text-white/100 transition-colors flex items-center justify-center">
+                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] text-white/80 group-hover/segment:text-white transition-colors flex items-center justify-center">
                                       {t.label}
                                     </span>
                                     <div className="flex items-center gap-6 md:gap-8">
@@ -2679,7 +2679,8 @@ Please confirm my booking. Thank you!`;
                                           t.set(Math.max(t.min, t.count - 1));
                                           setPinnedTooltip(null);
                                         }}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
+                                        aria-label={`Decrease ${t.label}`}
+                                        className="w-6 h-6 md:w-8 md:h-8 touch-target-44 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
                                       >
                                         -
                                       </button>
@@ -2692,7 +2693,8 @@ Please confirm my booking. Thank you!`;
                                           t.set(t.count + 1);
                                           setPinnedTooltip(null);
                                         }}
-                                        className="w-6 h-6 md:w-8 md:h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
+                                        aria-label={`Increase ${t.label}`}
+                                        className="w-6 h-6 md:w-8 md:h-8 touch-target-44 rounded-full border border-white/20 flex items-center justify-center text-white/70 hover:bg-white hover:text-black hover:border-white transition-all text-xs font-bold active:scale-90 transform-gpu cursor-pointer select-none"
                                       >
                                         +
                                       </button>
@@ -2737,7 +2739,7 @@ Please confirm my booking. Thank you!`;
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                       Lead Traveler
                                     </span>
-                                    <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+                                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">
                                       Step 04 / 04
                                     </span>
                                   </div>
@@ -2745,37 +2747,45 @@ Please confirm my booking. Thank you!`;
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                                     {/* Full Name Input */}
                                     <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
-                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                      <label htmlFor="lead-traveler-name" className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 group-focus-within:text-amber-400/90 transition-colors cursor-pointer">
                                         Full Name
-                                      </span>
+                                      </label>
                                       <input
+                                        id="lead-traveler-name"
+                                        name="name"
+                                        autoComplete="name"
                                         type="text"
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Enter your name"
+                                        aria-label="Lead traveler full name"
                                         className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all mt-0.5"
                                       />
                                     </div>
 
                                     {/* Email Address Input */}
                                     <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
-                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                      <label htmlFor="lead-traveler-email" className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 group-focus-within:text-amber-400/90 transition-colors cursor-pointer">
                                         Email Address
-                                      </span>
+                                      </label>
                                       <input
+                                        id="lead-traveler-email"
+                                        name="email"
+                                        autoComplete="email"
                                         type="email"
                                         value={customerEmail}
                                         onChange={(e) => setCustomerEmail(e.target.value)}
                                         placeholder="Email address"
+                                        aria-label="Lead traveler email address"
                                         className="w-full bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all mt-0.5"
                                       />
                                     </div>
 
                                     {/* Phone Number Input */}
                                     <div className="relative group flex flex-col justify-between bg-white/[0.02] border border-white/10 rounded-[20px] px-4 py-3 focus-within:border-white/30 focus-within:bg-white/[0.04] transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_0_15px_rgba(255,255,255,0.03)] h-16 min-w-0">
-                                      <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-amber-400/80 transition-colors">
+                                      <label htmlFor="lead-traveler-phone" className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.16em] text-white/70 group-focus-within:text-amber-400/90 transition-colors cursor-pointer">
                                         Phone Number
-                                      </span>
+                                      </label>
                                       <div className="flex items-center gap-2 mt-0.5 w-full">
                                         <div className="relative">
                                           <div
@@ -2800,18 +2810,22 @@ Please confirm my booking. Thank you!`;
                                                     <span className="text-xs">{c.flag}</span>
                                                     <span className="text-[10px] font-bold text-white/70 group-hover/item:text-white">{c.name}</span>
                                                   </div>
-                                                  <span className="text-[9px] font-black text-white/30 group-hover/item:text-white/50">{c.code}</span>
+                                                  <span className="text-[10px] font-bold text-white/50 group-hover/item:text-white/80">{c.code}</span>
                                                 </div>
                                               ))}
                                             </div>
                                           )}
                                         </div>
                                         <input
+                                          id="lead-traveler-phone"
+                                          name="tel"
+                                          autoComplete="tel-national"
                                           type="tel"
                                           value={customerPhone}
                                           onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9]/g, ""))}
                                           maxLength={selectedCountry.length}
                                           placeholder="Phone number"
+                                          aria-label="Lead traveler phone number"
                                           onFocus={() => setCountryMenuOpen(false)}
                                           className="flex-1 bg-transparent text-sm font-medium text-white placeholder:text-white/45 focus:outline-none transition-all"
                                         />
@@ -2831,14 +2845,14 @@ Please confirm my booking. Thank you!`;
                                             <p className="text-[11px] md:text-xs text-emerald-400/80 font-light leading-relaxed">Return flights are fully included in this package price</p>
                                           </div>
                                           <div className="relative flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-                                            <div className="h-8 px-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest select-none whitespace-nowrap flex items-center justify-center">Included</div>
+                                            <div className="h-8 px-4 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider select-none whitespace-nowrap flex items-center justify-center">Included</div>
                                             {getFlightTerms() && (
                                               <>
-                                                <button type="button" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
+                                                <button type="button" aria-label="Flight inclusions details" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0 touch-target-44", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
                                                 {showFlightDetails && (
                                                   <div className="absolute right-0 top-full mt-3 w-72 p-4 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-[200] animate-in fade-in slide-in-from-top-2 duration-300 text-left">
                                                     <div className="absolute -top-1.5 right-[10px] w-3 h-3 bg-[#0a0a0c] border-t border-l border-white/10 rotate-45" />
-                                                    <div className="space-y-2.5"><span className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[9.5px] leading-relaxed text-white/60">{getFlightTerms()!.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => <p key={i}>{l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`}</p>)}</div></div>
+                                                    <div className="space-y-2.5"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[11px] leading-relaxed text-white/70">{getFlightTerms()!.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => <p key={i}>{l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`}</p>)}</div></div>
                                                   </div>
                                                 )}
                                               </>
@@ -2849,20 +2863,20 @@ Please confirm my booking. Thank you!`;
                                         <>
                                           <div className="space-y-0.5">
                                             <h4 className="text-xs md:text-sm font-semibold tracking-tight text-white/95">Flight Concierge</h4>
-                                            <p className="text-[11px] md:text-xs text-white/40 font-light leading-relaxed">{internalPackage?.flights_status === 'on_request' ? "Flights can be arranged upon request" : "Flights are optional and can be added to your booking"}</p>
+                                            <p className="text-[11px] md:text-xs text-white/60 font-light leading-relaxed">{internalPackage?.flights_status === 'on_request' ? "Flights can be arranged upon request" : "Flights are optional and can be added to your booking"}</p>
                                           </div>
                                           <div className="relative flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
                                             <div className="flex p-1 rounded-full bg-white/5 border border-white/10 items-center">
-                                              <button type="button" onClick={() => { setIncludeFlights(false); setDepartureCity(""); }} className={cn("h-7 px-3.5 rounded-full text-[8.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center", !includeFlights ? "bg-white/10 text-white shadow-sm" : "text-white/40 hover:text-white/60")}>Land Only</button>
-                                              <button type="button" onClick={() => setIncludeFlights(true)} className={cn("h-7 px-3.5 rounded-full text-[8.5px] font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center", includeFlights ? "bg-emerald-500 text-black shadow-sm" : "text-white/40 hover:text-white/60")}>Add Flights</button>
+                                              <button type="button" onClick={() => { setIncludeFlights(false); setDepartureCity(""); }} className={cn("h-7 px-3.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center touch-target-44", !includeFlights ? "bg-white/10 text-white shadow-sm" : "text-white/50 hover:text-white/70")}>Land Only</button>
+                                              <button type="button" onClick={() => setIncludeFlights(true)} className={cn("h-7 px-3.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap flex items-center justify-center touch-target-44", includeFlights ? "bg-emerald-500 text-black shadow-sm" : "text-white/50 hover:text-white/70")}>Add Flights</button>
                                             </div>
                                             {getFlightTerms() && (
                                               <>
-                                                <button type="button" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
+                                                <button type="button" aria-label="Flight terms" onClick={() => setShowFlightDetails(!showFlightDetails)} className={cn("w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 flex-shrink-0 touch-target-44", showFlightDetails ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10")}><Info size={12} /></button>
                                                 {showFlightDetails && (
                                                   <div className="absolute right-0 top-full mt-3 w-72 p-4 bg-[#0a0a0c] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-[200] animate-in fade-in slide-in-from-top-2 duration-300 text-left">
                                                     <div className="absolute -top-1.5 right-[10px] w-3 h-3 bg-[#0a0a0c] border-t border-l border-white/10 rotate-45" />
-                                                    <div className="space-y-2.5"><span className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[9.5px] leading-relaxed text-white/60">{getFlightTerms()!.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => <p key={i}>{l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`}</p>)}</div></div>
+                                                    <div className="space-y-2.5"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-400 block">Flight Inclusions & Terms</span><div className="space-y-1.5 text-[11px] leading-relaxed text-white/70">{getFlightTerms()!.split('\n').filter((l: string) => l.trim()).map((l: string, i: number) => <p key={i}>{l.startsWith('•') || l.startsWith('-') ? l : `• ${l}`}</p>)}</div></div>
                                                   </div>
                                                 )}
                                               </>
@@ -2875,7 +2889,7 @@ Please confirm my booking. Thank you!`;
                                     <div className={cn("grid transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]", includeFlights ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
                                       <div className="overflow-hidden">
                                         <div className="space-y-3 pt-4">
-                                          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/50">Where will you be flying from?</span>
+                                          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/70">Where will you be flying from?</span>
                                           <div className="flex flex-wrap gap-2 items-center">
                                             {internalPackage?.departure_cities?.map((city: string) => (
                                               <button key={city} type="button" onClick={() => setDepartureCity(city)} className={cn("px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all", departureCity === city ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/60 hover:border-white/30")}>{city}</button>
@@ -2895,7 +2909,7 @@ Please confirm my booking. Thank you!`;
                                       <h4 className="text-xs md:text-sm font-semibold tracking-tight text-white/95 flex items-center gap-2">
                                         <span>✨</span> Optional Enhancements
                                       </h4>
-                                      <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+                                      <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">
                                         Select Add-ons
                                       </span>
                                     </div>
@@ -2972,7 +2986,7 @@ Please confirm my booking. Thank you!`;
                                       <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
                                         Group Manifesto
                                       </span>
-                                      <span className="text-[9px] font-bold text-[#86868b] uppercase tracking-widest">
+                                      <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">
                                         {adults} {adults === 1 ? 'ADULT' : 'ADULTS'}{kids > 0 ? ` • ${kids} ${kids === 1 ? 'CHILD' : 'CHILDREN'}` : ''}{infants > 0 ? ` • ${infants} ${infants === 1 ? 'INFANT' : 'INFANTS'}` : ''}
                                       </span>
                                     </div>
@@ -2981,8 +2995,8 @@ Please confirm my booking. Thank you!`;
                                       {/* Additional Adults */}
                                       {Array.from({ length: adults - 1 }).map((_, i) => (
                                         <div key={`adult-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
-                                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
-                                            Guest {i + 2} <span className="text-[9px] text-white/50 pl-1 font-normal">(Adult)</span>
+                                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 group-focus-within:text-amber-400/90 transition-colors">
+                                            Guest {i + 2} <span className="text-[10px] text-white/60 pl-1 font-normal">(Adult)</span>
                                           </span>
                                           <input
                                             type="text"
@@ -3003,8 +3017,8 @@ Please confirm my booking. Thank you!`;
                                         const guestIdx = (adults - 1) + i;
                                         return (
                                           <div key={`child-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
-                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
-                                              Guest {adults + i + 1} <span className="text-[9px] text-white/50 pl-1 font-normal">(Child)</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 group-focus-within:text-amber-400/90 transition-colors">
+                                              Guest {adults + i + 1} <span className="text-[10px] text-white/60 pl-1 font-normal">(Child)</span>
                                             </span>
                                             <div className="flex items-center gap-3 w-full mt-1">
                                               <input
@@ -3044,8 +3058,8 @@ Please confirm my booking. Thank you!`;
                                         const guestIdx = (adults - 1) + kids + i;
                                         return (
                                           <div key={`infant-${i}`} className="relative group flex flex-col justify-between bg-[#121214] border border-white/15 rounded-[20px] p-4 focus-within:border-white/40 focus-within:bg-[#161619] transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] h-24">
-                                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-white/60 group-focus-within:text-amber-400/90 transition-colors">
-                                              Guest {adults + kids + i + 1} <span className="text-[9px] text-white/50 pl-1 font-normal">(Infant)</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/70 group-focus-within:text-amber-400/90 transition-colors">
+                                              Guest {adults + kids + i + 1} <span className="text-[10px] text-white/60 pl-1 font-normal">(Infant)</span>
                                             </span>
                                             <div className="flex items-center gap-3 w-full mt-1">
                                               <input
@@ -3087,7 +3101,7 @@ Please confirm my booking. Thank you!`;
                                 <div className="space-y-4 md:space-y-5 group/notes">
                                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                                     <span className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-                                      Special Requests <span className="text-[9px] md:text-[10px] text-white/50 ml-1 font-normal">(Optional)</span>
+                                      Special Requests <span className="text-[10px] md:text-[11px] text-white/60 ml-1 font-normal">(Optional)</span>
                                     </span>
                                   </div>
                                   <textarea
@@ -3109,7 +3123,7 @@ Please confirm my booking. Thank you!`;
                                 {/* Strong contrast gradient so chevron is visible over dark card */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0e] via-[#0c0c0e]/80 to-transparent rounded-b-[40px]" />
                                 <div className="relative z-10 flex flex-col items-center gap-0.5">
-                                  <span className="text-[7px] font-black uppercase tracking-[0.35em] text-white/70 animate-pulse">
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/70 animate-pulse">
                                     Scroll
                                   </span>
                                   <div className="animate-bounce">
@@ -3159,12 +3173,12 @@ Please confirm my booking. Thank you!`;
                       {/* Dossier Header: Primary Identification */}
                       <div className="w-full p-6 md:p-10 border-b border-white/15 bg-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="space-y-2 text-center md:text-left">
-                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">Destination</span>
+                          <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white/70">Destination</span>
                           <h4 className="text-[clamp(1.25rem,3vw,1.875rem)] text-balance font-black text-white tracking-tight leading-tight">
                             {internalPackage?.title || destination}
                           </h4>
                           <div className="flex items-center justify-center md:justify-start gap-2 text-white/80">
-                            <span className="text-[9px] md:text-[11px] font-medium uppercase tracking-[0.2em]">
+                            <span className="text-[10px] md:text-[11px] font-medium uppercase tracking-[0.2em]">
                               {internalPackage?.location || "Personalized for you"}
                             </span>
                           </div>
@@ -3172,23 +3186,23 @@ Please confirm my booking. Thank you!`;
                         <div className="flex flex-col items-center gap-3">
                           <div className="px-5 py-2 rounded-full bg-white/[0.08] border border-white/15 flex items-center gap-3 shadow-inner">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
-                            <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                            <span className="text-[10px] md:text-[11px] font-bold text-white uppercase tracking-wider whitespace-nowrap">
                               {formatDateForDisplay(startDate)} — {formatDateForDisplay(endDate)}
                             </span>
                           </div>
                           {packageData?.flights_status === 'included' && (
                             <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
                               <Plane size={10} className="text-blue-400" />
-                              <span className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest whitespace-nowrap">Flights Included</span>
+                              <span className="text-[10px] md:text-[11px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap">Flights Included</span>
                             </div>
                           )}
                           {packageData?.flights_status === 'on_request' && (
                             <div className="px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
                               <Plane size={10} className="text-blue-400/80" />
-                              <span className="text-[9px] md:text-[10px] font-black text-blue-400/80 uppercase tracking-widest whitespace-nowrap">Flights on Request</span>
+                              <span className="text-[10px] md:text-[11px] font-bold text-blue-400/80 uppercase tracking-wider whitespace-nowrap">Flights on Request</span>
                             </div>
                           )}
-                          <span className="text-[8px] md:text-[9px] font-bold text-white/50 uppercase tracking-[0.3em]">
+                          <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-[0.2em]">
                             {DOSSIER_PROTOCOL.LABELS.NIGHTS_DAYS(totalNights, totalDays)}
                           </span>
                         </div>
@@ -3202,32 +3216,32 @@ Please confirm my booking. Thank you!`;
                           <div className="space-y-8 flex flex-col items-center">
                             <div className="flex items-center justify-center gap-3 w-full">
                               <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
-                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.LEAD_TRAVELER}</span>
+                              <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white/80">{DOSSIER_PROTOCOL.LABELS.LEAD_TRAVELER}</span>
                               <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
                             </div>
                             <div className="space-y-3 w-full">
                               {/* Unified Bar: Full Name */}
                               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
-                                <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.FULL_NAME}</span>
+                                <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">{DOSSIER_PROTOCOL.LABELS.FULL_NAME}</span>
                                 <span className="text-[11px] font-black text-white uppercase tracking-widest">{customerName}</span>
                               </div>
 
                               {/* Unified Bar: Email Address */}
                               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
-                                <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.EMAIL}</span>
+                                <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">{DOSSIER_PROTOCOL.LABELS.EMAIL}</span>
                                 <span className="text-[10px] font-black text-white/90 break-all tracking-wide">{customerEmail}</span>
                               </div>
 
                               {/* Unified Bar: Contact Number */}
                               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 shadow-sm text-center gap-1">
-                                <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.CONTACT}</span>
+                                <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">{DOSSIER_PROTOCOL.LABELS.CONTACT}</span>
                                 <span className="text-[10px] font-black text-white/90 tracking-widest">{selectedCountry.code} {customerPhone}</span>
                               </div>
 
                               {/* Unified Bar: Departure Hub */}
                               {departureCity && (
                                 <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm text-center gap-1 animate-in fade-in zoom-in duration-500">
-                                  <span className="text-[8px] font-black text-emerald-400/60 uppercase tracking-[0.3em]">Departure Hub</span>
+                                  <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-[0.2em]">Departure Hub</span>
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-black text-emerald-400 tracking-widest uppercase">{departureCity}</span>
                                     {includeFlights && <Plane size={10} className="text-emerald-400/40" />}
@@ -3241,7 +3255,7 @@ Please confirm my booking. Thank you!`;
                             <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 flex flex-col items-center">
                               <div className="flex items-center justify-center gap-3 w-full">
                                 <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
-                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.SPECIAL_DESIRES}</span>
+                                <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white/80">{DOSSIER_PROTOCOL.LABELS.SPECIAL_DESIRES}</span>
                                 <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
                               </div>
                               <div className="bg-white/[0.04] border border-white/15 rounded-2xl p-6 relative overflow-hidden shadow-sm w-full text-center">
@@ -3258,21 +3272,21 @@ Please confirm my booking. Thank you!`;
                         <div className="p-8 md:p-12 space-y-8 bg-white/[0.02] flex flex-col items-center">
                           <div className="flex items-center justify-center gap-3 w-full">
                             <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
-                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white/80">{DOSSIER_PROTOCOL.LABELS.PARTY_MANIFEST}</span>
+                            <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white/80">{DOSSIER_PROTOCOL.LABELS.PARTY_MANIFEST}</span>
                             <div className="w-1 h-5 bg-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
                           </div>
-                          <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.5em] -mt-4">
+                          <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.3em] -mt-4">
                             {adults} {adults > 1 ? "Adults" : "Adult"}{kids > 0 ? ` • ${kids}K` : ""}{infants > 0 ? ` • ${infants}I` : ""}
                           </span>
 
                           <div className="space-y-3 w-full">
                             <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 text-center gap-1">
-                              <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">{DOSSIER_PROTOCOL.LABELS.GUEST_LEAD}</span>
+                              <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">{DOSSIER_PROTOCOL.LABELS.GUEST_LEAD}</span>
                               <span className="text-[11px] font-black text-white uppercase tracking-widest">{customerName}</span>
                             </div>
                             {additionalGuests.filter(g => g.name).map((guest, i) => (
                               <div key={i} className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/[0.08] border border-white/15 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center gap-1">
-                                <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">
+                                <span className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">
                                   {DOSSIER_PROTOCOL.LABELS.GUEST_LABEL(i + 2, guest.type === 'child' ? 'Child' : guest.type === 'infant' ? 'Infant' : 'Adult', guest.age)}
                                 </span>
                                 <span className="text-[11px] font-black text-white uppercase tracking-widest">{guest.name}</span>
@@ -3288,17 +3302,17 @@ Please confirm my booking. Thank you!`;
                         <div className="w-full flex flex-col items-center md:items-start gap-3">
                           {internalPackage?.isCustom ? (
                             <div className="flex flex-col items-center md:items-start gap-1">
-                              <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">Investment Profile</span>
+                              <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-[0.3em]">Investment Profile</span>
                               <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">Handcrafted just for you</span>
                             </div>
                           ) : (
                             <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-4">
                               <div className="flex flex-col items-center md:items-start gap-0.5">
-                                <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Tour & Services</span>
+                                <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-wider text-center md:text-left">Tour & Services</span>
                                 <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">{pricing.symbol}{(pricing.breakdown?.landBase || 0).toLocaleString()}</span>
                               </div>
                               <div className="flex flex-col items-center md:items-start gap-0.5">
-                                <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">
+                                <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-wider text-center md:text-left">
                                   GST ({pricing.taxRate}%)
                                 </span>
                                 <span className="text-[10px] md:text-xs font-black text-white/80 uppercase">
@@ -3307,13 +3321,13 @@ Please confirm my booking. Thank you!`;
                               </div>
                               {(pricing.breakdown?.flightNet || 0) > 0 && (
                                 <div className="flex flex-col items-center md:items-start gap-0.5">
-                                  <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Final Airfare</span>
+                                  <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-wider text-center md:text-left">Final Airfare</span>
                                   <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{(pricing.breakdown?.flightNet || 0).toLocaleString()}</span>
                                 </div>
                               )}
                               {(pricing.breakdown?.addonsTotal || 0) > 0 && (
                                 <div className="flex flex-col items-center md:items-start gap-0.5">
-                                  <span className="text-[7px] md:text-[8px] font-bold text-white/50 uppercase tracking-widest text-center md:text-left">Add-Ons</span>
+                                  <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-wider text-center md:text-left">Add-Ons</span>
                                   <span className="text-[10px] md:text-xs font-black text-white/80 uppercase whitespace-nowrap">+ {pricing.symbol}{(pricing.breakdown?.addonsTotal || 0).toLocaleString()}</span>
                                 </div>
                               )}
@@ -3323,13 +3337,13 @@ Please confirm my booking. Thank you!`;
 
                         {/* Right Column: Itinerary Investment */}
                         <div className="space-y-3 w-full flex flex-col items-center md:items-end text-center md:text-right">
-                          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.5em] text-white/60">{DOSSIER_PROTOCOL.LABELS.INVESTMENT_HEADER}</span>
+                          <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.3em] text-white/70">{DOSSIER_PROTOCOL.LABELS.INVESTMENT_HEADER}</span>
                           <div className="flex flex-col items-center md:items-end gap-3">
                             <span className="text-[clamp(1.8rem,5vw,3rem)] font-black text-white tracking-tighter tabular-nums leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                               {internalPackage?.isCustom ? "Personalized" : totalInvestment}
                             </span>
                             <div className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-sm flex items-center justify-center min-w-[120px]">
-                              <span className="text-[7px] md:text-[8px] font-black text-white/60 uppercase tracking-[0.3em] text-center leading-none">
+                              <span className="text-[10px] md:text-[11px] font-bold text-white/70 uppercase tracking-[0.2em] text-center leading-none">
                                 {internalPackage?.isCustom ? "PRICING ON REQUEST" : DOSSIER_PROTOCOL.LABELS.TOTAL_UNIFIED}
                               </span>
                             </div>
@@ -3360,7 +3374,7 @@ Please confirm my booking. Thank you!`;
                   <div className="h-[1px] w-12 bg-white/20" />
                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                       {internalPackage?.isCustom ? "Handcrafting Your Journey" : "Your Journey Begins Here"}
                     </span>
                   </div>
@@ -3521,8 +3535,8 @@ Please confirm my booking. Thank you!`;
                           <span className="font-mono text-emerald-400">{groupData.symbol}{groupData.grandTotal.toLocaleString()}</span>
                         </div>
 
-                        <div className="text-[7.5px] leading-normal text-white/30 pt-1 border-t border-white/5 uppercase tracking-wide">
-                          <span className="text-amber-400/80 font-bold block mb-0.5">Note:</span>
+                        <div className="text-[10px] leading-normal text-white/60 pt-1 border-t border-white/5 uppercase tracking-wide">
+                          <span className="text-amber-400/90 font-bold block mb-0.5">Note:</span>
                           Flight Estimates are subject to airlines. Prices are dynamic as per traveler's requirements.
                         </div>
                       </div>
@@ -3569,7 +3583,7 @@ Please confirm my booking. Thank you!`;
                             className="w-full mt-3 py-2 px-4 rounded-xl bg-gradient-to-r from-white/[0.06] to-white/[0.09] hover:from-white/[0.1] hover:to-white/[0.13] border border-white/[0.08] text-white/90 font-medium text-[10px] tracking-tight flex items-center justify-center gap-1.5 transition-all active:scale-[0.96] duration-200 shadow-sm"
                           >
                             <span>Modify Dates & Duration</span>
-                            <span className="text-white/40 text-[9px]">→</span>
+                            <span className="text-white/60 text-[10px]">→</span>
                           </button>
                         )}
                       </div>
@@ -3615,25 +3629,25 @@ Please confirm my booking. Thank you!`;
                       {/* Inline Single Pax Rate Breakdown Card */}
                       {paxData && (
                         <div className="mt-3 p-3 rounded-[16px] bg-white/[0.04] border border-white/10 animate-in slide-in-from-top-2 duration-300 space-y-1.5">
-                          <div className="flex justify-between text-[9px] font-black uppercase text-amber-400 tracking-wider pb-1 border-b border-white/5">
+                          <div className="flex justify-between text-[10px] font-bold uppercase text-amber-400 tracking-wider pb-1 border-b border-white/5">
                             <span>{paxFocus === 'adults' ? 'Adult' : paxFocus === 'kids' ? 'Child' : 'Infant'} Rate</span>
-                            <span className="text-white/40">Per Pax</span>
+                            <span className="text-white/50">Per Pax</span>
                           </div>
                           
-                          <div className="flex justify-between text-[10px] text-white/60">
+                          <div className="flex justify-between text-[10px] text-white/70">
                             <span>Tour Net:</span>
                             <span className="font-mono">{paxData.symbol}{paxData.landNet.toLocaleString()}</span>
                           </div>
 
                           {paxData.flightFare > 0 && (
-                            <div className="flex justify-between text-[10px] text-white/60">
+                            <div className="flex justify-between text-[10px] text-white/70">
                               <span>Flight Est:</span>
                               <span className="font-mono">{paxData.symbol}{paxData.flightFare.toLocaleString()}</span>
                             </div>
                           )}
 
                           {paxData.taxAmt > 0 && (
-                            <div className="flex justify-between text-[10px] text-teal-400/80">
+                            <div className="flex justify-between text-[10px] text-teal-400/90">
                               <span>GST / Taxes:</span>
                               <span className="font-mono">{paxData.symbol}{paxData.taxAmt.toLocaleString()}</span>
                             </div>
@@ -3648,12 +3662,12 @@ Please confirm my booking. Thank you!`;
 
                       {namedGuests.length > 0 && !paxFocus && (
                         <div className="border-t border-white/10 pt-2.5 space-y-1">
-                          <span className="text-[8px] font-bold text-amber-400 uppercase tracking-widest block mb-1">Manifest Details:</span>
-                          <ul className="text-[8.5px] leading-relaxed text-white/50 space-y-1">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">Manifest Details:</span>
+                          <ul className="text-[10px] leading-relaxed text-white/70 space-y-1">
                             {namedGuests.map((g, i) => (
                               <li key={i} className="flex justify-between">
                                 <span className="truncate max-w-[150px]">• {g.name}</span>
-                                <span className="text-[7.5px] uppercase tracking-wider text-white/30">{g.type}</span>
+                                <span className="text-[10px] uppercase tracking-wider text-white/60">{g.type}</span>
                               </li>
                             ))}
                           </ul>
@@ -3670,7 +3684,7 @@ Please confirm my booking. Thank you!`;
                           className="w-full mt-3 py-2 px-4 rounded-xl bg-gradient-to-r from-white/[0.06] to-white/[0.09] hover:from-white/[0.1] hover:to-white/[0.13] border border-white/[0.08] text-white/90 font-medium text-[10px] tracking-tight flex items-center justify-center gap-1.5 transition-all active:scale-[0.96] duration-200 shadow-sm"
                         >
                           <span>Adjust Traveler Count</span>
-                          <span className="text-white/40 text-[9px]">→</span>
+                          <span className="text-white/60 text-[10px]">→</span>
                         </button>
                       )}
                     </div>
@@ -3923,7 +3937,7 @@ Please confirm my booking. Thank you!`;
                       }}
                       disabled={isSubmitting || !isPhaseValid}
                       className={cn(
-                        "group/btn relative overflow-hidden h-10 md:h-12 xl:h-14 rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none",
+                        "group/btn relative overflow-hidden h-10 md:h-12 xl:h-14 rounded-full transition-all duration-700 active:scale-95 flex items-center justify-center shrink-0 flex-none touch-target-44",
                         (internalPackage?.isCustom || step === 2) ? "w-auto px-6 md:px-8 xl:px-10" : "w-10 h-10 md:h-12 md:w-12 xl:h-14 xl:w-auto",
                         isPhaseValid
                           ? (step === 2
@@ -3944,7 +3958,7 @@ Please confirm my booking. Thank you!`;
                           </svg>
                         )}
                         <span className={cn(
-                          "text-[9px] xl:text-[10px] font-black uppercase tracking-[0.3em] whitespace-nowrap animate-in fade-in duration-700",
+                          "text-[10px] xl:text-[11px] font-black uppercase tracking-[0.25em] whitespace-nowrap animate-in fade-in duration-700",
                           !(internalPackage?.isCustom || step === 2) && "hidden xl:block"
                         )}>
                           {step === 2 ?

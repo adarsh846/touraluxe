@@ -84,12 +84,12 @@ export const PackageCard = memo(function PackageCard({
                     {pkg.duration}
                   </span>
                   {pkg.flights_status === 'included' ? (
-                    <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                    <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
                       <Plane size={10} />
                       <span>Flights Included</span>
                     </div>
                   ) : pkg.flights_status === 'on_request' ? (
-                    <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                    <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-400/90 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
                       <Plane size={10} />
                       <span>Flights on Request</span>
                     </div>

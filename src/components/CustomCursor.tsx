@@ -59,7 +59,14 @@ export function CustomCursor() {
 
       const target = e.target as HTMLElement;
       if (target) {
-        const interactive = target.closest("a, button, [role='button'], .interactive, input, select, textarea");
+        const isTextInput = target.closest("input, select, textarea");
+        if (isTextInput) {
+          gsap.to([cursor, follower], { opacity: 0, duration: 0.15, overwrite: "auto" });
+          return;
+        }
+
+        gsap.to(cursor, { opacity: 1, duration: 0.15, overwrite: "auto" });
+        const interactive = target.closest("a, button, [role='button'], .interactive");
         if (interactive) {
           handleHover();
         } else {
