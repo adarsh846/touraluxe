@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { DestinationNavbar } from "@/components/DestinationNavbar";
 
 export function DestinationModal({ children }: { children: React.ReactNode }) {
@@ -14,34 +15,51 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
+  const isDestination = pathname.startsWith("/destinations");
+  const isDetailPage = pathname.startsWith("/destinations/");
+
   const handleInternalScroll = () => {
     if (scrollRef.current) {
       setIsScrolled(scrollRef.current.scrollTop > 30);
     }
   };
 
-  const handleBack = useCallback(() => {
-    if (isExiting) return;
-    setIsExiting(true);
-
-    const tl = gsap.timeline({ onComplete: () => router.back() });
-    tl.to(panelRef.current, { y: "100%", duration: 0.5, ease: "power3.in", force3D: true })
-      .to(overlayRef.current, { opacity: 0, duration: 0.4, ease: "power2.in", force3D: true }, "-=0.3");
-  }, [isExiting, router]);
+  const restoreScroll = useCallback(() => {
+    document.body.style.removeProperty("overflow");
+    document.documentElement.style.removeProperty("overflow");
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lenis = (window as any).__lenis;
+    if (lenis) {
+      lenis.start();
+    }
+    ScrollTrigger.refresh();
+  }, []);
 
   const handleFullClose = useCallback(() => {
     if (isExiting) return;
     setIsExiting(true);
+    restoreScroll();
 
     const tl = gsap.timeline({ onComplete: () => { router.push("/", { scroll: false }); } });
     tl.to(panelRef.current, { y: "100%", duration: 0.5, ease: "power3.in", force3D: true })
       .to(overlayRef.current, { opacity: 0, duration: 0.4, ease: "power2.in", force3D: true }, "-=0.3");
-  }, [isExiting, router]);
+  }, [isExiting, router, restoreScroll]);
 
+  const handleBack = useCallback(() => {
+    if (isDetailPage) {
+      // Pop back to the catalog within the modal without dismissing
+      router.push("/destinations");
+      return;
+    }
+    handleFullClose();
+  }, [isDetailPage, router, handleFullClose]);
+
+  // Entrance animation — plays when modal enters a destination route
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).__lenis?.stop();
+    if (!isDestination) return;
+    setIsExiting(false);
 
     const ctx = gsap.context(() => {
       gsap.fromTo(overlayRef.current,
@@ -55,12 +73,25 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      document.body.style.overflow = "auto";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__lenis?.start();
       ctx.revert();
     };
-  }, []);
+  }, [isDestination]);
+
+  // Body scroll & Lenis lock controller
+  useEffect(() => {
+    if (isDestination && !isExiting) {
+      document.body.style.setProperty("overflow", "hidden", "important");
+      document.documentElement.style.setProperty("overflow", "hidden", "important");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__lenis?.stop();
+    } else {
+      restoreScroll();
+    }
+
+    return () => {
+      restoreScroll();
+    };
+  }, [isDestination, isExiting, restoreScroll]);
 
   // Reset scroll container position when slug/pathname transitions
   useEffect(() => {
@@ -70,7 +101,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
     setIsScrolled(false);
   }, [pathname]);
 
-  if (!pathname.startsWith("/destinations")) {
+  if (!isDestination) {
     return null;
   }
 
@@ -86,7 +117,7 @@ export function DestinationModal({ children }: { children: React.ReactNode }) {
       {/* ═══ PANEL — Full Screen to match Page structure ═══ */}
       <div
         ref={panelRef}
-        className="relative w-full h-screen-stable md:h-screen bg-[#0a0a0b] flex flex-col transform-gpu will-change-[transform]"
+        className="relative w-full max-w-full h-screen-stable md:h-screen bg-[#0a0a0b] flex flex-col transform-gpu will-change-[transform] overflow-hidden"
         data-lenis-prevent
       >
         {/* ═══ HEADER — rendered here at z-[90+], OUTSIDE overflow-hidden scroll area ═══ */}

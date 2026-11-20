@@ -37,20 +37,16 @@ export function DestinationNavbar({
 
   const isScrolled = forceScrolled ?? internalScrolled;
 
-  // On standalone pages, Back and X use router.push to do smooth client-side SPA navigations.
+  // On standalone pages, Back navigates up the hierarchy and Close returns to home.
   const handlePageBack = () => {
-    if (pathname.startsWith("/destinations/")) {
-      router.push("/destinations");
-    } else {
-      router.push("/");
-    }
+    router.push("/destinations");
   };
 
   const handlePageClose = () => {
     router.push("/");
   };
 
-  const backLabel = pathname.startsWith("/destinations/") ? "Destinations" : "Home";
+  const isDetailPage = pathname.startsWith("/destinations/");
 
   return (
     <>
@@ -102,29 +98,30 @@ export function DestinationNavbar({
         {/* Center slot */}
         <div className="flex-1 hidden lg:flex items-center justify-center" />
 
-        {/* Right: Back Pill + Close Circle */}
+        {/* Right: Actions */}
         <div className="flex items-center gap-1.5 md:gap-3">
 
-          {/* Back Pill */}
-          <Magnetic>
-            {/* In modal: trigger cinematic exit. On page: hard nav to avoid interception. */}
-            <button
-              onClick={onBack ?? handlePageBack}
-              aria-label="Go back"
-              className="relative group block"
-            >
-              <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
-              <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
-              <div className="relative px-3.5 md:px-5 h-9 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
-                <ArrowLeft strokeWidth={2.5} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] group-hover/backbtn:-translate-x-1 transition-transform shrink-0" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] md:tracking-[0.24em] text-white/70 group-hover:text-black/80 transition-colors whitespace-nowrap">
-                  {backLabel}
-                </span>
-              </div>
-            </button>
-          </Magnetic>
+          {/* Back Pill — ONLY shown on child views per Apple HIG modal navigation */}
+          {isDetailPage && (
+            <Magnetic>
+              <button
+                onClick={onBack ?? handlePageBack}
+                aria-label="Back to Destinations"
+                className="relative group block"
+              >
+                <div className="absolute inset-0 bg-black/70 blur-2xl rounded-full translate-y-4 scale-95 opacity-80" />
+                <div className="absolute inset-0 bg-black/40 blur-md rounded-full translate-y-1 scale-90" />
+                <div className="relative px-3.5 md:px-5 h-9 md:h-10 touch-target-44 rounded-full bg-black/80 backdrop-blur-xl border border-white/20 flex items-center gap-1.5 md:gap-3 transition-all duration-500 hover:bg-white hover:text-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-90 group/backbtn">
+                  <ArrowLeft strokeWidth={2.5} className="w-3.5 h-3.5 md:w-[18px] md:h-[18px] group-hover/backbtn:-translate-x-1 transition-transform shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] md:tracking-[0.24em] text-white/70 group-hover:text-black/80 transition-colors whitespace-nowrap">
+                    Destinations
+                  </span>
+                </div>
+              </button>
+            </Magnetic>
+          )}
 
-          {/* Close Circle */}
+          {/* Close Circle (X) */}
           <Magnetic>
             <button
               onClick={onX ?? handlePageClose}

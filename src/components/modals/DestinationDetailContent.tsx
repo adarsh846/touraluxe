@@ -181,7 +181,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
   return (
     <div className="w-full">
       {/* ── CINEMATIC HERO ── */}
-      <section className="relative w-full h-[60vh] md:h-[70vh] flex items-end pb-16 md:pb-24">
+      <section className="relative w-full h-[60vh] md:h-[70vh] flex items-end pb-16 md:pb-24 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden bg-white/5">
           {destination.cover_image ? (
             <Image src={destination.cover_image} alt={destination.name} fill className="object-cover" priority quality={85} decoding="async" />
@@ -221,7 +221,7 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
       {/* ── PACKAGES ── */}
       <section className="px-6 py-16 md:py-24">
         <div className="max-w-[1200px] mx-auto">
-          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100vw-3rem)] min-w-0 bg-[#0a0a0b]/98 px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
+          <div className="sticky top-24 z-30 mx-auto w-fit max-w-[calc(100%-1rem)] min-w-0 bg-[#0a0a0b]/98 px-4 py-2 rounded-full border border-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] mb-10 flex items-center gap-2">
             <FilterBar packages={packages} filters={filters} onChange={setFilters} resultCount={filteredPackages.length} />
           </div>
           {filteredPackages.length > 0 ? (
@@ -248,51 +248,119 @@ export function DestinationDetailContent({ slug }: { slug: string }) {
         </section>
       )}
 
-      {/* ── RELATED ── */}
+      {/* ── RELATED (Apple HIG Aligned) ── */}
       {relatedDestinations.length > 0 && (
-        <section className="px-6 py-16 md:py-24 border-t border-white/[0.04] pb-32">
+        <section className="px-6 py-16 md:py-24 border-t border-white/[0.04] pb-32 overflow-hidden w-full">
           <div className="max-w-[1200px] mx-auto">
-            <div className="flex items-center justify-between gap-4 mb-10">
-              <div className="min-w-0">
-                <h2 className="text-[clamp(1.25rem,4vw,2rem)] text-balance font-semibold tracking-tight text-white">Explore More</h2>
-                <p className="text-white/30 text-sm mt-1">Other destinations you might love</p>
+            {/* Section Header */}
+            <div className="flex items-end justify-between gap-4 mb-8 md:mb-10">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[clamp(1.5rem,4vw,2.25rem)] font-semibold tracking-tight text-white leading-tight">
+                  Explore More
+                </h2>
+                <p className="text-xs sm:text-sm text-[#86868b] mt-1 font-normal">
+                  Other destinations you might love
+                </p>
               </div>
-              <Magnetic><Link href="/destinations" className="shrink-0 whitespace-nowrap px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 hover:bg-white hover:text-black transition-all duration-500">View All</Link></Magnetic>
+              <Magnetic className="shrink-0">
+                <Link
+                  href="/destinations"
+                  className="inline-flex items-center justify-center whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full bg-white/10 hover:bg-white text-white/90 hover:text-black border border-white/15 text-[10px] md:text-[11px] font-semibold tracking-[0.1em] uppercase transition-all duration-300 active:scale-95 shadow-[0_2px_8px_rgba(0,0,0,0.4)] touch-target-44"
+                >
+                  View All
+                </Link>
+              </Magnetic>
             </div>
-            <div className="overflow-x-auto scrollbar-hide -mx-6 xl:-mx-[calc((100vw-1200px)/2+1.5rem)]">
-              <div className="flex gap-6 min-w-full w-max px-6 xl:px-[calc((100vw-1200px)/2+1.5rem)]" style={{ justifyContent: 'safe center' }}>
-                {relatedDestinations.map((dest) => (
-                  <Link key={dest.id} href={`/destinations/${dest.slug}`} replace className="group flex-shrink-0 w-[300px] rounded-[2rem] overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.15] transition-all duration-700 hover:translate-y-[-4px]">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-white/5">
-                      {dest.cover_image ? (
-                        <Image src={dest.cover_image} alt={dest.name} fill className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out" quality={80} sizes="300px" decoding="async" />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center"><MapPin size={32} className="text-white/10" /></div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700" />
-                      
-                      <div className="absolute inset-0 p-6 flex flex-col justify-between">
-                        <div className="flex justify-end">
-                          <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
-                            {dest.region || "Discovery"}
+
+            {/* ── Services-Style Responsive Shelf / Grid ── */}
+            <div 
+              className="flex flex-row overflow-x-auto lg:overflow-visible snap-x snap-mandatory scrollbar-hide gap-5 sm:gap-6 pt-2 pb-6 px-6 -mx-6 lg:mx-0 lg:px-0 lg:grid lg:grid-cols-3 lg:gap-6"
+            >
+              {relatedDestinations.map((dest) => (
+                <div 
+                  key={dest.id} 
+                  className="shrink-0 w-[80vw] sm:w-[45vw] lg:w-auto h-auto snap-center snap-always"
+                >
+                  <Magnetic intensity={0.08} className="block w-full h-full">
+                    <Link
+                      href={`/destinations/${dest.slug}`}
+                      replace
+                      className="group relative block h-full aspect-[4/5] rounded-[2rem] overflow-hidden bg-black/60 border border-white/15 hover:border-amber-400/80 transition-all duration-700 cursor-pointer hover:translate-y-[-4px] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_40px_rgba(251,191,36,0.12)]"
+                    >
+                      {/* Background Image Container */}
+                      <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
+                        {dest.cover_image ? (
+                          <Image 
+                            src={dest.cover_image} 
+                            alt={dest.name} 
+                            fill 
+                            className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.25,1)] group-hover:scale-[1.04]"
+                            quality={85}
+                            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 45vw, 380px"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+                            <MapPin size={40} className="text-white/10" />
                           </div>
+                        )}
+                        {/* Top Legibility Scrim */}
+                        <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/80 via-black/25 to-transparent pointer-events-none" />
+                        {/* Bottom Vignette Scrim */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent transition-opacity duration-700" />
+                      </div>
+
+                      {/* Content Overlay */}
+                      <div className="absolute inset-0 z-10 p-6 sm:p-8 flex flex-col justify-between">
+                        {/* Top Badge */}
+                        <div className="flex justify-between items-start">
+                          <div className="px-3.5 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                            {dest.region || (dest.is_international ? "International" : "Domestic")}
+                          </div>
+                          {dest.stats?.packages && dest.stats.packages > 0 && (
+                            <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/80">
+                              {dest.stats.packages} {dest.stats.packages === 1 ? "Journey" : "Journeys"}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="space-y-1">
-                            <h3 className="text-2xl font-bold text-white tracking-tight leading-none group-hover:translate-x-1 transition-transform duration-700">{dest.name}</h3>
-                            {dest.country && <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">{dest.country}</p>}
+                        {/* Bottom Content Info */}
+                        <div className="space-y-3 sm:space-y-4">
+                          <div className="flex items-end justify-between">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/60 group-hover:text-amber-300/90 transition-colors">
+                                {dest.country || "Explore Journey"}
+                              </p>
+                              <h3 
+                                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                                className="text-[clamp(1.5rem,2.5vw,2.25rem)] text-balance font-light tracking-tight text-white leading-none italic drop-shadow-lg"
+                              >
+                                {dest.name}
+                              </h3>
+                            </div>
+                            
+                            {/* Interaction Indicator — Always visible on mobile, reveals on desktop hover */}
+                            <div className="w-9 h-9 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all duration-500 shadow-xl opacity-100 lg:opacity-0 lg:translate-y-2 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 group-hover:bg-white group-hover:text-black shrink-0">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white group-hover:text-black transition-colors">
+                                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                              </svg>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-700">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Explore Journey</span>
-                            <ArrowRight size={12} className="text-white/60" />
-                          </div>
+
+                          {dest.description && (
+                            <p className="text-xs text-[#a1a1a6] leading-relaxed line-clamp-2 opacity-90 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-500">
+                              {dest.description}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                      
+                      {/* Kinetic Bottom Line */}
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-amber-400/40 transition-all duration-1000" />
+                    </Link>
+                  </Magnetic>
+                </div>
+              ))}
             </div>
           </div>
         </section>

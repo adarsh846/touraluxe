@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { getPackageManifest } from "@/lib/manifestCache";
 import { MAJOR_DESTINATIONS } from "@/lib/geography";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { getSettings, getCachedSettingsSync } from "@/lib/settingsCache";
 
 // Jaro-Winkler helper for typo-tolerant suggest-ahead matching
 function getJaroWinkler(s1: string, s2: string): number {
@@ -93,11 +94,11 @@ function softSpring(zeta: number = 0.76, omega: number = 16) {
 }
 
 // Pre-computed spring instances (avoid creating closures per animation frame)
-const SPRING_POSITION  = criticalSpring(20);     // Y/x movement — snappy, no bounce
-const SPRING_BOUNCY    = softSpring(0.55, 14);   // Visible 2-3 bounce oscillations for scale
-const SPRING_SCALE     = softSpring(0.62, 15);   // Scale morph — clear bounce, settles fast
-const SPRING_EXPAND    = softSpring(0.55, 12);   // ScaleX expansion — widest bounce, organic settle
-const SPRING_POS_SOFT  = softSpring(0.68, 16);   // Y position with subtle overshoot
+const SPRING_POSITION = criticalSpring(20);     // Y/x movement — snappy, no bounce
+const SPRING_BOUNCY = softSpring(0.55, 14);   // Visible 2-3 bounce oscillations for scale
+const SPRING_SCALE = softSpring(0.62, 15);   // Scale morph — clear bounce, settles fast
+const SPRING_EXPAND = softSpring(0.55, 12);   // ScaleX expansion — widest bounce, organic settle
+const SPRING_POS_SOFT = softSpring(0.68, 16);   // Y position with subtle overshoot
 
 export function FloatingSearch() {
   const [searchValue, setSearchValue] = useState("");
@@ -108,6 +109,54 @@ export function FloatingSearch() {
   const [isFocused, setIsFocused] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const { openBooking, isOpen } = useBooking();
+
+  // Instant autocomplete / Suggest-ahead dropdown state
+  const [packages, setPackages] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [whatsappNumber, setwhatsappNumber] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const cached = getCachedSettingsSync();
+      return cached?.whatsapp_number || cached?.contact_phone || "+919870103022";
+    }
+    return "+919870103022";
+  });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isPreloaderCompleted, setIsPreloaderCompleted] = useState(false);
+
+  // References
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isButtonClickedRef = useRef(false);
+  const lastToggleTapRef = useRef(0);
+  const TOGGLE_GUARD_MS = 600; // ignore blur/click-outside within 600ms of a Search button tap
+  const isVisibleRef = useRef(false);
+  const isFocusedRef = useRef(false);
+  const isKeyboardOpenRef = useRef(false);
+  const historyPushedRef = useRef(false);
+  const isNavigatingToBookingRef = useRef(false);
+
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const suggestionsCardRef = useRef<HTMLDivElement>(null);
+  const suggestionsScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isDraggingRef = useRef<boolean>(false);
+  const pillRef = useRef<HTMLFormElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const textMeasureRef = useRef<HTMLSpanElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const searchActionRef = useRef<HTMLDivElement>(null);
+  const islandContainerRef = useRef<HTMLDivElement>(null);
+  const islandInnerRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const whatsappBtnRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+  const lastWidthRef = useRef(0);
+  const initialHeightRef = useRef(0);
+  const isResizingRef = useRef(false);
+  const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const desktopEntrancePlayedRef = useRef(false);
+  const hasMountedRef = useRef(false);
 
   // Sync CSS visibility with GSAP exit animation lifecycle to prevent premature unmounting
   useEffect(() => {
@@ -120,15 +169,6 @@ export function FloatingSearch() {
       return () => clearTimeout(timer);
     }
   }, [isVisible]);
-
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isButtonClickedRef = useRef(false);
-  // Timestamp of last Search button tap — used instead of a boolean+timer lock to avoid
-  // colliding setTimeout calls on rapid double-taps (a timer from Tap1 can fire during Tap2's lock window)
-  const lastToggleTapRef = useRef(0);
-  const TOGGLE_GUARD_MS = 600; // ignore blur/click-outside within 600ms of a Search button tap
-  // Synchronously tracks open/close state — never stale unlike React state
-  const isVisibleRef = useRef(false);
 
   // Keep isVisibleRef synchronised whenever we call setIsVisible
   const setIsVisibleWithRef = useCallback((next: boolean) => {
@@ -200,9 +240,6 @@ export function FloatingSearch() {
   // When search opens: push a dummy history entry so pressing Back dismisses the
   // search bar with the exit animation instead of navigating away from the page.
   // When search closes (by any path): pop the dummy entry if it's still there.
-  const historyPushedRef = useRef(false);
-  const isNavigatingToBookingRef = useRef(false);
-
   useEffect(() => {
     if (!isMobile) return;
 
@@ -244,20 +281,6 @@ export function FloatingSearch() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [isMobile, setIsVisibleWithRef]);
 
-  // Instant autocomplete / Suggest-ahead dropdown state
-  const [packages, setPackages] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-  const suggestionsCardRef = useRef<HTMLDivElement>(null);
-  const suggestionsScrollRef = useRef<HTMLDivElement>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const isDraggingRef = useRef<boolean>(false);
-  const [whatsappNumber, setwhatsappNumber] = useState("");
-
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isPreloaderCompleted, setIsPreloaderCompleted] = useState(false);
-
   useEffect(() => {
     const hasPreloaderFinished = typeof window !== "undefined" && (window as any).preloaderPlayed;
     if (hasPreloaderFinished) {
@@ -275,15 +298,12 @@ export function FloatingSearch() {
       if (data) setPackages(data);
     }).catch(err => console.warn("Failed to load packages for search index:", err));
 
-    import("@/lib/settingsCache").then(({ getSettings }) => {
-      getSettings().then(data => {
-        if (data.whatsapp_number) {
-          setwhatsappNumber(data.whatsapp_number);
-        } else if (data.contact_phone) {
-          setwhatsappNumber(data.contact_phone);
-        }
-      });
-    });
+    getSettings().then(data => {
+      const num = data.whatsapp_number || data.contact_phone;
+      if (num) {
+        setwhatsappNumber(num);
+      }
+    }).catch(err => console.warn("Failed to load settings for search:", err));
   }, []);
 
   // Clear search query when the modal closes (Apple UX standard)
@@ -295,19 +315,7 @@ export function FloatingSearch() {
     }
   }, [isOpen]);
 
-  const pillRef = useRef<HTMLFormElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const textMeasureRef = useRef<HTMLSpanElement>(null);
-  const inputAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const searchActionRef = useRef<HTMLDivElement>(null);
-  // Phase 1 target: full-width GSAP-owned wrapper (y, scale, opacity) — matches PackageContent islandContainerRef
-  // The outer searchContainerRef is the pure CSS centering shell and is NEVER GSAP-animated
-  const islandContainerRef = useRef<HTMLDivElement>(null);
-  // Phase 2 target: w-fit plain wrapper (elastic scaleX, scaleY) — matches PackageContent islandInnerRef
-  // MUST be a plain div with NO CSS transitions, otherwise transition-all intercepts elastic.out and destroys it
-  const islandInnerRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
+
 
   // Apple-grade unified dismiss routine — triggers the full stationary Dynamic Island exit animation
   const handleDismiss = useCallback(() => {
@@ -378,7 +386,7 @@ export function FloatingSearch() {
     // 1. Direct and Substring matches in our visual manifest
     packages.forEach(pkg => {
       if (pkg.destination && (
-        pkg.destination.toLowerCase().includes(query) || 
+        pkg.destination.toLowerCase().includes(query) ||
         (pkg.location && pkg.location.toLowerCase().includes(query))
       )) {
         addSuggestion({ label: pkg.destination.trim(), type: 'destination', extra: 'Available Escape' });
@@ -389,7 +397,7 @@ export function FloatingSearch() {
     });
 
     // 2. Direct match in major worldwide hotspots
-    const matchedGlobals = MAJOR_DESTINATIONS.filter(dest => 
+    const matchedGlobals = MAJOR_DESTINATIONS.filter(dest =>
       dest.toLowerCase().startsWith(query) || (dest.toLowerCase().includes(query) && query.length >= 4)
     ).slice(0, 4);
 
@@ -403,9 +411,9 @@ export function FloatingSearch() {
         dest: dest.trim(),
         score: getJaroWinkler(query, dest.toLowerCase())
       }))
-      .filter(item => item.score > 0.8)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
+        .filter(item => item.score > 0.8)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
 
       fuzzyGlobals.forEach(item => {
         addSuggestion({ label: item.dest, type: 'destination', extra: 'Did you mean?' });
@@ -528,7 +536,7 @@ export function FloatingSearch() {
       const targetHeight = card.offsetHeight;
 
       gsap.killTweensOf(card);
-      
+
       const items = card.querySelectorAll(".suggestion-item");
       if (items.length > 0) gsap.killTweensOf(items);
 
@@ -537,14 +545,14 @@ export function FloatingSearch() {
         gsap.fromTo(
           card,
           { height: previousHeight },
-          { 
-            height: targetHeight, 
-            filter: "blur(0px)", 
-            duration: 0.35, 
-            ease: SPRING_POS_SOFT, 
+          {
+            height: targetHeight,
+            filter: "blur(0px)",
+            duration: 0.35,
+            ease: SPRING_POS_SOFT,
             onComplete: () => {
               gsap.set(card, { clearProps: "height,filter" });
-            } 
+            }
           }
         );
       } else {
@@ -685,11 +693,6 @@ export function FloatingSearch() {
       setSelectedIndex(-1);
     }
   }, [showSuggestions, suggestions, isMobile]);
-  const hasMountedRef = useRef(false);
-  const initialHeightRef = useRef(0);
-  const lastWidthRef = useRef(0);
-  // Guard: full entrance choreography fires only once on first load (like PackageContent's islandAnimatedRef)
-  const desktopEntrancePlayedRef = useRef(false);
 
   const triggerSearch = useCallback((valueOverride?: string) => {
     if (inputRef.current) {
@@ -705,9 +708,6 @@ export function FloatingSearch() {
     }
     openBooking(undefined, "FLOATING_SEARCH", finalVal || "Explore");
   }, [searchValue, openBooking, isMobile, setIsVisibleWithRef]);
-
-  const isResizingRef = useRef(false);
-  const resizeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check mobile & set dynamic placeholder
   useEffect(() => {
@@ -800,15 +800,11 @@ export function FloatingSearch() {
     };
 
     window.visualViewport.addEventListener("resize", handleVisualViewportChange, { passive: true });
-    
+
     return () => {
       window.visualViewport?.removeEventListener("resize", handleVisualViewportChange);
     };
   }, []);
-
-  const lastScrollY = useRef(0);
-  const isFocusedRef = useRef(false);
-  const isKeyboardOpenRef = useRef(false);
 
   // Smart Scroll Logic - runs once, refs used for real-time guard to avoid stale closure
   useEffect(() => {
@@ -821,7 +817,7 @@ export function FloatingSearch() {
 
     const handleScroll = () => {
       if (window.innerWidth < 1280) return; // Bypass scroll-hiding on mobile/tablet widths
-      
+
       // If the input is focused, keep the bar visible but do NOT blur it here.
       if (isFocusedRef.current) {
         if (!isVisibleRef.current) setIsVisibleWithRef(true);
@@ -902,11 +898,12 @@ export function FloatingSearch() {
     // Hold off until preloader finishes
     if (!isPreloaderCompleted) {
       gsap.set(islandEl, { opacity: 0 });
+      if (whatsappBtnRef.current) gsap.set(whatsappBtnRef.current, { opacity: 0 });
       return;
     }
 
     const startY = isMobile ? -120 : 80;
-    const hideY  = isMobile ? -120 : 80;
+    const hideY = isMobile ? -120 : 80;
 
     const isBtnClick = isButtonClickedRef.current;
     isButtonClickedRef.current = false;
@@ -918,16 +915,18 @@ export function FloatingSearch() {
 
       gsap.killTweensOf(islandEl);
       if (innerEl) gsap.killTweensOf(innerEl);
-      if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
+      if (inputAreaRef.current) gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
-      if (backdropRef.current)     gsap.killTweensOf(backdropRef.current);
+      if (backdropRef.current) gsap.killTweensOf(backdropRef.current);
+      if (whatsappBtnRef.current) gsap.killTweensOf(whatsappBtnRef.current);
 
       if (isResizingRef.current && !isBtnClick) {
         // Fast-path during rapid window resizing: set state instantly to avoid animation flashing
         gsap.set(islandEl, { y: 0, opacity: 1, scale: 1 });
         if (innerEl) gsap.set(innerEl, { scaleX: 1, scaleY: 1 });
-        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 1, x: 0 });
+        if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 1, x: 0 });
         if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 1, scale: 1 });
+        if (whatsappBtnRef.current) gsap.set(whatsappBtnRef.current, { opacity: 1, scale: 1, y: 0 });
         return;
       }
 
@@ -939,8 +938,9 @@ export function FloatingSearch() {
           // Initial compressed-seed state
           gsap.set(islandEl, { y: 80, opacity: 0, scale: 0.3 });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.45, scaleY: 0.75 });
-          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: 20 });
+          if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 0, x: 20 });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.6 });
+          if (whatsappBtnRef.current) gsap.set(whatsappBtnRef.current, { opacity: 0, scale: 0.6, x: -35 });
 
           const tl = gsap.timeline({ delay: 0.1 });
 
@@ -949,11 +949,11 @@ export function FloatingSearch() {
             duration: 0.6, ease: 'expo.out', force3D: true,
             clearProps: 'scale,y,opacity',
           })
-          .to(innerEl, {
-            scaleX: 1, scaleY: 1,
-            duration: 0.9, ease: 'elastic.out(1.1, 0.45)', force3D: true,
-            clearProps: 'scaleX,scaleY',
-          }, '-=0.4');
+            .to(innerEl, {
+              scaleX: 1, scaleY: 1,
+              duration: 0.9, ease: 'elastic.out(1.1, 0.45)', force3D: true,
+              clearProps: 'scaleX,scaleY',
+            }, '-=0.4');
 
           if (inputAreaRef.current) {
             tl.to(inputAreaRef.current, {
@@ -971,15 +971,30 @@ export function FloatingSearch() {
             }, '-=0.45');
           }
 
+          // WhatsApp button emerges from behind the pill's right edge with matching Apple spring bounce
+          if (whatsappBtnRef.current) {
+            tl.to(whatsappBtnRef.current, {
+              opacity: 1,
+              scale: 1,
+              x: 0,
+              duration: 0.85,
+              ease: 'elastic.out(1.1, 0.45)',
+              force3D: true,
+              clearProps: 'scale,x,opacity',
+            }, '-=0.45');
+          }
+
         } else {
           // Subsequent scroll show: Apple spring entrance with spatial blur
           gsap.killTweensOf(islandEl);
           if (innerEl) gsap.killTweensOf(innerEl);
           if (inputAreaRef.current) gsap.killTweensOf(inputAreaRef.current);
+          if (whatsappBtnRef.current) gsap.killTweensOf(whatsappBtnRef.current);
 
           gsap.set(islandEl, { y: 50, opacity: 0, scale: 0.85, filter: "blur(20px)" });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.6, scaleY: 0.8 });
           if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 0, x: 15 });
+          if (whatsappBtnRef.current) gsap.set(whatsappBtnRef.current, { opacity: 0, scale: 0.85, y: 20 });
 
           // Container spring rise & un-blur
           gsap.to(islandEl, {
@@ -1003,6 +1018,15 @@ export function FloatingSearch() {
               opacity: 1, x: 0,
               duration: 0.45, ease: 'power3.out', force3D: true, delay: 0.06,
               clearProps: 'opacity,x',
+            });
+          }
+
+          // WhatsApp button companion spring rise
+          if (whatsappBtnRef.current) {
+            gsap.to(whatsappBtnRef.current, {
+              opacity: 1, scale: 1, y: 0,
+              duration: 0.55, ease: SPRING_POS_SOFT, force3D: true, delay: 0.04,
+              clearProps: 'scale,y,opacity',
             });
           }
         }
@@ -1032,7 +1056,7 @@ export function FloatingSearch() {
           // ─── FULL LAUNCH: Dynamic Island Bouncy Spring Entrance + Balanced Apple Spatial Blur ───
           gsap.set(islandEl, { y: -60, opacity: 0, scale: 0.65, filter: "blur(32px)" });
           if (innerEl) gsap.set(innerEl, { scaleX: 0.55, scaleY: 0.7 });
-          if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: -15 });
+          if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 0, x: -15 });
           if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.5 });
 
           // Y position: spring with subtle overshoot
@@ -1095,14 +1119,16 @@ export function FloatingSearch() {
           if (innerEl) gsap.to(innerEl, { scaleX: 1, scaleY: 1, duration: 0.5, ease: SPRING_POSITION, force3D: true });
           if (inputAreaRef.current) gsap.to(inputAreaRef.current, { opacity: 1, x: 0, duration: 0.4, ease: SPRING_POSITION, force3D: true });
           if (searchActionRef.current) gsap.to(searchActionRef.current, { opacity: 1, scale: 1, duration: 0.5, ease: SPRING_SCALE, force3D: true });
+          if (whatsappBtnRef.current) gsap.to(whatsappBtnRef.current, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: SPRING_POSITION, force3D: true });
           gsap.to(islandEl, { y: 0, opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.5, ease: SPRING_POSITION, force3D: true });
         }
       }
     } else {
       gsap.killTweensOf(islandEl);
       if (innerEl) gsap.killTweensOf(innerEl);
-      if (inputAreaRef.current)    gsap.killTweensOf(inputAreaRef.current);
+      if (inputAreaRef.current) gsap.killTweensOf(inputAreaRef.current);
       if (searchActionRef.current) gsap.killTweensOf(searchActionRef.current);
+      if (whatsappBtnRef.current) gsap.killTweensOf(whatsappBtnRef.current);
       if (backdropRef.current) {
         gsap.killTweensOf(backdropRef.current);
         gsap.to(backdropRef.current, {
@@ -1122,8 +1148,9 @@ export function FloatingSearch() {
       if (isResizingRef.current && !isBtnClick) {
         gsap.set(islandEl, { y: hideY, opacity: 0, scale: 0.88, clearProps: "filter" });
         if (innerEl) gsap.set(innerEl, { scaleX: 0.7, scaleY: 0.85 });
-        if (inputAreaRef.current)    gsap.set(inputAreaRef.current,    { opacity: 0, x: isMobile ? -10 : 20 });
+        if (inputAreaRef.current) gsap.set(inputAreaRef.current, { opacity: 0, x: isMobile ? -10 : 20 });
         if (searchActionRef.current) gsap.set(searchActionRef.current, { opacity: 0, scale: 0.7 });
+        if (whatsappBtnRef.current) gsap.set(whatsappBtnRef.current, { opacity: 0, scale: 0.85, y: 15 });
         hideContainer();
       } else if (!isMobile) {
         // ─── DESKTOP SCROLL RETRACTION: Apple Spotlight Reverse Spring ───
@@ -1139,6 +1166,12 @@ export function FloatingSearch() {
             duration: 0.25, ease: 'power3.in', force3D: true
           });
         }
+        if (whatsappBtnRef.current) {
+          gsap.to(whatsappBtnRef.current, {
+            scale: 0.85, opacity: 0, y: 15,
+            duration: 0.22, ease: 'power2.in', force3D: true
+          });
+        }
         gsap.to(islandEl, {
           y: 50, scale: 0.88, filter: "blur(20px)", opacity: 0,
           duration: 0.35, ease: 'power3.in', force3D: true,
@@ -1149,7 +1182,7 @@ export function FloatingSearch() {
         });
       } else if (!isBtnClick) {
         // Lightweight hide — critically damped retraction for mobile
-        gsap.to(islandEl, { 
+        gsap.to(islandEl, {
           y: hideY, opacity: 0, scale: 0.95, duration: 0.35, ease: SPRING_POSITION, force3D: true,
           onComplete: () => {
             gsap.set(islandEl, { clearProps: "filter" });
@@ -1316,321 +1349,323 @@ export function FloatingSearch() {
           className="relative flex items-center justify-center gap-3 w-full transform-gpu will-change-[transform,opacity,filter]"
           style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
         >
-        {/* Predictive Autocomplete Suggestions Dropdown */}
-        {isSuggestionsRendered && suggestions.length > 0 && (
-          <div
-            ref={suggestionsCardRef}
-            onTouchCancel={() => {
-              if (isMobile) setSelectedIndex(-1);
-            }}
-            className={cn(
-              "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
-              isMobile ? "top-full mt-3 left-4 right-4 max-h-[min(340px,calc(100vh-160px))]" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
-            )}
-          >
-            {/* Apple iOS top-down gradient border ring — refined polished specular sheen */}
+          {/* Predictive Autocomplete Suggestions Dropdown */}
+          {isSuggestionsRendered && suggestions.length > 0 && (
             <div
-              className="absolute inset-0 rounded-2xl pointer-events-none z-[2]"
-              style={{
-                background: "linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.02) 100%)",
-                padding: "1px",
-                borderRadius: "1rem",
-                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                WebkitMaskComposite: "destination-out",
-                maskComposite: "exclude",
+              ref={suggestionsCardRef}
+              onTouchCancel={() => {
+                if (isMobile) setSelectedIndex(-1);
               }}
-            />
-            {/* Feathered top specular accent line */}
-            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none z-[3]" />
-
-            {/* Internal scrollable list container with strict overscroll containment */}
-            <div
-              ref={suggestionsScrollRef}
-              className="relative z-10 overflow-y-auto overscroll-contain flex flex-col p-1.5 touch-pan-y scrollbar-none"
-              style={{
-                WebkitOverflowScrolling: "touch",
-                overscrollBehavior: "contain",
-              }}
+              className={cn(
+                "absolute bg-[#0a0a0c]/96 border border-white/16 backdrop-blur-3xl rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.85),0_1px_0px_rgba(255,255,255,0.18)_inset] overflow-hidden flex flex-col z-[50] transform-gpu origin-top md:origin-bottom pointer-events-auto",
+                isMobile ? "top-full mt-3 left-4 right-4 max-h-[min(340px,calc(100vh-160px))]" : "bottom-full mb-3 w-[calc(100%-2rem)] max-w-lg"
+              )}
             >
-              {suggestions.map((item, idx) => {
-                const isSelected = idx === selectedIndex;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onMouseEnter={(e) => {
-                      if (e.nativeEvent && (e.nativeEvent as any).pointerType === 'touch') return;
-                      setSelectedIndex(idx);
-                    }}
-                    onTouchStart={() => {
-                      setSelectedIndex(idx);
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault(); // Prevent input blur on desktop mouse down
-                    }}
-                    onTouchEnd={(e) => {
-                      // Prevent accidental selection during swipe/drag gesture
-                      if (isDraggingRef.current) {
-                        e.preventDefault();
-                        return;
-                      }
-                      // iOS Safari swallows onClick when the virtual keyboard is dismissing.
-                      // onTouchEnd fires reliably before the OS consumes the gesture.
-                      e.preventDefault(); // Prevent the subsequent synthetic click
-                      setSearchValue(item.label);
-                      triggerSearch(item.label);
-                      if (isMobile) {
-                        setTimeout(() => setSelectedIndex(-1), 150);
-                      }
-                    }}
-                    onTouchCancel={() => {
-                      if (isMobile) setSelectedIndex(-1);
-                    }}
-                    onClick={(e) => {
-                      if (isDraggingRef.current) {
-                        e.stopPropagation();
-                        return;
-                      }
-                      // Desktop fallback (onTouchEnd won't fire on non-touch devices)
-                      e.stopPropagation();
-                      setSearchValue(item.label);
-                      triggerSearch(item.label);
-                    }}
-                    className={cn(
-                      "suggestion-item relative w-full text-left px-3.5 py-3 md:py-2.5 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu select-none active:scale-[0.97] touch-manipulation min-h-[44px] md:min-h-0",
-                      isSelected ? "text-white" : "text-white/60 hover:text-white"
-                    )}
-                  >
-                    {/* Apple Spotlight Damped Spring Highlight Pill */}
-                    {isSelected && (
-                      <motion.div
-                        layoutId="floating-search-suggestion-pill"
-                        className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
-                        transition={{
-                          type: "spring",
-                          stiffness: 550,
-                          damping: 36,
-                          mass: 0.5
-                        }}
-                      />
-                    )}
+              {/* Apple iOS top-down gradient border ring — refined polished specular sheen */}
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none z-[2]"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.36) 0%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.02) 100%)",
+                  padding: "1px",
+                  borderRadius: "1rem",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "destination-out",
+                  maskComposite: "exclude",
+                }}
+              />
+              {/* Feathered top specular accent line */}
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none z-[3]" />
 
-                    <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
-                      {item.type === 'destination' ? (
-                        <MapPin size={13} className={cn(
-                          "shrink-0 transition-all duration-300", 
-                          isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
-                        )} />
-                      ) : (
-                        <Sparkles size={13} className={cn(
-                          "shrink-0 transition-all duration-300", 
-                          isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
-                        )} />
+              {/* Internal scrollable list container with strict overscroll containment */}
+              <div
+                ref={suggestionsScrollRef}
+                className="relative z-10 overflow-y-auto overscroll-contain flex flex-col p-1.5 touch-pan-y scrollbar-none"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {suggestions.map((item, idx) => {
+                  const isSelected = idx === selectedIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onMouseEnter={(e) => {
+                        if (e.nativeEvent && (e.nativeEvent as any).pointerType === 'touch') return;
+                        setSelectedIndex(idx);
+                      }}
+                      onTouchStart={() => {
+                        setSelectedIndex(idx);
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent input blur on desktop mouse down
+                      }}
+                      onTouchEnd={(e) => {
+                        // Prevent accidental selection during swipe/drag gesture
+                        if (isDraggingRef.current) {
+                          e.preventDefault();
+                          return;
+                        }
+                        // iOS Safari swallows onClick when the virtual keyboard is dismissing.
+                        // onTouchEnd fires reliably before the OS consumes the gesture.
+                        e.preventDefault(); // Prevent the subsequent synthetic click
+                        setSearchValue(item.label);
+                        triggerSearch(item.label);
+                        if (isMobile) {
+                          setTimeout(() => setSelectedIndex(-1), 150);
+                        }
+                      }}
+                      onTouchCancel={() => {
+                        if (isMobile) setSelectedIndex(-1);
+                      }}
+                      onClick={(e) => {
+                        if (isDraggingRef.current) {
+                          e.stopPropagation();
+                          return;
+                        }
+                        // Desktop fallback (onTouchEnd won't fire on non-touch devices)
+                        e.stopPropagation();
+                        setSearchValue(item.label);
+                        triggerSearch(item.label);
+                      }}
+                      className={cn(
+                        "suggestion-item relative w-full text-left px-3.5 py-3 md:py-2.5 flex items-center gap-3 transition-colors duration-200 ease-out transform-gpu select-none active:scale-[0.97] touch-manipulation min-h-[44px] md:min-h-0",
+                        isSelected ? "text-white" : "text-white/60 hover:text-white"
                       )}
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <p className={cn(
-                          "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
-                          isSelected ? "text-white font-black" : "text-white/75"
-                        )}>{item.label}</p>
-                        {isMobile && item.extra && (
+                    >
+                      {/* Apple Spotlight Damped Spring Highlight Pill */}
+                      {isSelected && (
+                        <motion.div
+                          layoutId="floating-search-suggestion-pill"
+                          className="absolute inset-x-1 inset-y-[1px] rounded-xl bg-gradient-to-r from-white/[0.15] via-white/[0.11] to-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_20px_rgba(0,0,0,0.4)] backdrop-blur-xl z-0 pointer-events-none"
+                          transition={{
+                            type: "spring",
+                            stiffness: 550,
+                            damping: 36,
+                            mass: 0.5
+                          }}
+                        />
+                      )}
+
+                      <div className="relative z-10 flex items-center gap-3 w-full min-w-0 px-1">
+                        {item.type === 'destination' ? (
+                          <MapPin size={13} className={cn(
+                            "shrink-0 transition-all duration-300",
+                            isSelected ? "text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-white/35"
+                          )} />
+                        ) : (
+                          <Sparkles size={13} className={cn(
+                            "shrink-0 transition-all duration-300",
+                            isSelected ? "text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] scale-110" : "text-white/35"
+                          )} />
+                        )}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className={cn(
+                            "text-[11px] md:text-[10px] font-bold tracking-[0.08em] md:tracking-[0.1em] uppercase truncate transition-colors duration-200 leading-tight",
+                            isSelected ? "text-white font-black" : "text-white/75"
+                          )}>{item.label}</p>
+                          {isMobile && item.extra && (
+                            <span className={cn(
+                              "text-[10px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
+                              isSelected ? "text-white/80" : "text-white/50"
+                            )}>
+                              {item.extra}
+                            </span>
+                          )}
+                        </div>
+                        {!isMobile && item.extra && (
                           <span className={cn(
-                            "text-[10px] font-semibold uppercase tracking-[0.12em] truncate transition-colors duration-200 mt-0.5",
-                            isSelected ? "text-white/80" : "text-white/50"
+                            "text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
+                            isSelected
+                              ? "text-white/90 bg-white/12 shadow-xs"
+                              : "text-white/50 bg-white/[0.04]"
                           )}>
                             {item.extra}
                           </span>
                         )}
                       </div>
-                      {!isMobile && item.extra && (
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase tracking-[0.14em] px-2 py-0.5 rounded-md transition-all duration-200 shrink-0",
-                          isSelected 
-                            ? "text-white/90 bg-white/12 shadow-xs" 
-                            : "text-white/50 bg-white/[0.04]"
-                        )}>
-                          {item.extra}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            
-            <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">
-              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↑↓</span> Press to navigate</span>
-              <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↵</span> Enter to select</span>
-            </div>
-          </div>
-        )}
+                    </button>
+                  );
+                })}
+              </div>
 
-        {/* islandInnerRef: plain wrapper, NO CSS transitions — Phase 2 elastic scaleX/Y target.
+              <div className="hidden md:flex border-t border-white/10 mt-2 pt-2 px-3 pb-1.5 justify-between items-center text-[10px] font-bold uppercase tracking-[0.15em] text-white/70">
+                <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↑↓</span> Press to navigate</span>
+                <span className="flex items-center gap-1.5"><span className="px-1 py-0.5 rounded bg-white/10 text-white/90 font-mono text-[10px]">↵</span> Enter to select</span>
+              </div>
+            </div>
+          )}
+
+          {/* islandInnerRef: plain wrapper, NO CSS transitions — Phase 2 elastic scaleX/Y target.
             w-full on mobile (form fills container), w-fit on desktop (elastic expand works correctly) */}
-        <div
-          ref={islandInnerRef}
-          className={cn(
-            "relative flex items-center justify-center transform-gpu will-change-transform",
-            isMobile ? "w-full" : "w-fit"
-          )}
-          style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-        >
-        {/* iOS 26 gradient border ring — mobile & desktop */}
-        <div
-          className="absolute inset-0 rounded-full pointer-events-none z-[2]"
-          style={{
-            background: "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.14) 40%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.00) 100%)",
-            padding: "1px",
-            borderRadius: "9999px",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "destination-out",
-            maskComposite: "exclude",
-          }}
-        />
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            triggerSearch();
-          }}
-          ref={pillRef}
-          className={cn(
-            "relative items-center border rounded-full transition-[border-color] duration-300 bg-[#0a0a0c]/96 backdrop-blur-3xl border-white/16",
-            isMobile
-              ? "flex w-full p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
-              : "inline-flex w-auto p-1.5 md:p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
-          )}
-          onMouseMove={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
-          onMouseEnter={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
-          onMouseLeave={handleGlowLeave}
-          onTouchStart={(e) => !isMobile && handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-          onTouchMove={(e) => !isMobile && handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
-          onTouchEnd={handleGlowLeave}
-        >
-          <span 
-            ref={textMeasureRef} 
-            className="absolute invisible whitespace-pre font-medium uppercase tracking-[0.15em] md:tracking-[0.2em]"
-            style={{
-              fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
-            }}
-          >
-            {searchValue || placeholder}
-          </span>
-
           <div
-            ref={glowRef}
-            className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
-            style={{ opacity: 0, mixBlendMode: 'screen' }}
-          />
-
-          <div 
-            ref={inputAreaRef} 
+            ref={islandInnerRef}
             className={cn(
-              "flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden",
-              isMobile ? "flex-1 w-full" : "flex-none"
+              "relative flex items-center justify-center transform-gpu will-change-transform z-10",
+              isMobile ? "w-full" : "w-fit"
             )}
+            style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
-            {isMobile ? (
-              <button 
-                type="submit" 
-                disabled={!searchValue}
-                className="text-white/70 active:scale-95 transition-transform shrink-0 disabled:pointer-events-none"
-              >
-                <Search size={14} className={cn("transition-transform duration-300", isFocused && "rotate-12 scale-110", searchValue ? "text-white" : "text-white/75")} />
-              </button>
-            ) : (
-              <Search className={cn("shrink-0 transition-transform duration-300", isFocused ? "text-white rotate-12 scale-110" : "text-white/70")} size={14} />
-            )}
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              onFocus={() => {
-                setIsFocused(true);
-                isFocusedRef.current = true;
-                setIsVisibleWithRef(true);
-              }}
-              onBlur={() => {
-                // Apple Spotlight pattern: blur NEVER closes the overlay.
-                // Closing is handled exclusively by: toggle button, click-outside, scroll, or Cancel.
-                // This eliminates all blur↔click race conditions on iOS.
-                setIsFocused(false);
-                isFocusedRef.current = false;
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
-                  setSelectedIndex(prev => {
-                    if (prev < 0) return 0;
-                    return Math.min(prev + 1, suggestions.length - 1);
-                  });
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
-                  setSelectedIndex(prev => {
-                    if (prev < 0) return 0;
-                    return Math.max(prev - 1, 0);
-                  });
-                } else if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const activeIdx = selectedIndex >= 0 ? selectedIndex : 0;
-                  if (showSuggestions && suggestions[activeIdx]) {
-                    const val = suggestions[activeIdx].label;
-                    setSearchValue(val);
-                    triggerSearch(val);
-                  } else {
-                    triggerSearch();
-                  }
-                } else if (e.key === 'Escape') {
-                  setShowSuggestions(false);
-                  setSelectedIndex(-1);
-                }
-              }}
-              placeholder={placeholder}
-              className="w-full p-0 border-none bg-transparent text-white placeholder-white/70 placeholder-small font-medium uppercase tracking-[0.15em] md:tracking-[0.2em] outline-none caret-white selection:bg-white/20 selection:text-white"
+            {/* iOS 26 gradient border ring — mobile & desktop */}
+            <div
+              className="absolute inset-0 rounded-full pointer-events-none z-[2]"
               style={{
-                fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
+                background: "linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.14) 40%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.00) 100%)",
+                padding: "1px",
+                borderRadius: "9999px",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "destination-out",
+                maskComposite: "exclude",
               }}
             />
-          </div>
-
-          {!isMobile && (
-            <div ref={searchActionRef} className="shrink-0 relative z-10">
-              <Magnetic>
-                <button
-                  type="submit"
-                  aria-label="Explore matching experiences"
-                  style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}
-                  className="text-black text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
-                >
-                  <span>Explore</span>
-                  <ArrowRight size={10} className="stroke-[3]" />
-                </button>
-              </Magnetic>
-            </div>
-          )}
-
-          {isMobile && (
-            <div ref={searchActionRef} className="shrink-0 relative z-10">
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchValue("");
-                  handleDismiss();
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                triggerSearch();
+              }}
+              ref={pillRef}
+              className={cn(
+                "relative items-center border rounded-full transition-[border-color] duration-300 bg-[#0a0a0c]/96 backdrop-blur-3xl border-white/16",
+                isMobile
+                  ? "flex w-full p-1.5 shadow-[0_20px_55px_rgba(0,0,0,0.8),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+                  : "inline-flex w-auto p-1.5 md:p-2 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_1px_0px_rgba(255,255,255,0.18)_inset,0_-1px_0px_rgba(0,0,0,0.5)_inset]"
+              )}
+              onMouseMove={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
+              onMouseEnter={(e) => !isMobile && handleGlowMove(e.clientX, e.clientY)}
+              onMouseLeave={handleGlowLeave}
+              onTouchStart={(e) => !isMobile && handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+              onTouchMove={(e) => !isMobile && handleGlowMove(e.touches[0].clientX, e.touches[0].clientY)}
+              onTouchEnd={handleGlowLeave}
+            >
+              <span
+                ref={textMeasureRef}
+                className="absolute invisible whitespace-pre font-medium uppercase tracking-[0.15em] md:tracking-[0.2em]"
+                style={{
+                  fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
                 }}
-                aria-label="Dismiss search"
-                className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0 touch-target-44"
               >
-                Cancel
-              </button>
+                {searchValue || placeholder}
+              </span>
+
+              <div
+                ref={glowRef}
+                className="absolute inset-0 rounded-full pointer-events-none z-[1] transition-opacity duration-300"
+                style={{ opacity: 0, mixBlendMode: 'screen' }}
+              />
+
+              <div
+                ref={inputAreaRef}
+                className={cn(
+                  "flex items-center gap-2 px-3 md:px-4 py-2 relative z-10 overflow-hidden",
+                  isMobile ? "flex-1 w-full" : "flex-none"
+                )}
+              >
+                {isMobile ? (
+                  <button
+                    type="submit"
+                    disabled={!searchValue}
+                    className="text-white/70 active:scale-95 transition-transform shrink-0 disabled:pointer-events-none"
+                  >
+                    <Search size={14} className={cn("transition-transform duration-300", isFocused && "rotate-12 scale-110", searchValue ? "text-white" : "text-white/75")} />
+                  </button>
+                ) : (
+                  <Search className={cn("shrink-0 transition-transform duration-300", isFocused ? "text-white rotate-12 scale-110" : "text-white/70")} size={14} />
+                )}
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onFocus={() => {
+                    setIsFocused(true);
+                    isFocusedRef.current = true;
+                    setIsVisibleWithRef(true);
+                  }}
+                  onBlur={() => {
+                    // Apple Spotlight pattern: blur NEVER closes the overlay.
+                    // Closing is handled exclusively by: toggle button, click-outside, scroll, or Cancel.
+                    // This eliminates all blur↔click race conditions on iOS.
+                    setIsFocused(false);
+                    isFocusedRef.current = false;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                      setSelectedIndex(prev => {
+                        if (prev < 0) return 0;
+                        return Math.min(prev + 1, suggestions.length - 1);
+                      });
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (!showSuggestions && suggestions.length > 0) setShowSuggestions(true);
+                      setSelectedIndex(prev => {
+                        if (prev < 0) return 0;
+                        return Math.max(prev - 1, 0);
+                      });
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const activeIdx = selectedIndex >= 0 ? selectedIndex : 0;
+                      if (showSuggestions && suggestions[activeIdx]) {
+                        const val = suggestions[activeIdx].label;
+                        setSearchValue(val);
+                        triggerSearch(val);
+                      } else {
+                        triggerSearch();
+                      }
+                    } else if (e.key === 'Escape') {
+                      setShowSuggestions(false);
+                      setSelectedIndex(-1);
+                    }
+                  }}
+                  placeholder={placeholder}
+                  className="w-full p-0 border-none bg-transparent text-white placeholder-white/70 placeholder-small font-medium uppercase tracking-[0.15em] md:tracking-[0.2em] outline-none caret-white selection:bg-white/20 selection:text-white"
+                  style={{
+                    fontSize: isMobile ? "clamp(10px, 2.8vw, 11px)" : "11px"
+                  }}
+                />
+              </div>
+
+              {!isMobile && (
+                <div ref={searchActionRef} className="shrink-0 relative z-10">
+                  <Magnetic>
+                    <button
+                      type="submit"
+                      aria-label="Explore matching experiences"
+                      style={{ background: "linear-gradient(135deg, #a18cd1, #fbc2eb)" }}
+                      className="text-black text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] px-5 md:px-8 py-3 md:py-4 rounded-full transition-all duration-700 shadow-xl flex items-center justify-center gap-1.5 border border-white/20 hover:brightness-110"
+                    >
+                      <span>Explore</span>
+                      <ArrowRight size={10} className="stroke-[3]" />
+                    </button>
+                  </Magnetic>
+                </div>
+              )}
+
+              {isMobile && (
+                <div ref={searchActionRef} className="shrink-0 relative z-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchValue("");
+                      handleDismiss();
+                    }}
+                    aria-label="Dismiss search"
+                    className="text-[10px] font-bold uppercase tracking-wider text-white/75 hover:text-white active:scale-90 active:text-white px-3 py-2 transition-all duration-200 shrink-0 touch-target-44"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>{/* /islandInnerRef */}
+
+          {!isMobile && whatsappNumber && (
+            <div ref={whatsappBtnRef} className="relative shrink-0 z-10">
+              <WhatsAppButton phoneNumber={whatsappNumber} isInline={true} />
             </div>
           )}
-        </form>
-        </div>{/* /islandInnerRef */}
-
-        {!isMobile && whatsappNumber && (
-          <WhatsAppButton phoneNumber={whatsappNumber} isInline={true} />
-        )}
         </div>{/* /islandContainerRef */}
       </div>
     </>
