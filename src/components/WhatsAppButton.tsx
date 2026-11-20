@@ -42,7 +42,7 @@ export function WhatsAppButton({
     let tooltipTimer: NodeJS.Timeout;
     let hideTimer: NodeJS.Timeout;
 
-    const startTooltipSequence = (delay = 1500) => {
+    const startTooltipSequence = (delay = 2000) => {
       tooltipTimer = setTimeout(() => {
         setIsTooltipVisible(true);
         // Apple HIG standard transient display duration (5.5s): long enough to read comfortably, brief enough not to linger
@@ -52,7 +52,9 @@ export function WhatsAppButton({
 
     if (typeof window !== "undefined" && !(window as any).preloaderPlayed) {
       const handlePreloaderComplete = () => {
-        startTooltipSequence(1200);
+        // Staggered Apple Choreography: Hero & Search bar animations settle by ~1.75s;
+        // 2400ms gives a 650ms serene resting pause before popping the bubble, avoiding visual collisions.
+        startTooltipSequence(2400);
       };
       window.addEventListener("preloaderComplete", handlePreloaderComplete, { once: true });
       return () => {
@@ -61,7 +63,7 @@ export function WhatsAppButton({
         clearTimeout(hideTimer);
       };
     } else {
-      startTooltipSequence(1500);
+      startTooltipSequence(2000);
       return () => {
         clearTimeout(tooltipTimer);
         clearTimeout(hideTimer);
@@ -114,6 +116,8 @@ I would love to get some assistance in handcrafting this experience.`;
 
   const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(getDynamicMessage())}`;
 
+  const buttonAbsorbRef = useRef<HTMLDivElement>(null);
+
   const buttonEl = (
     <Magnetic intensity={0.25}>
       <a
@@ -145,48 +149,103 @@ I would love to get some assistance in handcrafting this experience.`;
   const bubbleRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
-  // Apple-grade physical bouncy spring animation for speech bubble
+  // Apple-grade physical bouncy spring animation for speech bubble + WhatsApp button kinetic expulsion/absorption
   useEffect(() => {
     const el = bubbleRef.current;
     if (!el) return;
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      gsap.set(el, { opacity: 0, scale: 0.35, y: 12, pointerEvents: "none" });
+      gsap.set(el, { opacity: 0, scale: 0.28, y: 13, pointerEvents: "none" });
       if (!showTooltip) return;
     }
 
     if (showTooltip) {
       gsap.killTweensOf(el);
+      if (buttonAbsorbRef.current) gsap.killTweensOf(buttonAbsorbRef.current);
+
       gsap.set(el, { pointerEvents: "auto" });
-      gsap.fromTo(
+
+      const enterTl = gsap.timeline({
+        onComplete: () => {
+          if (buttonAbsorbRef.current) gsap.set(buttonAbsorbRef.current, { clearProps: "transform" });
+        },
+      });
+
+      // 1. Bubble erupts upward from the top rim with an Apple bouncy spring
+      enterTl.fromTo(
         el,
-        { opacity: 0, scale: 0.35, y: 12 },
+        { opacity: 0, scale: 0.28, y: 13 },
         {
           opacity: 1,
           scale: 1,
           y: 0,
           duration: 0.85,
-          ease: "elastic.out(1.15, 0.45)",
+          ease: "elastic.out(1.15, 0.42)",
           force3D: true,
-        }
+        },
+        0
       );
+
+      // 2. WhatsApp Button kinetic ejection impulse:
+      // Initial upward stretch to push the bubble out, followed by detachment recoil and elastic spring settle
+      if (buttonAbsorbRef.current) {
+        enterTl.fromTo(
+          buttonAbsorbRef.current,
+          { scaleX: 1, scaleY: 1, y: 0 },
+          {
+            scaleX: 0.94,
+            scaleY: 1.07,
+            y: -2.5,
+            duration: 0.11,
+            ease: "power2.out",
+            force3D: true,
+          },
+          0
+        ).to(
+          buttonAbsorbRef.current,
+          {
+            scaleX: 1.05,
+            scaleY: 0.94,
+            y: 1.5,
+            duration: 0.14,
+            ease: "power2.inOut",
+            force3D: true,
+          },
+          0.11
+        ).to(
+          buttonAbsorbRef.current,
+          {
+            scaleX: 1,
+            scaleY: 1,
+            y: 0,
+            duration: 0.65,
+            ease: "elastic.out(1.25, 0.38)",
+            force3D: true,
+          },
+          0.25
+        );
+      }
     } else {
       gsap.killTweensOf(el);
-      // Apple-grade physical bouncy dismissal: anticipatory spring stretch & elastic snapback into the anchor
+      if (buttonAbsorbRef.current) gsap.killTweensOf(buttonAbsorbRef.current);
+
+      // Apple-grade physical bouncy dismissal with kinetic absorption into the WhatsApp button
       const tl = gsap.timeline({
         onComplete: () => {
           gsap.set(el, { pointerEvents: "none" });
+          if (buttonAbsorbRef.current) gsap.set(buttonAbsorbRef.current, { clearProps: "transform" });
         },
       });
 
+      // 1. Bubble snaps down into the top rim of the button
       tl.to(
         el,
         {
-          scale: 0.3,
-          y: 12,
-          duration: 0.42,
-          ease: "back.in(2)",
+          scale: 0.28,
+          y: 13,
+          duration: 0.40,
+          ease: "back.in(2.1)",
           force3D: true,
         },
         0
@@ -194,11 +253,38 @@ I would love to get some assistance in handcrafting this experience.`;
         el,
         {
           opacity: 0,
-          duration: 0.25,
+          duration: 0.22,
           ease: "power2.in",
         },
-        0.17
+        0.18
       );
+
+      // 2. WhatsApp Button absorbs kinetic impact: compresses vertically & bulges horizontally
+      if (buttonAbsorbRef.current) {
+        tl.to(
+          buttonAbsorbRef.current,
+          {
+            scaleX: 1.10,
+            scaleY: 0.88,
+            y: 3.5,
+            duration: 0.12,
+            ease: "power2.out",
+            force3D: true,
+          },
+          0.24 // timed right as bubble hits the top rim
+        ).to(
+          buttonAbsorbRef.current,
+          {
+            scaleX: 1,
+            scaleY: 1,
+            y: 0,
+            duration: 0.65,
+            ease: "elastic.out(1.25, 0.38)",
+            force3D: true,
+          },
+          0.36 // elastic rebound wobble back to resting state
+        );
+      }
     }
   }, [showTooltip]);
 
@@ -235,7 +321,9 @@ I would love to get some assistance in handcrafting this experience.`;
         className="relative shrink-0"
       >
         {tooltipEl}
-        {buttonEl}
+        <div ref={buttonAbsorbRef} className="relative transform-gpu will-change-transform origin-center">
+          {buttonEl}
+        </div>
       </div>
     );
   }
@@ -251,7 +339,9 @@ I would love to get some assistance in handcrafting this experience.`;
     >
       <div className="relative">
         {tooltipEl}
-        {buttonEl}
+        <div ref={buttonAbsorbRef} className="relative transform-gpu will-change-transform origin-center">
+          {buttonEl}
+        </div>
       </div>
     </div>
   );
