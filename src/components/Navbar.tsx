@@ -184,6 +184,39 @@ export function Navbar() {
     });
   }, [isPreloaderCompleted]);
 
+  // ─── Apple Kinetic Spring Tactile Feedback for Mobile Pill Buttons ───
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>, targetScale = 0.85) => {
+    gsap.killTweensOf(e.currentTarget);
+    gsap.to(e.currentTarget, { scale: targetScale, duration: 0.10, ease: "power2.out", force3D: true });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>, elasticEase = "elastic.out(1.25, 0.35)") => {
+    gsap.killTweensOf(e.currentTarget);
+    gsap.to(e.currentTarget, { scale: 1, duration: 0.65, ease: elasticEase, force3D: true });
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLButtonElement>) => {
+    gsap.killTweensOf(e.currentTarget);
+    gsap.to(e.currentTarget, { scale: 1, duration: 0.35, ease: "power2.out", force3D: true });
+  };
+
+  const handleBookTap = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const el = e.currentTarget;
+    gsap.killTweensOf(el);
+    gsap.timeline({
+      onComplete: () => {
+        gsap.set(el, { clearProps: "transform" });
+      }
+    })
+      .to(el, { scale: 0.80, duration: 0.10, ease: "power2.out", force3D: true })
+      .to(el, { scale: 1, duration: 0.75, ease: "elastic.out(1.35, 0.32)", force3D: true });
+
+    setIsMobileMenuOpen(false);
+    setTimeout(() => {
+      openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
+    }, 120);
+  };
+
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
@@ -444,25 +477,31 @@ export function Navbar() {
             <div ref={pillIconsRef} className="flex items-center justify-between px-3 py-2 w-full h-full">
               {/* Search */}
               <button
+                onPointerDown={(e) => handlePointerDown(e)}
+                onPointerUp={(e) => handlePointerUp(e)}
+                onPointerLeave={handlePointerLeave}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   window.dispatchEvent(new CustomEvent("open-mobile-search"));
                 }}
-                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white cursor-pointer select-none py-1 transform-gpu will-change-transform"
               >
-                <Search size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
+                <Search size={20} className="opacity-90 transition-transform duration-300 group-hover:scale-110" />
                 <span className="h-3.5 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold leading-none">Search</span>
               </button>
 
               {/* Destinations */}
               <button
+                onPointerDown={(e) => handlePointerDown(e)}
+                onPointerUp={(e) => handlePointerUp(e)}
+                onPointerLeave={handlePointerLeave}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   router.push("/destinations");
                 }}
-                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white cursor-pointer select-none py-1 transform-gpu will-change-transform"
               >
-                <Globe size={20} className={cn("transition-transform duration-200 group-hover:scale-110 group-active:scale-90", pathname === "/destinations" && !isMobileMenuOpen ? "text-white opacity-100" : "opacity-90")} />
+                <Globe size={20} className={cn("transition-transform duration-300 group-hover:scale-110", pathname === "/destinations" && !isMobileMenuOpen ? "text-white opacity-100" : "opacity-90")} />
                 <span className={cn("h-3.5 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold leading-none", pathname === "/destinations" && !isMobileMenuOpen ? "text-white" : "")}>Places</span>
                 {pathname === "/destinations" && !isMobileMenuOpen && (
                   <span className="absolute bottom-0 w-1 h-1 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] animate-pulse" />
@@ -473,16 +512,16 @@ export function Navbar() {
               <div className="flex-1 flex justify-center -translate-y-3.5 relative">
                 <div ref={pillBookRef} className="will-change-transform transform-gpu flex items-center justify-center">
                   <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      openBooking(undefined, "MOBILE_BOTTOM_PILL_CTA");
-                    }}
-                    className="group flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black transition-transform duration-200 hover:scale-105 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
+                    onPointerDown={(e) => handlePointerDown(e, 0.80)}
+                    onPointerUp={(e) => handlePointerUp(e, "elastic.out(1.35, 0.32)")}
+                    onPointerLeave={handlePointerLeave}
+                    onClick={handleBookTap}
+                    className="group flex flex-col items-center justify-center w-14 h-14 rounded-full bg-white text-black cursor-pointer select-none transform-gpu will-change-transform shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_8px_28px_rgba(255,255,255,0.25),0_0_40px_rgba(255,255,255,0.12)] active:shadow-[0_0_0_1.5px_rgba(255,255,255,0.9),0_2px_12px_rgba(255,255,255,0.18)]"
                     style={{
                       boxShadow: "0 0 0 1.5px rgba(255,255,255,0.9), 0 8px 28px rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.12)",
                     }}
                   >
-                    <Calendar size={22} className="stroke-[2.5] transition-transform duration-200 group-hover:scale-110 group-active:scale-95" />
+                    <Calendar size={22} className="stroke-[2.5] transition-transform duration-300 group-hover:scale-110" />
                     <span className="text-[10px] uppercase tracking-tight font-black mt-0.5">Book</span>
                   </button>
                 </div>
@@ -490,6 +529,9 @@ export function Navbar() {
 
               {/* Services */}
               <button
+                onPointerDown={(e) => handlePointerDown(e)}
+                onPointerUp={(e) => handlePointerUp(e)}
+                onPointerLeave={handlePointerLeave}
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   if (pathname !== "/") {
@@ -501,42 +543,47 @@ export function Navbar() {
                     scrollToSection("services", -80);
                   }
                 }}
-                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white cursor-pointer select-none py-1 transform-gpu will-change-transform"
               >
-                <Sparkles size={20} className="opacity-90 transition-transform duration-200 group-hover:scale-110 group-active:scale-90" />
+                <Sparkles size={20} className="opacity-90 transition-transform duration-300 group-hover:scale-110" />
                 <span className="h-3.5 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold leading-none">Services</span>
               </button>
 
               {/* Menu / Close with Apple Rotational Icon & Flip Morph */}
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] py-1 active:scale-[0.88] active:duration-100 cursor-pointer select-none"
+                onPointerDown={(e) => handlePointerDown(e)}
+                onPointerUp={(e) => handlePointerUp(e)}
+                onPointerLeave={handlePointerLeave}
+                onClick={() => {
+                  setIsMobileMenuOpen(!isMobileMenuOpen);
+                }}
+                className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white cursor-pointer select-none py-1 transform-gpu will-change-transform"
               >
                 <div className="relative w-5 h-5 flex items-center justify-center">
                   <Menu
                     size={20}
                     className={cn(
-                      "absolute inset-0 m-auto transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu",
+                      "absolute inset-0 m-auto transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform-gpu",
                       isMobileMenuOpen ? "opacity-0 rotate-90 scale-75" : "opacity-90 rotate-0 scale-100 text-white/70 group-hover:text-white"
                     )}
                   />
                   <X
                     size={20}
                     className={cn(
-                      "absolute inset-0 m-auto transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu",
+                      "absolute inset-0 m-auto transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform-gpu",
                       isMobileMenuOpen ? "opacity-100 rotate-0 scale-100 text-white" : "opacity-0 -rotate-90 scale-75"
                     )}
                   />
                 </div>
                 <div className="relative h-3.5 w-full overflow-hidden flex items-center justify-center">
                   <span className={cn(
-                    "absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none select-none",
+                    "absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] leading-none select-none",
                     isMobileMenuOpen ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-90"
                   )}>
                     Menu
                   </span>
                   <span className={cn(
-                    "absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] leading-none text-white select-none",
+                    "absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.06em] font-semibold transition-all duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)] leading-none text-white select-none",
                     isMobileMenuOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"
                   )}>
                     Close

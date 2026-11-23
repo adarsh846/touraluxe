@@ -198,7 +198,17 @@ export function FloatingSearch() {
       isButtonClickedRef.current = true;
 
       if (currentlyOpen) {
-        // If already open, refocus search input & select query text (Apple Spotlight UX)
+        // Mobile toggle behavior: tapping Search button when already open closes it cleanly
+        if (isMobile) {
+          isFocusedRef.current = false;
+          isButtonClickedRef.current = true;
+          if (inputRef.current) inputRef.current.blur();
+          setShowSuggestions(false);
+          setIsVisibleWithRef(false);
+          return;
+        }
+
+        // If already open on desktop, refocus search input & select query text (Apple Spotlight UX)
         if (inputRef.current) {
           inputRef.current.focus();
           inputRef.current.select();
