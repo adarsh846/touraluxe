@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { Magnetic } from "./Magnetic";
 import { cn } from "@/lib/utils";
 import { useBooking } from "./BookingProvider";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface WhatsAppButtonProps {
   phoneNumber?: string;
@@ -124,6 +125,7 @@ I would love to get some assistance in handcrafting this experience.`;
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => triggerHaptic("medium")}
         className="whatsapp-anchor-btn group relative flex items-center justify-center w-12 h-12 md:w-[62px] md:h-[62px] rounded-full bg-black/80 md:bg-black/90 border border-[#25D366]/30 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9),0_0_40px_rgba(0,0,0,0.6),0_0_20px_rgba(37,211,102,0.15),inset_0_1px_1px_rgba(255,255,255,0.15)] hover:border-[#25D366]/50 transition-all duration-500 hover:scale-[1.08] active:scale-[0.93] z-20"
       >
         {/* Subtle green tint overlay default */}

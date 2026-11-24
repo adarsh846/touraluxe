@@ -13,6 +13,7 @@ import { getPackageManifest } from "@/lib/manifestCache";
 import { MAJOR_DESTINATIONS } from "@/lib/geography";
 import { WhatsAppButton } from "./WhatsAppButton";
 import { getSettings, getCachedSettingsSync } from "@/lib/settingsCache";
+import { triggerHaptic } from "@/lib/haptics";
 
 // Jaro-Winkler helper for typo-tolerant suggest-ahead matching
 function getJaroWinkler(s1: string, s2: string): number {
@@ -330,6 +331,7 @@ export function FloatingSearch() {
   // Apple-grade unified dismiss routine — triggers the full stationary Dynamic Island exit animation
   const handleDismiss = useCallback(() => {
     if (!isVisibleRef.current && !isFocusedRef.current) return;
+    triggerHaptic("light");
     isFocusedRef.current = false;
     isButtonClickedRef.current = true;
     if (inputRef.current) inputRef.current.blur();

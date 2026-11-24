@@ -43,3 +43,17 @@ next-env.d.ts
 # scratch
 /scratch
 
+# mobile builds & IDE
+*.apk
+*.aab
+.idea/
+.gradle/
+**/android/local.properties
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/ios/DerivedData/
+**/ios/App/build/
+**/ios/App/Pods/
+
+

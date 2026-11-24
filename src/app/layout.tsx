@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { GsapConfig } from "@/components/GsapConfig";
 import { ClientFixes } from "@/components/ClientFixes";
+import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { PwaRegister } from "@/components/PwaRegister";
 import { CustomCursor } from "@/components/CustomCursor";
 import Providers from "@/components/Providers";
@@ -15,6 +16,8 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -76,6 +79,7 @@ export default function RootLayout({
           <CustomCursor />
           <PwaRegister />
           <ClientFixes />
+          <NativeAppBridge />
           {children}
           {modal}
         </Providers>

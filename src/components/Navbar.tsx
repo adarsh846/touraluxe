@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Magnetic } from "@/components/Magnetic";
 import { useBooking } from "./BookingProvider";
 import { useRouter, usePathname } from "next/navigation";
+import { triggerHaptic } from "@/lib/haptics";
 
 const NAV_LINKS = [
   { name: "New Journey", href: "featured", offset: 0 },
@@ -186,6 +187,7 @@ export function Navbar() {
 
   // ─── Apple Kinetic Spring Tactile Feedback for Mobile Pill Buttons ───
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>, targetScale = 0.85) => {
+    triggerHaptic("selection");
     gsap.killTweensOf(e.currentTarget);
     gsap.to(e.currentTarget, { scale: targetScale, duration: 0.10, ease: "power2.out", force3D: true });
   };
@@ -201,6 +203,7 @@ export function Navbar() {
   };
 
   const handleBookTap = (e: React.MouseEvent<HTMLButtonElement>) => {
+    triggerHaptic("medium");
     const el = e.currentTarget;
     gsap.killTweensOf(el);
     gsap.timeline({
@@ -452,7 +455,7 @@ export function Navbar() {
       {/* ── Mobile Bottom Pill Navigation (iOS 26 Style) ── */}
       <div
         ref={pillWrapperRef}
-        className="fixed bottom-6 left-0 right-0 mx-auto z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md transform-gpu will-change-[transform,opacity] touch-manipulation"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 mx-auto z-[60] xl:hidden w-[calc(100%-2.5rem)] max-w-sm sm:max-w-md transform-gpu will-change-[transform,opacity] touch-manipulation"
         style={{ opacity: 0, backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
       >
         {/* iOS 26 gradient border ring: bright top rim, fading sides, pure dark black bottom */}
