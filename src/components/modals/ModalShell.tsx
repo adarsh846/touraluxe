@@ -8,6 +8,7 @@ import { X, ArrowLeft, AlertCircle, Check } from "lucide-react";
 import { Magnetic } from "../Magnetic";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
 
 
 // Placeholder for content components
@@ -79,6 +80,7 @@ export function ModalShell() {
   }, []);
 
   const handleBackAction = useCallback(() => {
+    triggerHaptic("light");
     if (backHandlerRef.current) {
       const handled = backHandlerRef.current();
       if (handled) return;
@@ -95,6 +97,7 @@ export function ModalShell() {
 
   useEffect(() => {
     if (error && alertRef.current) {
+      triggerHaptic("error");
       const element = alertRef.current;
       const tl = gsap.timeline();
       tl.fromTo(element, 

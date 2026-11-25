@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { ChevronDown, X, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Package } from "@/lib/supabase";
+import { triggerHaptic } from "@/lib/haptics";
 
 export interface FilterState {
   duration: string[];
@@ -87,6 +88,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
 
   const setFilter = useCallback(
     (key: keyof FilterState, value: string) => {
+      triggerHaptic("selection");
       if (key === 'sort') {
         onChange({ ...filters, [key]: value });
         setOpenDropdown(null);
@@ -111,6 +113,7 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
   }, [filters]);
 
   const clearFilters = useCallback(() => {
+    triggerHaptic("light");
     onChange({
       duration: [],
       budget: [],
@@ -159,7 +162,10 @@ export function FilterBar({ packages, filters, onChange, resultCount }: FilterBa
           return (
             <div key={key} className="relative shrink-0">
               <button
-                onClick={() => setOpenDropdown(openDropdown === key ? null : key)}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setOpenDropdown(openDropdown === key ? null : key);
+                }}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold transition-all border whitespace-nowrap",
                   isActive

@@ -402,7 +402,7 @@ export function Navbar() {
                         : "opacity-0 translate-y-6"
                     )}
                     style={{ transitionDelay: isMobileMenuOpen ? `${80 + i * 60}ms` : "0ms" }}
-                    onClick={() => { scrollToSection(link.href, link.offset); setIsMobileMenuOpen(false); }}
+                    onClick={() => { triggerHaptic("medium"); scrollToSection(link.href, link.offset); setIsMobileMenuOpen(false); }}
                   >
                     {link.name}
                   </button>
@@ -419,7 +419,7 @@ export function Navbar() {
             >
               <Magnetic className="flex-1">
                 <button
-                  onClick={() => { openModal('PORTAL'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { triggerHaptic("medium"); openModal('PORTAL'); setIsMobileMenuOpen(false); }}
                   className="w-full rounded-full bg-white px-6 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-widest text-black transition-transform hover:scale-105 text-center shadow-xl"
                 >
                   Track Your Booking
@@ -558,6 +558,7 @@ export function Navbar() {
                 onPointerUp={(e) => handlePointerUp(e)}
                 onPointerLeave={handlePointerLeave}
                 onClick={() => {
+                  triggerHaptic(isMobileMenuOpen ? "light" : "medium");
                   setIsMobileMenuOpen(!isMobileMenuOpen);
                 }}
                 className="group relative flex flex-col items-center justify-center flex-1 gap-1 text-white/70 hover:text-white cursor-pointer select-none py-1 transform-gpu will-change-transform"

@@ -203,6 +203,7 @@ export function FloatingSearch() {
         if (isMobile) {
           isFocusedRef.current = false;
           isButtonClickedRef.current = true;
+          triggerHaptic("light");
           if (inputRef.current) inputRef.current.blur();
           setShowSuggestions(false);
           setIsVisibleWithRef(false);
@@ -233,6 +234,7 @@ export function FloatingSearch() {
         }
       } else {
         // Tap (Closed → Open): Launch with Dynamic Island seed drop spring animation
+        triggerHaptic("medium");
         setIsVisibleWithRef(true);
         setTimeout(() => {
           if (inputRef.current) inputRef.current.focus();
@@ -673,6 +675,7 @@ export function FloatingSearch() {
         setShowSuggestions(false);
         if (isMobile && isVisibleRef.current) {
           isButtonClickedRef.current = true;
+          triggerHaptic("light");
           if (inputRef.current) inputRef.current.blur();
           setIsVisibleWithRef(false);
         }
@@ -1422,6 +1425,7 @@ export function FloatingSearch() {
                         // iOS Safari swallows onClick when the virtual keyboard is dismissing.
                         // onTouchEnd fires reliably before the OS consumes the gesture.
                         e.preventDefault(); // Prevent the subsequent synthetic click
+                        triggerHaptic("medium");
                         setSearchValue(item.label);
                         triggerSearch(item.label);
                         if (isMobile) {

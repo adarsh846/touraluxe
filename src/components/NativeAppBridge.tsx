@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { installGlobalTouchHaptics } from "@/lib/haptics";
 
 export function NativeAppBridge() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    const cleanupGlobalHaptics = installGlobalTouchHaptics();
     let cleanupBackButton: (() => void) | undefined;
 
     // Dynamically initialize Capacitor native runtime features
@@ -62,6 +64,7 @@ export function NativeAppBridge() {
     initNativeRuntime();
 
     return () => {
+      cleanupGlobalHaptics();
       if (cleanupBackButton) cleanupBackButton();
     };
   }, []);

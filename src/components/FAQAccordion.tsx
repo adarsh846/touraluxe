@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface FAQItem {
   question: string;
@@ -40,7 +41,10 @@ export function FAQAccordion({ items, title = "Frequently Asked Questions" }: FA
               )}
             >
               <button
-                onClick={() => setOpenIndex(isOpen ? null : i)}
+                onClick={() => {
+                  triggerHaptic("selection");
+                  setOpenIndex(isOpen ? null : i);
+                }}
                 className="w-full flex items-center justify-between p-5 md:p-6 text-left gap-4 cursor-pointer select-none"
               >
                 <span className={cn(

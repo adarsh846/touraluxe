@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, memo, useMemo } from "react";
 import Image from "next/image";
 import { Magnetic } from "../Magnetic";
+import { triggerHaptic } from "@/lib/haptics";
 import { 
   Search, 
   Compass, 
@@ -107,10 +108,12 @@ export const PortalContent = memo(function PortalContent({
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!referenceId.trim()) {
+      triggerHaptic("warning");
       setError("Booking Reference ID is required.");
       return;
     }
     if (!verificationValue.trim()) {
+      triggerHaptic("warning");
       setError(`Verified ${verificationType === "email" ? "email address" : "phone number"} is required.`);
       return;
     }
@@ -136,8 +139,10 @@ export const PortalContent = memo(function PortalContent({
         throw new Error(data.error || "Verification failed. Check reference ID and contact details.");
       }
 
+      triggerHaptic("success");
       setBooking(data.booking);
     } catch (err: any) {
+      triggerHaptic("error");
       setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);

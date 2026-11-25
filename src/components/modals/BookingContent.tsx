@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, memo } from "react";
+import { triggerHaptic } from "@/lib/haptics";
 import {
   X,
   ArrowLeft,
@@ -952,6 +953,7 @@ export const BookingContent = memo(function BookingContent({
   }, [destination, internalPackage?.title, defaultImage, internalPackage, visualManifest, dynamicImage, dynamicVideo]);
 
   const handlePackageSelect = (pkg: any) => {
+    triggerHaptic("medium");
     // Dismiss virtual keyboard on mobile devices immediately before modal transition
     if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -1764,12 +1766,15 @@ Please confirm my booking. Thank you!`;
           window.open(waUrl, "_blank");
         }
 
+        triggerHaptic("success");
         setStep(3);
       } else {
+        triggerHaptic("error");
         console.warn("Booking Submission Error:", res.error);
         setError?.(res.error || "Failed to establish journey. Please verify your connection.");
       }
     } catch (err) {
+      triggerHaptic("error");
       console.warn("Sovereign Submission Failure:", err);
       setError?.("Failed to establish journey. Please verify your connection.");
     } finally {
@@ -2676,6 +2681,11 @@ Please confirm my booking. Thank you!`;
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          if (t.count <= t.min) {
+                                            triggerHaptic("warning");
+                                            return;
+                                          }
+                                          triggerHaptic("selection");
                                           t.set(Math.max(t.min, t.count - 1));
                                           setPinnedTooltip(null);
                                         }}
@@ -2690,6 +2700,7 @@ Please confirm my booking. Thank you!`;
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          triggerHaptic("selection");
                                           t.set(t.count + 1);
                                           setPinnedTooltip(null);
                                         }}
